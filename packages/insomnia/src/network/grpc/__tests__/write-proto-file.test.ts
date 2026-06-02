@@ -6,7 +6,11 @@ import path from 'path';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
-import { writeProtoFile } from '../write-proto-file';
+import {
+  assertSafeNameSegment,
+  assertWithinRoot,
+  writeProtoFile,
+} from '../write-proto-file';
 
 describe('writeProtoFile', () => {
   let existsSyncSpy: SpyInstance<any>;
@@ -252,6 +256,40 @@ describe('writeProtoFile', () => {
       expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
+    it('refuses to write when a directory name contains path traversal', async () => {
+      const w = await models.workspace.create();
+      const pdRoot = await models.protoDirectory.create({
+        parentId: w._id,
+        name: '../../escape',
+      });
+      const pf = await models.protoFile.create({
+        parentId: pdRoot._id,
+        name: 'evil.proto',
+        protoText: 'attacker-controlled',
+      });
+      _configureSpies(path.join('.', 'foo', 'bar', 'baz'), false);
+
+      await expect(writeProtoFile(pf)).rejects.toThrow(/Invalid proto directory name/);
+      expect(writeFileSpy).not.toHaveBeenCalled();
+    });
+
+    it('refuses to write when a file name contains a path separator', async () => {
+      const w = await models.workspace.create();
+      const pdRoot = await models.protoDirectory.create({
+        parentId: w._id,
+        name: 'rootDir',
+      });
+      const pf = await models.protoFile.create({
+        parentId: pdRoot._id,
+        name: '../../etc/passwd',
+        protoText: 'attacker-controlled',
+      });
+      _configureSpies(path.join('.', 'foo', 'bar', 'baz'), false);
+
+      await expect(writeProtoFile(pf)).rejects.toThrow(/Invalid proto file name/);
+      expect(writeFileSpy).not.toHaveBeenCalled();
+    });
+
     it('should write file when forced, even if it already exists', async () => {
       // Arrange
       const w = await models.workspace.create();
@@ -301,5 +339,57 @@ describe('writeProtoFile', () => {
       expect(existsSyncSpy).not.toHaveBeenCalledWith(expectedFullPath.nested); // Not called due to force flag
       expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath.nested, pfNested.protoText);
     });
+  });
+});
+
+describe('assertSafeNameSegment', () => {
+  it.each(['service.proto', 'subdir', 'my-service_v2.proto', 'a', 'a.b.c.proto'])(
+    'allows valid name %p',
+    name => {
+      expect(() => assertSafeNameSegment(name, 'proto file')).not.toThrow();
+    },
+  );
+
+  it.each([
+    '..',
+    '.',
+    '../etc',
+    '../../passwd',
+    'foo/bar',
+    'foo\\bar',
+    '/abs/path',
+    'foo\0bar',
+    '',
+  ])('rejects malicious / malformed name %p', name => {
+    expect(() => assertSafeNameSegment(name, 'proto file')).toThrow(/Invalid proto file name/);
+  });
+
+  it('rejects non-string input', () => {
+    expect(() => assertSafeNameSegment(undefined as unknown as string, 'proto directory')).toThrow();
+  });
+
+  it('uses the kind label in the error message', () => {
+    expect(() => assertSafeNameSegment('../escape', 'proto directory')).toThrow(/Invalid proto directory name/);
+  });
+});
+
+describe('assertWithinRoot', () => {
+  const root = path.join('/tmp', 'insomnia-grpc', 'abc.123');
+
+  it('allows a child inside the root', () => {
+    expect(() => assertWithinRoot(root, path.join(root, 'service.proto'))).not.toThrow();
+    expect(() => assertWithinRoot(root, path.join(root, 'sub', 'service.proto'))).not.toThrow();
+  });
+
+  it('rejects a sibling of the root', () => {
+    expect(() => assertWithinRoot(root, path.join('/tmp', 'insomnia-grpc', 'evil'))).toThrow(/escapes parent/);
+  });
+
+  it('rejects a parent escape', () => {
+    expect(() => assertWithinRoot(root, path.join('/tmp', 'evil'))).toThrow(/escapes parent/);
+  });
+
+  it('rejects an absolute path outside root', () => {
+    expect(() => assertWithinRoot(root, '/etc/passwd')).toThrow(/escapes parent/);
   });
 });

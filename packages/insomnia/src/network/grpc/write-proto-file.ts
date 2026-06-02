@@ -14,6 +14,35 @@ interface WriteResult {
   dirs: string[];
 }
 
+// A ProtoDirectory / ProtoFile `name` becomes a path segment on disk via
+// path.join. A malicious value (`../../etc/passwd`, absolute path, embedded
+// slash) lets an attacker who can populate the model — e.g. by getting the
+// user to import a crafted workspace JSON — write arbitrary content anywhere
+// the user can write. Require each name to be a single filesystem-safe
+// component.
+export const assertSafeNameSegment = (name: string, kind: 'proto file' | 'proto directory'): void => {
+  if (typeof name !== 'string'
+    || name.length === 0
+    || name === '.'
+    || name === '..'
+    || name.includes('/')
+    || name.includes('\\')
+    || name.includes('\0')
+    || path.isAbsolute(name)
+    || path.basename(name) !== name) {
+    throw new Error(`Invalid ${kind} name: ${JSON.stringify(name)}`);
+  }
+};
+
+// Defense in depth: even after segment validation, confirm path.join did not
+// produce a result outside the intended parent. Throws on any escape.
+export const assertWithinRoot = (parent: string, child: string): void => {
+  const rel = path.relative(parent, child);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(`Path escapes parent directory: ${JSON.stringify(child)}`);
+  }
+};
+
 const recursiveWriteProtoDirectory = async (
   dir: ProtoDirectory,
   descendants: BaseModel[],
@@ -21,12 +50,16 @@ const recursiveWriteProtoDirectory = async (
   forceWrite: boolean,
 ): Promise<string[]> => {
   // Increment folder path
+  assertSafeNameSegment(dir.name, 'proto directory');
   const dirPath = path.join(currentDirPath, dir.name);
+  assertWithinRoot(currentDirPath, dirPath);
   fs.mkdirSync(dirPath, { recursive: true });
   // Get and write proto files
   const files = descendants.filter(isProtoFile).filter(f => f.parentId === dir._id);
   await Promise.all(files.map(protoFile => {
+    assertSafeNameSegment(protoFile.name, 'proto file');
     const fullPath = path.join(dirPath, protoFile.name);
+    assertWithinRoot(dirPath, fullPath);
     if (!forceWrite && fs.existsSync(fullPath)) {
       return;
     }

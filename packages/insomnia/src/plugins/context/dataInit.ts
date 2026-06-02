@@ -15,6 +15,10 @@ export const init = (activeProjectId?: string) => ({
 
         const content = await fetchImportContentFromURI({
           uri,
+          // Plugins are user-installed and already run with full Node.js
+          // privileges in the renderer; permitting file:// here doesn't
+          // widen the trust boundary.
+          allowLocalFiles: true,
         });
 
         await scanResources({

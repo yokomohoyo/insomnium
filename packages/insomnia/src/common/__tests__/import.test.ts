@@ -180,3 +180,28 @@ describe('importRaw()', () => {
   });
 
 });
+
+describe('fetchImportContentFromURI()', () => {
+  it.each([
+    'file:///etc/passwd',
+    'file:///Users/victim/.ssh/id_rsa',
+    'file://localhost/etc/passwd',
+  ])('rejects file:// by default — %p', async uri => {
+    await expect(importUtil.fetchImportContentFromURI({ uri })).rejects.toThrow(
+      /Unsupported import URI scheme/,
+    );
+  });
+
+  it.each(['ftp://attacker.com/x', 'gopher://attacker.com/x'])(
+    'rejects other non-http(s) schemes — %p',
+    async uri => {
+      await expect(importUtil.fetchImportContentFromURI({ uri })).rejects.toThrow(
+        /Unsupported import URI scheme/,
+      );
+      // Also rejected even when local files are explicitly allowed:
+      await expect(
+        importUtil.fetchImportContentFromURI({ uri, allowLocalFiles: true }),
+      ).rejects.toThrow(/Unsupported import URI scheme/);
+    },
+  );
+});

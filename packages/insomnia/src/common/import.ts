@@ -1,5 +1,3 @@
-import { readFile } from 'fs/promises';
-
 import { ApiSpec, isApiSpec } from '../models/api-spec';
 import { CookieJar, isCookieJar } from '../models/cookie-jar';
 import { BaseEnvironment, Environment, isEnvironment } from '../models/environment';
@@ -39,7 +37,9 @@ export const isSubEnvironmentResource = (environment: Environment) => {
 export const isInsomniaV4Import = ({ id }: Pick<InsomniaImporter, 'id'>) =>
   id === 'insomnia-4';
 
-export async function fetchImportContentFromURI({ uri }: { uri: string }) {
+export async function fetchImportContentFromURI(
+  { uri, allowLocalFiles = false }: { uri: string; allowLocalFiles?: boolean },
+) {
   const url = new URL(uri);
 
   if (url.origin === 'https://github.com') {
@@ -48,18 +48,29 @@ export async function fetchImportContentFromURI({ uri }: { uri: string }) {
       .replace('blob/', '');
   }
 
-  if (uri.match(/^(http|https):\/\//)) {
+  if (uri.match(/^https?:\/\//)) {
     const response = await fetch(uri);
     const content = await response.text();
 
     return content;
-  } else if (uri.match(/^(file):\/\//)) {
-    const path = uri.replace(/^(file):\/\//, '');
-    const content = await readFile(path, 'utf8');
-
-    return content;
+  } else if (uri.match(/^file:\/\//)) {
+    // file:// is opt-in. Callers reachable from untrusted input (deep links,
+    // anything driven by `params.uri` from a `shell:open` event) must NOT set
+    // allowLocalFiles; otherwise a `insomnia://app/import?uri=file:///…` link
+    // would read arbitrary user-readable files into the workspace.
+    // Trusted callers (the plugin context's `data.import.uri`) opt in.
+    if (!allowLocalFiles) {
+      throw new Error('Unsupported import URI scheme. Only http(s) URLs are allowed.');
+    }
+    const path = uri.replace(/^file:\/\//, '');
+    const { readFile } = await import('fs/promises');
+    return readFile(path, 'utf8');
+  } else if (uri.match(/^[a-z][a-z0-9+.-]*:\/\//i)) {
+    // Any other scheme (data:, ftp:, javascript:, etc.) is always rejected.
+    throw new Error('Unsupported import URI scheme. Only http(s) URLs are allowed.');
   } else {
-    // Treat everything else as raw text
+    // Treat everything else (no scheme) as raw text — preserves the "paste
+    // YAML/JSON into the URL field" UX.
     const content = decodeURIComponent(uri);
 
     return content;
