@@ -43,6 +43,8 @@ const config = {
   },
   fileAssociations: [],
   mac: {
+    // Skip code signing for local/dev builds. CI sets CSC_LINK to enable signing.
+    identity: process.env.CSC_LINK ? undefined : null,
     hardenedRuntime: true,
     category: "public.app-category.developer-tools",
     entitlements: "./build/static/entitlements.mac.inherit.plist",
@@ -61,9 +63,9 @@ const config = {
     extendInfo: {
       NSRequiresAquaSystemAppearance: false,
     },
-    notarize: {
-      teamId: "679M9248WK",
-    },
+    // electron-builder 26 expects boolean here. To notarize, set
+    // APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD env vars (or use APPLE_API_KEY*).
+    notarize: false,
     asarUnpack: ["node_modules/@getinsomnia/node-libcurl"],
   },
   dmg: {
@@ -109,11 +111,13 @@ const config = {
     synopsis: "The Collaborative API Client and Design Tool",
     category: "Development",
     desktop: {
-      Name: "Insomnium",
-      Comment:
-        "Insomnium is a cross-platform REST client, built on top of Electron.",
-      Categories: "Development",
-      Keywords: "GraphQL;REST;gRPC;SOAP;openAPI;GitOps;",
+      entry: {
+        Name: "Insomnium",
+        Comment:
+          "Insomnium is a cross-platform REST client, built on top of Electron.",
+        Categories: "Development",
+        Keywords: "GraphQL;REST;gRPC;SOAP;openAPI;GitOps;",
+      },
     },
     target: [
       {

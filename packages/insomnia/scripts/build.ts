@@ -104,8 +104,9 @@ export const start = async () => {
     `[build] node: ${childProcess.spawnSync('node', ['--version']).stdout}`.trim()
   );
 
-  if (process.version.indexOf('v18.') !== 0) {
-    console.log('[build] Node v18.x.x is required to build');
+  const major = parseInt(process.versions.node.split('.')[0], 10);
+  if (major < 24) {
+    console.log('[build] Node 24+ is required to build');
     process.exit(1);
   }
 
