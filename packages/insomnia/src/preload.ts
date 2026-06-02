@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 import { gRPCBridgeAPI } from './main/ipc/grpc';
 import { CurlBridgeAPI } from './main/network/curl';
@@ -64,6 +64,7 @@ const main: Window['main'] = {
   axiosRequest: options => ipcRenderer.invoke('axiosRequest', options),
   insomniaFetch: options => ipcRenderer.invoke('insomniaFetch', options),
   showContextMenu: options => ipcRenderer.send('show-context-menu', options),
+  webUtilsGetPathForFile: (file: File) => webUtils.getPathForFile(file),
 };
 const dialog: Window['dialog'] = {
   showOpenDialog: options => ipcRenderer.invoke('showOpenDialog', options),

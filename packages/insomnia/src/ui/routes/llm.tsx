@@ -44,7 +44,7 @@ export const LLMRoute: FC = () => {
   };
   const getErrorStack = (err: any) => {
     if (isRouteErrorResponse(err)) {
-      return err.error?.stack;
+      return (err as any).error?.stack;
     }
     return err?.stack;
   };

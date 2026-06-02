@@ -37,6 +37,13 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       exclude: ['@getinsomnia/node-libcurl'],
     },
+    resolve: {
+      alias: {
+        // Vite 6's CJS interop loads this UMD bundle without a `default` export.
+        // Route it through the electron-node-require plugin so it goes via Node `require()`.
+        'nunjucks/browser/nunjucks': 'virtual:external:nunjucks',
+      },
+    },
     plugins: [
       // Allows us to import modules that will be resolved by Node's require() function.
       // e.g. import fs from 'fs'; will get transformed to const fs = require('fs'); so that it works in the renderer process.

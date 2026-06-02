@@ -11,8 +11,8 @@
   },
   "homepage": "https://github.com/ArchGPT/insomnium#readme",
   "engines": {
-    "node": ">=18.18.2",
-    "npm": ">=8.19.0"
+    "node": ">=24.14.0",
+    "npm": ">=11.0.0"
   },
   "workspaces": [
     "packages/insomnia-testing",
@@ -42,7 +42,6 @@
     "download-all-npm-plugins": "esr ./scripts/download-all-npm-plugins.ts"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^6.4.2",
     "@jest/globals": "^28.1.0",
     "@jest/types": "^28.1.0",
     "@types/chai": "^4.3.5",
@@ -52,7 +51,7 @@
     "@types/svgo": "^2.6.3",
     "@typescript-eslint/eslint-plugin": "^6.3.0",
     "@typescript-eslint/parser": "^6.3.0",
-    "esbuild": "^0.16.0",
+    "esbuild": "^0.25.12",
     "esbuild-runner": "^2.2.2",
     "eslint": "^8.44.0",
     "eslint-config-helpers": "^1.2.0",
@@ -65,7 +64,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-simple-import-sort": "^10.0.0",
     "jest": "^28.1.0",
-    "svg-text-to-path": "^1.1.2",
+    "svg-text-to-path": "^2.1.0",
     "svgo": "^2.8.0",
     "ts-jest": "^28.0.1",
     "tslib": "2.0.1",

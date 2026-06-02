@@ -198,13 +198,13 @@ const FileField: FC = () => {
         )}
         {selectedFile && (
           <Fragment key={selectedFile.name}>
-            <FileView key={selectedFile.path}>
+            <FileView key={window.main.webUtilsGetPathForFile(selectedFile)}>
               <div>
                 <i className="fa fa-file fa-xl" />
               </div>
               {selectedFile.name}
             </FileView>
-            <input type="hidden" name="filePath" value={selectedFile.path} />
+            <input type="hidden" name="filePath" value={window.main.webUtilsGetPathForFile(selectedFile)} />
           </Fragment>
         )}
       </FileInputLabel>

@@ -41,6 +41,7 @@ export interface MainBridgeAPI {
   axiosRequest: typeof axiosRequest;
   insomniaFetch: typeof insomniaFetch;
   showContextMenu: (options: { key: string }) => void;
+  webUtilsGetPathForFile: (file: File) => string;
 }
 export function registerMainHandlers() {
   ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
