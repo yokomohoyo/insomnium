@@ -144,7 +144,7 @@ export function createWindow() {
       {
         label: `${MNEMONIC_SYM}Preferences`,
         click: function(_menuItem, window) {
-          if (!window || !window.webContents) {
+          if (!(window instanceof BrowserWindow)) {
             return;
           }
 
@@ -154,7 +154,7 @@ export function createWindow() {
       {
         label: `${MNEMONIC_SYM}Changelog`,
         click: function(_menuItem, window) {
-          if (!window || !window.webContents) {
+          if (!(window instanceof BrowserWindow)) {
             return;
           }
           const href = changelogUrl();
@@ -355,7 +355,7 @@ export function createWindow() {
         label: `${MNEMONIC_SYM}Keyboard Shortcuts`,
         accelerator: 'CmdOrCtrl+Shift+?',
         click: (_menuItem, w) => {
-          if (!w || !w.webContents) {
+          if (!(w instanceof BrowserWindow)) {
             return;
           }
 
@@ -481,13 +481,17 @@ export function createWindow() {
       {
         label: `${MNEMONIC_SYM}Clear a model`,
         click: function(_menuItem, window) {
-          window?.webContents?.send('clear-model');
+          if (window instanceof BrowserWindow) {
+            window.webContents.send('clear-model');
+          }
         },
       },
       {
         label: `Clear ${MNEMONIC_SYM}all models`,
         click: function(_menuItem, window) {
-          window?.webContents?.send('clear-all-models');
+          if (window instanceof BrowserWindow) {
+            window.webContents.send('clear-all-models');
+          }
         },
       },
       {
