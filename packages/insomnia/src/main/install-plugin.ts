@@ -5,7 +5,8 @@ import * as electron from 'electron';
 import { app } from 'electron';
 import path from 'path';
 
-import { isDevelopment, isWindows } from '../common/constants';
+import { isDevelopment } from '../common/constants';
+import { assertValidPackageSpec } from './validate-package-spec';
 
 const YARN_DEPRECATED_WARN = /(?<keyword>warning)(?<dependencies>[^>:].+[>:])(?<issue>.+)/;
 
@@ -46,6 +47,7 @@ export default async function(lookupName: string) {
     let info: InsomniaPlugin | null = null;
 
     try {
+      assertValidPackageSpec(lookupName);
       info = await _isInsomniaPlugin(lookupName);
       // Get actual module name without version suffixes and things
       const moduleName = info.name;
@@ -92,11 +94,13 @@ export default async function(lookupName: string) {
 async function _isInsomniaPlugin(lookupName: string) {
   return new Promise<InsomniaPlugin>((resolve, reject) => {
     console.log('[plugins] Fetching module info from npm');
+    // shell:false (default) — args are passed verbatim to the child, so
+    // shell metacharacters in lookupName cannot be interpreted as code.
     childProcess.execFile(
-      escape(process.execPath),
+      process.execPath,
       [
         '--no-deprecation', // Because Yarn still uses `new Buffer()`
-        escape(_getYarnPath()),
+        _getYarnPath(),
         'info',
         lookupName,
         '--json',
@@ -104,7 +108,6 @@ async function _isInsomniaPlugin(lookupName: string) {
       {
         timeout: 5 * 60 * 1000,
         maxBuffer: 1024 * 1024,
-        shell: true,
         env: {
           NODE_ENV: 'production',
           ELECTRON_RUN_AS_NODE: 'true',
@@ -165,17 +168,19 @@ async function _installPluginToTmpDir(lookupName: string) {
     await writeFile(path.join(tmpDir, 'package.json'), JSON.stringify({ license: 'ISC', workspaces: [] }), 'utf-8');
 
     console.log(`[plugins] Installing plugin to ${tmpDir}`);
+    // shell:false (default) — args are passed verbatim to the child, so
+    // shell metacharacters in lookupName cannot be interpreted as code.
     childProcess.execFile(
-      escape(process.execPath),
+      process.execPath,
       [
         '--no-deprecation', // Because Yarn still uses `new Buffer()`
-        escape(_getYarnPath()),
+        _getYarnPath(),
         'add',
         lookupName,
         '--modules-folder',
-        escape(tmpDir),
+        tmpDir,
         '--cwd',
-        escape(tmpDir),
+        tmpDir,
         '--no-lockfile',
         '--production',
         '--no-progress',
@@ -185,8 +190,6 @@ async function _installPluginToTmpDir(lookupName: string) {
         timeout: 5 * 60 * 1000,
         maxBuffer: 1024 * 1024,
         cwd: tmpDir,
-        shell: true,
-        // Some package installs require a shell
         env: {
           NODE_ENV: 'production',
           ELECTRON_RUN_AS_NODE: 'true',
@@ -252,15 +255,5 @@ function _getYarnPath() {
     return path.resolve(app.getAppPath(), './bin/yarn-standalone.js');
   } else {
     return path.resolve(app.getAppPath(), '../bin/yarn-standalone.js');
-  }
-}
-
-function escape(p: string) {
-  if (isWindows()) {
-    // Quote for Windows paths
-    return `"${p}"`;
-  } else {
-    // Escape whitespace and parenthesis with backslashes for Unix paths
-    return p.replace(/([\s()])/g, '\\$1');
   }
 }
