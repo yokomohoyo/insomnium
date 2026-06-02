@@ -7,7 +7,15 @@ export async function createPlugin(
   version: string,
   mainJs: string,
 ) {
-  const pluginDir = path.join(process.env['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins', moduleName);
+  const pluginsRoot = path.join(process.env['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
+  const pluginDir = path.join(pluginsRoot, moduleName);
+
+  // Defense in depth: callers are expected to validate moduleName, but assert
+  // here that no `..` / absolute path / drive letter escape the plugins root.
+  const rel = path.relative(pluginsRoot, pluginDir);
+  if (rel.startsWith('..') || path.isAbsolute(rel) || rel.includes(path.sep)) {
+    throw new Error(`Invalid plugin moduleName, escapes plugins root: ${JSON.stringify(moduleName)}`);
+  }
 
   if (fs.existsSync(pluginDir)) {
     throw new Error(`Plugin already exists at "${pluginDir}"`);

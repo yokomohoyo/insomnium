@@ -350,8 +350,11 @@ export const sendAction: ActionFunction = async ({ request, params }) => {
   const is2XXWithBodyPath = responsePatch.statusCode && responsePatch.statusCode >= 200 && responsePatch.statusCode < 300 && responsePatch.bodyPath;
   const shouldWriteToFile = shouldPromptForPathAfterResponse && is2XXWithBodyPath;
   const header = getContentDispositionHeader(responsePatch.headers || []);
+  // path.basename strips any directory components a malicious server might
+  // include in Content-Disposition's filename (e.g. "../../etc/passwd"),
+  // confining the write to the user's chosen downloadPath.
   const name = header
-    ? contentDisposition.parse(header.value).parameters.filename
+    ? path.basename(contentDisposition.parse(header.value).parameters.filename || '')
     : `${req.name.replace(/\s/g, '-').toLowerCase()}.${responsePatch.contentType && mimeExtension(responsePatch.contentType) || 'unknown'}`;
   if (!shouldWriteToFile) {
     const response = await models.response.create(responsePatch, settings.maxHistoryResponses);

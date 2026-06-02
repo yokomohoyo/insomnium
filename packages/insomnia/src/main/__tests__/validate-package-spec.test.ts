@@ -1,6 +1,11 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { assertValidPackageSpec, isValidPackageSpec } from '../validate-package-spec';
+import {
+  assertValidPackageSpec,
+  assertValidThemeName,
+  isValidPackageSpec,
+  isValidThemeName,
+} from '../validate-package-spec';
 
 describe('isValidPackageSpec', () => {
   it.each([
@@ -54,5 +59,53 @@ describe('assertValidPackageSpec', () => {
 
   it('returns void on valid input', () => {
     expect(() => assertValidPackageSpec('lodash')).not.toThrow();
+  });
+});
+
+describe('isValidThemeName', () => {
+  it.each([
+    'one-dark',
+    'midnight',
+    'theme1',
+    'a.b_c-d',
+  ])('allows legit theme name %p', name => {
+    expect(isValidThemeName(name)).toBe(true);
+  });
+
+  it.each([
+    // Path traversal — the actual security issue this guards against:
+    '../../../tmp/evil',
+    '../../etc',
+    '/etc/passwd',
+    'foo/bar',
+    'foo\\bar',
+    '.hidden',
+    '_private',
+    // Shell metachars / spaces / control chars (defense in depth):
+    'foo;evil',
+    'foo bar',
+    'foo\nbar',
+    'foo`evil`',
+    'foo$(evil)',
+    // Empty / too long:
+    '',
+    'a'.repeat(70),
+  ])('rejects malicious / malformed theme name %p', name => {
+    expect(isValidThemeName(name)).toBe(false);
+  });
+
+  it('rejects non-string input', () => {
+    expect(isValidThemeName(undefined as unknown as string)).toBe(false);
+    expect(isValidThemeName({ toString: () => 'evil' } as unknown as string)).toBe(false);
+  });
+});
+
+describe('assertValidThemeName', () => {
+  it('throws on path-traversal input', () => {
+    expect(() => assertValidThemeName('../../../tmp/evil')).toThrow(/Invalid theme name/);
+  });
+
+  it('returns void on valid input', () => {
+    expect(() => assertValidThemeName('one-dark')).not.toThrow();
   });
 });

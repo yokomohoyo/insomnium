@@ -32,6 +32,7 @@ import * as models from '../../models';
 
 import { Settings } from '../../models/settings';
 import { isDesign } from '../../models/workspace';
+import { assertValidThemeName } from '../../main/validate-package-spec';
 import { reloadPlugins } from '../../plugins';
 import { createPlugin } from '../../plugins/create';
 import { setTheme } from '../../plugins/misc';
@@ -158,8 +159,12 @@ const Root = () => {
             });
             break;
 
-          case 'insomnia://plugins/theme':
+          case 'insomnia://plugins/theme': {
             const parsedTheme = JSON.parse(decodeURIComponent(params.theme));
+            // Reject before showing the modal — a malicious deep link should not
+            // get to display a confirmation dialog that, if accepted, would write
+            // outside the plugins directory.
+            assertValidThemeName(parsedTheme.name);
             showModal(AskModal, {
               title: 'Install Theme',
               message: (
@@ -189,6 +194,7 @@ const Root = () => {
               },
             });
             break;
+          }
 
           case 'insomnia://oauth/github/authenticate': {
             const { code, state } = params;

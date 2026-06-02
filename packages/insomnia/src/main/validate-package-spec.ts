@@ -22,3 +22,20 @@ export function assertValidPackageSpec(spec: string): void {
     throw new Error(`Invalid plugin package name: ${JSON.stringify(spec)}`);
   }
 }
+
+// Themes are installed from deep-link payloads (insomnia://plugins/theme?theme=…).
+// The parsed name is interpolated into the on-disk path `userData/plugins/theme-<name>`
+// in createPlugin(), so it must not contain `..`, `/`, `\`, or any character that
+// could be re-interpreted by path joins. Themes don't have versions/scopes — keep
+// this stricter than PACKAGE_SPEC_RE.
+export const THEME_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,62}$/;
+
+export function isValidThemeName(name: string): boolean {
+  return typeof name === 'string' && THEME_NAME_RE.test(name);
+}
+
+export function assertValidThemeName(name: string): void {
+  if (!isValidThemeName(name)) {
+    throw new Error(`Invalid theme name: ${JSON.stringify(name)}`);
+  }
+}
