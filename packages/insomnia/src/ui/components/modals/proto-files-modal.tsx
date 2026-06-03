@@ -13,7 +13,7 @@ import { ModalFooter } from "../base/modal-footer";
 import { ModalHeader } from "../base/modal-header";
 import { ExpandedProtoDirectory, ProtoFileList } from "../proto-file/proto-file-list";
 import { AsyncButton } from "../themed-button";
-import { showAlert, showError } from ".";
+import { showAlert, showError, showPrompt } from ".";
 import * as protoLoader from "../../../network/grpc/proto-loader";
 
 const tryToSelectFilePath = async () => {
@@ -89,6 +89,33 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
   const [selectedId, setSelectedId] = useState(defaultId);
   const [protoDirectories, setProtoDirectories] = useState<ExpandedProtoDirectory[]>([]);
 
+  // Per-workspace token overrides; empty = fall back to global Settings value.
+  const [tokensExpanded, setTokensExpanded] = useState(false);
+  const [wsBufToken, setWsBufToken] = useState("");
+  const [wsGithubToken, setWsGithubToken] = useState("");
+  const [bufHidden, setBufHidden] = useState(true);
+  const [githubHidden, setGithubHidden] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+      setWsBufToken(meta.bufToken || "");
+      setWsGithubToken(meta.githubToken || "");
+    })();
+  }, [workspaceId]);
+
+  const saveBufToken = async (value: string) => {
+    setWsBufToken(value);
+    const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.update(meta, { bufToken: value });
+  };
+
+  const saveGithubToken = async (value: string) => {
+    setWsGithubToken(value);
+    const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.update(meta, { githubToken: value });
+  };
+
   useEffect(() => modalRef.current?.show(), []);
 
   useEffect(() => {
@@ -143,6 +170,46 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
         message: `Some proto files could not be added:\n${addResult.errors.join("\n")}`,
       });
     }
+  };
+
+  const importFromUrl = async (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    try {
+      const workspace = await models.workspace.getById(workspaceId);
+      const settings = await models.settings.getOrCreate();
+      const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+      // Workspace override wins; fall back to global; empty = anonymous.
+      const fetched = await window.main.grpc.fetchProto(trimmed, {
+        bufToken: workspaceMeta.bufToken || settings.bufToken || undefined,
+        githubToken: workspaceMeta.githubToken || settings.githubToken || undefined,
+      });
+      const result = await protoLoader.addProtoFromFetched(fetched, workspace!);
+      if (result.success && result.loaded.length > 0) {
+        setSelectedId(result.loaded[0]._id);
+      }
+      if (result.errors.length > 0) {
+        showError({
+          title: "Some files failed to import",
+          message: result.errors.join("\n"),
+        });
+      }
+    } catch (err) {
+      showError({
+        title: "Failed to fetch proto",
+        message: (err as Error).message,
+      });
+    }
+  };
+
+  const handleImportFromUrl = () => {
+    showPrompt({
+      title: "Import proto from URL",
+      submitName: "Import",
+      placeholder: "github.com/owner/repo/blob/main/svc.proto, buf.build/owner/repo, https://….proto",
+      label: "URL",
+      onComplete: importFromUrl,
+    });
   };
 
   const handleUpdate = async (protoFileOrDir: ProtoFile | ProtoDirectory) => {
@@ -231,9 +298,57 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     <Modal ref={modalRef} onHide={onHide}>
       <ModalHeader>Select Proto File</ModalHeader>
       <ModalBody className="wide pad">
+        <div style={{ marginBottom: "var(--padding-sm)" }}>
+          <button
+            type="button"
+            className="btn btn--super-compact btn--outlined"
+            onClick={() => setTokensExpanded(v => !v)}
+            title="Override the global BSR / GitHub tokens for this workspace only. Empty fields fall back to Preferences → Proto Tokens."
+          >
+            <i className={`fa fa-caret-${tokensExpanded ? "down" : "right"}`} />
+            &nbsp;Workspace token overrides{(wsBufToken || wsGithubToken) ? " (active)" : ""}
+          </button>
+          {tokensExpanded && (
+            <div className="pad-top-sm" style={{ display: "grid", gap: "var(--padding-sm)" }}>
+              <label className="form-control form-control--outlined">
+                <span className="faint txt-sm">BSR token (overrides global)</span>
+                <div style={{ display: "flex", gap: "var(--padding-xs)" }}>
+                  <input
+                    type={bufHidden ? "password" : "text"}
+                    value={wsBufToken}
+                    onChange={e => saveBufToken(e.target.value)}
+                    placeholder="leave blank to use global"
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" className="btn btn--compact" onClick={() => setBufHidden(v => !v)}>
+                    <i className={`fa fa-eye${bufHidden ? "-slash" : ""}`} />
+                  </button>
+                </div>
+              </label>
+              <label className="form-control form-control--outlined">
+                <span className="faint txt-sm">GitHub token (overrides global)</span>
+                <div style={{ display: "flex", gap: "var(--padding-xs)" }}>
+                  <input
+                    type={githubHidden ? "password" : "text"}
+                    value={wsGithubToken}
+                    onChange={e => saveGithubToken(e.target.value)}
+                    placeholder="leave blank to use global"
+                    style={{ flex: 1 }}
+                  />
+                  <button type="button" className="btn btn--compact" onClick={() => setGithubHidden(v => !v)}>
+                    <i className={`fa fa-eye${githubHidden ? "-slash" : ""}`} />
+                  </button>
+                </div>
+              </label>
+            </div>
+          )}
+        </div>
         <div className="row-spaced margin-bottom bold">
           Files
           <span>
+            <button className="btn btn--clicky margin-right-sm" onClick={handleImportFromUrl}>
+              Import from URL
+            </button>
             <AsyncButton className="margin-right-sm" onClick={handleAddDirectory} loadingNode={<i className="fa fa-spin fa-refresh" />}>
               Add Directory
             </AsyncButton>
