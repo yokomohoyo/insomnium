@@ -27,7 +27,7 @@ jobs:
             csc_key_password_secret: ""
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node
         uses: actions/setup-node@v4
