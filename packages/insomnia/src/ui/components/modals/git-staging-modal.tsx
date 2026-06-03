@@ -78,7 +78,7 @@ export const GitStagingModal: FC<ModalProps> = ({
     }
   }, [errors]);
 
-  const [hasDone, setHasDone] = useState(false)
+  const [hasDone, setHasDone] = useState(false);
 
   return (
     <OverlayContainer>

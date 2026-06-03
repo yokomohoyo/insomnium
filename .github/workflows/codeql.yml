@@ -44,9 +44,8 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          # Adds the security-and-quality query suite on top of the default,
-          # which catches more code-smell / hardening issues without flooding
-          # the alerts tab with noise (security-experimental is the noisy one).
+          config-file: ./.github/codeql/codeql-config.yml
+          # security-and-quality on top of default; security-experimental is noisy.
           queries: security-and-quality
 
       - name: Perform CodeQL analysis

@@ -1,0 +1,5 @@
+name: CodeQL config
+
+paths-ignore:
+  # Vendored yarn bundle used by the plugin installer; not our source.
+  - packages/insomnia/bin/yarn-standalone.js

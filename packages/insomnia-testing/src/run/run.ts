@@ -1,6 +1,7 @@
 import chai from 'chai';
 import { unlink, writeFileSync } from 'fs';
 import fs from 'fs';
+import { mkdtempSync } from 'fs';
 import Mocha, { type Reporter, type ReporterConstructor } from 'mocha';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -72,10 +73,9 @@ const runInternal = async <TReturn, TNetworkResponse>(
  * Copy test to tmp dir and return the file path
  */
 const writeTempFile = (sourceCode: string) => {
-  const root = join(tmpdir(), 'insomnia-testing');
-  fs.mkdirSync(root, { recursive: true });
-
-  const path = join(root, `${Math.random()}-test.ts`);
+  // mkdtempSync: atomic, unguessable name — avoids tmp symlink races.
+  const dir = mkdtempSync(join(tmpdir(), 'insomnia-testing-'));
+  const path = join(dir, 'test.ts');
   writeFileSync(path, sourceCode);
   return path;
 };
