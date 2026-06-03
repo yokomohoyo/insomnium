@@ -1,4 +1,4 @@
-import { cp, mkdir, readdir, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, stat, writeFile } from 'node:fs/promises';
 
 import childProcess from 'child_process';
 import * as electron from 'electron';
@@ -162,8 +162,9 @@ async function _isInsomniaPlugin(lookupName: string) {
 
 async function _installPluginToTmpDir(lookupName: string) {
   return new Promise<{ tmpDir: string }>(async (resolve, reject) => {
-    const tmpDir = path.join(electron.app.getPath('temp'), `${lookupName}-${Date.now()}`);
-    await mkdir(tmpDir, { recursive: true });
+    // mkdtemp: atomic, unguessable name — avoids tmp symlink races.
+    const safeName = lookupName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const tmpDir = await mkdtemp(path.join(electron.app.getPath('temp'), `${safeName}-`));
     // Write a dummy package.json so that yarn doesn't traverse up the directory tree
     await writeFile(path.join(tmpDir, 'package.json'), JSON.stringify({ license: 'ISC', workspaces: [] }), 'utf-8');
 

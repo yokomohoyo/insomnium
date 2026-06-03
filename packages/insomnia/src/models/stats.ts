@@ -70,8 +70,8 @@ export async function get() {
   }
 }
 
-export function all() {
-  return db.all<Stats>(type) || [];
+export async function all() {
+  return (await db.all<Stats>(type)) || [];
 }
 
 export async function incrementRequestStats({

@@ -56,6 +56,10 @@ export async function buildMultipart(params: RequestBodyParameter[]) {
       totalSize += buffer.length;
     };
 
+    // RFC 7578 quoted-string; strip CR/LF to block header injection.
+    const escapeQuoted = (s: string) =>
+      s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]/g, '');
+
     for (const param of params) {
       const noName = !param.name;
       const noValue = !(param.value || param.fileName);
@@ -73,8 +77,8 @@ export async function buildMultipart(params: RequestBodyParameter[]) {
         const contentType = lookup(fileName) || 'application/octet-stream';
         addString(
           'Content-Disposition: form-data; ' +
-            `name="${name.replace(/"/g, '\\"')}"; ` +
-            `filename="${path.basename(fileName).replace(/"/g, '\\"')}"`,
+            `name="${escapeQuoted(name)}"; ` +
+            `filename="${escapeQuoted(path.basename(fileName))}"`,
         );
         addString(lineBreak);
         addString(`Content-Type: ${contentType}`);
@@ -90,7 +94,7 @@ export async function buildMultipart(params: RequestBodyParameter[]) {
         const name = param.name || '';
         const value = param.value || '';
         const contentType = param.multiline;
-        addString(`Content-Disposition: form-data; name="${name}"`);
+        addString(`Content-Disposition: form-data; name="${escapeQuoted(name)}"`);
         addString(lineBreak);
 
         if (typeof contentType === 'string') {

@@ -14,6 +14,23 @@ interface WriteResult {
   dirs: string[];
 }
 
+// Reject symlinks at the predictable tmp path (local-attacker pre-create).
+const ensureGrpcRootDir = (): string => {
+  const rootDir = path.join(os.tmpdir(), 'insomnia-grpc');
+  try {
+    fs.mkdirSync(rootDir, { mode: 0o700 });
+  } catch (err: any) {
+    if (err.code !== 'EEXIST') {
+      throw err;
+    }
+  }
+  const st = fs.lstatSync(rootDir);
+  if (st.isSymbolicLink() || !st.isDirectory()) {
+    throw new Error(`insomnia-grpc tmp path is not a regular directory: ${rootDir}`);
+  }
+  return rootDir;
+};
+
 // A ProtoDirectory / ProtoFile `name` becomes a path segment on disk via
 // path.join. A malicious value (`../../etc/passwd`, absolute path, embedded
 // slash) lets an attacker who can populate the model — e.g. by getting the
@@ -100,12 +117,12 @@ export const writeProtoFile = async (protoFile: ProtoFile, forceWrite = false): 
     }
     // Find all descendants of the root ancestor directory
     const descendants = await db.withDescendants(rootAncestorProtoDirectory);
+    const rootDir = ensureGrpcRootDir();
     const treeRootDirs = await recursiveWriteProtoDirectory(
       rootAncestorProtoDirectory,
       descendants,
       path.join(
-        os.tmpdir(),
-        'insomnia-grpc',
+        rootDir,
         `${rootAncestorProtoDirectory._id}.${rootAncestorProtoDirectory.modified}`,
       ),
       forceWrite
@@ -119,9 +136,7 @@ export const writeProtoFile = async (protoFile: ProtoFile, forceWrite = false): 
     };
   } else {
     // Write single file
-    // Create temp folder
-    const rootDir = path.join(os.tmpdir(), 'insomnia-grpc');
-    fs.mkdirSync(rootDir, { recursive: true });
+    const rootDir = ensureGrpcRootDir();
 
     const filePath = `${protoFile._id}.${protoFile.modified}.proto`;
     const result = {

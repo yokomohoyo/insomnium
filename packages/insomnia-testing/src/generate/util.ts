@@ -1,5 +1,6 @@
 export const escapeJsStr = (s: string) => {
-  return s.replace(/'/g, '\\\'');
+  // Escape backslash first so we don't double-escape introduced backslashes.
+  return s.replace(/\\/g, '\\\\').replace(/'/g, '\\\'');
 };
 
 export const indent = (level: number, code: string) => {
