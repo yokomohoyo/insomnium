@@ -9,6 +9,7 @@ import { ProtoDirectory } from "../../models/proto-directory";
 import { ProtoFile } from "../../models/proto-file";
 import { writeProtoFile } from "./write-proto-file";
 import { Workspace } from "../../models/workspace";
+import type { FetchedProto } from "./proto-fetcher";
 
 export type ProtoLoadResult = { success: true; loaded: ProtoFile[]; errors: string[] } | { success: false; errors: string[] };
 
@@ -137,6 +138,91 @@ export async function updateDirectoryFromPath(directoryPath: string, protoDir: P
   }
 
   return { success: true, loaded, errors };
+}
+
+// Persist a fetched bundle (from URL/BSR) as ProtoFile / ProtoDirectory tree.
+// Skips disk-based validation since the content was just downloaded — invalid
+// protos surface as a normal loadMethods error when the user picks the file.
+export async function addProtoFromFetched(fetched: FetchedProto, parent: ProtoDirectory | Workspace): Promise<ProtoLoadResult> {
+  const loaded: ProtoFile[] = [];
+  const errors: string[] = [];
+
+  if (!fetched.isDirectory && fetched.files.length === 1) {
+    const f = fetched.files[0];
+    const newFile = await models.protoFile.create({
+      name: pathBasename(f.path),
+      parentId: parent._id,
+      protoText: f.protoText,
+    });
+    return { success: true, loaded: [newFile], errors };
+  }
+
+  const rootDir = await models.protoDirectory.create({
+    name: sanitizeDirName(fetched.rootName),
+    parentId: parent._id,
+  });
+  // Path -> dir model for in-bundle directories so we attach files to the
+  // right ancestor.
+  const dirCache = new Map<string, ProtoDirectory>([['', rootDir]]);
+
+  const ensureDir = async (relDir: string): Promise<ProtoDirectory> => {
+    if (dirCache.has(relDir)) return dirCache.get(relDir)!;
+    const parts = relDir.split('/').filter(Boolean);
+    let currentKey = '';
+    let currentDir: ProtoDirectory = rootDir;
+    for (const part of parts) {
+      const nextKey = currentKey ? `${currentKey}/${part}` : part;
+      let next = dirCache.get(nextKey);
+      if (!next) {
+        next = await models.protoDirectory.create({
+          name: sanitizeDirName(part),
+          parentId: currentDir._id,
+        });
+        dirCache.set(nextKey, next);
+      }
+      currentKey = nextKey;
+      currentDir = next;
+    }
+    return currentDir;
+  };
+
+  for (const f of fetched.files) {
+    try {
+      const rel = f.path.replace(/^\/+/, '');
+      const dirPart = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+      const filePart = rel.slice(rel.lastIndexOf('/') + 1);
+      const dir = dirPart ? await ensureDir(dirPart) : rootDir;
+      const created = await models.protoFile.create({
+        name: sanitizeFileName(filePart),
+        parentId: dir._id,
+        protoText: f.protoText,
+      });
+      loaded.push(created);
+    } catch (err) {
+      errors.push(`${f.path}: ${(err as Error).message}`);
+    }
+  }
+
+  if (loaded.length === 0) {
+    await models.protoDirectory.remove(rootDir);
+  }
+  return { success: true, loaded, errors };
+}
+
+function pathBasename(p: string): string {
+  return p.split('/').pop() ?? p;
+}
+
+// Mirror the validators in write-proto-file.ts: names become path segments
+// under userData/plugins or os.tmpdir(); reject anything that could traverse.
+function sanitizeDirName(name: string): string {
+  const cleaned = pathBasename(name).replace(/[^a-z0-9._-]/gi, '_');
+  return cleaned || 'proto';
+}
+
+function sanitizeFileName(name: string): string {
+  const cleaned = pathBasename(name).replace(/[^a-z0-9._-]/gi, '_');
+  return cleaned.endsWith('.proto') ? cleaned : `${cleaned}.proto`;
 }
 
 async function findDirectoryChildren(protoDir: ProtoDirectory): Promise<(ProtoFile | ProtoDirectory)[]> {

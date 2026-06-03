@@ -36,6 +36,7 @@ const grpc: gRPCBridgeAPI = {
   closeAll: () => ipcRenderer.send('grpc.closeAll'),
   loadMethods: options => ipcRenderer.invoke('grpc.loadMethods', options),
   loadMethodsFromReflection: options => ipcRenderer.invoke('grpc.loadMethodsFromReflection', options),
+  fetchProto: url => ipcRenderer.invoke('grpc.fetchProto', url),
 };
 const main: Window['main'] = {
   loginStateChange: () => ipcRenderer.send('loginStateChange'),

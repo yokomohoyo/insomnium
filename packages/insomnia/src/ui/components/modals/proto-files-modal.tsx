@@ -145,6 +145,38 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     }
   };
 
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  const handleImportFromUrl = async () => {
+    const url = importUrl.trim();
+    if (!url) return;
+    setImporting(true);
+    try {
+      const workspace = await models.workspace.getById(workspaceId);
+      const fetched = await window.main.grpc.fetchProto(url);
+      const result = await protoLoader.addProtoFromFetched(fetched, workspace!);
+      if (result.success && result.loaded.length > 0) {
+        setSelectedId(result.loaded[0]._id);
+      }
+      if (result.errors.length > 0) {
+        showError({
+          title: "Some files failed to import",
+          message: result.errors.join("\n"),
+        });
+      } else {
+        setImportUrl("");
+      }
+    } catch (err) {
+      showError({
+        title: "Failed to fetch proto",
+        message: (err as Error).message,
+      });
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const handleUpdate = async (protoFileOrDir: ProtoFile | ProtoDirectory) => {
     if (isProtoFile(protoFileOrDir)) {
       await handleUpdateProtoFile(protoFileOrDir);
@@ -241,6 +273,27 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
               Add Proto File
             </AsyncButton>
           </span>
+        </div>
+        <div className="form-row margin-bottom" style={{ display: "flex", gap: "var(--padding-sm)", alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="github.com/owner/repo/blob/main/path.proto, buf.build/owner/repo, https://&#8230;.proto"
+            value={importUrl}
+            onChange={e => setImportUrl(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && !importing) {
+                handleImportFromUrl();
+              }
+            }}
+            disabled={importing}
+            style={{ flex: 1 }}
+          />
+          <AsyncButton
+            onClick={handleImportFromUrl}
+            loadingNode={<i className="fa fa-spin fa-refresh" />}
+          >
+            {importing ? "Fetching…" : "Import from URL"}
+          </AsyncButton>
         </div>
         <ProtoFileList
           protoDirectories={protoDirectories}

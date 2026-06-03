@@ -259,3 +259,92 @@ class StackDepth {
     return false;
   }
 }
+
+// Skeleton (empty/zero) request body for a gRPC method, derived from its
+// request Message. Used to seed the body editor with field structure.
+export function generateRequestTemplate(service: Service, methodName: string): object {
+  const root = service.root;
+  const serviceMethod = service.methods[methodName];
+  if (!serviceMethod) {
+    throw new Error(`Method ${methodName} not found on service ${service.name}`);
+  }
+  const messageType = root.lookupType(serviceMethod.requestType);
+  return templateTypeFields(messageType, new StackDepth());
+}
+
+function templateTypeFields(type: Type, stackDepth: StackDepth): object {
+  if (stackDepth.incrementAndCheckIfOverMax(`$type.${type.name}`)) {
+    return {};
+  }
+  const fieldsData: { [key: string]: any } = {};
+  if (!type.fieldsArray) {
+    return fieldsData;
+  }
+  return type.fieldsArray.reduce((data, field) => {
+    const resolvedField = field.resolve();
+    if (resolvedField.repeated) {
+      data[resolvedField.name] = [];
+    } else if (resolvedField.parent === resolvedField.resolvedType) {
+      data[resolvedField.name] = {}; // self-referential: surface field, skip recursion
+    } else {
+      data[resolvedField.name] = templateField(resolvedField, stackDepth);
+    }
+    return data;
+  }, fieldsData);
+}
+
+function templateField(field: Field, stackDepth: StackDepth): any {
+  if (stackDepth.incrementAndCheckIfOverMax(`$field.${field.name}`)) {
+    return {};
+  }
+  if (field instanceof MapField) {
+    return {};
+  }
+  if (field.resolvedType instanceof Enum) {
+    return mockEnum(field.resolvedType);
+  }
+  if (isProtoType(field.resolvedType)) {
+    if (field.resolvedType.oneofs) {
+      return pickTemplateOneOf(field.resolvedType.oneofsArray, stackDepth);
+    }
+    return templateTypeFields(field.resolvedType, stackDepth);
+  }
+  return templateScalar(field.type);
+}
+
+// JSON can't express "pick one of N" — emit the first option per oneof group.
+function pickTemplateOneOf(oneofs: OneOf[], stackDepth: StackDepth): { [key: string]: any } {
+  return oneofs.reduce((fields: { [key: string]: any }, oneOf) => {
+    const firstField = oneOf.fieldsArray[0];
+    if (firstField) {
+      fields[firstField.name] = templateField(firstField, stackDepth);
+    }
+    return fields;
+  }, {});
+}
+
+function templateScalar(type: string): any {
+  switch (type) {
+    case 'string':
+    case 'bytes':
+      return '';
+    case 'bool':
+      return false;
+    case 'double':
+    case 'float':
+    case 'int32':
+    case 'int64':
+    case 'uint32':
+    case 'uint64':
+    case 'sint32':
+    case 'sint64':
+    case 'fixed32':
+    case 'fixed64':
+    case 'sfixed32':
+    case 'sfixed64':
+    case 'number':
+      return 0;
+    default:
+      return null; // message / unknown — caller recurses
+  }
+}

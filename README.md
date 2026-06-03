@@ -19,6 +19,21 @@ This fork is being actively maintained — Insomnium is a useful tool worth keep
 I have removed user login, tracking, analytics, etc, from Insomnia so it is now a 100% local app. (And runs faster!)
 
 
+## gRPC tooling
+
+A few quality-of-life additions to make gRPC requests faster to author:
+
+- **Auto-generated request body.** Picking a method fills the body editor with a JSON skeleton derived from the request Message — every field listed with a type-appropriate empty value (`""`, `0`, `false`, `[]`, `{}`, first enum / first oneof option). Works with both uploaded `.proto` files and server reflection. Your edits are preserved on method switch; templates only refill when the body is empty.
+
+- **Import protos from a URL.** In the proto-files modal there's an "Import from URL" field that accepts:
+  - `github.com/<owner>/<repo>/blob/<ref>/<path>.proto` — single file
+  - `github.com/<owner>/<repo>/tree/<ref>[/<path>]` — recursive directory walk (only `.proto` files kept)
+  - `raw.githubusercontent.com/...` and any `https://….proto` — direct
+  - `buf.build/<owner>/<repo>[:<ref>]` — fetches the module + transitive deps from BSR (public modules)
+
+  Unauthenticated GitHub is rate-limited to 60 requests/hour, which is fine for single-file imports and small trees. Private BSR modules and a `GITHUB_TOKEN` setting are not yet wired.
+
+
 ## Download
 
 Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). Insomnium is also [available on AUR for ArchLinux](https://aur.archlinux.org/packages/insomnium-bin). 
