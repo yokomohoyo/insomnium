@@ -5,11 +5,17 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - "**"
   pull_request:
     types:
       - opened
       - synchronize
+
+# Pushes to a PR branch trigger both `push` and `pull_request` events.
+# Cancel the older duplicate run so we don't burn double CI minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   Lint:
