@@ -996,6 +996,48 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
       },
     },
   },
+  {
+    templateTag: {
+      displayName: 'GCP ID Token',
+      name: 'gcpIdToken',
+      description: 'mint a Google OIDC ID token for calling Cloud Run / IAP-protected services',
+      args: [
+        {
+          displayName: 'Audience',
+          type: 'string',
+          help: 'The `aud` claim of the resulting token. For Cloud Run, this is the service URL (scheme + host).',
+        },
+        {
+          displayName: 'Credential source',
+          type: 'enum',
+          defaultValue: 'adc',
+          options: [
+            { displayName: 'Application Default Credentials', value: 'adc' },
+            { displayName: 'Service account file', value: 'sa-file' },
+            { displayName: 'Service account inline JSON', value: 'sa-inline' },
+          ],
+        },
+        {
+          displayName: 'Credential value',
+          type: 'string',
+          help: 'File path when source is "service account file", raw JSON when source is "service account inline JSON", ignored when source is ADC.',
+        },
+      ],
+      async run(_context, audience, credentialSource = 'adc', credentialValue = '') {
+        const { getGcpIdToken } = await import('../../../network/gcp-id-token/get-token');
+        if (!audience) {
+          throw new Error('gcpIdToken: audience is required');
+        }
+        const source =
+          credentialSource === 'sa-file'
+            ? { kind: 'sa-file' as const, path: credentialValue }
+            : credentialSource === 'sa-inline'
+              ? { kind: 'sa-inline' as const, json: credentialValue }
+              : { kind: 'adc' as const };
+        return getGcpIdToken({ source, audience });
+      },
+    },
+  },
 ];
 
 export const localTemplateTags: TemplateTag[] = localTemplatePlugins.map(t => ({

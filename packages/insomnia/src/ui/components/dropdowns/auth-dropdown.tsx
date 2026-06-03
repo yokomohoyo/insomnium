@@ -26,6 +26,7 @@ const defaultTypes: AuthType[] = [
   'bearer',
   'hawk',
   'asap',
+  'gcp-id-token',
   'netrc',
 ];
 
@@ -114,6 +115,17 @@ function makeNewAuth(type: string, oldAuth: RequestAuthentication = {}): Request
         additionalClaims: '',
         keyId: '',
         privateKey: '',
+      };
+
+    // Google Cloud ID Token
+    case 'gcp-id-token':
+      return {
+        type,
+        disabled: false,
+        credentialSource: oldAuth.credentialSource || 'adc',
+        saFilePath: oldAuth.saFilePath || '',
+        saInlineJson: oldAuth.saInlineJson || '',
+        audience: oldAuth.audience || '',
       };
 
     // Types needing no defaults

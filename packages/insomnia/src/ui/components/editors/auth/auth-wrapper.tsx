@@ -8,6 +8,7 @@ import {
   AUTH_BASIC,
   AUTH_BEARER,
   AUTH_DIGEST,
+  AUTH_GCP_ID_TOKEN,
   AUTH_HAWK,
   AUTH_NETRC,
   AUTH_NTLM,
@@ -21,6 +22,7 @@ import { AWSAuth } from './aws-auth';
 import { BasicAuth } from './basic-auth';
 import { BearerAuth } from './bearer-auth';
 import { DigestAuth } from './digest-auth';
+import { GcpIdTokenAuth } from './gcp-id-token-auth';
 import { HawkAuth } from './hawk-auth';
 import { NetrcAuth } from './netrc-auth';
 import { NTLMAuth } from './ntlm-auth';
@@ -56,6 +58,8 @@ export const AuthWrapper: FC<{ disabled?: boolean }> = ({ disabled = false }) =>
     authBody = <NetrcAuth />;
   } else if (type === AUTH_ASAP) {
     authBody = <AsapAuth />;
+  } else if (type === AUTH_GCP_ID_TOKEN) {
+    authBody = <GcpIdTokenAuth disabled={disabled} />;
   } else {
     authBody = (
       <div className="vertically-center text-center">
