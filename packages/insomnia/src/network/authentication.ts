@@ -5,6 +5,7 @@ import {
   AUTH_ASAP,
   AUTH_BASIC,
   AUTH_BEARER,
+  AUTH_GCP_ID_TOKEN,
   AUTH_HAWK,
   AUTH_OAUTH_1,
   AUTH_OAUTH_2,
@@ -14,6 +15,7 @@ import { AuthTypeOAuth2, RequestAuthentication, RequestParameter } from '../mode
 import { COOKIE, HEADER, QUERY_PARAMS } from './api-key/constants';
 import { getBasicAuthHeader } from './basic-auth/get-header';
 import { getBearerAuthHeader } from './bearer-auth/get-header';
+import { CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
 import getOAuth1Token from './o-auth-1/get-token';
 import { getOAuth2Token } from './o-auth-2/get-token';
 
@@ -55,6 +57,23 @@ export async function getAuthHeader(renderedRequest: RenderedRequest, url: strin
   if (authentication.type === AUTH_BEARER) {
     const { token, prefix } = authentication;
     return getBearerAuthHeader(token, prefix);
+  }
+
+  if (authentication.type === AUTH_GCP_ID_TOKEN) {
+    const { credentialSource, saFilePath, saInlineJson, audience } = authentication as {
+      credentialSource?: 'adc' | 'sa-file' | 'sa-inline';
+      saFilePath?: string;
+      saInlineJson?: string;
+      audience?: string;
+    };
+    const source: CredentialSource = credentialSource === 'sa-file'
+      ? { kind: 'sa-file', path: saFilePath || '' }
+      : credentialSource === 'sa-inline'
+        ? { kind: 'sa-inline', json: saInlineJson || '' }
+        : { kind: 'adc' };
+    const aud = (audience && audience.trim()) || defaultAudienceForUrl(url);
+    const token = await getGcpIdToken({ source, audience: aud });
+    return { name: 'Authorization', value: `Bearer ${token}` };
   }
 
   if (authentication.type === AUTH_OAUTH_2) {

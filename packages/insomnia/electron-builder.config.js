@@ -63,9 +63,10 @@ const config = {
     extendInfo: {
       NSRequiresAquaSystemAppearance: false,
     },
-    // electron-builder 26 expects boolean here. To notarize, set
-    // APPLE_TEAM_ID + APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD env vars (or use APPLE_API_KEY*).
-    notarize: false,
+    // Notarize only when an App Store Connect API key is provided (CI). electron-builder
+    // picks up APPLE_API_KEY (path to .p8) + APPLE_API_KEY_ID + APPLE_API_ISSUER from the env.
+    // Local/dev builds (no APPLE_API_KEY) skip notarization.
+    notarize: process.env.APPLE_API_KEY ? true : false,
     asarUnpack: ["node_modules/@getinsomnia/node-libcurl"],
   },
   dmg: {
