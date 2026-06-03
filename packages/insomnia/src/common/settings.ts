@@ -145,4 +145,9 @@ export interface Settings {
   useBulkParametersEditor: boolean;
   validateAuthSSL: boolean;
   validateSSL: boolean;
+
+  // Tokens used when fetching .proto sources from private GitHub repos or
+  // private BSR modules. Empty string = no auth (public sources only).
+  bufToken: string;
+  githubToken: string;
 }

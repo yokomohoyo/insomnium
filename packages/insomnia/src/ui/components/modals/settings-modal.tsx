@@ -9,6 +9,7 @@ import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { General } from '../settings/general';
 import { ImportExport } from '../settings/import-export';
 
+import { ProtoTokens } from '../settings/proto-tokens';
 import { Shortcuts } from '../settings/shortcuts';
 import { ThemePanel } from '../settings/theme-panel';
 import { showModal } from './index';
@@ -73,6 +74,11 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
           <TabItem key="plugins" title="Plugins">
             <PanelContainer className="pad">
               <Plugins />
+            </PanelContainer>
+          </TabItem>
+          <TabItem key="proto-tokens" title="Proto Tokens">
+            <PanelContainer className="pad">
+              <ProtoTokens />
             </PanelContainer>
           </TabItem>
 

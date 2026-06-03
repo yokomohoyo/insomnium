@@ -13,7 +13,7 @@ import { ModalFooter } from "../base/modal-footer";
 import { ModalHeader } from "../base/modal-header";
 import { ExpandedProtoDirectory, ProtoFileList } from "../proto-file/proto-file-list";
 import { AsyncButton } from "../themed-button";
-import { showAlert, showError } from ".";
+import { showAlert, showError, showPrompt } from ".";
 import * as protoLoader from "../../../network/grpc/proto-loader";
 
 const tryToSelectFilePath = async () => {
@@ -145,6 +145,44 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     }
   };
 
+  const importFromUrl = async (url: string) => {
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    try {
+      const workspace = await models.workspace.getById(workspaceId);
+      const settings = await models.settings.getOrCreate();
+      const fetched = await window.main.grpc.fetchProto(trimmed, {
+        bufToken: settings.bufToken || undefined,
+        githubToken: settings.githubToken || undefined,
+      });
+      const result = await protoLoader.addProtoFromFetched(fetched, workspace!);
+      if (result.success && result.loaded.length > 0) {
+        setSelectedId(result.loaded[0]._id);
+      }
+      if (result.errors.length > 0) {
+        showError({
+          title: "Some files failed to import",
+          message: result.errors.join("\n"),
+        });
+      }
+    } catch (err) {
+      showError({
+        title: "Failed to fetch proto",
+        message: (err as Error).message,
+      });
+    }
+  };
+
+  const handleImportFromUrl = () => {
+    showPrompt({
+      title: "Import proto from URL",
+      submitName: "Import",
+      placeholder: "github.com/owner/repo/blob/main/svc.proto, buf.build/owner/repo, https://….proto",
+      label: "URL",
+      onComplete: importFromUrl,
+    });
+  };
+
   const handleUpdate = async (protoFileOrDir: ProtoFile | ProtoDirectory) => {
     if (isProtoFile(protoFileOrDir)) {
       await handleUpdateProtoFile(protoFileOrDir);
@@ -234,6 +272,9 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
         <div className="row-spaced margin-bottom bold">
           Files
           <span>
+            <button className="btn btn--clicky margin-right-sm" onClick={handleImportFromUrl}>
+              Import from URL
+            </button>
             <AsyncButton className="margin-right-sm" onClick={handleAddDirectory} loadingNode={<i className="fa fa-spin fa-refresh" />}>
               Add Directory
             </AsyncButton>

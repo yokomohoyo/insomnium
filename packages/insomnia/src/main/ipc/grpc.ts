@@ -8,6 +8,7 @@ import type { RenderedGrpcRequest, RenderedGrpcRequestBody } from '../../common/
 import * as models from '../../models';
 import type { GrpcRequest, GrpcRequestHeader } from '../../models/grpc-request';
 import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
+import { fetchProto, FetchedProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
 import { guard } from '../../utils/guard';
 import { mockRequestMethods } from './automock';
@@ -28,6 +29,7 @@ export interface gRPCBridgeAPI {
   cancel: typeof cancel;
   loadMethods: typeof loadMethods;
   loadMethodsFromReflection: typeof loadMethodsFromReflection;
+  fetchProto: (url: string, tokens?: ProtoFetchTokens) => Promise<FetchedProto>;
   closeAll: typeof closeAll;
 }
 export function registergRPCHandlers() {
@@ -38,6 +40,7 @@ export function registergRPCHandlers() {
   ipcMain.on('grpc.closeAll', closeAll);
   ipcMain.handle('grpc.loadMethods', (_, requestId) => loadMethods(requestId));
   ipcMain.handle('grpc.loadMethodsFromReflection', (_, requestId) => loadMethodsFromReflection(requestId));
+  ipcMain.handle('grpc.fetchProto', (_, url: string, tokens?: ProtoFetchTokens) => fetchProto(url, tokens));
 }
 const grpcOptions = {
   keepCase: true,

@@ -1,68 +1,100 @@
-name: Update Homebrew
+name: Bump Homebrew Cask
+
+# Fires after a successful Release On Publish run, reads the new DMG's SHA-256
+# from the release asset metadata, and pushes an updated cask file to
+# yokomohoyo/homebrew-tap. Also runnable manually with `workflow_dispatch` to
+# (re)bump an existing tag.
+#
+# Required secret: TAP_PUSH_TOKEN — fine-grained PAT scoped to
+# yokomohoyo/homebrew-tap with Contents: read/write.
 
 on:
-  schedule:
-    # weekdays at 00:00
-    - cron: '0 0 * * 1-5'
-
+  workflow_run:
+    workflows: ["Release On Publish"]
+    types: [completed]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to bump the cask to
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
-  update_homebrew:
-    name: Update Insomnium Formula
-    # must be macos, linux-brew doesn't have casks
-    runs-on: macos-latest
+  bump:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
     steps:
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
+      - name: Resolve tag
+        id: tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          PARENT_TAG: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          TAG="${INPUT_TAG:-$PARENT_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::Could not resolve release tag"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Read DMG digest + version from release
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          set -euo pipefail
+          DIGEST=$(gh release view "$TAG" --repo "${{ github.repository }}" \
+            --json assets \
+            --jq '.assets[] | select(.name | endswith(".dmg")) | .digest' | head -1)
+          SHA256="${DIGEST#sha256:}"
+          if [ -z "$SHA256" ]; then
+            echo "::error::No DMG asset with a sha256 digest on tag $TAG (release may still be uploading)"
+            exit 1
+          fi
+          VERSION=$(gh api "repos/${{ github.repository }}/contents/packages/insomnia/package.json?ref=$TAG" \
+            --jq '.content' | base64 -d | jq -r '.version')
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "::error::Could not read version from packages/insomnia/package.json at $TAG"
+            exit 1
+          fi
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumping insomnium → $VERSION (sha256: $SHA256)"
+
+      - name: Checkout tap
+        uses: actions/checkout@v4
         with:
-          test-bot: false
+          repository: yokomohoyo/homebrew-tap
+          token: ${{ secrets.TAP_PUSH_TOKEN }}
+          path: tap
 
-      - name: Tap into ArchGPT/homebrew-tap
-        run: brew tap ArchGPT/homebrew-tap
+      - name: Update cask
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+          SHA256: ${{ steps.resolve.outputs.sha256 }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          ruby -i -pe '$_ = $_.sub(/version "[^"]*"/, "version \"#{ENV["VERSION"]}\"")
+                            .sub(/sha256 "[^"]*"/, "sha256 \"#{ENV["SHA256"]}\"")
+                            .sub(%r{releases/download/[^/]+/Insomnium}, "releases/download/#{ENV["TAG"]}/Insomnium")' \
+            tap/Casks/insomnium.rb
+          git -C tap diff Casks/insomnium.rb || true
 
-      - name: Cache Homebrew Bundler RubyGems
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.set-up-homebrew.outputs.gems-path }}
-          key: ${{ runner.os }}-rubygems-${{ steps.set-up-homebrew.outputs.gems-hash }}
-          restore-keys: ${{ runner.os }}-rubygems-
-
-      - name: Install Homebrew Bundler RubyGems
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: brew install-bundler-gems
-
-      - name: Add "Versions" Tap
-        run: brew tap homebrew/homebrew-cask-versions
-
-      - name: Configure Git user
-        uses: Homebrew/actions/git-user-config@master
-        with:
-          username: 'ArchGPT'
-
-      - name: Update brew
-        run: brew update
-
-
-      - name: Bump insomnia package
-        uses: Homebrew/actions/bump-packages@master
-        with:
-          # Custom GitHub access token with only the 'public_repo' scope enabled
-          token: ${{secrets.HOMEBREW_PR_GH_TOKEN}}
-          # Bump only these formulae if outdated
-          casks:
-            inso-beta
-            inso
-            insomnia
-          
-          
-      - name: Homebrew bump cask
-        uses: macauley/action-homebrew-bump-cask@v1.0.0
-        with:
-          token: ${{ secrets.HOMEBREW_PR_GH_TOKEN }}
-          cask: ArchGPT/homebrew-tap/insomnium
-          # run brew livecheck to check if any provided casks are outdated.
-          # Better as a schedule. If none are oudated, action exit
-          livecheck: true
+      - name: Commit + push
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: |
+          cd tap
+          if git diff --quiet Casks/insomnium.rb; then
+            echo "Cask already at version $VERSION — nothing to do"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/insomnium.rb
+          git commit -m "insomnium $VERSION"
+          git push
