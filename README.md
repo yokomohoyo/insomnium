@@ -5,10 +5,10 @@ Insomnium is a 100% local and privacy-focused open-source API client for testing
 - ✅ works 100% offline, the way a local testing tool should behave <br>
 - ✅ no cloud services, no tracking/communication to external servers behind the scene <br>
 
-[![license](https://img.shields.io/github/license/archGPT/insomnium.svg)](LICENSE)
-[![GitHub Discussions](https://img.shields.io/github/discussions/archGPT/insomnium)](https://github.com/ArchGPT/insomnium/discussions)
+[![license](https://img.shields.io/github/license/yokomohoyo/insomnium.svg)](LICENSE)
+[![GitHub Discussions](https://img.shields.io/github/discussions/yokomohoyo/insomnium)](https://github.com/yokomohoyo/insomnium/discussions)
 
-![Insomnium API Client](https://raw.githubusercontent.com/ArchGPT/insomnium/main/screenshots/v0.1.png)
+![Insomnium API Client](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/v0.1.png)
 
 ## Current Status
 
@@ -21,7 +21,7 @@ I have removed user login, tracking, analytics, etc, from Insomnia so it is now 
 
 ## Download
 
-Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/ArchGPT/insomnium/releases). Insomnium is also [available on AUR for ArchLinux](https://aur.archlinux.org/packages/insomnium-bin). 
+Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). Insomnium is also [available on AUR for ArchLinux](https://aur.archlinux.org/packages/insomnium-bin). 
 
 Alternatively, you can build Insomnium from source on your local machine using `npm run app-package`.
 
@@ -30,7 +30,7 @@ Alternatively, you can build Insomnium from source on your local machine using `
 
 Insomnium is a fork of [Kong/insomnia at 2023.5.8](https://github.com/ArchGPT/insomnia), the last commit before compulsory account login was introduced. In a sense, Insomnium is a community response to [the latest product update that forces account creation w/o warning](https://news.ycombinator.com/item?id=37680522).
 
-![HN](https://github.com/ArchGPT/insomnium/blob/main/hn.png?raw=true)
+![HN](https://github.com/yokomohoyo/insomnium/blob/main/hn.png?raw=true)
 
 I was among the users who were deeply affected by the recent change. I still think Insomnia is a nice product in general, but I have to disagree with the direction it is going. So I have decided to fork it and make it 100% local and privacy-focused.
 
