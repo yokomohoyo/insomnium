@@ -183,14 +183,33 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                 methods={methods ?? []}
                 selectedMethod={method}
                 handleChange={protoMethodName => {
-                  patchRequest(requestId, { protoMethodName });
+                  const nextMethod = methods?.find(m => m.fullPath === protoMethodName);
+                  // Auto-fill the body editor with the new method's template
+                  // when the editor is empty or still holds the previous
+                  // method's template. Don't clobber user edits.
+                  if (nextMethod?.example) {
+                    const currentBody = (activeRequest.body.text ?? '').trim();
+                    const previousTemplate = method?.example
+                      ? JSON.stringify(method.example, null, 2).trim()
+                      : '';
+                    const isStale = currentBody === '' || currentBody === '{}' || currentBody === previousTemplate;
+                    if (isStale) {
+                      const next = JSON.stringify(nextMethod.example, null, 2);
+                      editorRef.current?.setValue(next);
+                      patchRequest(requestId, { protoMethodName, body: { text: next } });
+                    } else {
+                      patchRequest(requestId, { protoMethodName });
+                    }
+                  } else {
+                    patchRequest(requestId, { protoMethodName });
+                  }
                   setGrpcState({
                     ...grpcState,
                     requestMessages: [],
                     responseMessages: [],
                     status: undefined,
                     error: undefined,
-                    method: methods?.find(m => m.fullPath === protoMethodName),
+                    method: nextMethod,
                   });
                 }}
               />
@@ -204,7 +223,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                   }
                 }}
               >
-                <Tooltip message="Click to replace body with an example" position="bottom" delay={500}>
+                <Tooltip message="Replace body with request template" position="bottom" delay={500}>
                   <i className="fa fa-code" />
                 </Tooltip>
               </Button>

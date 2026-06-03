@@ -42,7 +42,7 @@ describe('loadMethodsFromReflection', () => {
         type: 'unary',
         fullPath: '/FooService/Foo',
         example: {
-          foo: 'Hello',
+          foo: '',
         },
       }]);
     });
@@ -80,7 +80,7 @@ describe('loadMethodsFromReflection', () => {
         type: 'unary',
         fullPath: '/FooService/format',
         example: {
-          foo: 'Hello',
+          foo: '',
         },
       }]);
     });
@@ -130,13 +130,13 @@ describe('loadMethodsFromReflection', () => {
         type: 'unary',
         fullPath: '/FooService/Foo',
         example: {
-          foo: 'Hello',
+          foo: '',
         },
       }, {
         type: 'unary',
         fullPath: '/BarService/Bar',
         example: {
-          bar: 'Hello',
+          bar: '',
         },
       }]);
     });
