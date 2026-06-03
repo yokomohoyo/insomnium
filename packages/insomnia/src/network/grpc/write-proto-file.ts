@@ -18,7 +18,7 @@ interface WriteResult {
 const ensureGrpcRootDir = (): string => {
   const rootDir = path.join(os.tmpdir(), 'insomnia-grpc');
   try {
-    fs.mkdirSync(rootDir, { mode: 0o700 });
+    fs.mkdirSync(rootDir, { mode: 0o700, recursive: true });
   } catch (err: any) {
     if (err.code !== 'EEXIST') {
       throw err;
