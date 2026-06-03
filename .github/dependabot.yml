@@ -1,0 +1,26 @@
+# Repo-level "Automated security fixes" opens security PRs automatically.
+# This file: sets cadence, disables routine version bumps, and silences
+# advisories we've triaged as unfixable in this dependency graph.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0  # security PRs only — no routine bumps
+    ignore:
+      # react-use@17.x pins ^2; v3 broke the CJS default export.
+      - dependency-name: "js-cookie"
+      # mocha pins ^6; test-scope only.
+      - dependency-name: "serialize-javascript"
+      # apiconnect-wsdl@1.8.31 pin; @xmldom/xmldom alias didn't apply cleanly.
+      - dependency-name: "xmldom"
+      # `overrides` patches 15/16 instances; remaining one is jshint dev tooling (ReDoS).
+      - dependency-name: "minimatch"
+      # `overrides` blocked by apiconnect-wsdl@1.8.31 pin.
+      - dependency-name: "xml2js"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
