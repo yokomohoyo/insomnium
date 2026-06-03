@@ -1,4 +1,4 @@
-import { cp, mkdtemp, readdir, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, stat, writeFile } from 'node:fs/promises';
 
 import childProcess from 'child_process';
 import * as electron from 'electron';
