@@ -29,6 +29,11 @@ export interface BaseWorkspaceMeta {
   sidebarHidden: boolean;
   sidebarWidth: number;
   pushSnapshotOnInitialize: boolean;
+  // Per-workspace overrides for proto-fetch auth. Empty string = fall back to
+  // the global Settings value. WorkspaceMeta has canSync=false so these stay
+  // local and never get exported with a shared workspace.
+  bufToken: string;
+  githubToken: string;
 }
 
 export type WorkspaceMeta = BaseWorkspaceMeta & BaseModel;
@@ -55,6 +60,8 @@ export function init(): BaseWorkspaceMeta {
     sidebarHidden: false,
     sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
     pushSnapshotOnInitialize: false,
+    bufToken: '',
+    githubToken: '',
   };
 }
 
