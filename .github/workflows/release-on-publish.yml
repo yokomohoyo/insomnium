@@ -93,7 +93,7 @@ jobs:
       # Upload one set of build outputs as a workflow artifact too — handy for
       # debugging when the release-upload step fails.
       - name: Upload workflow artifacts (debug copy)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: warn
           name: ${{ matrix.os }}-dist-${{ github.run_number }}
