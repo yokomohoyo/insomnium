@@ -121,7 +121,7 @@ jobs:
         run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-package
 
       - name: Upload dmg/zip
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           if-no-files-found: error
           name: macos-package-${{ github.run_number }}
