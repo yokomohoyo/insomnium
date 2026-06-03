@@ -1,7 +1,5 @@
 import chai from 'chai';
-import { unlink, writeFileSync } from 'fs';
-import fs from 'fs';
-import { mkdtempSync } from 'fs';
+import { mkdtempSync, unlink, writeFileSync } from 'fs';
 import Mocha, { type Reporter, type ReporterConstructor } from 'mocha';
 import { tmpdir } from 'os';
 import { join } from 'path';
