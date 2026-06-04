@@ -64,17 +64,19 @@ async function resolveAuthStrategy(
   }
 
   if (strategy.type === AUTH_GCP_ID_TOKEN) {
-    const { credentialSource, saFilePath, saInlineJson, audience } = strategy as {
+    const { credentialSource, saFilePath, saInlineJson, audience, impersonateServiceAccount } = strategy as {
       credentialSource?: 'adc' | 'sa-file' | 'sa-inline';
       saFilePath?: string;
       saInlineJson?: string;
       audience?: string;
+      impersonateServiceAccount?: string;
     };
+    const target = impersonateServiceAccount?.trim() || undefined;
     const source: CredentialSource = credentialSource === 'sa-file'
-      ? { kind: 'sa-file', path: saFilePath || '' }
+      ? { kind: 'sa-file', path: saFilePath || '', impersonateServiceAccount: target }
       : credentialSource === 'sa-inline'
-        ? { kind: 'sa-inline', json: saInlineJson || '' }
-        : { kind: 'adc' };
+        ? { kind: 'sa-inline', json: saInlineJson || '', impersonateServiceAccount: target }
+        : { kind: 'adc', impersonateServiceAccount: target };
     const aud = (audience && audience.trim()) || defaultAudienceForUrl(url);
     const token = await getGcpIdToken({ source, audience: aud });
     return { name: 'Authorization', value: `Bearer ${token}` };

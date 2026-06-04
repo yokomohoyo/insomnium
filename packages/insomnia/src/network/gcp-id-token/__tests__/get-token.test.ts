@@ -92,11 +92,11 @@ describe('getGcpIdToken', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
-  it('rejects authorized_user ADC files with a helpful message', async () => {
+  it('rejects authorized_user without an impersonation target', async () => {
     const adcFile = JSON.stringify({ type: 'authorized_user', refresh_token: 'r', client_id: 'c', client_secret: 's' });
     await expect(
       getGcpIdToken({ source: { kind: 'sa-inline', json: adcFile }, audience: 'https://svc.run.app' }),
-    ).rejects.toThrow(/only service_account is supported/);
+    ).rejects.toThrow(/impersonateServiceAccount/);
   });
 
   it('rejects when the file is not JSON', async () => {
