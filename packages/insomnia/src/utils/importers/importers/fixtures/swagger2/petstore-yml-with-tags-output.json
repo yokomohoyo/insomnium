@@ -42,7 +42,7 @@
     {
       "_id": "listPets",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -61,7 +61,7 @@
     {
       "_id": "createPets",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -74,7 +74,7 @@
     {
       "_id": "showPetById",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],

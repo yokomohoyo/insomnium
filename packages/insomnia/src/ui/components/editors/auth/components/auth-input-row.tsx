@@ -3,10 +3,9 @@ import { useRouteLoaderData } from 'react-router-dom';
 import { useToggle } from 'react-use';
 
 import { toKebabCase } from '../../../../../common/misc';
-import { useRequestSetter } from '../../../../hooks/use-request';
-import { RequestLoaderData } from '../../../../routes/request';
 import { RootLoaderData } from '../../../../routes/root';
 import { OneLineEditor } from '../../../codemirror/one-line-editor';
+import { useAuthStrategy } from '../auth-strategy-context';
 import { AuthRow } from './auth-row';
 
 interface Props extends Pick<ComponentProps<typeof OneLineEditor>, 'getAutocompleteConstants'> {
@@ -18,18 +17,14 @@ interface Props extends Pick<ComponentProps<typeof OneLineEditor>, 'getAutocompl
 }
 
 export const AuthInputRow: FC<Props> = ({ label, getAutocompleteConstants, property, mask, help, disabled = false }) => {
-  const {
-    settings,
-  } = useRouteLoaderData('root') as RootLoaderData;
+  const { settings } = useRouteLoaderData('root') as RootLoaderData;
   const { showPasswords } = settings;
-  const { activeRequest: { authentication, _id: requestId } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
-  const patchRequest = useRequestSetter();
+  const { strategy, patch } = useAuthStrategy();
   const [masked, toggleMask] = useToggle(true);
   const canBeMasked = !showPasswords && mask;
   const isMasked = canBeMasked && masked;
 
-  const onChange = useCallback((value: string) => patchRequest(requestId, { authentication: { ...authentication, [property]: value } }),
-    [authentication, patchRequest, property, requestId]);
+  const onChange = useCallback((value: string) => patch({ [property]: value }), [patch, property]);
 
   const id = toKebabCase(label);
 
@@ -40,7 +35,7 @@ export const AuthInputRow: FC<Props> = ({ label, getAutocompleteConstants, prope
         type={isMasked ? 'password' : 'text'}
         onChange={onChange}
         readOnly={disabled}
-        defaultValue={authentication[property] || ''}
+        defaultValue={strategy[property] || ''}
         getAutocompleteConstants={getAutocompleteConstants}
       />
       {canBeMasked ? (

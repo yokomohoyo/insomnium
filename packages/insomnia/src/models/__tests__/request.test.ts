@@ -12,7 +12,7 @@ describe('init()', () => {
     Date.now = jest.fn().mockReturnValue(1478795580200);
     expect(models.request.init()).toEqual({
       isPrivate: false,
-      authentication: {},
+      authentication: [],
       body: {},
       headers: [],
       metaSortKey: -1478795580200,
@@ -49,7 +49,7 @@ describe('create()', () => {
       modified: 1478795580200,
       parentId: 'fld_124',
       type: 'Request',
-      authentication: {},
+      authentication: [],
       description: 'A test Request',
       body: {},
       headers: [],
@@ -188,6 +188,7 @@ describe('migrate()', () => {
         mimeType: '',
         text: 'hello world!',
       },
+      authentication: [],
       url: '',
     };
     expect(models.request.migrate(original)).toEqual(expected);
@@ -223,6 +224,7 @@ describe('migrate()', () => {
           },
         ],
       },
+      authentication: [],
       url: '',
     };
     expect(models.request.migrate(original)).toEqual(expected);
@@ -258,6 +260,7 @@ describe('migrate()', () => {
           },
         ],
       },
+      authentication: [],
       url: '',
     };
     expect(models.request.migrate(original)).toEqual(expected);
@@ -289,6 +292,7 @@ describe('migrate()', () => {
           },
         ],
       },
+      authentication: [],
       url: '',
     };
     expect(models.request.migrate(original)).toEqual(expected);
@@ -322,6 +326,7 @@ describe('migrate()', () => {
           mimeType: contentToMimeMap[contentType],
           text: '',
         },
+        authentication: [],
         url: '',
       };
       expect(models.request.migrate(original)).toEqual(expected);
@@ -357,10 +362,12 @@ describe('migrate()', () => {
         mimeType: '',
         text: 'foo bar!',
       },
+      authentication: [],
       url: '',
     };
     const expected2 = {
       body: {},
+      authentication: [],
       url: '',
     };
     expect(models.request.migrate(newBody)).toEqual(expected);
@@ -388,7 +395,7 @@ describe('migrate()', () => {
       description: '',
       method: 'GET',
       headers: [],
-      authentication: {},
+      authentication: [],
       parameters: [],
       parentId: null,
       body: {

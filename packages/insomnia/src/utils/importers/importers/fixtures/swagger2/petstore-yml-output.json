@@ -42,7 +42,7 @@
     {
       "_id": "listPets",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -61,7 +61,7 @@
     {
       "_id": "createPets",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"id\": 0,\n  \"name\": \"string\",\n  \"tag\": \"string\"\n}"
@@ -83,7 +83,7 @@
     {
       "_id": "showPetById",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "This is a longer description",
       "headers": [],
@@ -96,7 +96,7 @@
     {
       "_id": "updatePet",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {
         "mimeType": "application/x-www-form-urlencoded",
         "params": [

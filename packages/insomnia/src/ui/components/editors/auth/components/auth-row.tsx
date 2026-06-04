@@ -1,9 +1,8 @@
 import classnames from 'classnames';
 import React, { FC, PropsWithChildren, ReactNode } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
 
-import { RequestLoaderData } from '../../../../routes/request';
 import { HelpTooltip } from '../../../help-tooltip';
+import { useAuthStrategy } from '../auth-strategy-context';
 
 interface Props {
   labelFor: string;
@@ -13,7 +12,7 @@ interface Props {
 }
 
 export const AuthRow: FC<PropsWithChildren<Props>> = ({ labelFor, label, help, disabled, children }) => {
-  const { activeRequest: { authentication } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { strategy } = useAuthStrategy();
 
   return (
     <tr key={labelFor}>
@@ -26,7 +25,7 @@ export const AuthRow: FC<PropsWithChildren<Props>> = ({ labelFor, label, help, d
       <td className="wide">
         <div
           className={classnames('form-control form-control--underlined no-margin flex wide', {
-            'form-control--inactive': authentication.disabled || disabled,
+            'form-control--inactive': strategy.disabled || disabled,
           })}
         >
           {children}

@@ -37,7 +37,8 @@
     {
       "_id": "req___WORKSPACE_ID__028b5fb7",
       "_type": "request",
-      "authentication": {
+      "authentication": [
+        {
           "clientId": "{{ _.oauth2ClientId }}",
           "clientSecret": "{{ _.oauth2ClientSecret }}",
           "accessTokenUrl": "https://api.server.test/v1/token",
@@ -46,7 +47,8 @@
           "redirectUrl": "{{ _.oauth2RedirectUrl }}",
           "scope": "",
           "type": "oauth2"
-      },
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -58,16 +60,18 @@
     {
       "_id": "req___WORKSPACE_ID__cbd0a0fa",
       "_type": "request",
-      "authentication": {
-        "clientId": "{{ _.oauth2ClientId }}",
-        "clientSecret": "{{ _.oauth2ClientSecret }}",
-        "accessTokenUrl": "https://api.server.test/v1/token",
-        "authorizationUrl": "https://api.server.test/v1/auth",
-        "grantType": "authorization_code",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "read:something",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "clientId": "{{ _.oauth2ClientId }}",
+          "clientSecret": "{{ _.oauth2ClientSecret }}",
+          "accessTokenUrl": "https://api.server.test/v1/token",
+          "authorizationUrl": "https://api.server.test/v1/auth",
+          "grantType": "authorization_code",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "read:something",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -79,16 +83,18 @@
     {
       "_id": "req___WORKSPACE_ID__d7972b84",
       "_type": "request",
-      "authentication": {
-        "clientId": "{{ _.oauth2ClientId }}",
-        "clientSecret": "{{ _.oauth2ClientSecret }}",
-        "accessTokenUrl": "https://api.server.test/v1/token",
-        "authorizationUrl": "https://api.server.test/v1/auth",
-        "grantType": "authorization_code",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "read:something write:something",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "clientId": "{{ _.oauth2ClientId }}",
+          "clientSecret": "{{ _.oauth2ClientSecret }}",
+          "accessTokenUrl": "https://api.server.test/v1/token",
+          "authorizationUrl": "https://api.server.test/v1/auth",
+          "grantType": "authorization_code",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "read:something write:something",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",

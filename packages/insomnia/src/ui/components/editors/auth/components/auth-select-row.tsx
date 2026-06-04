@@ -1,9 +1,7 @@
 import React, { ChangeEvent, FC, ReactNode, useCallback } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
 
 import { toKebabCase } from '../../../../../common/misc';
-import { useRequestSetter } from '../../../../hooks/use-request';
-import { RequestLoaderData } from '../../../../routes/request';
+import { useAuthStrategy } from '../auth-strategy-context';
 import { AuthRow } from './auth-row';
 
 interface Props {
@@ -18,19 +16,17 @@ interface Props {
 }
 
 export const AuthSelectRow: FC<Props> = ({ label, property, help, options, disabled }) => {
-  const { activeRequest: { authentication, _id: requestId } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
-  const patchRequest = useRequestSetter();
+  const { strategy, patch } = useAuthStrategy();
 
-  const selectedValue = authentication.hasOwnProperty(property) ? authentication[property] : options[0].value;
+  const selectedValue = strategy.hasOwnProperty(property) ? strategy[property] : options[0].value;
 
   const onChange = useCallback((event: ChangeEvent<HTMLSelectElement>) => {
-    let updatedValue = event.currentTarget.value;
-    // Convert boolean strings to boolean values for further processing.
+    let updatedValue: any = event.currentTarget.value;
     if (updatedValue === 'true' || updatedValue === 'false') {
       updatedValue = JSON.parse(updatedValue);
     }
-    patchRequest(requestId, { authentication: { ...authentication, [property]: updatedValue } });
-  }, [authentication, patchRequest, property, requestId]);
+    patch({ [property]: updatedValue });
+  }, [patch, property]);
 
   const id = toKebabCase(label);
 

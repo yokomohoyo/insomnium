@@ -164,6 +164,10 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     const workspace = await models.workspace.getById(workspaceId);
     const addResult = await protoLoader.addDirectoryFromPath(filePath, workspace!);
 
+    if (addResult.success && addResult.loaded.length > 0) {
+      // Auto-select the first loaded file so user doesn't have to drill in to pick one.
+      setSelectedId(addResult.loaded[0]._id);
+    }
     if (addResult.errors.length > 0) {
       showError({
         title: "Encountered some issues while adding directory",

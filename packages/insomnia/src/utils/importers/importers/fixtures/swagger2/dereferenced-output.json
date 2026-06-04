@@ -66,14 +66,16 @@
       },
       "method": "POST",
       "parameters": [],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -95,14 +97,16 @@
       },
       "method": "PUT",
       "parameters": [],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -128,14 +132,16 @@
         }
       ],
       "headers": [],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "_type": "request",
       "_id": "findPetsByStatus"
     },
@@ -154,14 +160,16 @@
         }
       ],
       "headers": [],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "_type": "request",
       "_id": "findPetsByTags"
     },
@@ -180,7 +188,7 @@
           "value": "{{ _.api_key }}"
         }
       ],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "getPetById"
     },
@@ -206,14 +214,16 @@
       },
       "method": "POST",
       "parameters": [],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -239,14 +249,16 @@
           "value": "string"
         }
       ],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "_type": "request",
       "_id": "deletePet"
     },
@@ -272,14 +284,16 @@
       },
       "method": "POST",
       "parameters": [],
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -305,7 +319,7 @@
           "value": "{{ _.api_key }}"
         }
       ],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "getInventory"
     },
@@ -318,7 +332,7 @@
       "method": "POST",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "placeOrder"
     },
@@ -331,7 +345,7 @@
       "method": "GET",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "getOrderById"
     },
@@ -344,7 +358,7 @@
       "method": "DELETE",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "deleteOrder"
     },
@@ -357,7 +371,7 @@
       "method": "POST",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "createUser"
     },
@@ -370,7 +384,7 @@
       "method": "POST",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "createUsersWithArrayInput"
     },
@@ -383,7 +397,7 @@
       "method": "POST",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "createUsersWithListInput"
     },
@@ -407,7 +421,7 @@
         }
       ],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "loginUser"
     },
@@ -420,7 +434,7 @@
       "method": "GET",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "logoutUser"
     },
@@ -433,7 +447,7 @@
       "method": "GET",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "getUserByName"
     },
@@ -446,7 +460,7 @@
       "method": "PUT",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "updateUser"
     },
@@ -459,7 +473,7 @@
       "method": "DELETE",
       "parameters": [],
       "headers": [],
-      "authentication": {},
+      "authentication": [],
       "_type": "request",
       "_id": "deleteUser"
     }

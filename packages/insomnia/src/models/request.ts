@@ -30,7 +30,60 @@ export const canDuplicate = true;
 
 export const canSync = true;
 
-export type RequestAuthentication = Record<string, any>;
+// A single auth strategy (e.g. one Bearer, one GCP ID Token). Optional
+// `headerName` overrides where the resulting credential is written.
+export type RequestAuthenticationStrategy = Record<string, any> & { headerName?: string };
+// Request-level shape: array of strategies. Union with the legacy single-object
+// shape so unmigrated reads still compile; route everything through
+// getAuthStrategies() to get a guaranteed array.
+export type RequestAuthentication = RequestAuthenticationStrategy | RequestAuthenticationStrategy[];
+
+export function getAuthStrategies(auth: RequestAuthentication | undefined | null): RequestAuthenticationStrategy[] {
+  if (!auth) return [];
+  if (Array.isArray(auth)) return auth;
+  // Legacy single-object shape; empty {} = no auth.
+  if (Object.keys(auth).length === 0) return [];
+  return [auth];
+}
+
+export function patchAuthStrategy(
+  auth: RequestAuthentication | undefined | null,
+  index: number,
+  patch: Partial<RequestAuthenticationStrategy>,
+): RequestAuthenticationStrategy[] {
+  const strategies = getAuthStrategies(auth);
+  if (index < 0 || index >= strategies.length) return strategies;
+  const next = [...strategies];
+  next[index] = { ...next[index], ...patch };
+  return next;
+}
+
+export function addAuthStrategy(
+  auth: RequestAuthentication | undefined | null,
+  strategy: RequestAuthenticationStrategy,
+): RequestAuthenticationStrategy[] {
+  return [...getAuthStrategies(auth), strategy];
+}
+
+export function removeAuthStrategy(
+  auth: RequestAuthentication | undefined | null,
+  index: number,
+): RequestAuthenticationStrategy[] {
+  const strategies = getAuthStrategies(auth);
+  return strategies.filter((_, i) => i !== index);
+}
+
+export function replaceAuthStrategy(
+  auth: RequestAuthentication | undefined | null,
+  index: number,
+  strategy: RequestAuthenticationStrategy,
+): RequestAuthenticationStrategy[] {
+  const strategies = getAuthStrategies(auth);
+  if (index < 0 || index >= strategies.length) return strategies;
+  const next = [...strategies];
+  next[index] = strategy;
+  return next;
+}
 export type OAuth2ResponseType = 'code' | 'id_token' | 'id_token token' | 'none' | 'token';
 export interface AuthTypeOAuth2 {
   type: 'oauth2';
@@ -141,7 +194,7 @@ export function init(): BaseRequest {
     body: {},
     parameters: [],
     headers: [],
-    authentication: {},
+    authentication: [],
     metaSortKey: -1 * Date.now(),
     isPrivate: false,
     // Settings
@@ -155,7 +208,7 @@ export function init(): BaseRequest {
   };
 }
 
-export function newAuth(type: string, oldAuth: RequestAuthentication = {}): RequestAuthentication {
+export function newAuth(type: string, oldAuth: RequestAuthenticationStrategy = {}): RequestAuthenticationStrategy {
   switch (type) {
     // No Auth
     case AUTH_NONE:
@@ -246,6 +299,7 @@ export function migrate(doc: Request): Request {
     doc = migrateBody(doc);
     doc = migrateWeirdUrls(doc);
     doc = migrateAuthType(doc);
+    doc = migrateAuthShape(doc);
     return doc;
   } catch (e) {
     console.log('[db] Error during request migration', e);
@@ -370,11 +424,21 @@ function migrateWeirdUrls(request: Request) {
  * @param request
  */
 function migrateAuthType(request: Request) {
-  const isAuthSet = request.authentication && request.authentication.username;
-
-  if (isAuthSet && !request.authentication.type) {
-    request.authentication.type = AUTH_BASIC;
+  const auth = request.authentication as any;
+  if (auth && !Array.isArray(auth) && auth.username && !auth.type) {
+    auth.type = AUTH_BASIC;
   }
 
+  return request;
+}
+
+// Wrap legacy single-object auth to the new array shape (read-time, no DB write).
+function migrateAuthShape(request: Request) {
+  const auth = request.authentication as any;
+  if (auth && !Array.isArray(auth)) {
+    request.authentication = Object.keys(auth).length === 0 ? [] : [auth];
+  } else if (!auth) {
+    request.authentication = [];
+  }
   return request;
 }

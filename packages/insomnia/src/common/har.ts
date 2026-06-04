@@ -6,7 +6,7 @@ import * as models from '../models';
 import type { Request } from '../models/request';
 import type { Response } from '../models/response';
 import { isWorkspace } from '../models/workspace';
-import { getAuthHeader } from '../network/authentication';
+import { getAuthHeaders } from '../network/authentication';
 import * as plugins from '../plugins';
 import * as pluginContexts from '../plugins/context/index';
 import { RenderError } from '../templating/index';
@@ -14,7 +14,7 @@ import { smartEncodeUrl } from '../utils/url/querystring';
 import { getAppVersion } from './constants';
 import { jarFromCookies } from './cookies';
 import { database } from './database';
-import { filterHeaders, getSetCookieHeaders, hasAuthHeader } from './misc';
+import { filterHeaders, getSetCookieHeaders } from './misc';
 import type { RenderedRequest } from './render';
 import { getRenderedRequestAndContext } from './render';
 
@@ -380,16 +380,10 @@ export async function exportHarWithRenderedRequest(
     }
   }
 
-  // Set auth header if we have it
-  if (!hasAuthHeader(renderedRequest.headers)) {
-    const header = await getAuthHeader(renderedRequest, url);
-
-    if (header) {
-      renderedRequest.headers.push({
-        name: header.name,
-        value: header.value,
-      });
-    }
+  // Push every emitted auth header (multi-strategy aware).
+  const authHeaders = await getAuthHeaders(renderedRequest, url);
+  for (const header of authHeaders) {
+    renderedRequest.headers.push({ name: header.name, value: header.value });
   }
 
   const harRequest: HarRequest = {

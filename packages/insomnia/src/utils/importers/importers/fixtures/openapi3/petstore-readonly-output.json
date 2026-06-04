@@ -34,7 +34,7 @@
     {
       "_id": "req___WORKSPACE_ID__26e3ae98",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -52,16 +52,18 @@
     {
       "_id": "req___WORKSPACE_ID__09e1157b",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"name\": \"string\",\n  \"tag\": \"string\"\n}"
       },
-      "headers": [{
-        "disabled": false,
-        "name": "Content-Type",
-        "value": "application/json"
-      }],
+      "headers": [
+        {
+          "disabled": false,
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
       "method": "POST",
       "name": "Create a pet",
       "parameters": [],
@@ -71,7 +73,7 @@
     {
       "_id": "req___WORKSPACE_ID__3b13e39c",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",

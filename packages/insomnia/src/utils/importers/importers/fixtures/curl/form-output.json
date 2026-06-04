@@ -33,7 +33,7 @@
       },
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     }
   ]
 }

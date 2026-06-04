@@ -41,10 +41,12 @@
           "value": "application/json; charset=utf-8"
         }
       ],
-      "authentication": {
-        "username": "{{ api_key }}",
-        "password": ""
-      }
+      "authentication": [
+        {
+          "username": "{{ api_key }}",
+          "password": ""
+        }
+      ]
     },
     {
       "_id": "__REQ_2__",
@@ -68,10 +70,12 @@
         }
       ],
       "headers": [],
-      "authentication": {
-        "username": "{{ api_key }}",
-        "password": ""
-      }
+      "authentication": [
+        {
+          "username": "{{ api_key }}",
+          "password": ""
+        }
+      ]
     }
   ]
 }

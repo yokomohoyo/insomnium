@@ -1,7 +1,6 @@
 import React, { FC } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
 
-import { RequestLoaderData } from '../../../routes/request';
+import { useAuthStrategy } from './auth-strategy-context';
 import { AuthInputRow } from './components/auth-input-row';
 import { AuthSelectRow } from './components/auth-select-row';
 import { AuthTableBody } from './components/auth-table-body';
@@ -14,8 +13,8 @@ const SOURCE_OPTIONS = [
 ];
 
 export const GcpIdTokenAuth: FC<{ disabled?: boolean }> = ({ disabled = false }) => {
-  const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
-  const source: string = activeRequest.authentication.credentialSource ?? 'adc';
+  const { strategy } = useAuthStrategy();
+  const source: string = strategy.credentialSource ?? 'adc';
 
   return (
     <AuthTableBody>

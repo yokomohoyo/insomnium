@@ -20,7 +20,9 @@ import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { GrpcSendButton } from '../buttons/grpc-send-button';
 import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
 import { OneLineEditor } from '../codemirror/one-line-editor';
+import { AuthDropdown } from '../dropdowns/auth-dropdown';
 import { GrpcMethodDropdown } from '../dropdowns/grpc-method-dropdown/grpc-method-dropdown';
+import { AuthWrapper } from '../editors/auth/auth-wrapper';
 import { ErrorBoundary } from '../error-boundary';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 import { useDocBodyKeyboardShortcuts } from '../keydown-binder';
@@ -345,6 +347,16 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                       handleGetAutocompleteValueConstants={getCommonHeaderValues}
                       onChange={(metadata: GrpcRequestHeader[]) => patchRequest(requestId, { metadata })}
                     />
+                  </ErrorBoundary>
+                </PanelContainer>
+              </TabItem>
+              <TabItem
+                key="auth"
+                title={<><AuthDropdown disabled={running} /></>}
+              >
+                <PanelContainer className="tall wide">
+                  <ErrorBoundary key={uniquenessKey} errorClassName="font-error pad text-center">
+                    <AuthWrapper disabled={running} />
                   </ErrorBoundary>
                 </PanelContainer>
               </TabItem>

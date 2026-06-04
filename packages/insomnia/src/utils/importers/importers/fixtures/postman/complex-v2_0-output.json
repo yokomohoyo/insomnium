@@ -47,12 +47,14 @@
       },
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": false,
-        "password": "password",
-        "type": "basic",
-        "username": "username"
-      }
+      "authentication": [
+        {
+          "disabled": false,
+          "password": "password",
+          "type": "basic",
+          "username": "username"
+        }
+      ]
     },
     {
       "_id": "__REQ_2__",
@@ -74,12 +76,14 @@
       },
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": false,
-        "password": "password",
-        "type": "basic",
-        "username": "username"
-      }
+      "authentication": [
+        {
+          "disabled": false,
+          "password": "password",
+          "type": "basic",
+          "username": "username"
+        }
+      ]
     },
     {
       "_id": "__REQ_3__",
@@ -95,7 +99,7 @@
       },
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     },
     {
       "_id": "__REQ_4__",
@@ -108,7 +112,7 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     },
     {
       "_id": "__REQ_5__",
@@ -121,7 +125,7 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     },
     {
       "_id": "__REQ_6__",
@@ -137,7 +141,7 @@
       },
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     }
   ]
 }

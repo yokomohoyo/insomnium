@@ -14,7 +14,7 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     },
     {
       "_id": "__REQ_2__",
@@ -26,7 +26,7 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     },
     {
       "_id": "__REQ_3__",
@@ -43,7 +43,7 @@
           "value": "foo=bar"
         }
       ],
-      "authentication": {}
+      "authentication": []
     },
     {
       "_id": "__REQ_4__",
@@ -55,7 +55,7 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     }
   ]
 }

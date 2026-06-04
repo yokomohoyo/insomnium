@@ -16,6 +16,7 @@ import {
   PKCE_CHALLENGE_S256,
 } from '../../../../network/o-auth-2/constants';
 import { getOAuth2Token } from '../../../../network/o-auth-2/get-token';
+import { useAuthStrategy } from './auth-strategy-context';
 import { initNewOAuthSession } from '../../../../network/o-auth-2/get-token';
 import { useNunjucks } from '../../../context/nunjucks/use-nunjucks';
 import { RequestLoaderData } from '../../../routes/request';
@@ -88,7 +89,7 @@ const credentialsInBodyOptions = [
   },
 ];
 
-const getFields = (authentication: Request['authentication']) => {
+const getFields = (authentication: any) => {
   const clientId = <AuthInputRow label='Client ID' property='clientId' key='clientId' />;
   const clientSecret = <AuthInputRow label='Client Secret' property='clientSecret' key='clientSecret' />;
   const usePkce = <AuthToggleRow label='Use PKCE' property='usePkce' key='usePkce' onTitle='Disable PKCE' offTitle='Enable PKCE' />;
@@ -146,7 +147,7 @@ const getFields = (authentication: Request['authentication']) => {
   };
 };
 
-const getFieldsForGrantType = (authentication: Request['authentication']) => {
+const getFieldsForGrantType = (authentication: any) => {
   const {
     clientId,
     clientSecret,
@@ -244,9 +245,9 @@ const getFieldsForGrantType = (authentication: Request['authentication']) => {
 };
 
 export const OAuth2Auth: FC = () => {
-  const { activeRequest: { authentication } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { strategy } = useAuthStrategy();
 
-  const { basic, advanced } = getFieldsForGrantType(authentication);
+  const { basic, advanced } = getFieldsForGrantType(strategy);
 
   return (
     <>
@@ -421,7 +422,8 @@ const OAuth2Error: FC<{ token: OAuth2Token | null }> = ({ token }) => {
 };
 
 const OAuth2Tokens: FC = () => {
-  const { activeRequest: { authentication, _id: requestId } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { activeRequest: { _id: requestId } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { strategy: authentication } = useAuthStrategy();
   const [token, setToken] = useState<OAuth2Token | null>(null);
   useEffect(() => {
     const fn = async () => {

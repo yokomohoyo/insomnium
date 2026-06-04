@@ -34,10 +34,12 @@
           "value": "foo"
         }
       ],
-      "authentication": {
-        "username": "My User",
-        "password": "My:Secret:Password"
-      }
+      "authentication": [
+        {
+          "username": "My User",
+          "password": "My:Secret:Password"
+        }
+      ]
     }
   ]
 }

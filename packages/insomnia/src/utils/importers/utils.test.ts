@@ -29,7 +29,7 @@ describe('setDefaults()', () => {
       method: 'GET',
       parameters: [],
       headers: [],
-      authentication: {},
+      authentication: [],
     });
   });
 

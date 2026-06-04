@@ -51,11 +51,13 @@
           "value": "{{ _.xApiKey }}"
         }
       ],
-      "authentication": {
-        "type": "basic",
-        "username": "{{ _.httpUsername }}",
-        "password": "{{ _.httpPassword }}"
-      },
+      "authentication": [
+        {
+          "type": "basic",
+          "username": "{{ _.httpUsername }}",
+          "password": "{{ _.httpPassword }}"
+        }
+      ],
       "_type": "request",
       "_id": "req___WORKSPACE_ID__21946b60"
     },
@@ -67,12 +69,14 @@
       "method": "GET",
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "addTo": "query",
-        "key": "apiKeyHere",
-        "type": "apikey",
-        "value": "{{ _.apiKeyHere }}"
-      },
+      "authentication": [
+        {
+          "addTo": "query",
+          "key": "apiKeyHere",
+          "type": "apikey",
+          "value": "{{ _.apiKeyHere }}"
+        }
+      ],
       "_type": "request",
       "_id": "req___WORKSPACE_ID__b410454b"
     }

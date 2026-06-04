@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
 import { ProtoDirectory } from '../../../models/proto-directory';
@@ -126,19 +126,70 @@ const recursiveRender = (
     selectedId,
   ))]);
 
-export const ProtoFileList: FunctionComponent<Props> = props => (
-  <ListGroup bordered>
-    {!props.protoDirectories.length && (
-      <ListGroupItem>No proto files exist for this workspace</ListGroupItem>
-    )}
-    {props.protoDirectories.map(dir => recursiveRender(
-      0,
-      dir,
-      props.handleSelect,
-      props.handleUpdate,
-      props.handleDelete,
-      props.handleDeleteDirectory,
-      props.selectedId
-    ))}
-  </ListGroup>
-);
+// Prune the tree to only entries whose file name (or path segment) contains
+// the query. Empty subtrees disappear; matching files surface alongside their
+// ancestor folders for context.
+function filterTree(node: ExpandedProtoDirectory, q: string): ExpandedProtoDirectory | null {
+  const files = node.files.filter(f => f.name.toLowerCase().includes(q));
+  const subDirs = node.subDirs
+    .map(sd => filterTree(sd, q))
+    .filter((sd): sd is ExpandedProtoDirectory => sd !== null);
+  // Match the directory itself by name too so a folder query keeps its contents.
+  const dirNameMatch = node.dir?.name.toLowerCase().includes(q);
+  if (files.length === 0 && subDirs.length === 0 && !dirNameMatch) {
+    return null;
+  }
+  // If the directory name matched, keep ALL its files/subdirs for context.
+  return dirNameMatch
+    ? node
+    : { dir: node.dir, files, subDirs };
+}
+
+export const ProtoFileList: FunctionComponent<Props> = props => {
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+
+  const filtered = useMemo(() => {
+    if (!q) return props.protoDirectories;
+    return props.protoDirectories
+      .map(d => filterTree(d, q))
+      .filter((d): d is ExpandedProtoDirectory => d !== null);
+  }, [props.protoDirectories, q]);
+
+  return (
+    <>
+      {props.protoDirectories.length > 0 && (
+        <div className="pad-sm">
+          <input
+            type="search"
+            className="form-control"
+            placeholder="Filter proto files..."
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+        </div>
+      )}
+      <ListGroup bordered>
+        {!props.protoDirectories.length && (
+          <ListGroupItem>No proto files exist for this workspace</ListGroupItem>
+        )}
+        {filtered.length === 0 && q && (
+          <ListGroupItem>No matches for &quot;{query}&quot;</ListGroupItem>
+        )}
+        {filtered.map((dir, i) => (
+          <React.Fragment key={dir.dir?._id ?? `__root_${i}`}>
+            {recursiveRender(
+              0,
+              dir,
+              props.handleSelect,
+              props.handleUpdate,
+              props.handleDelete,
+              props.handleDeleteDirectory,
+              props.selectedId
+            )}
+          </React.Fragment>
+        ))}
+      </ListGroup>
+    </>
+  );
+};

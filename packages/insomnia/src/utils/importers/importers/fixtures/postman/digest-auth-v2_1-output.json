@@ -23,12 +23,14 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": false,
-        "password": "guest",
-        "type": "digest",
-        "username": "guest"
-      }
+      "authentication": [
+        {
+          "disabled": false,
+          "password": "guest",
+          "type": "digest",
+          "username": "guest"
+        }
+      ]
     }
   ]
 }
