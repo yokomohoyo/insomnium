@@ -114,10 +114,14 @@ export function registerGrpcTools(server: McpServer) {
             );
             const cap = () => {
               if (responses.length >= maxResponses) {
-                try { call.cancel(); } catch { /* noop */ }
+                try {
+                  call.cancel();
+                } catch { /* noop */ }
               }
             };
-            call.on('data', (msg: any) => { responses.push(msg); cap(); });
+            call.on('data', (msg: any) => {
+ responses.push(msg); cap();
+});
             call.on('end', () => resolve({ ok: true, responses }));
             call.on('error', (err: any) => {
               // code 1 = CANCELLED - our own cancel after maxResponses.
@@ -156,10 +160,14 @@ export function registerGrpcTools(server: McpServer) {
             );
             const cap = () => {
               if (responses.length >= maxResponses) {
-                try { (call as any).cancel(); } catch { /* noop */ }
+                try {
+                  (call as any).cancel();
+                } catch { /* noop */ }
               }
             };
-            (call as any).on('data', (msg: any) => { responses.push(msg); cap(); });
+            (call as any).on('data', (msg: any) => {
+ responses.push(msg); cap();
+});
             (call as any).on('end', () => resolve({ ok: true, responses }));
             (call as any).on('error', (err: any) => {
               if (err?.code === 1 && responses.length >= maxResponses) {
@@ -173,7 +181,9 @@ export function registerGrpcTools(server: McpServer) {
           });
         }
       } finally {
-        try { client.close?.(); } catch { /* noop */ }
+        try {
+          client.close?.();
+        } catch { /* noop */ }
       }
 
       const elapsedMs = Date.now() - started;

@@ -262,7 +262,11 @@ function bufCacheCandidates(): string[] {
 async function buildIncludeDirs(filePath: string, parent: ProtoDirectory | Workspace): Promise<string[]> {
   const ancestors = await findAncestorDirectories(filePath, parent);
   const bufDirs = bufCacheCandidates().filter(p => {
-    try { return fs.statSync(p).isDirectory(); } catch { return false; }
+    try {
+      return fs.statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
   });
   return [...ancestors, ...bufDirs];
 }

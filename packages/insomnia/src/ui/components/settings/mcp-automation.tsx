@@ -26,7 +26,9 @@ export const McpAutomation: FC = () => {
     };
     tick();
     const id = setInterval(tick, 1500);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+ cancelled = true; clearInterval(id);
+};
   }, [settings.mcpEnabled, settings.mcpPort]);
 
   // Prefer the actual running port - that's what clients have to connect to.

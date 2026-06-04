@@ -102,7 +102,9 @@ export async function stopMcpServer(): Promise<void> {
   const server = current;
   current = null;
   for (const t of server.transports.values()) {
-    try { await t.close(); } catch { /* noop */ }
+    try {
+      await t.close();
+    } catch { /* noop */ }
   }
   await new Promise<void>(resolve => server.http.close(() => resolve()));
   console.log('[mcp] stopped');
