@@ -28,8 +28,9 @@ export const GcpIdTokenAuth: FC<{ disabled?: boolean }> = ({ disabled = false })
         help={
           <>
             <strong>ADC</strong> looks at <code>$GOOGLE_APPLICATION_CREDENTIALS</code> then{' '}
-            <code>~/.config/gcloud/application_default_credentials.json</code>. Only{' '}
-            <code>service_account</code>-shaped credentials are supported.
+            <code>~/.config/gcloud/application_default_credentials.json</code>. Accepts{' '}
+            <code>service_account</code>, <code>impersonated_service_account</code>, or{' '}
+            <code>authorized_user</code> (set the Impersonate field below for the last one).
           </>
         }
       />
@@ -57,7 +58,14 @@ export const GcpIdTokenAuth: FC<{ disabled?: boolean }> = ({ disabled = false })
         label="Audience"
         property="audience"
         disabled={disabled}
-        help="Leave blank to use the request URL's origin (scheme + host) — the conventional Cloud Run audience. Override when the receiving service requires a different `aud` claim."
+        help="Leave blank to use the request URL's origin (scheme + host) - the conventional Cloud Run audience. Override when the receiving service requires a different `aud` claim."
+      />
+
+      <AuthInputRow
+        label="Impersonate SA"
+        property="impersonateServiceAccount"
+        disabled={disabled}
+        help="Optional. Email of a service account to impersonate via iamcredentials:generateIdToken. Required when the source credential is `authorized_user` (gcloud user creds). You need roles/iam.serviceAccountTokenCreator on the target SA."
       />
     </AuthTableBody>
   );
