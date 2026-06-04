@@ -33,8 +33,8 @@ const ensureGrpcRootDir = (): string => {
 
 // A ProtoDirectory / ProtoFile `name` becomes a path segment on disk via
 // path.join. A malicious value (`../../etc/passwd`, absolute path, embedded
-// slash) lets an attacker who can populate the model — e.g. by getting the
-// user to import a crafted workspace JSON — write arbitrary content anywhere
+// slash) lets an attacker who can populate the model - e.g. by getting the
+// user to import a crafted workspace JSON - write arbitrary content anywhere
 // the user can write. Require each name to be a single filesystem-safe
 // component.
 export const assertSafeNameSegment = (name: string, kind: 'proto file' | 'proto directory'): void => {

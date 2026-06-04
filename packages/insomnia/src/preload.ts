@@ -43,6 +43,7 @@ const main: Window['main'] = {
   restart: () => ipcRenderer.send('restart'),
   openInBrowser: options => ipcRenderer.send('openInBrowser', options),
   halfSecondAfterAppStart: () => ipcRenderer.send('halfSecondAfterAppStart'),
+  getMcpStatus: () => ipcRenderer.invoke('getMcpStatus'),
   manualUpdateCheck: () => ipcRenderer.send('manualUpdateCheck'),
   backup: () => ipcRenderer.invoke('backup'),
   restoreBackup: options => ipcRenderer.invoke('restoreBackup', options),

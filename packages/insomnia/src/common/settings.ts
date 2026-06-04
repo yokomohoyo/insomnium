@@ -104,7 +104,7 @@ export interface Settings {
 
   disableResponsePreviewLinks: boolean;
 
-  /** If true, Insomnium won’t show a notification when new updates are available. Users can still check for updates in Preferences. */
+  /** If true, Insomnium won't show a notification when new updates are available. Users can still check for updates in Preferences. */
   disableUpdateNotification: boolean;
   editorFontSize: number;
   editorIndentSize: number;
@@ -150,4 +150,11 @@ export interface Settings {
   // private BSR modules. Empty string = no auth (public sources only).
   bufToken: string;
   githubToken: string;
+
+  // MCP automation: when enabled, Insomnium exposes a loopback HTTP+SSE
+  // server that MCP clients (e.g. Claude Code) can connect to in order to
+  // list/run requests. Token is auto-generated on first enable.
+  mcpEnabled: boolean;
+  mcpPort: number;   // 0 = pick free
+  mcpToken: string;
 }

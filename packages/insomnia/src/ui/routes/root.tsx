@@ -161,7 +161,7 @@ const Root = () => {
 
           case 'insomnia://plugins/theme': {
             const parsedTheme = JSON.parse(decodeURIComponent(params.theme));
-            // Reject before showing the modal — a malicious deep link should not
+            // Reject before showing the modal - a malicious deep link should not
             // get to display a confirmation dialog that, if accepted, would write
             // outside the plugins directory.
             assertValidThemeName(parsedTheme.name);

@@ -71,6 +71,9 @@ export function init(): BaseSettings {
     validateSSL: true,
     bufToken: '',
     githubToken: '',
+    mcpEnabled: false,
+    mcpPort: 0,
+    mcpToken: '',
   };
 }
 

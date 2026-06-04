@@ -186,7 +186,7 @@ describe('fetchImportContentFromURI()', () => {
     'file:///etc/passwd',
     'file:///Users/victim/.ssh/id_rsa',
     'file://localhost/etc/passwd',
-  ])('rejects file:// by default — %p', async uri => {
+  ])('rejects file:// by default - %p', async uri => {
     await expect(importUtil.fetchImportContentFromURI({ uri })).rejects.toThrow(
       /Unsupported import URI scheme/,
     );

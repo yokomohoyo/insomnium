@@ -94,7 +94,7 @@ export default async function(lookupName: string) {
 async function _isInsomniaPlugin(lookupName: string) {
   return new Promise<InsomniaPlugin>((resolve, reject) => {
     console.log('[plugins] Fetching module info from npm');
-    // shell:false (default) — args are passed verbatim to the child, so
+    // shell:false (default) - args are passed verbatim to the child, so
     // shell metacharacters in lookupName cannot be interpreted as code.
     childProcess.execFile(
       process.execPath,
@@ -162,14 +162,14 @@ async function _isInsomniaPlugin(lookupName: string) {
 
 async function _installPluginToTmpDir(lookupName: string) {
   return new Promise<{ tmpDir: string }>(async (resolve, reject) => {
-    // mkdtemp: atomic, unguessable name — avoids tmp symlink races.
+    // mkdtemp: atomic, unguessable name - avoids tmp symlink races.
     const safeName = lookupName.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const tmpDir = await mkdtemp(path.join(electron.app.getPath('temp'), `${safeName}-`));
     // Write a dummy package.json so that yarn doesn't traverse up the directory tree
     await writeFile(path.join(tmpDir, 'package.json'), JSON.stringify({ license: 'ISC', workspaces: [] }), 'utf-8');
 
     console.log(`[plugins] Installing plugin to ${tmpDir}`);
-    // shell:false (default) — args are passed verbatim to the child, so
+    // shell:false (default) - args are passed verbatim to the child, so
     // shell metacharacters in lookupName cannot be interpreted as code.
     childProcess.execFile(
       process.execPath,

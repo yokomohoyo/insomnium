@@ -210,7 +210,7 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     showPrompt({
       title: "Import proto from URL",
       submitName: "Import",
-      placeholder: "github.com/owner/repo/blob/main/svc.proto, buf.build/owner/repo, https://….proto",
+      placeholder: "github.com/owner/repo/blob/main/svc.proto, buf.build/owner/repo, https://....proto",
       label: "URL",
       onComplete: importFromUrl,
     });

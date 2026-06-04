@@ -56,7 +56,7 @@ export async function fetchImportContentFromURI(
   } else if (uri.match(/^file:\/\//)) {
     // file:// is opt-in. Callers reachable from untrusted input (deep links,
     // anything driven by `params.uri` from a `shell:open` event) must NOT set
-    // allowLocalFiles; otherwise a `insomnia://app/import?uri=file:///…` link
+    // allowLocalFiles; otherwise a `insomnia://app/import?uri=file:///...` link
     // would read arbitrary user-readable files into the workspace.
     // Trusted callers (the plugin context's `data.import.uri`) opt in.
     if (!allowLocalFiles) {
@@ -69,7 +69,7 @@ export async function fetchImportContentFromURI(
     // Any other scheme (data:, ftp:, javascript:, etc.) is always rejected.
     throw new Error('Unsupported import URI scheme. Only http(s) URLs are allowed.');
   } else {
-    // Treat everything else (no scheme) as raw text — preserves the "paste
+    // Treat everything else (no scheme) as raw text - preserves the "paste
     // YAML/JSON into the URL field" UX.
     const content = decodeURIComponent(uri);
 

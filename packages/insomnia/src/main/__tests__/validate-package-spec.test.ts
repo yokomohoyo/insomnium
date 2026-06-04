@@ -73,7 +73,7 @@ describe('isValidThemeName', () => {
   });
 
   it.each([
-    // Path traversal — the actual security issue this guards against:
+    // Path traversal - the actual security issue this guards against:
     '../../../tmp/evil',
     '../../etc',
     '/etc/passwd',

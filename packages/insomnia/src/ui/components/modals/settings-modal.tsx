@@ -9,6 +9,7 @@ import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { General } from '../settings/general';
 import { ImportExport } from '../settings/import-export';
 
+import { McpAutomation } from '../settings/mcp-automation';
 import { ProtoTokens } from '../settings/proto-tokens';
 import { Shortcuts } from '../settings/shortcuts';
 import { ThemePanel } from '../settings/theme-panel';
@@ -79,6 +80,11 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
           <TabItem key="proto-tokens" title="Proto Tokens">
             <PanelContainer className="pad">
               <ProtoTokens />
+            </PanelContainer>
+          </TabItem>
+          <TabItem key="mcp" title="Automation (MCP)">
+            <PanelContainer className="pad">
+              <McpAutomation />
             </PanelContainer>
           </TabItem>
 
