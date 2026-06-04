@@ -23,22 +23,24 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "callback": "",
-        "consumerKey": "consumer-key-value",
-        "consumerSecret": "consumer-secret-value",
-        "disabled": false,
-        "nonce": "nonce-value",
-        "privateKey": "",
-        "realm": "realm-value",
-        "signatureMethod": "HMAC-SHA1",
-        "timestamp": "timestamp-value",
-        "tokenKey": "access-token-value",
-        "tokenSecret": "token-secret-value",
-        "type": "oauth1",
-        "verifier": "",
-        "version": "1.0"
-      }
+      "authentication": [
+        {
+          "callback": "",
+          "consumerKey": "consumer-key-value",
+          "consumerSecret": "consumer-secret-value",
+          "disabled": false,
+          "nonce": "nonce-value",
+          "privateKey": "",
+          "realm": "realm-value",
+          "signatureMethod": "HMAC-SHA1",
+          "timestamp": "timestamp-value",
+          "tokenKey": "access-token-value",
+          "tokenSecret": "token-secret-value",
+          "type": "oauth1",
+          "verifier": "",
+          "version": "1.0"
+        }
+      ]
     },
     {
       "_id": "__REQ_2__",
@@ -51,22 +53,24 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "callback": "",
-        "consumerKey": "consumer-key-value",
-        "consumerSecret": "consumer-secret-value",
-        "disabled": false,
-        "nonce": "nonce-value",
-        "privateKey": "",
-        "realm": "realm-value",
-        "signatureMethod": "HMAC-SHA1",
-        "timestamp": "timestamp-value",
-        "tokenKey": "access-token-value",
-        "tokenSecret": "token-secret-value",
-        "type": "oauth1",
-        "verifier": "",
-        "version": "1.0"
-      }
+      "authentication": [
+        {
+          "callback": "",
+          "consumerKey": "consumer-key-value",
+          "consumerSecret": "consumer-secret-value",
+          "disabled": false,
+          "nonce": "nonce-value",
+          "privateKey": "",
+          "realm": "realm-value",
+          "signatureMethod": "HMAC-SHA1",
+          "timestamp": "timestamp-value",
+          "tokenKey": "access-token-value",
+          "tokenSecret": "token-secret-value",
+          "type": "oauth1",
+          "verifier": "",
+          "version": "1.0"
+        }
+      ]
     },
     {
       "_id": "__REQ_3__",
@@ -79,22 +83,24 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "callback": "",
-        "consumerKey": "plaintext-consumer-key-value",
-        "consumerSecret": "plaintext-consumer-secret-value",
-        "disabled": false,
-        "nonce": "plaintext-nonce-value",
-        "privateKey": "",
-        "realm": "plaintext-realm-value",
-        "signatureMethod": "PLAINTEXT",
-        "timestamp": "plaintext-timestamp-value",
-        "tokenKey": "plaintext-access-token-value",
-        "tokenSecret": "plaintext-token-secret-value",
-        "type": "oauth1",
-        "verifier": "",
-        "version": "1.0"
-      }
+      "authentication": [
+        {
+          "callback": "",
+          "consumerKey": "plaintext-consumer-key-value",
+          "consumerSecret": "plaintext-consumer-secret-value",
+          "disabled": false,
+          "nonce": "plaintext-nonce-value",
+          "privateKey": "",
+          "realm": "plaintext-realm-value",
+          "signatureMethod": "PLAINTEXT",
+          "timestamp": "plaintext-timestamp-value",
+          "tokenKey": "plaintext-access-token-value",
+          "tokenSecret": "plaintext-token-secret-value",
+          "type": "oauth1",
+          "verifier": "",
+          "version": "1.0"
+        }
+      ]
     },
     {
       "_id": "__REQ_4__",
@@ -107,22 +113,24 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "callback": "",
-        "consumerKey": "sha256-consumer-key-value",
-        "consumerSecret": "sha256-consumer-secret-value",
-        "disabled": false,
-        "nonce": "sha256-nonce-value",
-        "privateKey": "",
-        "realm": "sha256-realm-value",
-        "signatureMethod": "HMAC-SHA256",
-        "timestamp": "sha256-timestamp-value",
-        "tokenKey": "sha256-access-token-value",
-        "tokenSecret": "sha256-token-secret-value",
-        "type": "oauth1",
-        "verifier": "",
-        "version": "1.0"
-      }
+      "authentication": [
+        {
+          "callback": "",
+          "consumerKey": "sha256-consumer-key-value",
+          "consumerSecret": "sha256-consumer-secret-value",
+          "disabled": false,
+          "nonce": "sha256-nonce-value",
+          "privateKey": "",
+          "realm": "sha256-realm-value",
+          "signatureMethod": "HMAC-SHA256",
+          "timestamp": "sha256-timestamp-value",
+          "tokenKey": "sha256-access-token-value",
+          "tokenSecret": "sha256-token-secret-value",
+          "type": "oauth1",
+          "verifier": "",
+          "version": "1.0"
+        }
+      ]
     },
     {
       "_id": "__REQ_5__",
@@ -135,22 +143,24 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "callback": "",
-        "consumerKey": "sha1-consumer-key-value",
-        "consumerSecret": "sha1-consumer-secret-value",
-        "disabled": false,
-        "nonce": "sha1-nonce-value",
-        "privateKey": "",
-        "realm": "sha1-realm-value",
-        "signatureMethod": "HMAC-SHA1",
-        "timestamp": "sha1-timestamp-value",
-        "tokenKey": "sha1-access-token-value",
-        "tokenSecret": "sha1-token-secret-value",
-        "type": "oauth1",
-        "verifier": "",
-        "version": "1.0"
-      }
+      "authentication": [
+        {
+          "callback": "",
+          "consumerKey": "sha1-consumer-key-value",
+          "consumerSecret": "sha1-consumer-secret-value",
+          "disabled": false,
+          "nonce": "sha1-nonce-value",
+          "privateKey": "",
+          "realm": "sha1-realm-value",
+          "signatureMethod": "HMAC-SHA1",
+          "timestamp": "sha1-timestamp-value",
+          "tokenKey": "sha1-access-token-value",
+          "tokenSecret": "sha1-token-secret-value",
+          "type": "oauth1",
+          "verifier": "",
+          "version": "1.0"
+        }
+      ]
     }
   ]
 }

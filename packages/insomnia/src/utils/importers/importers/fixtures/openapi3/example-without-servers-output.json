@@ -34,7 +34,7 @@
     {
       "_id": "req___WORKSPACE_ID__316fc296",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -46,7 +46,7 @@
     {
       "_id": "req___WORKSPACE_ID__4dd01204",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",

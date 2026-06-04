@@ -23,12 +23,14 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": false,
-        "prefix": "",
-        "token": "bearer-token-value",
-        "type": "bearer"
-      }
+      "authentication": [
+        {
+          "disabled": false,
+          "prefix": "",
+          "token": "bearer-token-value",
+          "type": "bearer"
+        }
+      ]
     }
   ]
 }

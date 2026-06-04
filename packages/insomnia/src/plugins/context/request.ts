@@ -186,14 +186,32 @@ export function init(
       }
     },
 
+    // Multi-auth: applies the field to every strategy (back-compat for plugins
+    // written against single-auth). Plugins that want per-strategy control
+    // should mutate getAuthenticationStrategies() directly.
     setAuthenticationParameter(name: string, value: string) {
-      Object.assign(renderedRequest.authentication, {
-        [name]: value,
-      });
+      const list = Array.isArray(renderedRequest.authentication)
+        ? renderedRequest.authentication
+        : (renderedRequest.authentication ? [renderedRequest.authentication] : []);
+      for (const s of list) {
+        (s as Record<string, any>)[name] = value;
+      }
+      renderedRequest.authentication = list;
     },
 
+    // Returns the first strategy for legacy plugin compatibility. Use
+    // getAuthenticationStrategies() to see all strategies in multi-auth flow.
     getAuthentication() {
-      return renderedRequest.authentication;
+      const list = Array.isArray(renderedRequest.authentication)
+        ? renderedRequest.authentication
+        : (renderedRequest.authentication ? [renderedRequest.authentication] : []);
+      return list[0] || {};
+    },
+
+    getAuthenticationStrategies() {
+      return Array.isArray(renderedRequest.authentication)
+        ? renderedRequest.authentication
+        : (renderedRequest.authentication ? [renderedRequest.authentication] : []);
     },
 
     getBody() {

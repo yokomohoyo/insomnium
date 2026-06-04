@@ -42,7 +42,7 @@ export const init = (): BaseWebSocketRequest => ({
   url: '',
   metaSortKey: -1 * Date.now(),
   headers: [],
-  authentication: {},
+  authentication: [],
   parameters: [],
   settingEncodeUrl: true,
   settingStoreCookies: true,
@@ -52,7 +52,15 @@ export const init = (): BaseWebSocketRequest => ({
   segmentParams: [],
 });
 
-export const migrate = (doc: WebSocketRequest) => doc;
+export const migrate = (doc: WebSocketRequest) => {
+  const auth = (doc as any).authentication;
+  if (auth && !Array.isArray(auth)) {
+    (doc as any).authentication = Object.keys(auth).length === 0 ? [] : [auth];
+  } else if (!auth) {
+    (doc as any).authentication = [];
+  }
+  return doc;
+};
 
 export const create = (patch: Partial<WebSocketRequest> = {}) => {
   if (!patch.parentId) {

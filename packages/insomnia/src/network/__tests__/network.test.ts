@@ -125,9 +125,10 @@ describe('sendCurlAndWriteTimeline()', () => {
         HTTPHEADER: [
           'Content-Type: application/json',
           'Empty;',
+          'Authorization: Basic dXNlcjpwYXNz',
           'Expect:',
           'Transfer-Encoding:',
-          'Authorization: Basic dXNlcjpwYXNz',
+
           'Accept: */*',
           'Accept-Encoding:',
         ],
@@ -297,9 +298,9 @@ describe('sendCurlAndWriteTimeline()', () => {
         FOLLOWLOCATION: true,
         HTTPHEADER: [
           'Content-Type: application/json',
+          'Authorization: Basic dXNlcjpwYXNz',
           'Expect:',
           'Transfer-Encoding:',
-          'Authorization: Basic dXNlcjpwYXNz',
           'Accept: */*',
           'Accept-Encoding:',
         ],
@@ -726,9 +727,9 @@ describe('sendCurlAndWriteTimeline()', () => {
         HTTPHEADER: [
           'Content-Type: application/json',
           'Empty;',
+          'Authorization: Basic dXNlcjpwYXNz',
           'Expect:',
           'Transfer-Encoding:',
-          'Authorization: Basic dXNlcjpwYXNz',
           'Accept: */*',
           'Accept-Encoding:',
         ],

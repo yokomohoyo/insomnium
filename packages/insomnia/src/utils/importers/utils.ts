@@ -6,18 +6,27 @@ export const setDefaults = (obj: ImportRequest | null) => {
   }
 
   switch (obj._type) {
-    case 'request':
-      return {
+    case 'request': {
+      const merged: any = {
         parentId: '__WORKSPACE_ID__',
         name: 'Imported',
         url: '',
         body: '',
         parameters: [],
         headers: [],
-        authentication: {},
+        authentication: [],
         ...obj,
         method: (obj.method || 'GET').toUpperCase(),
       };
+      // Multi-auth: importers may still emit legacy single-object auth.
+      // Wrap as a 1-element array; treat empty/all-undefined as [].
+      const auth = merged.authentication;
+      if (auth && !Array.isArray(auth)) {
+        const hasMeaningfulFields = Object.values(auth).some(v => v !== undefined && v !== null);
+        merged.authentication = hasMeaningfulFields ? [auth] : [];
+      }
+      return merged;
+    }
 
     case 'request_group':
       return {

@@ -1,9 +1,7 @@
 import React, { FC, ReactNode, useCallback } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
 
 import { toKebabCase } from '../../../../../common/misc';
-import { useRequestSetter } from '../../../../hooks/use-request';
-import { RequestLoaderData } from '../../../../routes/request';
+import { useAuthStrategy } from '../auth-strategy-context';
 import { AuthRow } from './auth-row';
 
 interface Props {
@@ -27,11 +25,10 @@ export const AuthToggleRow: FC<Props> = ({
   offTitle = 'Enable item',
   disabled = false,
 }) => {
-  const { activeRequest: { authentication, _id: requestId } } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
-  const patchRequest = useRequestSetter();
+  const { strategy, patch } = useAuthStrategy();
 
-  const databaseValue = Boolean(authentication[property]);
-  const toggle = useCallback((value?: boolean) => patchRequest(requestId, { authentication: { ...authentication, [property]: value } }), [authentication, patchRequest, property, requestId]);
+  const databaseValue = Boolean(strategy[property]);
+  const toggle = useCallback((value?: boolean) => patch({ [property]: value }), [patch, property]);
 
   const isActuallyOn = invert ? !databaseValue : databaseValue;
 

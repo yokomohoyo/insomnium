@@ -41,10 +41,12 @@
           "value": "application/json; charset=utf-8"
         }
       ],
-      "authentication": {
-        "username": "{{ api_key }}",
-        "password": ""
-      }
+      "authentication": [
+        {
+          "username": "{{ api_key }}",
+          "password": ""
+        }
+      ]
     }
   ]
 }

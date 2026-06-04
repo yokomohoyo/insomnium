@@ -23,12 +23,14 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": false,
-        "password": "basic-password",
-        "type": "basic",
-        "username": "basic-username"
-      }
+      "authentication": [
+        {
+          "disabled": false,
+          "password": "basic-password",
+          "type": "basic",
+          "username": "basic-username"
+        }
+      ]
     }
   ]
 }

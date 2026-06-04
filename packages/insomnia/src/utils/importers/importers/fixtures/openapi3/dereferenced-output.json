@@ -37,23 +37,27 @@
     {
       "_id": "req___WORKSPACE_ID__23acbe44",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"id\": 0,\n  \"category\": {\n    \"id\": 0,\n    \"name\": \"string\"\n  },\n  \"name\": \"doggie\",\n  \"photoUrls\": [\n    \"string\"\n  ],\n  \"tags\": [\n    {\n      \"id\": 0,\n      \"name\": \"string\"\n    }\n  ],\n  \"status\": \"string\"\n}"
       },
-      "headers": [{
-        "disabled": false,
-        "name": "Content-Type",
-        "value": "application/json"
-      }],
+      "headers": [
+        {
+          "disabled": false,
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
       "method": "POST",
       "name": "Add a new pet to the store",
       "parameters": [],
@@ -63,23 +67,27 @@
     {
       "_id": "req___WORKSPACE_ID__74a7a059",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"id\": 0,\n  \"category\": {\n    \"id\": 0,\n    \"name\": \"string\"\n  },\n  \"name\": \"doggie\",\n  \"photoUrls\": [\n    \"string\"\n  ],\n  \"tags\": [\n    {\n      \"id\": 0,\n      \"name\": \"string\"\n    }\n  ],\n  \"status\": \"string\"\n}"
       },
-      "headers": [{
-        "disabled": false,
-        "name": "Content-Type",
-        "value": "application/json"
-      }],
+      "headers": [
+        {
+          "disabled": false,
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
       "method": "PUT",
       "name": "Update an existing pet",
       "parameters": [],
@@ -89,14 +97,16 @@
     {
       "_id": "req___WORKSPACE_ID__80ab0d08",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -114,14 +124,16 @@
     {
       "_id": "req___WORKSPACE_ID__42a17980",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -139,12 +151,14 @@
     {
       "_id": "req___WORKSPACE_ID__3d1a51d3",
       "_type": "request",
-      "authentication": {
-        "addTo": "header",
-        "key": "api_key",
-        "type": "apikey",
-        "value": "{{ _.apiKey }}"
-      },
+      "authentication": [
+        {
+          "addTo": "header",
+          "key": "api_key",
+          "type": "apikey",
+          "value": "{{ _.apiKey }}"
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -156,22 +170,26 @@
     {
       "_id": "req___WORKSPACE_ID__a4608701",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "application/x-www-form-urlencoded"
       },
-      "headers": [{
-        "disabled": false,
-        "name": "Content-Type",
-        "value": "application/x-www-form-urlencoded"
-      }],
+      "headers": [
+        {
+          "disabled": false,
+          "name": "Content-Type",
+          "value": "application/x-www-form-urlencoded"
+        }
+      ],
       "method": "POST",
       "name": "Updates a pet in the store with form data",
       "parameters": [],
@@ -181,14 +199,16 @@
     {
       "_id": "req___WORKSPACE_ID__e804bd05",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "headers": [
         {
@@ -206,22 +226,26 @@
     {
       "_id": "req___WORKSPACE_ID__8081fb6f",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.oauth2ClientId }}",
-        "grantType": "implicit",
-        "redirectUrl": "{{ _.oauth2RedirectUrl }}",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.oauth2ClientId }}",
+          "grantType": "implicit",
+          "redirectUrl": "{{ _.oauth2RedirectUrl }}",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "multipart/form-data"
       },
-      "headers": [{
-        "disabled": false,
-        "name": "Content-Type",
-        "value": "multipart/form-data"
-      }],
+      "headers": [
+        {
+          "disabled": false,
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        }
+      ],
       "method": "POST",
       "name": "uploads an image",
       "parameters": [],
@@ -231,12 +255,14 @@
     {
       "_id": "req___WORKSPACE_ID__443ac9e7",
       "_type": "request",
-      "authentication": {
-        "addTo": "header",
-        "key": "api_key",
-        "type": "apikey",
-        "value": "{{ _.apiKey }}"
-      },
+      "authentication": [
+        {
+          "addTo": "header",
+          "key": "api_key",
+          "type": "apikey",
+          "value": "{{ _.apiKey }}"
+        }
+      ],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -248,7 +274,7 @@
     {
       "_id": "req___WORKSPACE_ID__e24a4f9e",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "POST",
@@ -260,7 +286,7 @@
     {
       "_id": "req___WORKSPACE_ID__f021bcd3",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -272,7 +298,7 @@
     {
       "_id": "req___WORKSPACE_ID__15e47538",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "DELETE",
@@ -284,7 +310,7 @@
     {
       "_id": "req___WORKSPACE_ID__fe3d55d0",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "POST",
@@ -296,7 +322,7 @@
     {
       "_id": "req___WORKSPACE_ID__4cb83333",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "POST",
@@ -308,7 +334,7 @@
     {
       "_id": "req___WORKSPACE_ID__e94a615f",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "POST",
@@ -320,7 +346,7 @@
     {
       "_id": "req___WORKSPACE_ID__00ac9da2",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -343,7 +369,7 @@
     {
       "_id": "req___WORKSPACE_ID__740025cb",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -355,7 +381,7 @@
     {
       "_id": "req___WORKSPACE_ID__74f1d1d1",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "GET",
@@ -367,7 +393,7 @@
     {
       "_id": "req___WORKSPACE_ID__6d74493f",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "PUT",
@@ -379,7 +405,7 @@
     {
       "_id": "req___WORKSPACE_ID__38e8e88f",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "headers": [],
       "method": "DELETE",

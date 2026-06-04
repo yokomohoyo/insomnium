@@ -2,20 +2,15 @@ import aws4 from 'aws4';
 import clone from 'clone';
 import { parse as urlParse } from 'url';
 
-import {
-  AUTH_AWS_IAM,
-  AUTH_DIGEST,
-  AUTH_NTLM,
-  CONTENT_TYPE_FORM_DATA,
-} from '../../common/constants';
+import { AUTH_AWS_IAM, CONTENT_TYPE_FORM_DATA } from '../../common/constants';
 import {
   getContentTypeHeader,
   getHostHeader,
   hasAcceptEncodingHeader,
   hasAcceptHeader,
-  hasAuthHeader,
   hasContentTypeHeader,
 } from '../../common/misc';
+import { getAuthStrategies } from '../../models/request';
 import { DEFAULT_BOUNDARY } from './multipart';
 
 // Special header value that will prevent the header being sent
@@ -25,15 +20,14 @@ interface Input {
   finalUrl: string;
   requestBody?: string;
   requestBodyPath?: string;
-  authHeader?: { name: string; value: string };
 }
 interface Req {
   headers: any;
   method: string;
   body: { mimeType?: string | null };
-  authentication: Record<string, any>;
+  authentication: any;
 }
-export const parseHeaderStrings = ({ req, finalUrl, requestBody, requestBodyPath, authHeader }: Input) => {
+export const parseHeaderStrings = ({ req, finalUrl, requestBody, requestBodyPath }: Input) => {
   const headers = clone(req.headers);
 
   // Disable Expect and Transfer-Encoding headers when we have POST body/file
@@ -42,19 +36,15 @@ export const parseHeaderStrings = ({ req, finalUrl, requestBody, requestBodyPath
     headers.push({ name: 'Expect', value: DISABLE_HEADER_VALUE });
     headers.push({ name: 'Transfer-Encoding', value: DISABLE_HEADER_VALUE });
   }
-  const { authentication, method } = req;
-  const isDigest = authentication.type === AUTH_DIGEST;
-  const isNTLM = authentication.type === AUTH_NTLM;
-  const isAWSIAM = authentication.type === AUTH_AWS_IAM;
-  const hasNoAuthorisationAndNotDisabledAWSBasicOrDigest = !hasAuthHeader(headers) && !authentication.disabled && !isAWSIAM && !isDigest && !isNTLM;
-  if (hasNoAuthorisationAndNotDisabledAWSBasicOrDigest && authHeader) {
-    headers.push(authHeader);
-  }
-  if (isAWSIAM) {
+  const { method } = req;
+  const strategies = getAuthStrategies(req.authentication).filter(s => !s.disabled);
+  // Apply AWS_IAM signatures inline; one strategy per AWS_IAM entry.
+  for (const s of strategies) {
+    if (s.type !== AUTH_AWS_IAM) continue;
     const hostHeader = getHostHeader(headers)?.value;
     const contentTypeHeader = getContentTypeHeader(headers)?.value;
     _getAwsAuthHeaders({
-      authentication,
+      authentication: s as any,
       url: finalUrl,
       hostHeader,
       contentTypeHeader,

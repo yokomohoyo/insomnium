@@ -211,7 +211,7 @@ describe('requestCreate()', () => {
     expect(r.body).toEqual({});
     expect(r.parameters).toEqual([]);
     expect(r.headers).toEqual([]);
-    expect(r.authentication).toEqual({});
+    expect(r.authentication).toEqual([]);
     expect(r.metaSortKey).toBeLessThanOrEqual(-1 * now);
     expect(r.parentId).toBe('wrk_123');
   });

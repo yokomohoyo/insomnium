@@ -9,5 +9,12 @@ export const parseGrpcUrl = (grpcUrl: string): { url: string; enableTls: boolean
   if (lower.startsWith('grpcs://')) {
     return { url: lower.slice(8), enableTls: true };
   }
-  return { url: lower, enableTls: false };
+  // No scheme: infer TLS from common conventions — port 443, *.run.app
+  // (Cloud Run), or *.googleapis.com. Avoids silent plaintext on hosts that
+  // require TLS.
+  const inferTls =
+    /:443(\/|$)/.test(lower) ||
+    /\.run\.app(:\d+)?$/.test(lower) ||
+    /\.googleapis\.com(:\d+)?$/.test(lower);
+  return { url: lower, enableTls: inferTls };
 };

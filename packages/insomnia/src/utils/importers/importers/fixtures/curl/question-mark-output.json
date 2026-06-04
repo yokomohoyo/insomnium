@@ -15,9 +15,15 @@
         "mimeType": "",
         "text": "{\"query\":{\"match_all\":{}}}"
       },
-      "parameters": [{ "name": "pretty", "disabled": false, "value": "" }],
+      "parameters": [
+        {
+          "name": "pretty",
+          "disabled": false,
+          "value": ""
+        }
+      ],
       "headers": [],
-      "authentication": {}
+      "authentication": []
     }
   ]
 }

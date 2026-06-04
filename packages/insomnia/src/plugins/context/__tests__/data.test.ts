@@ -64,7 +64,7 @@ describe('app.import.*', () => {
     expect(await db.all(models.request.type)).toMatchObject([
       {
         isPrivate: false,
-        authentication: {},
+        authentication: [],
         body: {},
         description: '',
         headers: [],
@@ -109,7 +109,7 @@ describe('app.import.*', () => {
     expect(await db.all(models.request.type)).toMatchObject([
       {
         isPrivate: false,
-        authentication: {},
+        authentication: [],
         body: {},
         description: '',
         headers: [],
@@ -173,7 +173,7 @@ describe('app.export.*', () => {
           _id: 'req_1',
           _type: 'request',
           isPrivate: false,
-          authentication: {},
+          authentication: [],
           body: {},
           created: 111,
           description: '',

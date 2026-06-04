@@ -524,7 +524,7 @@ describe('export', () => {
           ],
         },
         url: 'http://example.com/post',
-        authentication: {},
+        authentication: [],
       };
       const { request: renderedRequest } = await getRenderedRequestAndContext({ request });
       const har = await exportHarWithRequest(renderedRequest);

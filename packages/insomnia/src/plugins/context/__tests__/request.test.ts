@@ -37,6 +37,7 @@ describe('init()', () => {
       'addHeader',
       'addParameter',
       'getAuthentication',
+      'getAuthenticationStrategies',
       'getBody',
       'getBodyText',
       'getEnvironment',
@@ -74,6 +75,7 @@ describe('init()', () => {
     expect(Object.keys(result)).toEqual(['request']);
     expect(Object.keys(result.request).sort()).toEqual([
       'getAuthentication',
+      'getAuthenticationStrategies',
       'getBody',
       'getBodyText',
       'getEnvironment',
@@ -261,17 +263,14 @@ describe('request.*', () => {
 
   it('works for authentication', async () => {
     const request = await models.request.getById('req_1');
-    request.authentication = {}; // Because the plugin technically needs a RenderedRequest
+    // Seed with a single strategy so setAuthenticationParameter has something to patch.
+    request.authentication = [{ type: 'basic' }];
 
     const result = plugin.init(request, CONTEXT);
     result.request.setAuthenticationParameter('foo', 'bar');
     result.request.setAuthenticationParameter('foo', 'baz');
-    expect(result.request.getAuthentication()).toEqual({
-      foo: 'baz',
-    });
-    expect(request.authentication).toEqual({
-      foo: 'baz',
-    });
+    expect(result.request.getAuthentication()).toMatchObject({ foo: 'baz' });
+    expect(request.authentication[0]).toMatchObject({ foo: 'baz' });
   });
 
   it('works for request body', async () => {

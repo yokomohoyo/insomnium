@@ -22,13 +22,15 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "type": "apikey",
-        "key": "test",
-        "value": "test",
-        "addTo": "header",
-        "disabled": false
-      },
+      "authentication": [
+        {
+          "type": "apikey",
+          "key": "test",
+          "value": "test",
+          "addTo": "header",
+          "disabled": false
+        }
+      ],
       "_type": "request"
     }
   ]

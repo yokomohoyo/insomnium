@@ -1,5 +1,6 @@
 import { database as db } from '../common/database';
 import type { BaseModel } from './index';
+import type { RequestAuthentication } from './request';
 
 export const name = 'gRPC Request';
 export const type = 'GrpcRequest';
@@ -26,6 +27,7 @@ interface BaseGrpcRequest {
   protoMethodName?: string;
   body: GrpcRequestBody;
   metadata: GrpcRequestHeader[];
+  authentication: RequestAuthentication;
   metaSortKey: number;
   isPrivate: boolean;
 }
@@ -48,6 +50,7 @@ export function init(): BaseGrpcRequest {
     protoFileId: '',
     protoMethodName: '',
     metadata: [],
+    authentication: [],
     body: {
       text: '{}',
     },
@@ -57,6 +60,13 @@ export function init(): BaseGrpcRequest {
 }
 
 export function migrate(doc: GrpcRequest) {
+  // Multi-auth: read-time wrap legacy missing/object-shaped authentication as [].
+  const auth = (doc as any).authentication;
+  if (!auth) {
+    (doc as any).authentication = [];
+  } else if (!Array.isArray(auth)) {
+    (doc as any).authentication = Object.keys(auth).length === 0 ? [] : [auth];
+  }
   return doc;
 }
 

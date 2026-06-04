@@ -23,12 +23,14 @@
     {
       "_id": "__REQ_1__",
       "_type": "request",
-      "authentication": {
-        "disabled": false,
-        "prefix": "",
-        "token": "{{token}}",
-        "type": "bearer"
-      },
+      "authentication": [
+        {
+          "disabled": false,
+          "prefix": "",
+          "token": "{{token}}",
+          "type": "bearer"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "[]"
@@ -59,14 +61,16 @@
     {
       "_id": "__REQ_2__",
       "_type": "request",
-      "authentication": {
-        "accessKeyId": "<accessKeyId>",
-        "disabled": false,
-        "region": "<region>",
-        "secretAccessKey": "",
-        "service": "<service>",
-        "type": "iam"
-      },
+      "authentication": [
+        {
+          "accessKeyId": "<accessKeyId>",
+          "disabled": false,
+          "region": "<region>",
+          "secretAccessKey": "",
+          "service": "<service>",
+          "type": "iam"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "[]"
@@ -107,12 +111,14 @@
     {
       "_id": "__REQ_3__",
       "_type": "request",
-      "authentication": {
-        "disabled": false,
-        "password": "abc123",
-        "type": "basic",
-        "username": "john@example.com"
-      },
+      "authentication": [
+        {
+          "disabled": false,
+          "password": "abc123",
+          "type": "basic",
+          "username": "john@example.com"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n    \"title\": \"Acme Inc.\",\n    \"parent\": \"\\/projects\\/1\",\n    \"color\": \"#FF0000\",\n    \"productivity_score\": 1,\n    \"is_archived\": false\n}"
@@ -137,12 +143,14 @@
     {
       "_id": "__REQ_4__",
       "_type": "request",
-      "authentication": {
-        "disabled": false,
-        "password": "",
-        "type": "digest",
-        "username": "Username"
-      },
+      "authentication": [
+        {
+          "disabled": false,
+          "password": "",
+          "type": "digest",
+          "username": "Username"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "[]"
@@ -167,22 +175,24 @@
     {
       "_id": "__REQ_5__",
       "_type": "request",
-      "authentication": {
-        "callback": "Callback%20URL",
-        "consumerKey": "Consumer%20Key",
-        "consumerSecret": "",
-        "disabled": false,
-        "nonce": "Nonce",
-        "privateKey": "",
-        "realm": "Realm",
-        "signatureMethod": "HMAC-SHA1",
-        "timestamp": "Timestamp",
-        "tokenKey": "Access%20Token",
-        "tokenSecret": "",
-        "type": "oauth1",
-        "verifier": "Verifier",
-        "version": "Version"
-      },
+      "authentication": [
+        {
+          "callback": "Callback%20URL",
+          "consumerKey": "Consumer%20Key",
+          "consumerSecret": "",
+          "disabled": false,
+          "nonce": "Nonce",
+          "privateKey": "",
+          "realm": "Realm",
+          "signatureMethod": "HMAC-SHA1",
+          "timestamp": "Timestamp",
+          "tokenKey": "Access%20Token",
+          "tokenSecret": "",
+          "type": "oauth1",
+          "verifier": "Verifier",
+          "version": "Version"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n    \"title\": \"Acme Inc.\",\n    \"color\": \"#FF0000\",\n    \"productivity_score\": 1,\n    \"is_archived\": false\n}"

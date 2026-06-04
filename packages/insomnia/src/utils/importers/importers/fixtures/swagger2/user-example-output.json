@@ -42,7 +42,7 @@
     {
       "_id": "ApiId",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],

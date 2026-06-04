@@ -15,6 +15,7 @@ describe('init()', () => {
       protoFileId: '',
       protoMethodName: '',
       metadata: [],
+      authentication: [],
       body: {
         text: '{}',
       },
@@ -44,6 +45,7 @@ describe('create()', () => {
       protoFileId: '',
       protoMethodName: '',
       metadata: [],
+      authentication: [],
       body: {
         text: '{}',
       },

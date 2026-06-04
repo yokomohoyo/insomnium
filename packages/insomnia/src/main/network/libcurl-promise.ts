@@ -16,7 +16,7 @@ import { version } from '../../../package.json';
 import { AUTH_AWS_IAM, AUTH_DIGEST, AUTH_NETRC, AUTH_NTLM, CONTENT_TYPE_FORM_DATA, CONTENT_TYPE_FORM_URLENCODED } from '../../common/constants';
 import { describeByteSize, hasAuthHeader } from '../../common/misc';
 import { ClientCertificate } from '../../models/client-certificate';
-import { RequestHeader } from '../../models/request';
+import { getAuthStrategies, RequestHeader } from '../../models/request';
 import { ResponseHeader } from '../../models/response';
 import { buildMultipart } from './multipart';
 import { parseHeaderStrings } from './parse-header-strings';
@@ -28,7 +28,6 @@ export interface CurlRequestOptions {
   certificates: ClientCertificate[];
   caCertficatePath: string | null;
   socketPath?: string;
-  authHeader?: { name: string; value: string };
 }
 interface RequestUsedHere {
   headers: any;
@@ -101,7 +100,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
 
     const responseBodyPath = path.join(responsesDir, uuidv4() + '.response');
 
-    const { requestId, req, finalUrl, settings, certificates, caCertficatePath, socketPath, authHeader } = options;
+    const { requestId, req, finalUrl, settings, certificates, caCertficatePath, socketPath } = options;
     const caCert = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
 
     const { curl, debugTimeline } = createConfiguredCurlInstance({
@@ -129,9 +128,10 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
     const isMultipart = body.mimeType === CONTENT_TYPE_FORM_DATA && requestBodyPath;
     let requestFileDescriptor: number | undefined;
     const { authentication } = req;
+    const authStrategies = getAuthStrategies(authentication).filter(s => !s.disabled);
     if (requestBodyPath) {
       // AWS IAM file upload not supported
-      guard(authentication.type !== AUTH_AWS_IAM, 'AWS authentication not supported for provided body type');
+      guard(!authStrategies.some(s => s.type === AUTH_AWS_IAM), 'AWS authentication not supported for provided body type');
       const { size: contentLength } = fs.statSync(requestBodyPath);
       curl.setOpt(Curl.option.INFILESIZE_LARGE, contentLength);
       curl.setOpt(Curl.option.UPLOAD, 1);
@@ -146,7 +146,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
       curl.setOpt(Curl.option.POSTFIELDS, requestBody);
     }
 
-    const headerStrings = parseHeaderStrings({ req, requestBody, requestBodyPath, finalUrl, authHeader });
+    const headerStrings = parseHeaderStrings({ req, requestBody, requestBodyPath, finalUrl });
     curl.setOpt(Curl.option.HTTPHEADER, headerStrings);
 
     // Create instance and handlers, poke value options in, set up write and debug callbacks, listen for events
@@ -373,6 +373,7 @@ export const createConfiguredCurlInstance = ({
     }
   }
   const { headers, authentication } = req;
+  const authStrategies = getAuthStrategies(authentication).filter(s => !s.disabled);
 
   const userAgent: RequestHeader | null = headers.find((h: any) => h.name.toLowerCase() === 'user-agent') || null;
   const userAgentOrFallback = typeof userAgent?.value === 'string' ? userAgent?.value : 'insomnium/' + version;
@@ -381,17 +382,14 @@ export const createConfiguredCurlInstance = ({
     curl.setOpt(Curl.option.USERAGENT, '');
   }
 
-  const { username, password, disabled } = authentication;
-  const isDigest = authentication.type === AUTH_DIGEST;
-  const isNLTM = authentication.type === AUTH_NTLM;
-  const isDigestOrNLTM = isDigest || isNLTM;
-  if (!hasAuthHeader(headers) && !disabled && isDigestOrNLTM) {
-    isDigest && curl.setOpt(Curl.option.HTTPAUTH, CurlAuth.Digest);
-    isNLTM && curl.setOpt(Curl.option.HTTPAUTH, CurlAuth.Ntlm);
-    curl.setOpt(Curl.option.USERNAME, username || '');
-    curl.setOpt(Curl.option.PASSWORD, password || '');
+  // Curl-native auth: use the first enabled digest/ntlm/netrc strategy found.
+  const digestOrNtlm = authStrategies.find(s => s.type === AUTH_DIGEST || s.type === AUTH_NTLM);
+  if (!hasAuthHeader(headers) && digestOrNtlm) {
+    curl.setOpt(Curl.option.HTTPAUTH, digestOrNtlm.type === AUTH_DIGEST ? CurlAuth.Digest : CurlAuth.Ntlm);
+    curl.setOpt(Curl.option.USERNAME, digestOrNtlm.username || '');
+    curl.setOpt(Curl.option.PASSWORD, digestOrNtlm.password || '');
   }
-  if (authentication.type === AUTH_NETRC) {
+  if (authStrategies.some(s => s.type === AUTH_NETRC)) {
     curl.setOpt(Curl.option.NETRC, CurlNetrc.Required);
   }
 

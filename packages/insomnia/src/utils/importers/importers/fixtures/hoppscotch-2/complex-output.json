@@ -28,9 +28,11 @@
       },
       "url": "http://localhost:8080/token/claim",
       "parentId": "__GRP_255u__",
-      "authentication": {
-        "disabled": true
-      },
+      "authentication": [
+        {
+          "disabled": true
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -58,15 +60,23 @@
       "body": {
         "mimeType": "application/x-www-form-urlencoded",
         "params": [
-          { "name": "xxx", "value": "xeee" },
-          { "name": "xfwf", "value": "w3f:3f" }
+          {
+            "name": "xxx",
+            "value": "xeee"
+          },
+          {
+            "name": "xfwf",
+            "value": "w3f:3f"
+          }
         ]
       },
       "url": "http://localhost:8080/user/rank",
       "parentId": "__GRP_255u__",
-      "authentication": {
-        "disabled": true
-      },
+      "authentication": [
+        {
+          "disabled": true
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -97,9 +107,11 @@
       },
       "url": "http://localhost:8080/docs",
       "parentId": "__GRP_255u__",
-      "authentication": {
-        "disabled": true
-      },
+      "authentication": [
+        {
+          "disabled": true
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -137,9 +149,11 @@
       },
       "url": "{{ _.base_url }}/token/claim",
       "parentId": "__GRP_255y__",
-      "authentication": {
-        "disabled": true
-      },
+      "authentication": [
+        {
+          "disabled": true
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",
@@ -170,9 +184,11 @@
       },
       "url": "{{ _.base_url }}/user/rank",
       "parentId": "__GRP_255y__",
-      "authentication": {
-        "disabled": true
-      },
+      "authentication": [
+        {
+          "disabled": true
+        }
+      ],
       "headers": [
         {
           "name": "Content-Type",

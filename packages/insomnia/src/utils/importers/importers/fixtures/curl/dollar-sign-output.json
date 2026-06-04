@@ -42,7 +42,7 @@
           "value": "no-cache"
         }
       ],
-      "authentication": {}
+      "authentication": []
     }
   ]
 }

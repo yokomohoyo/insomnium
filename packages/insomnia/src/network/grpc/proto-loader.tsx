@@ -241,8 +241,34 @@ async function findAncestorDirectories(filePath: string, context: ProtoDirectory
   }
 }
 
+// Common buf cache locations across platforms. Best-effort: missing dirs are
+// fine — proto-loader silently ignores them.
+function bufCacheCandidates(): string[] {
+  const home = process.env.HOME || '';
+  if (!home) return [];
+  return [
+    // buf v2 (current default on most installs)
+    path.join(home, 'Library/Caches/buf/v2/module/cache'),
+    path.join(home, '.cache/buf/v2/module/cache'),
+    // buf v3 (newer)
+    path.join(home, 'Library/Caches/buf/v3/modules/data'),
+    path.join(home, '.cache/buf/v3/modules/data'),
+  ];
+}
+
+// Build the include path: the file's ancestor chain plus the buf cache.
+// Buf-style protos often `import "google/api/annotations.proto"` etc which
+// aren't physically present in the user's repo; they live in the buf cache.
+async function buildIncludeDirs(filePath: string, parent: ProtoDirectory | Workspace): Promise<string[]> {
+  const ancestors = await findAncestorDirectories(filePath, parent);
+  const bufDirs = bufCacheCandidates().filter(p => {
+    try { return fs.statSync(p).isDirectory(); } catch { return false; }
+  });
+  return [...ancestors, ...bufDirs];
+}
+
 async function validateProtoFile(filePath: string, parent: ProtoDirectory | Workspace): Promise<ProtoLoadResult> {
-  const includeDirs = await findAncestorDirectories(filePath, parent);
+  const includeDirs = await buildIncludeDirs(filePath, parent);
   try {
     await protoLoader.load(filePath, {
       keepCase: true,
@@ -254,6 +280,20 @@ async function validateProtoFile(filePath: string, parent: ProtoDirectory | Work
     });
     return { success: true, loaded: [], errors: [] };
   } catch (e: any) {
-    return { success: false, errors: [`${filePath}: ${e.message}}`] };
+    return { success: false, errors: [formatProtoLoadError(filePath, e)] };
   }
+}
+
+// Friendlier error: if it looks like a missing import, point the user at fixes.
+function formatProtoLoadError(filePath: string, err: any): string {
+  const msg = String(err?.message || err);
+  // protobufjs raises "illegal token '<'" when an import path resolves to a
+  // non-proto file (e.g. an HTML 404 page) — which usually means the import
+  // wasn't found on the include path and a stub got matched instead.
+  if (/illegal token '<'/.test(msg)) {
+    return `${filePath}: missing transitive proto import (${msg}). ` +
+      `If this is a buf project, run \`buf export . -o /tmp/flat\` and import /tmp/flat, ` +
+      `or use the "Import from URL" button with your BSR module URL.`;
+  }
+  return `${filePath}: ${msg}`;
 }

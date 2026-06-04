@@ -23,15 +23,17 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": true,
-        "accessTokenUrl": "",
-        "authorizationUrl": "",
-        "grantType": "authorization_code",
-        "password": "",
-        "type": "oauth2",
-        "username": ""
-      }
+      "authentication": [
+        {
+          "disabled": true,
+          "accessTokenUrl": "",
+          "authorizationUrl": "",
+          "grantType": "authorization_code",
+          "password": "",
+          "type": "oauth2",
+          "username": ""
+        }
+      ]
     },
     {
       "_id": "__REQ_2__",
@@ -44,15 +46,17 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "disabled": true,
-        "accessTokenUrl": "",
-        "authorizationUrl": "",
-        "grantType": "authorization_code",
-        "password": "",
-        "type": "oauth2",
-        "username": ""
-      }
+      "authentication": [
+        {
+          "disabled": true,
+          "accessTokenUrl": "",
+          "authorizationUrl": "",
+          "grantType": "authorization_code",
+          "password": "",
+          "type": "oauth2",
+          "username": ""
+        }
+      ]
     }
   ]
 }

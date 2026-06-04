@@ -58,14 +58,16 @@
     {
       "_id": "addPet",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"id\": 0,\n  \"category\": {\n    \"id\": 0,\n    \"name\": \"string\"\n  },\n  \"name\": \"doggie\",\n  \"photoUrls\": [\n    \"string\"\n  ],\n  \"tags\": [\n    {\n      \"id\": 0,\n      \"name\": \"string\"\n    }\n  ],\n  \"status\": \"string\"\n}"
@@ -87,14 +89,16 @@
     {
       "_id": "updatePet",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"id\": 0,\n  \"category\": {\n    \"id\": 0,\n    \"name\": \"string\"\n  },\n  \"name\": \"doggie\",\n  \"photoUrls\": [\n    \"string\"\n  ],\n  \"tags\": [\n    {\n      \"id\": 0,\n      \"name\": \"string\"\n    }\n  ],\n  \"status\": \"string\"\n}"
@@ -116,14 +120,16 @@
     {
       "_id": "findPetsByStatus",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "description": "Multiple status values can be provided with comma separated strings",
       "headers": [],
@@ -142,14 +148,16 @@
     {
       "_id": "findPetsByTags",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "description": "Multiple tags can be provided with comma separated strings. Use tag1, tag2, tag3 for testing.",
       "headers": [],
@@ -168,7 +176,7 @@
     {
       "_id": "getPetById",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "Returns a single pet",
       "headers": [
@@ -187,14 +195,16 @@
     {
       "_id": "updatePetWithForm",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "application/x-www-form-urlencoded",
         "params": [
@@ -227,14 +237,16 @@
     {
       "_id": "deletePet",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {},
       "description": "",
       "headers": [
@@ -253,14 +265,16 @@
     {
       "_id": "uploadFile",
       "_type": "request",
-      "authentication": {
-        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
-        "clientId": "{{ _.client_id }}",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "scope": "write:pets read:pets",
-        "type": "oauth2"
-      },
+      "authentication": [
+        {
+          "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+          "clientId": "{{ _.client_id }}",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "scope": "write:pets read:pets",
+          "type": "oauth2"
+        }
+      ],
       "body": {
         "mimeType": "multipart/form-data",
         "params": [
@@ -293,7 +307,7 @@
     {
       "_id": "getInventory",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "Returns a map of status codes to quantities",
       "headers": [
@@ -312,7 +326,7 @@
     {
       "_id": "placeOrder",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -325,7 +339,7 @@
     {
       "_id": "getOrderById",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "For valid response try integer IDs with value >= 1 and <= 10. Other values will generated exceptions",
       "headers": [],
@@ -338,7 +352,7 @@
     {
       "_id": "deleteOrder",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "For valid response try integer IDs with positive integer value. Negative or non-integer values will generate API errors",
       "headers": [],
@@ -351,7 +365,7 @@
     {
       "_id": "createUser",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "This can only be done by the logged in user.",
       "headers": [],
@@ -364,7 +378,7 @@
     {
       "_id": "createUsersWithArrayInput",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -377,7 +391,7 @@
     {
       "_id": "createUsersWithListInput",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -390,7 +404,7 @@
     {
       "_id": "loginUser",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -414,7 +428,7 @@
     {
       "_id": "logoutUser",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -427,7 +441,7 @@
     {
       "_id": "getUserByName",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "",
       "headers": [],
@@ -440,7 +454,7 @@
     {
       "_id": "updateUser",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "This can only be done by the logged in user.",
       "headers": [],
@@ -453,7 +467,7 @@
     {
       "_id": "deleteUser",
       "_type": "request",
-      "authentication": {},
+      "authentication": [],
       "body": {},
       "description": "This can only be done by the logged in user.",
       "headers": [],

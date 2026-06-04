@@ -15,23 +15,25 @@
     {
       "_id": "__REQ_1__",
       "_type": "request",
-      "authentication": {
-        "accessTokenUrl": "exampleAccessTokenUrl",
-        "authorizationUrl": "exampleAuthorizeUrl",
-        "clientId": "exampleClientId",
-        "clientSecret": "exampleClientSecret",
-        "credentialsInBody": false,
-        "pkceMethod": "S256",
-        "disabled": false,
-        "grantType": "authorization_code",
-        "password": "",
-        "scope": "",
-        "state": "",
-        "tokenPrefix": "",
-        "redirectUrl": "exampleCallbackUrl",
-        "type": "oauth2",
-        "username": ""
-      },
+      "authentication": [
+        {
+          "accessTokenUrl": "exampleAccessTokenUrl",
+          "authorizationUrl": "exampleAuthorizeUrl",
+          "clientId": "exampleClientId",
+          "clientSecret": "exampleClientSecret",
+          "credentialsInBody": false,
+          "pkceMethod": "S256",
+          "disabled": false,
+          "grantType": "authorization_code",
+          "password": "",
+          "scope": "",
+          "state": "",
+          "tokenPrefix": "",
+          "redirectUrl": "exampleCallbackUrl",
+          "type": "oauth2",
+          "username": ""
+        }
+      ],
       "body": {},
       "description": "",
       "headers": [],

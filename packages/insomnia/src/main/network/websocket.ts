@@ -18,7 +18,7 @@ import { generateId, getSetCookieHeaders } from '../../common/misc';
 import { webSocketRequest } from '../../models';
 import * as models from '../../models';
 import { CookieJar } from '../../models/cookie-jar';
-import { RequestAuthentication, RequestHeader } from '../../models/request';
+import { getAuthStrategies, RequestAuthentication, RequestHeader } from '../../models/request';
 import { BaseWebSocketRequest } from '../../models/websocket-request';
 import type { WebSocketResponse } from '../../models/websocket-response';
 import { COOKIE, HEADER, QUERY_PARAMS } from '../../network/api-key/constants';
@@ -149,30 +149,27 @@ const openWebSocketConnection = async (
     const headers = options.headers;
     let url = options.url;
     let authCookie = null;
-    if (!options.authentication.disabled) {
-      if (options.authentication.type === AUTH_BASIC) {
-        const { username, password, useISO88591 } = options.authentication;
+    const wsAuthStrategies = getAuthStrategies(options.authentication).filter(s => !s.disabled);
+    for (const auth of wsAuthStrategies) {
+      if (auth.type === AUTH_BASIC) {
+        const { username, password, useISO88591 } = auth;
         const encoding = useISO88591 ? 'latin1' : 'utf8';
-        headers.push(getBasicAuthHeader(username, password, encoding));
-      }
-      if (options.authentication.type === AUTH_API_KEY) {
-        const { key, value, addTo } = options.authentication;
+        const h = getBasicAuthHeader(username, password, encoding);
+        if (h) headers.push({ ...h, name: auth.headerName || h.name });
+      } else if (auth.type === AUTH_API_KEY) {
+        const { key, value, addTo } = auth;
         if (addTo === HEADER) {
-          headers.push({ name: key, value: value });
+          headers.push({ name: auth.headerName || key, value });
         } else if (addTo === COOKIE) {
           authCookie = `${key}=${value}`;
         } else if (addTo === QUERY_PARAMS) {
-          const authQueryParam = {
-            name: key,
-            value: value,
-          };
-          const qs = authQueryParam ? buildQueryStringFromParams([authQueryParam]) : '';
+          const qs = buildQueryStringFromParams([{ name: key, value }]);
           url = joinUrlAndQueryString(options.url, qs);
         }
-      }
-      if (options.authentication.type === AUTH_BEARER) {
-        const { token, prefix } = options.authentication;
-        headers.push(getBearerAuthHeader(token, prefix));
+      } else if (auth.type === AUTH_BEARER) {
+        const { token, prefix } = auth;
+        const h = getBearerAuthHeader(token, prefix);
+        if (h) headers.push({ ...h, name: auth.headerName || h.name });
       }
     }
 

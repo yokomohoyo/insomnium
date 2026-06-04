@@ -23,15 +23,17 @@
       "body": {},
       "parameters": [],
       "headers": [],
-      "authentication": {
-        "accessKeyId": "aws-access-key",
-        "disabled": false,
-        "region": "aws-region",
-        "secretAccessKey": "aws-secret-key",
-        "service": "aws-service-name",
-        "sessionToken": "aws-session-token",
-        "type": "iam"
-      }
+      "authentication": [
+        {
+          "accessKeyId": "aws-access-key",
+          "disabled": false,
+          "region": "aws-region",
+          "secretAccessKey": "aws-secret-key",
+          "service": "aws-service-name",
+          "sessionToken": "aws-session-token",
+          "type": "iam"
+        }
+      ]
     }
   ]
 }

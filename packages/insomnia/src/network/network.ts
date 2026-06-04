@@ -32,7 +32,7 @@ import {
   joinUrlAndQueryString,
   smartEncodeUrl,
 } from '../utils/url/querystring';
-import { getAuthHeader, getAuthQueryParams } from './authentication';
+import { getAuthHeaders, getAuthQueryParamsList } from './authentication';
 import { cancellableCurlRequest } from './cancellation';
 import { addSetCookiesToToughCookieJar } from './set-cookie-util';
 import { urlMatchesCertHost } from './url-matches-cert-host';
@@ -107,7 +107,12 @@ export async function sendCurlAndWriteTimeline(
     timeline.push({ value: 'Disable cookie sending due to user setting', name: 'Text', timestamp: Date.now() });
   }
 
-  const authHeader = await getAuthHeader(renderedRequest, finalUrl);
+  // Resolve every enabled auth strategy. Push each emitted header into the
+  // request headers list so libcurl/parse-header-strings see them uniformly;
+  // digest/ntlm/aws-iam strategies don't emit headers here (curl-native or
+  // signed separately in parse-header-strings) and so don't conflict.
+  const authHeaders = await getAuthHeaders(renderedRequest, finalUrl);
+  authHeaders.forEach(h => renderedRequest.headers.push(h));
   const requestOptions = {
     requestId,
     req: renderedRequest,
@@ -116,7 +121,6 @@ export async function sendCurlAndWriteTimeline(
     settings,
     certificates: clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), renderedRequest.url)),
     caCertficatePath: caCert?.disabled === false ? caCert.path : null,
-    authHeader,
   };
 
   // NOTE: conditionally use ipc bridge, renderer cannot import native modules directly
@@ -184,8 +188,8 @@ export const responseTransform = async (patch: ResponsePatch, environmentId: str
 };
 // ARCHY NOTE: HERE IS THE ACTUAL CALL
 export const transformUrl = (url: string, params: RequestParameter[], segs: RequestSegment[], authentication: RequestAuthentication, shouldEncode: boolean) => {
-  const authQueryParam = getAuthQueryParams(authentication);
-  const customUrl = addSegValuesToUrl(joinUrlAndQueryString(url, buildQueryStringFromParams(authQueryParam ? params.concat([authQueryParam]) : params)), segs);
+  const authQueryParams = getAuthQueryParamsList(authentication);
+  const customUrl = addSegValuesToUrl(joinUrlAndQueryString(url, buildQueryStringFromParams(authQueryParams.length ? params.concat(authQueryParams) : params)), segs);
   const isUnixSocket = customUrl.match(/https?:\/\/unix:\//);
   if (!isUnixSocket) {
     return { finalUrl: smartEncodeUrl(customUrl, shouldEncode) };

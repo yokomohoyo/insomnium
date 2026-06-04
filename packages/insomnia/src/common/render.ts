@@ -510,9 +510,11 @@ export async function getRenderedRequestAndContext(
     renderedRequest.body.params = renderedRequest.body.params.filter(p => !p.disabled);
   }
 
-  // Remove disabled authentication
-  if (renderedRequest.authentication && renderedRequest.authentication.disabled) {
-    renderedRequest.authentication = {};
+  // Disabled is now per-strategy; filter inactive entries at the array level.
+  if (Array.isArray(renderedRequest.authentication)) {
+    renderedRequest.authentication = renderedRequest.authentication.filter(s => !s.disabled);
+  } else if (renderedRequest.authentication && (renderedRequest.authentication as any).disabled) {
+    renderedRequest.authentication = [];
   }
 
   // Default the proto if it doesn't exist

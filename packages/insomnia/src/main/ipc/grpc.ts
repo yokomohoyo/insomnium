@@ -8,6 +8,7 @@ import * as protobuf from 'protobufjs';
 import type { RenderedGrpcRequest, RenderedGrpcRequestBody } from '../../common/render';
 import * as models from '../../models';
 import type { GrpcRequest, GrpcRequestHeader } from '../../models/grpc-request';
+import { getAuthHeaders } from '../../network/authentication';
 import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
 import { fetchProto, FetchedProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
@@ -87,6 +88,8 @@ const getRequestTemplatesFromProtoFile = async (
     const path = await import('node:path');
     const root = new protobuf.Root();
     // Mimic protoLoader's includeDirs lookup so cross-tree imports resolve.
+    // protobufjs ships descriptor.proto / api.proto / etc. at this path.
+    const protobufjsGoogleDir = path.dirname(require.resolve('protobufjs/google/protobuf/descriptor.proto'));
     root.resolvePath = (origin, target) => {
       if (path.isAbsolute(target) && fs.existsSync(target)) {
         return target;
@@ -97,22 +100,44 @@ const getRequestTemplatesFromProtoFile = async (
           return candidate;
         }
       }
+      // Fall back to protobufjs' bundled well-known types (descriptor.proto etc).
+      // Needed because user protos often `extend google.protobuf.FileOptions`
+      // which can't resolve without the descriptor definitions loaded.
+      const wellKnown = target.match(/^google\/protobuf\/(.+)$/);
+      if (wellKnown) {
+        const bundled = path.join(protobufjsGoogleDir, wellKnown[1]);
+        if (fs.existsSync(bundled)) {
+          return bundled;
+        }
+      }
       return target;
     };
+    console.log('[grpc-template] loading', filePath, 'with includeDirs', includeDirs);
     await root.load(filePath, { keepCase: true });
-    root.resolveAll();
+    console.log('[grpc-template] loaded; resolving...');
+    try {
+      root.resolveAll();
+    } catch (err) {
+      // Unresolvable extensions are common in buf-style projects (gnostic,
+      // buf.validate). Drop them and keep going — templates only need the
+      // message types, not the extensions themselves.
+      console.warn('[grpc-template] resolveAll non-fatal:', (err as Error).message);
+    }
+    let svcCount = 0;
     for (const ns of namespacesOf(root)) {
       for (const svc of servicesIn(ns)) {
+        svcCount++;
         for (const methodName of Object.keys(svc.methods)) {
           const methodPath = `/${fullName(svc)}/${methodName}`;
           try {
             result[methodPath] = generateRequestTemplate(svc, methodName);
           } catch (err) {
-            console.warn('[grpc] template generation failed for', methodPath, err);
+            console.warn('[grpc-template] generation failed for', methodPath, (err as Error).message);
           }
         }
       }
     }
+    console.log('[grpc-template] found', svcCount, 'services,', Object.keys(result).length, 'templates');
   } catch (err) {
     console.warn('[grpc] proto file template parse failed:', err);
   }
@@ -282,6 +307,7 @@ export const start = (
       return;
     }
 
+    buildGrpcMetadata(request).then(metadata => {
     try {
       const messageBody = JSON.parse(request.body.text || '');
       switch (methodType) {
@@ -291,7 +317,7 @@ export const start = (
             method.requestSerialize,
             method.responseDeserialize,
             messageBody,
-            filterDisabledMetaData(request.metadata),
+            metadata,
             onUnaryResponse(event, request._id),
           );
           unaryCall.on('status', (status: StatusObject) => event.reply('grpc.status', request._id, status));
@@ -302,7 +328,7 @@ export const start = (
             method.path,
             method.requestSerialize,
             method.responseDeserialize,
-            filterDisabledMetaData(request.metadata),
+            metadata,
             onUnaryResponse(event, request._id));
           clientCall.on('status', (status: StatusObject) => event.reply('grpc.status', request._id, status));
           grpcCalls.set(request._id, clientCall);
@@ -313,7 +339,7 @@ export const start = (
             method.requestSerialize,
             method.responseDeserialize,
             messageBody,
-            filterDisabledMetaData(request.metadata),
+            metadata,
           );
           onStreamingResponse(event, serverCall, request._id);
           grpcCalls.set(request._id, serverCall);
@@ -323,7 +349,7 @@ export const start = (
             method.path,
             method.requestSerialize,
             method.responseDeserialize,
-            filterDisabledMetaData(request.metadata));
+            metadata);
           onStreamingResponse(event, bidiCall, request._id);
           grpcCalls.set(request._id, bidiCall);
           break;
@@ -339,6 +365,7 @@ export const start = (
       //  Currently an error will be shown, but the stream will not be cancelled.
       event.reply('grpc.error', request._id, error);
     }
+    }).catch(err => event.reply('grpc.error', request._id, err));
     return;
   });
 };
@@ -422,6 +449,21 @@ const filterDisabledMetaData = (metadata: GrpcRequestHeader[],): Metadata => {
   }
   return grpcMetadata;
 };
+
+// Resolve auth strategies on a gRPC request and append the emitted headers
+// to its metadata, matching how HTTP injects them into request.headers. Auth
+// values arrive pre-rendered (nunjucks already applied by getRenderedGrpcRequest).
+async function buildGrpcMetadata(request: RenderedGrpcRequest): Promise<Metadata> {
+  const base = filterDisabledMetaData(request.metadata);
+  const authHeaders = await getAuthHeaders(
+    { _id: request._id, method: '', body: {}, authentication: (request as any).authentication } as any,
+    request.url,
+  );
+  for (const h of authHeaders) {
+    base.add(h.name, h.value);
+  }
+  return base;
+}
 
 export type GrpcMethodType = 'unary' | 'server' | 'client' | 'bidi';
 const closeAll = (): void => grpcCalls.forEach(x => x.cancel());
