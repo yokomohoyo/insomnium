@@ -163,7 +163,10 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
             } catch { /* noop */ }
           }
         };
-        call.on('data', (msg: any) => { responses.push(msg); cap(); });
+        call.on('data', (msg: any) => {
+          responses.push(msg);
+          cap();
+        });
         call.on('end', () => resolve({ ok: true, responses }));
         call.on('error', (err: any) => {
           // code 1 = CANCELLED - our own cancel after maxResponses.
@@ -207,7 +210,10 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
             } catch { /* noop */ }
           }
         };
-        (call as any).on('data', (msg: any) => { responses.push(msg); cap(); });
+        (call as any).on('data', (msg: any) => {
+          responses.push(msg);
+          cap();
+        });
         (call as any).on('end', () => resolve({ ok: true, responses }));
         (call as any).on('error', (err: any) => {
           if (err?.code === 1 && responses.length >= maxResponses) {
