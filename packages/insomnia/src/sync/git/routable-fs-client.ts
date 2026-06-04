@@ -6,8 +6,8 @@ type Methods = 'readFile' | 'writeFile' | 'unlink' | 'readdir' | 'mkdir' | 'rmdi
 /**
  * An isometric-git FS client that can route to various client depending on what the filePath is.
  *
- * @param defaultFS – default client
- * @param otherFS – map of path prefixes to clients
+ * @param defaultFS - default client
+ * @param otherFS - map of path prefixes to clients
  * @returns {{promises: *}}
  */
 export function routableFSClient(

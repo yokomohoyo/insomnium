@@ -1,5 +1,5 @@
 // Fetch .proto files from remote sources so users don't have to download +
-// upload them by hand. Runs in the main process — no CORS, no preflight.
+// upload them by hand. Runs in the main process - no CORS, no preflight.
 //
 // Supported URL forms:
 //   - github.com/<owner>/<repo>/blob/<ref>/<path>.proto       (single file)

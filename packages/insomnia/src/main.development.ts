@@ -96,6 +96,7 @@ app.on('ready', async () => {
 
   windowUtils.init();
   await _launchApp();
+  await _initMcpServer();
 
   // NOTE: could also try to initialize workspace here (?)
 
@@ -149,6 +150,11 @@ app.on('activate', (_error, hasVisibleWindows) => {
 const _launchApp = async () => {
   let window: BrowserWindow;
   // Handle URLs sent via command line args
+  ipcMain.handle('getMcpStatus', async () => {
+    const { getRunningMcpServer } = await import('./main/mcp/server');
+    const r = getRunningMcpServer();
+    return r ? { running: true, port: r.port } : { running: false, port: null };
+  });
   ipcMain.once('halfSecondAfterAppStart', () => {
     console.log('[main] Window ready, handling command line arguments', process.argv);
     const args = process.argv.slice(1).filter(a => a !== '.');
@@ -217,4 +223,39 @@ const _launchApp = async () => {
 async function _createModelInstances() {
   await models.stats.get();
   await models.settings.getOrCreate();
+}
+
+// Start/stop MCP server based on Settings.mcpEnabled. Subscribes to settings
+// changes so toggling or port changes in the UI take effect without restart.
+async function _initMcpServer() {
+  const { startMcpServer, stopMcpServer, getRunningMcpServer } = await import('./main/mcp/server');
+  // Serialize apply() invocations - nedb fires multiple settings change events
+  // when the user touches several fields, and overlapping start/stop calls
+  // race on the listen port.
+  let inFlight: Promise<void> = Promise.resolve();
+  const apply = () => {
+    inFlight = inFlight.then(async () => {
+      const s = await models.settings.getOrCreate();
+      const running = getRunningMcpServer();
+      if (!s.mcpEnabled) {
+        if (running) await stopMcpServer();
+        return;
+      }
+      const portChanged = running && s.mcpPort > 0 && running.port !== s.mcpPort;
+      if (running && !portChanged) return; // already in the desired state
+      if (running) await stopMcpServer();
+      try {
+        await startMcpServer();
+      } catch (err) {
+        console.error('[mcp] failed to start:', err);
+      }
+    }).catch(err => console.error('[mcp] apply failed:', err));
+    return inFlight;
+  };
+  database.onChange(async (changes: any[]) => {
+    if (changes.some(([, doc]: any) => doc?.type === models.settings.type)) {
+      apply();
+    }
+  });
+  await apply();
 }

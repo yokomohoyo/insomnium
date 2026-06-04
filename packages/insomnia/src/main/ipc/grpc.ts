@@ -62,7 +62,7 @@ const loadMethodsFromFilePath = async (filePath: string, includeDirs: string[]):
     throw error;
   }
 };
-const loadMethods = async (protoFileId: string): Promise<GrpcMethodInfo[]> => {
+export const loadMethods = async (protoFileId: string): Promise<GrpcMethodInfo[]> => {
   const protoFile = await models.protoFile.getById(protoFileId);
   guard(protoFile, `Proto file ${protoFileId} not found`);
   const { filePath, dirs } = await writeProtoFile(protoFile);
@@ -119,7 +119,7 @@ const getRequestTemplatesFromProtoFile = async (
       root.resolveAll();
     } catch (err) {
       // Unresolvable extensions are common in buf-style projects (gnostic,
-      // buf.validate). Drop them and keep going — templates only need the
+      // buf.validate). Drop them and keep going - templates only need the
       // message types, not the extensions themselves.
       console.warn('[grpc-template] resolveAll non-fatal:', (err as Error).message);
     }

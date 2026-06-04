@@ -242,7 +242,7 @@ async function findAncestorDirectories(filePath: string, context: ProtoDirectory
 }
 
 // Common buf cache locations across platforms. Best-effort: missing dirs are
-// fine — proto-loader silently ignores them.
+// fine - proto-loader silently ignores them.
 function bufCacheCandidates(): string[] {
   const home = process.env.HOME || '';
   if (!home) return [];
@@ -288,7 +288,7 @@ async function validateProtoFile(filePath: string, parent: ProtoDirectory | Work
 function formatProtoLoadError(filePath: string, err: any): string {
   const msg = String(err?.message || err);
   // protobufjs raises "illegal token '<'" when an import path resolves to a
-  // non-proto file (e.g. an HTML 404 page) — which usually means the import
+  // non-proto file (e.g. an HTML 404 page) - which usually means the import
   // wasn't found on the include path and a stub got matched instead.
   if (/illegal token '<'/.test(msg)) {
     return `${filePath}: missing transitive proto import (${msg}). ` +

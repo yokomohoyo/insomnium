@@ -312,7 +312,7 @@ function templateField(field: Field, stackDepth: StackDepth): any {
   return templateScalar(field.type);
 }
 
-// JSON can't express "pick one of N" — emit the first option per oneof group.
+// JSON can't express "pick one of N" - emit the first option per oneof group.
 function pickTemplateOneOf(oneofs: OneOf[], stackDepth: StackDepth): { [key: string]: any } {
   return oneofs.reduce((fields: { [key: string]: any }, oneOf) => {
     const firstField = oneOf.fieldsArray[0];
@@ -345,6 +345,6 @@ function templateScalar(type: string): any {
     case 'number':
       return 0;
     default:
-      return null; // message / unknown — caller recurses
+      return null; // message / unknown - caller recurses
   }
 }
