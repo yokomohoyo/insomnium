@@ -20,6 +20,7 @@ import {
   useLoaderData,
   useLocation,
   useNavigate,
+  useRevalidator,
   useParams,
   useRouteLoaderData,
 } from 'react-router-dom';
@@ -28,6 +29,7 @@ import llama from "../../../src/ui/components/assets/llama.jpg";
 /**** ><> ↑ --------- Imports */
 
 import { isDevelopment } from '../../common/constants';
+import { database } from '../../common/database';
 import * as models from '../../models';
 
 import { Settings } from '../../models/settings';
@@ -83,6 +85,7 @@ export const loader: LoaderFunction = async (): Promise<RootLoaderData> => {
 const Root = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { revalidate } = useRevalidator();
   const { settings } = useLoaderData() as RootLoaderData;
   const organizations = [defaultOrganization];
 
@@ -98,6 +101,13 @@ const Root = () => {
         hash: 'revalidate=true',
       });
   }, [location.pathname, navigate]);
+
+  // Revalidate route loaders when the DB changes out-of-band (e.g. MCP writes
+  // from the main process). main broadcasts `db.changes` after each write;
+  // the renderer's database module forwards to its onChange listeners.
+  useEffect(() => {
+    return database.onChange(() => revalidate());
+  }, [revalidate]);
 
   useEffect(() => {
     return window.main.on(
