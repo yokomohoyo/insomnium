@@ -32,6 +32,48 @@ brew install --cask yokomohoyo/tap/insomnium
 Alternatively, you can build Insomnium from source on your local machine using `npm run app-package`.
 
 
+## gRPC
+
+Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type to get started.
+
+- **All four method types** — unary, server-streaming, client-streaming, and bidirectional streaming. Responses stream into the response pane in real time.
+- **Two ways to load your API surface:**
+  - **Import `.proto` files** — add a single file or import a whole directory tree (includes are resolved automatically, and the bundled `google/protobuf/*` well-known types are available).
+  - **Server reflection** — point Insomnium at a server with reflection enabled and it discovers the available services and methods for you.
+- **URL schemes** — use `grpc://host:port` for plaintext or `grpcs://host:port` for TLS. If you omit the scheme, TLS is inferred for common conventions (port `:443`, `*.run.app` Cloud Run, and `*.googleapis.com`) so you don't silently send plaintext to a host that requires TLS.
+- **Metadata & auth** — attach per-request metadata (headers), chain authentication strategies (Bearer, Basic, GCP ID Token, and more), and use client certificates inherited from the workspace.
+- **Request templates** — selecting a method auto-generates a skeleton JSON message from the request type, so you have a starting point to edit.
+- **Safety knobs** — configurable per-request timeout, plus a cap on the number of streamed messages to avoid runaway memory use.
+
+> Fetching protos from a reflection server that sits behind auth? Add the bearer/token under **Settings → Proto Tokens**.
+
+
+## MCP automation server
+
+Insomnium can expose **itself** as a [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so MCP-aware tools — like Claude Code — can list, inspect, create, and run your saved requests programmatically. This lets an AI assistant understand and drive your API collections directly.
+
+**Enable it:** open **Settings → Automation (MCP)** and toggle on *Enable MCP automation server*. The server is **disabled by default**.
+
+- Optionally set a fixed **port** (`0` lets the OS pick a free one; a fixed port keeps the connection URL stable across restarts).
+- Copy the auto-generated **Bearer token**, the **connection URL**, or the ready-to-paste one-line install command, e.g.:
+
+  ```sh
+  claude mcp add --transport sse insomnium http://127.0.0.1:<port>/sse --header "Authorization: Bearer <token>"
+  ```
+
+**Security:** the server binds to loopback only (`127.0.0.1`), is gated by a Bearer token (regenerable from the same screen), and uses Server-Sent Events (SSE) over HTTP. It is never exposed to your network.
+
+**What connected tools can do** — the exposed tool surface covers:
+
+- **Projects & workspaces** — list/create projects, workspaces (collections or design docs), and folders.
+- **Request introspection** — list HTTP/gRPC/WebSocket requests, read full request details, and read recent responses (including the last response body).
+- **Execution** — `send_http_request` and `send_grpc_request` (all four gRPC method types), with optional environment and timeout overrides.
+- **Mutation** — create, update, and delete requests.
+- **Auth strategies** — list, add, update, and remove authentication on a request.
+- **Environments** — list environments, read the active one, and switch it.
+- **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.
+
+
 ## Backstory
 
 Insomnium is a fork of [Kong/insomnia at 2023.5.8](https://github.com/ArchGPT/insomnia), the last commit before compulsory account login was introduced. In a sense, Insomnium is a community response to [the latest product update that forces account creation w/o warning](https://news.ycombinator.com/item?id=37680522).
