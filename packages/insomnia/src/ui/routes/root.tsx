@@ -29,7 +29,7 @@ import llama from "../../../src/ui/components/assets/llama.jpg";
 /**** ><> ↑ --------- Imports */
 
 import { isDevelopment } from '../../common/constants';
-import { database } from '../../common/database';
+import { ChangeBufferEvent, database } from '../../common/database';
 import * as models from '../../models';
 
 import { Settings } from '../../models/settings';
@@ -69,6 +69,13 @@ import { WorkspaceLoaderData } from './workspace';
 import { defaultOrganization } from '../../models/organization';
 
 /**** ><> ↑ --------- Hooks and Containers */
+
+// Loader-relevant doc types; Response/Stats/*Meta excluded to avoid Send-loop.
+const REVALIDATE_TYPES = new Set([
+  'Workspace', 'Project', 'Request', 'RequestGroup', 'Environment',
+  'GrpcRequest', 'WebSocketRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
+]);
+
 export interface RootLoaderData {
   settings: Settings;
 }
@@ -102,11 +109,13 @@ const Root = () => {
       });
   }, [location.pathname, navigate]);
 
-  // Revalidate route loaders when the DB changes out-of-band (e.g. MCP writes
-  // from the main process). main broadcasts `db.changes` after each write;
-  // the renderer's database module forwards to its onChange listeners.
+  // Revalidate loaders on structural DB changes (e.g. MCP writes from main).
   useEffect(() => {
-    return database.onChange(() => revalidate());
+    return database.onChange((changes: ChangeBufferEvent[]) => {
+      if (changes.some(([, doc]) => REVALIDATE_TYPES.has(doc.type))) {
+        revalidate();
+      }
+    });
   }, [revalidate]);
 
   useEffect(() => {
