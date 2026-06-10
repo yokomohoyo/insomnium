@@ -86,7 +86,7 @@
     "oauth-1.0a": "^2.2.6",
     "papaparse": "^5.4.1",
     "prettier": "2.4.1",
-    "shell-quote": "^1.8.1",
+    "shell-quote": "^1.8.4",
     "swagger-ui-dist": "5.0.0-alpha.6",
     "tailwind-merge": "^1.14.0",
     "tailwindcss-animate": "^1.0.7",
