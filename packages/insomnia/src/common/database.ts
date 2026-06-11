@@ -1,6 +1,5 @@
 /* eslint-disable prefer-rest-params -- don't want to change ...arguments usage for these sensitive functions without more testing */
 import electron from 'electron';
-import NeDB from '@seald-io/nedb';
 import fsPath from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,9 +10,9 @@ import { GitRepository } from '../models/git-repository';
 import type { BaseModel } from '../models/index';
 import * as models from '../models/index';
 import type { Workspace } from '../models/workspace';
-import { DB_PERSIST_INTERVAL } from './constants';
 import { generateId } from './misc';
 import { dummyStartingWorkspace, importToWorkspaceFromJSON } from './import';
+import type { SqliteStore, StoreQuery } from './sqlite-store';
 
 export interface Query {
   _id?: string | SpecificQuery;
@@ -42,14 +41,14 @@ export type ModelQuery<T extends BaseModel> = Partial<Record<keyof T, SpecificQu
 export type ChangeType = 'insert' | 'update' | 'remove';
 export const database = {
   all: async function<T extends BaseModel>(type: string) {
-    if (db._empty) {
+    if (!store) {
       return _send<T[]>('all', ...arguments);
     }
     return database.find<T>(type);
   },
 
   batchModifyDocs: async function({ upsert = [], remove = [] }: Operation) {
-    if (db._empty) {
+    if (!store) {
       return _send<void>('batchModifyDocs', ...arguments);
     }
     const flushId = await database.bufferChanges();
@@ -63,7 +62,7 @@ export const database = {
 
   /** buffers database changes and returns a buffer id */
   bufferChanges: async function(millis = 1000) {
-    if (db._empty) {
+    if (!store) {
       return _send<number>('bufferChanges', ...arguments);
     }
     bufferingChanges = true;
@@ -73,7 +72,7 @@ export const database = {
 
   /** buffers database changes and returns a buffer id */
   bufferChangesIndefinitely: async function() {
-    if (db._empty) {
+    if (!store) {
       return _send<number>('bufferChangesIndefinitely', ...arguments);
     }
     bufferingChanges = true;
@@ -81,18 +80,10 @@ export const database = {
   },
 
   count: async function<T extends BaseModel>(type: string, query: Query = {}) {
-    if (db._empty) {
+    if (!store) {
       return _send<number>('count', ...arguments);
     }
-    return new Promise<number>((resolve, reject) => {
-      (db[type] as NeDB<T>).count(query, (err, count) => {
-        if (err) {
-          return reject(err);
-        }
-
-        resolve(count);
-      });
-    });
+    return store.count(type, query as StoreQuery);
   },
 
   docCreate: async <T extends BaseModel>(type: string, ...patches: Patch<T>[]) => {
@@ -123,7 +114,7 @@ export const database = {
   },
 
   duplicate: async function<T extends BaseModel>(originalDoc: T, patch: Patch<T> = {}) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('duplicate', ...arguments);
     }
     const flushId = await database.bufferChanges();
@@ -171,28 +162,33 @@ export const database = {
     query: Query | string = {},
     sort: Sort = { created: 1 },
   ) {
-    if (db._empty) {
+    if (!store) {
       return _send<T[]>('find', ...arguments);
     }
-    return new Promise<T[]>((resolve, reject) => {
-      (db[type] as NeDB<T>)
-        .find(query)
-        .sort(sort)
-        .exec(async (err, rawDocs) => {
-          if (err) {
-            reject(err);
-            return;
-          }
+    const normalizedQuery = typeof query === 'object' && query !== null ? query : {};
+    const rawDocs = store.find(type, normalizedQuery as StoreQuery, sort);
+    const docs: T[] = [];
 
-          const docs: T[] = [];
+    for (const rawDoc of rawDocs) {
+      docs.push(await models.initModel(type, rawDoc));
+    }
 
-          for (const rawDoc of rawDocs) {
-            docs.push(await models.initModel(type, rawDoc));
-          }
+    return docs;
+  },
 
-          resolve(docs);
-        });
-    });
+  /** Transitive descendants of rootId, optionally filtered to types. Walks the tree in SQL. */
+  findDescendants: async function<T extends BaseModel>(rootId: string, types: string[] = []) {
+    if (!store) {
+      return _send<T[]>('findDescendants', ...arguments);
+    }
+    const rawDocs = store.findDescendants(rootId, { types });
+    const docs: T[] = [];
+
+    for (const rawDoc of rawDocs) {
+      docs.push(await models.initModel(rawDoc.type, rawDoc));
+    }
+
+    return docs;
   },
 
   findMostRecentlyModified: async function<T extends BaseModel>(
@@ -200,37 +196,26 @@ export const database = {
     query: Query = {},
     limit: number | null = null,
   ) {
-    if (db._empty) {
+    if (!store) {
       return _send<T[]>('findMostRecentlyModified', ...arguments);
     }
-    return new Promise<T[]>(resolve => {
-      (db[type] as NeDB<T>)
-        .find(query)
-        .sort({
-          modified: -1,
-        })
-        // @ts-expect-error -- TSCONVERSION limit shouldn't be applied if it's null, or default to something that means no-limit
-        .limit(limit)
-        .exec(async (err, rawDocs) => {
-          if (err) {
-            console.warn('[db] Failed to find docs', err);
-            resolve([]);
-            return;
-          }
+    try {
+      const rawDocs = store.find(type, query as StoreQuery, { modified: -1 }, limit);
+      const docs: T[] = [];
 
-          const docs: T[] = [];
+      for (const rawDoc of rawDocs) {
+        docs.push(await models.initModel(type, rawDoc));
+      }
 
-          for (const rawDoc of rawDocs) {
-            docs.push(await models.initModel(type, rawDoc));
-          }
-
-          resolve(docs);
-        });
-    });
+      return docs;
+    } catch (err) {
+      console.warn('[db] Failed to find docs', err);
+      return [];
+    }
   },
 
   flushChanges: async function(id = 0, fake = false) {
-    if (db._empty) {
+    if (!store) {
       return _send<void>('flushChanges', ...arguments);
     }
 
@@ -268,7 +253,7 @@ export const database = {
   },
 
   get: async function<T extends BaseModel>(type: string, id?: string) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('get', ...arguments);
     }
 
@@ -281,7 +266,7 @@ export const database = {
   },
 
   getMostRecentlyModified: async function<T extends BaseModel>(type: string, query: Query = {}) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('getMostRecentlyModified', ...arguments);
     }
     const docs = await database.findMostRecentlyModified<T>(type, query, 1);
@@ -289,7 +274,7 @@ export const database = {
   },
 
   getWhere: async function<T extends BaseModel>(type: string, query: ModelQuery<T> | Query) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('getWhere', ...arguments);
     }
     const docs = await database.find<T>(type, query);
@@ -298,47 +283,43 @@ export const database = {
 
   init: async (
     types: string[],
-    config: NeDB.DataStoreOptions = {},
+    config: { inMemoryOnly?: boolean } = {},
     forceReset = false,
     consoleLog: typeof console.log = console.log,
   ) => {
     if (forceReset) {
       changeListeners = [];
-
-      for (const attr of Object.keys(db)) {
-        if (attr === '_empty') {
-          continue;
-        }
-
-        delete db[attr];
-      }
+      store?.close();
+      store = null;
+      initializedTypes.clear();
     }
 
-    // Fill in the defaults
+    if (store) {
+      consoleLog('[db] Already initialized DB');
+    } else {
+      // Lazy-load so renderer bundles never evaluate node:sqlite.
+      const { SqliteStore } = await import('./sqlite-store');
+      store = new SqliteStore(config.inMemoryOnly ? ':memory:' : getSqliteDBFilePath());
+    }
+
     for (const modelType of types) {
-      if (db[modelType]) {
-        consoleLog(`[db] Already initialized DB.${modelType}`);
-        continue;
-      }
-
-      const filePath = getDBFilePath(modelType);
-      const collection = new NeDB(
-        Object.assign(
-          {
-            autoload: true,
-            filename: filePath,
-            corruptAlertThreshold: 0.9,
-          },
-          config,
-        ),
-      );
-      if (!config.inMemoryOnly) {
-        collection.persistence.setAutocompactionInterval(DB_PERSIST_INTERVAL);
-      }
-      db[modelType] = collection;
+      initializedTypes.add(modelType);
     }
 
-    delete db._empty;
+    // One-time legacy NeDB import; old files stay in place as a rollback path.
+    if (!config.inMemoryOnly && store.isEmpty()) {
+      const target = store;
+      let imported = 0;
+      target.transaction(() => {
+        for (const modelType of types) {
+          imported += target.importLegacyNeDBFile(modelType, getDBFilePath(modelType));
+        }
+      });
+      if (imported > 0) {
+        consoleLog(`[db] Imported ${imported} docs from legacy NeDB files`);
+      }
+    }
+
     electron.ipcMain.on('db.fn', async (e, fnName, replyChannel, ...args) => {
       try {
         // @ts-expect-error -- mapping unsoundness
@@ -356,8 +337,7 @@ export const database = {
     // TODO: Figure out why this makes tests hang
     if (!config.inMemoryOnly) {
       await _fixDBShape();
-      consoleLog(`[db] Initialized DB at ${getDBFilePath('$TYPE')}`);
-
+      consoleLog(`[db] Initialized DB at ${getSqliteDBFilePath()}`);
     }
 
     // This isn't the best place for this but w/e
@@ -417,32 +397,13 @@ export const database = {
   },
 
   insert: async function<T extends BaseModel>(doc: T, fromSync = false, initializeModel = true) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('insert', ...arguments);
     }
-    return new Promise<T>(async (resolve, reject) => {
-      let docWithDefaults: T | null = null;
-
-      try {
-        if (initializeModel) {
-          docWithDefaults = await models.initModel<T>(doc.type, doc);
-        } else {
-          docWithDefaults = doc;
-        }
-      } catch (err) {
-        return reject(err);
-      }
-
-      (db[doc.type] as NeDB<T>).insert(docWithDefaults, (err, newDoc: T) => {
-        if (err) {
-          return reject(err);
-        }
-
-        resolve(newDoc);
-        // NOTE: This needs to be after we resolve
-        notifyOfChange('insert', newDoc, fromSync);
-      });
-    });
+    const docWithDefaults = initializeModel ? await models.initModel<T>(doc.type, doc) : doc;
+    const stored = store.insert(docWithDefaults) as T;
+    notifyOfChange('insert', stored, fromSync);
+    return stored;
   },
 
   onChange: (callback: ChangeListener) => {
@@ -454,58 +415,28 @@ export const database = {
   },
 
   remove: async function<T extends BaseModel>(doc: T, fromSync = false) {
-    if (db._empty) {
+    if (!store) {
       return _send<void>('remove', ...arguments);
     }
 
     const flushId = await database.bufferChanges();
 
     const docs = await database.withDescendants(doc);
-    const docIds = docs.map(d => d._id);
-    const types = [...new Set(docs.map(d => d.type))];
-
-    // Don't really need to wait for this to be over;
-    types.map(t =>
-      db[t].remove(
-        {
-          _id: {
-            $in: docIds,
-          },
-        },
-        {
-          multi: true,
-        },
-      ),
-    );
+    store.removeByIds(docs.map(d => d._id));
 
     docs.map(d => notifyOfChange('remove', d, fromSync));
     await database.flushChanges(flushId);
   },
 
   removeWhere: async function<T extends BaseModel>(type: string, query: Query) {
-    if (db._empty) {
+    if (!store) {
       return _send<void>('removeWhere', ...arguments);
     }
     const flushId = await database.bufferChanges();
 
     for (const doc of await database.find<T>(type, query)) {
       const docs = await database.withDescendants(doc);
-      const docIds = docs.map(d => d._id);
-      const types = [...new Set(docs.map(d => d.type))];
-
-      // Don't really need to wait for this to be over;
-      types.map(t =>
-        db[t].remove(
-          {
-            _id: {
-              $in: docIds,
-            },
-          },
-          {
-            multi: true,
-          },
-        ),
-      );
+      store.removeByIds(docs.map(d => d._id));
       docs.map(d => notifyOfChange('remove', d, false));
     }
 
@@ -514,49 +445,27 @@ export const database = {
 
   /** Removes entries without removing their children */
   unsafeRemove: async function<T extends BaseModel>(doc: T, fromSync = false) {
-    if (db._empty) {
+    if (!store) {
       return _send<void>('unsafeRemove', ...arguments);
     }
 
-    (db[doc.type] as NeDB<T>).remove({ _id: doc._id });
+    store.removeByIds([doc._id]);
     notifyOfChange('remove', doc, fromSync);
   },
 
   update: async function<T extends BaseModel>(doc: T, fromSync = false) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('update', ...arguments);
     }
 
-    return new Promise<T>(async (resolve, reject) => {
-      let docWithDefaults: T;
-
-      try {
-        docWithDefaults = await models.initModel<T>(doc.type, doc);
-      } catch (err) {
-        return reject(err);
-      }
-
-      (db[doc.type] as NeDB<T>).update(
-        { _id: docWithDefaults._id },
-        docWithDefaults,
-        // TODO(TSCONVERSION) see comment below, upsert can happen automatically as part of the update
-        // @ts-expect-error -- TSCONVERSION expects 4 args but only sent 3. Need to validate what UpdateOptions should be.
-        err => {
-          if (err) {
-            return reject(err);
-          }
-
-          resolve(docWithDefaults);
-          // NOTE: This needs to be after we resolve
-          notifyOfChange('update', docWithDefaults, fromSync);
-        },
-      );
-    });
+    const docWithDefaults = await models.initModel<T>(doc.type, doc);
+    const stored = store.update(docWithDefaults) as T;
+    notifyOfChange('update', stored, fromSync);
+    return stored;
   },
 
-  // TODO(TSCONVERSION) the update method above can now take an upsert property
   upsert: async function<T extends BaseModel>(doc: T, fromSync = false) {
-    if (db._empty) {
+    if (!store) {
       return _send<T>('upsert', ...arguments);
     }
     const existingDoc = await database.get<T>(doc.type, doc._id);
@@ -569,7 +478,7 @@ export const database = {
   },
 
   withAncestors: async function<T extends BaseModel>(doc: T | null, types: string[] = allTypes()) {
-    if (db._empty) {
+    if (!store) {
       return _send<T[]>('withAncestors', ...arguments);
     }
 
@@ -607,67 +516,74 @@ export const database = {
   },
 
   withDescendants: async function<T extends BaseModel>(doc: T | null, stopType: string | null = null): Promise<BaseModel[]> {
-    if (db._empty) {
+    if (!store) {
       return _send<BaseModel[]>('withDescendants', ...arguments);
     }
-    let docsToReturn: BaseModel[] = doc ? [doc] : [];
 
-    async function next(docs: (BaseModel | null)[]): Promise<BaseModel[]> {
-      let foundDocs: BaseModel[] = [];
-
-      for (const doc of docs) {
-        if (stopType && doc && doc.type === stopType) {
-          continue;
-        }
-
-        const promises: Promise<BaseModel[]>[] = [];
-
-        for (const type of allTypes()) {
-          // If the doc is null, we want to search for parentId === null
-          const parentId = doc ? doc._id : null;
-          const promise = database.find(type, { parentId });
-          promises.push(promise);
-        }
-
-        for (const more of await Promise.all(promises)) {
-          foundDocs = [
-            ...foundDocs,
-            ...more,
-          ];
-        }
-      }
-
-      if (foundDocs.length === 0) {
-        // Didn't find anything. We're done
-        return docsToReturn;
-      }
-
-      // Continue searching for children
-      docsToReturn = [...docsToReturn, ...foundDocs];
-      return next(foundDocs);
+    // Null root = "docs with parentId null"; rare, so it keeps the JS walk.
+    if (!doc) {
+      return _descendantsOfNullParent(stopType);
     }
 
-    return next([doc]);
+    const rawDocs = store.findDescendants(doc._id, { stopType, rootType: doc.type });
+    const docs: BaseModel[] = [doc];
+
+    for (const rawDoc of rawDocs) {
+      docs.push(await models.initModel(rawDoc.type, rawDoc));
+    }
+
+    return docs;
   },
 };
 
-interface DB {
-  [index: string]: NeDB;
-}
-
-// @ts-expect-error -- TSCONVERSION _empty doesn't match the index signature, use something other than _empty in future
-const db: DB = {
-  _empty: true,
-} as DB;
+// Null until init(); the renderer never initializes and proxies over IPC.
+let store: SqliteStore | null = null;
+const initializedTypes = new Set<string>();
 
 // ~~~~~~~ //
 // HELPERS //
 // ~~~~~~~ //
-const allTypes = () => Object.keys(db);
+const allTypes = () => Array.from(initializedTypes);
 
+// Legacy BFS for withDescendants(null): roots are docs with parentId null.
+async function _descendantsOfNullParent(stopType: string | null): Promise<BaseModel[]> {
+  let docsToReturn: BaseModel[] = [];
+
+  async function next(parents: (BaseModel | null)[]): Promise<BaseModel[]> {
+    let foundDocs: BaseModel[] = [];
+
+    for (const parent of parents) {
+      if (stopType && parent && parent.type === stopType) {
+        continue;
+      }
+      for (const type of allTypes()) {
+        foundDocs = [...foundDocs, ...await database.find(type, { parentId: parent ? parent._id : null })];
+      }
+    }
+
+    if (foundDocs.length === 0) {
+      return docsToReturn;
+    }
+
+    docsToReturn = [...docsToReturn, ...foundDocs];
+    return next(foundDocs);
+  }
+
+  return next([null]);
+}
+
+function getDataDir() {
+  return process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData');
+}
+
+function getSqliteDBFilePath() {
+  return fsPath.join(getDataDir(), 'insomnia.sqlite');
+}
+
+// Legacy NeDB file path, now read only by the SQLite migration.
 function getDBFilePath(modelType: string) {
   // NOTE: Do not EVER change this. EVER!
-  return fsPath.join(process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData'), `insomnia.${modelType}.db`);
+  return fsPath.join(getDataDir(), `insomnia.${modelType}.db`);
 }
 
 // ~~~~~~~~~~~~~~~~ //

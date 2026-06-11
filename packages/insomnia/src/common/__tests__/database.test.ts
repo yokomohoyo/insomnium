@@ -651,7 +651,8 @@ describe('duplicate()', () => {
 
   it('should overwrite appropriate fields on the parent when duplicating', async () => {
     const date = 1478795580200;
-    Date.now = jest.fn().mockReturnValue(date);
+    // spyOn (not direct assignment) so restoreAllMocks puts the real Date.now back
+    jest.spyOn(Date, 'now').mockReturnValue(date);
     const workspace = await models.workspace.create({
       name: 'Test Workspace',
     });
