@@ -1,9 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
-import { isDescendantOf } from './util';
 
 export function registerWorkspaceTools(server: McpServer) {
   server.tool(
@@ -85,9 +85,7 @@ export function registerWorkspaceTools(server: McpServer) {
     'List request folders (groups) inside a workspace.',
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
-      // The walk matches direct children too.
-      const everything = await models.requestGroup.all();
-      const groups = everything.filter(g => isDescendantOf(g.parentId, workspaceId, everything));
+      const groups = await database.findDescendants(workspaceId, [models.requestGroup.type]);
       return {
         content: [{
           type: 'text',

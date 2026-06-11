@@ -106,6 +106,7 @@ export class SqliteStore {
       );
       CREATE INDEX IF NOT EXISTS idx_docs_type_parent ON docs (type, parentId);
       CREATE INDEX IF NOT EXISTS idx_docs_type_modified ON docs (type, modified);
+      CREATE INDEX IF NOT EXISTS idx_docs_parent ON docs (parentId);
     `);
   }
 
@@ -167,6 +168,32 @@ export class SqliteStore {
 
   count(type: string, query: StoreQuery = {}): number {
     return this.find(type, query).length;
+  }
+
+  // Transitive descendants of rootId (root excluded), level-ordered like the
+  // old BFS. stopType nodes are returned but not descended into; rootType lets
+  // the seed honor that. The depth cap bounds cycles - depth defeats UNION dedup.
+  findDescendants(
+    rootId: string,
+    options: { types?: string[]; stopType?: string | null; rootType?: string } = {},
+  ): StoreDoc[] {
+    const { types = [], stopType = null, rootType = '' } = options;
+    const typeFilter = types.length > 0 ? ` AND docs.type IN (${types.map(() => '?').join(', ')})` : '';
+    const sql = `
+      WITH RECURSIVE tree(_id, type, depth) AS (
+        SELECT ?, ?, 0
+        UNION
+        SELECT d._id, d.type, t.depth + 1 FROM docs d
+        JOIN tree t ON d.parentId = t._id
+        WHERE t.type IS NOT ? AND t.depth < 64
+      )
+      SELECT docs.json FROM (SELECT _id, MIN(depth) AS depth FROM tree GROUP BY _id) m
+      CROSS JOIN docs ON docs._id = m._id
+      WHERE docs._id != ?${typeFilter}
+      ORDER BY m.depth, docs.created
+    `;
+    const rows = this.prepare(sql).all(rootId, rootType, stopType, rootId, ...types) as { json: string }[];
+    return rows.map(row => JSON.parse(row.json));
   }
 
   // Writes return a detached copy (as NeDB did): callers may mutate the

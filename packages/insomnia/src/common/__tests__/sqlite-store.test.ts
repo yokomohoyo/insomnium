@@ -72,6 +72,51 @@ describe('SqliteStore', () => {
     expect(store.find('Request', { _id: 'req_1' })[0].headers).toEqual([{ name: 'a' }]);
   });
 
+  describe('findDescendants', () => {
+    const seed = () => {
+      // wrk_1 > fld_a > fld_b > req_deep ; wrk_1 > req_top ; wrk_2 > req_other
+      store.insert({ _id: 'wrk_1', type: 'Workspace', parentId: 'proj_1', created: 1, modified: 1 });
+      store.insert({ _id: 'fld_a', type: 'RequestGroup', parentId: 'wrk_1', created: 2, modified: 2 });
+      store.insert({ _id: 'fld_b', type: 'RequestGroup', parentId: 'fld_a', created: 3, modified: 3 });
+      store.insert({ _id: 'req_deep', type: 'Request', parentId: 'fld_b', created: 4, modified: 4 });
+      store.insert({ _id: 'req_top', type: 'Request', parentId: 'wrk_1', created: 5, modified: 5 });
+      store.insert({ _id: 'wrk_2', type: 'Workspace', parentId: 'proj_1', created: 6, modified: 6 });
+      store.insert({ _id: 'req_other', type: 'Request', parentId: 'wrk_2', created: 7, modified: 7 });
+      store.insert({ _id: 'req_orphan', type: 'Request', parentId: 'fld_gone', created: 8, modified: 8 });
+    };
+
+    it('returns nested descendants level-ordered, excluding the root, other trees and orphans', () => {
+      seed();
+      const all = store.findDescendants('wrk_1');
+      expect(all.map(d => d._id)).toEqual(['fld_a', 'req_top', 'fld_b', 'req_deep']);
+    });
+
+    it('filters by types', () => {
+      seed();
+      const reqs = store.findDescendants('wrk_1', { types: ['Request'] });
+      expect(reqs.map(d => d._id)).toEqual(['req_top', 'req_deep']);
+    });
+
+    it('terminates on parentId cycles', () => {
+      store.insert({ _id: 'fld_x', type: 'RequestGroup', parentId: 'fld_y', created: 1, modified: 1 });
+      store.insert({ _id: 'fld_y', type: 'RequestGroup', parentId: 'fld_x', created: 2, modified: 2 });
+      store.insert({ _id: 'req_1', type: 'Request', parentId: 'fld_x', created: 3, modified: 3 });
+      expect(store.findDescendants('fld_y').map(d => d._id)).toEqual(['fld_x', 'req_1']);
+    });
+
+    it('includes stopType nodes but does not descend into them', () => {
+      seed();
+      store.insert({ _id: 'res_1', type: 'Response', parentId: 'req_deep', created: 9, modified: 9 });
+      const docs = store.findDescendants('wrk_1', { stopType: 'Request', rootType: 'Workspace' });
+      expect(docs.map(d => d._id)).toEqual(['fld_a', 'req_top', 'fld_b', 'req_deep']);
+    });
+
+    it('returns nothing when the root itself is of stopType', () => {
+      seed();
+      expect(store.findDescendants('fld_a', { stopType: 'RequestGroup', rootType: 'RequestGroup' })).toEqual([]);
+    });
+  });
+
   describe('importLegacyNeDBFile', () => {
     it('imports last-write-wins, honors tombstones, skips metadata and corrupt lines', () => {
       const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'nedb-import-')), 'insomnia.Request.db');

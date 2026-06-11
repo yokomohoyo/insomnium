@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { addDirectoryFromPath, addFileFromPath } from '../../../network/grpc/proto-loader';
 import { loadMethods } from '../../ipc/grpc';
-import { isDescendantOf } from './util';
 
 export function registerProtoTools(server: McpServer) {
   server.tool(
@@ -12,9 +12,7 @@ export function registerProtoTools(server: McpServer) {
     'List proto files known to a workspace (uploaded individually or as part of a directory).',
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
-      const protoFiles = await models.protoFile.all();
-      const protoDirs = await models.protoDirectory.all();
-      const filtered = protoFiles.filter(p => isDescendantOf(p.parentId, workspaceId, protoDirs));
+      const filtered = await database.findDescendants(workspaceId, [models.protoFile.type]);
       return {
         content: [{
           type: 'text',

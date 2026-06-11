@@ -1,11 +1,14 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+import { database } from '../../../common/database';
 import * as models from '../../../models';
 import * as requestOperations from '../../../models/helpers/request-operations';
+import type { GrpcRequest } from '../../../models/grpc-request';
 import { isGrpcRequest } from '../../../models/grpc-request';
+import type { Request } from '../../../models/request';
+import type { WebSocketRequest } from '../../../models/websocket-request';
 import { isWebSocketRequest } from '../../../models/websocket-request';
-import { isDescendantOf } from './util';
 
 export function registerRequestTools(server: McpServer) {
   server.tool(
@@ -13,14 +16,11 @@ export function registerRequestTools(server: McpServer) {
     'List all HTTP/gRPC/WebSocket requests in a workspace (across all folders).',
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
-      const [reqs, grpcReqs, wsReqs] = await Promise.all([
-        models.request.all(),
-        models.grpcRequest.all(),
-        models.webSocketRequest.all(),
+      const filtered = await database.findDescendants<Request | GrpcRequest | WebSocketRequest>(workspaceId, [
+        models.request.type,
+        models.grpcRequest.type,
+        models.webSocketRequest.type,
       ]);
-      const allRequests = [...reqs, ...grpcReqs, ...wsReqs];
-      const groups = await models.requestGroup.all();
-      const filtered = allRequests.filter(r => isDescendantOf(r.parentId, workspaceId, groups));
       return {
         content: [{
           type: 'text',

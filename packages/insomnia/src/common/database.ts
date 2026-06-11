@@ -176,6 +176,21 @@ export const database = {
     return docs;
   },
 
+  /** Transitive descendants of rootId, optionally filtered to types. Walks the tree in SQL. */
+  findDescendants: async function<T extends BaseModel>(rootId: string, types: string[] = []) {
+    if (!store) {
+      return _send<T[]>('findDescendants', ...arguments);
+    }
+    const rawDocs = store.findDescendants(rootId, { types });
+    const docs: T[] = [];
+
+    for (const rawDoc of rawDocs) {
+      docs.push(await models.initModel(rawDoc.type, rawDoc));
+    }
+
+    return docs;
+  },
+
   findMostRecentlyModified: async function<T extends BaseModel>(
     type: string,
     query: Query = {},
@@ -504,44 +519,20 @@ export const database = {
     if (!store) {
       return _send<BaseModel[]>('withDescendants', ...arguments);
     }
-    let docsToReturn: BaseModel[] = doc ? [doc] : [];
 
-    async function next(docs: (BaseModel | null)[]): Promise<BaseModel[]> {
-      let foundDocs: BaseModel[] = [];
-
-      for (const doc of docs) {
-        if (stopType && doc && doc.type === stopType) {
-          continue;
-        }
-
-        const promises: Promise<BaseModel[]>[] = [];
-
-        for (const type of allTypes()) {
-          // If the doc is null, we want to search for parentId === null
-          const parentId = doc ? doc._id : null;
-          const promise = database.find(type, { parentId });
-          promises.push(promise);
-        }
-
-        for (const more of await Promise.all(promises)) {
-          foundDocs = [
-            ...foundDocs,
-            ...more,
-          ];
-        }
-      }
-
-      if (foundDocs.length === 0) {
-        // Didn't find anything. We're done
-        return docsToReturn;
-      }
-
-      // Continue searching for children
-      docsToReturn = [...docsToReturn, ...foundDocs];
-      return next(foundDocs);
+    // Null root = "docs with parentId null"; rare, so it keeps the JS walk.
+    if (!doc) {
+      return _descendantsOfNullParent(stopType);
     }
 
-    return next([doc]);
+    const rawDocs = store.findDescendants(doc._id, { stopType, rootType: doc.type });
+    const docs: BaseModel[] = [doc];
+
+    for (const rawDoc of rawDocs) {
+      docs.push(await models.initModel(rawDoc.type, rawDoc));
+    }
+
+    return docs;
   },
 };
 
@@ -553,6 +544,33 @@ const initializedTypes = new Set<string>();
 // HELPERS //
 // ~~~~~~~ //
 const allTypes = () => Array.from(initializedTypes);
+
+// Legacy BFS for withDescendants(null): roots are docs with parentId null.
+async function _descendantsOfNullParent(stopType: string | null): Promise<BaseModel[]> {
+  let docsToReturn: BaseModel[] = [];
+
+  async function next(parents: (BaseModel | null)[]): Promise<BaseModel[]> {
+    let foundDocs: BaseModel[] = [];
+
+    for (const parent of parents) {
+      if (stopType && parent && parent.type === stopType) {
+        continue;
+      }
+      for (const type of allTypes()) {
+        foundDocs = [...foundDocs, ...await database.find(type, { parentId: parent ? parent._id : null })];
+      }
+    }
+
+    if (foundDocs.length === 0) {
+      return docsToReturn;
+    }
+
+    docsToReturn = [...docsToReturn, ...foundDocs];
+    return next(foundDocs);
+  }
+
+  return next([null]);
+}
 
 function getDataDir() {
   return process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData');
