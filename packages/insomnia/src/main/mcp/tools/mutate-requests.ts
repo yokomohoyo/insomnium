@@ -20,7 +20,12 @@ export function registerRequestMutationTools(server: McpServer) {
       if (!req) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
       }
-      await requestOperations.update(req as any, patch);
+      // Drop identity/bookkeeping fields rather than corrupt the doc.
+      const safePatch = { ...patch };
+      for (const k of ['_id', 'type', 'created', 'modified']) {
+        delete safePatch[k];
+      }
+      await requestOperations.update(req as any, safePatch);
       return { content: [{ type: 'text', text: JSON.stringify({ ok: true, requestId }) }] };
     },
   );

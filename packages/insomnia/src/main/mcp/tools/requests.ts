@@ -5,6 +5,7 @@ import * as models from '../../../models';
 import * as requestOperations from '../../../models/helpers/request-operations';
 import { isGrpcRequest } from '../../../models/grpc-request';
 import { isWebSocketRequest } from '../../../models/websocket-request';
+import { isDescendantOf } from './util';
 
 export function registerRequestTools(server: McpServer) {
   server.tool(
@@ -19,18 +20,7 @@ export function registerRequestTools(server: McpServer) {
       ]);
       const allRequests = [...reqs, ...grpcReqs, ...wsReqs];
       const groups = await models.requestGroup.all();
-      const inWorkspace = (parentId: string): boolean => {
-        let cur: string | null = parentId;
-        const seen = new Set<string>();
-        while (cur && !seen.has(cur)) {
-          if (cur === workspaceId) return true;
-          seen.add(cur);
-          const next = groups.find(g => g._id === cur);
-          cur = next ? next.parentId : null;
-        }
-        return false;
-      };
-      const filtered = allRequests.filter(r => inWorkspace(r.parentId));
+      const filtered = allRequests.filter(r => isDescendantOf(r.parentId, workspaceId, groups));
       return {
         content: [{
           type: 'text',

@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import * as models from '../../../models';
+import { DEFAULT_PROJECT_ID } from '../../../models/project';
+import { isDescendantOf } from './util';
 
 export function registerWorkspaceTools(server: McpServer) {
   server.tool(
@@ -57,13 +59,17 @@ export function registerWorkspaceTools(server: McpServer) {
 
   server.tool(
     'create_workspace',
-    'Create a new workspace (collection or design doc). parentId is the projectId you want it under (use proj_default-project for the default project, or one of the proj_* ids from list_workspaces).',
+    'Create a new workspace (collection or design doc). parentId is the projectId you want it under (use proj_default-project for the default project, or one of the proj_* ids from list_projects).',
     {
       name: z.string().default('New Collection'),
       scope: z.enum(['collection', 'design']).default('collection'),
-      parentId: z.string().default('proj_default-project'),
+      parentId: z.string().default(DEFAULT_PROJECT_ID),
     },
     async ({ name, scope, parentId }) => {
+      const project = await models.project.getById(parentId);
+      if (!project) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: `project ${parentId} not found - use list_projects to see valid ids` }) }], isError: true };
+      }
       const ws = await models.workspace.create({ name, scope, parentId });
       return {
         content: [{
@@ -79,11 +85,9 @@ export function registerWorkspaceTools(server: McpServer) {
     'List request folders (groups) inside a workspace.',
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
-      const all = await models.requestGroup.findByParentId(workspaceId);
-      // findByParentId is direct-children only; chain-walk for nested folders.
+      // The walk matches direct children too.
       const everything = await models.requestGroup.all();
-      const inWorkspace = everything.filter(g => isInWorkspace(g.parentId, workspaceId, everything));
-      const groups = [...new Set([...all, ...inWorkspace])];
+      const groups = everything.filter(g => isDescendantOf(g.parentId, workspaceId, everything));
       return {
         content: [{
           type: 'text',
@@ -96,16 +100,4 @@ export function registerWorkspaceTools(server: McpServer) {
       };
     },
   );
-}
-
-function isInWorkspace(parentId: string | null, workspaceId: string, groups: { _id: string; parentId: string | null }[]): boolean {
-  let cur = parentId;
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur)) {
-    if (cur === workspaceId) return true;
-    seen.add(cur);
-    const next = groups.find(g => g._id === cur);
-    cur = next ? next.parentId : null;
-  }
-  return false;
 }

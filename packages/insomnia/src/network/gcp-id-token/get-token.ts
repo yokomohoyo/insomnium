@@ -235,20 +235,7 @@ async function idTokenFromServiceAccountDirect(sa: ServiceAccountKey, audience: 
 
 // Get a SA access token (no target_audience) so we can call iamcredentials.
 async function accessTokenFromServiceAccount(sa: ServiceAccountKey): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: 'RS256', typ: 'JWT', ...(sa.private_key_id ? { kid: sa.private_key_id } : {}) };
-  const payload = {
-    iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/cloud-platform',
-    aud: sa.token_uri || TOKEN_ENDPOINT,
-    iat: now,
-    exp: now + 3600,
-  };
-  const headerB64 = b64url(JSON.stringify(header));
-  const payloadB64 = b64url(JSON.stringify(payload));
-  const signingInput = `${headerB64}.${payloadB64}`;
-  const sig = crypto.createSign('RSA-SHA256').update(signingInput).sign(sa.private_key);
-  const assertion = `${signingInput}.${sig.toString('base64url')}`;
+  const assertion = signJwt(sa, { scope: 'https://www.googleapis.com/auth/cloud-platform' });
   const tokenUri = sa.token_uri || TOKEN_ENDPOINT;
   assertSafeTokenUri(tokenUri);
   const res = await fetch(tokenUri, {
@@ -309,19 +296,21 @@ async function idTokenViaImpersonation(userAccessToken: string, targetSaEmail: s
 }
 
 function buildSignedJwt(sa: ServiceAccountKey, audience: string): string {
+  return signJwt(sa, { sub: sa.client_email, target_audience: audience });
+}
+
+// RS256 JWT-bearer assertion: standard claims + extras.
+function signJwt(sa: ServiceAccountKey, extraClaims: Record<string, unknown>): string {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'RS256', typ: 'JWT', ...(sa.private_key_id ? { kid: sa.private_key_id } : {}) };
   const payload = {
     iss: sa.client_email,
-    sub: sa.client_email,
     aud: sa.token_uri || TOKEN_ENDPOINT,
     iat: now,
     exp: now + 3600,
-    target_audience: audience,
+    ...extraClaims,
   };
-  const headerB64 = b64url(JSON.stringify(header));
-  const payloadB64 = b64url(JSON.stringify(payload));
-  const signingInput = `${headerB64}.${payloadB64}`;
+  const signingInput = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
   const signature = crypto.createSign('RSA-SHA256').update(signingInput).sign(sa.private_key);
   return `${signingInput}.${signature.toString('base64url')}`;
 }
@@ -333,7 +322,11 @@ function b64url(input: string): string {
 export function defaultAudienceForUrl(url: string): string {
   try {
     const u = new URL(url);
-    return `${u.protocol}//${u.host}`;
+    // Cloud Run / IAP audiences are http(s) origins, even for grpc(s) URLs.
+    const protocol = u.protocol === 'grpcs:' ? 'https:'
+      : u.protocol === 'grpc:' ? 'http:'
+        : u.protocol;
+    return `${protocol}//${u.host}`;
   } catch {
     return '';
   }
