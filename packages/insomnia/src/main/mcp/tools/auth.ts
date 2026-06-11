@@ -41,6 +41,9 @@ export function registerAuthTools(server: McpServer) {
       if (!req) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
       }
+      if (typeof strategy.type !== 'string' || !strategy.type) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: 'strategy must have a string `type` field (e.g. bearer, basic, gcp-id-token)' }) }], isError: true };
+      }
       const next = addAuthStrategy((req as any).authentication, strategy as any);
       await requestOperations.update(req as any, { authentication: next });
       return { content: [{ type: 'text', text: JSON.stringify({ ok: true, strategies: next.length }) }] };
@@ -60,6 +63,10 @@ export function registerAuthTools(server: McpServer) {
       if (!req) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
       }
+      const existing = getAuthStrategies((req as any).authentication);
+      if (index >= existing.length) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: `index ${index} out of range (request has ${existing.length} strategies)` }) }], isError: true };
+      }
       const next = patchAuthStrategy((req as any).authentication, index, patch);
       await requestOperations.update(req as any, { authentication: next });
       return { content: [{ type: 'text', text: JSON.stringify({ ok: true, index }) }] };
@@ -77,6 +84,10 @@ export function registerAuthTools(server: McpServer) {
       const req = await requestOperations.getById(requestId);
       if (!req) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+      }
+      const existing = getAuthStrategies((req as any).authentication);
+      if (index >= existing.length) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: `index ${index} out of range (request has ${existing.length} strategies)` }) }], isError: true };
       }
       const next = removeAuthStrategy((req as any).authentication, index);
       await requestOperations.update(req as any, { authentication: next });

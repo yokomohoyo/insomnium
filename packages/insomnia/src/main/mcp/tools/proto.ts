@@ -4,6 +4,7 @@ import { z } from 'zod';
 import * as models from '../../../models';
 import { addDirectoryFromPath, addFileFromPath } from '../../../network/grpc/proto-loader';
 import { loadMethods } from '../../ipc/grpc';
+import { isDescendantOf } from './util';
 
 export function registerProtoTools(server: McpServer) {
   server.tool(
@@ -13,18 +14,7 @@ export function registerProtoTools(server: McpServer) {
     async ({ workspaceId }) => {
       const protoFiles = await models.protoFile.all();
       const protoDirs = await models.protoDirectory.all();
-      const inWorkspace = (parentId: string | null | undefined): boolean => {
-        let cur: string | null | undefined = parentId;
-        const seen = new Set<string>();
-        while (cur && !seen.has(cur)) {
-          if (cur === workspaceId) return true;
-          seen.add(cur);
-          const next = protoDirs.find(d => d._id === cur);
-          cur = next ? next.parentId : null;
-        }
-        return false;
-      };
-      const filtered = protoFiles.filter(p => inWorkspace(p.parentId));
+      const filtered = protoFiles.filter(p => isDescendantOf(p.parentId, workspaceId, protoDirs));
       return {
         content: [{
           type: 'text',

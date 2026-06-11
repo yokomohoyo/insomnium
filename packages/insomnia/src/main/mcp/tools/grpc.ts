@@ -102,6 +102,8 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   for (const m of (rendered as any).metadata || []) {
     if (!m.disabled && m.name) metadata.add(m.name, m.value || '');
   }
+  // gRPC has no HTTP method/body: only header-emitting strategies work here;
+  // signature-based ones (Hawk, OAuth 1) would sign garbage.
   const authHeaders = await getAuthHeaders(
     { _id: rendered._id, method: '', body: {}, authentication: (rendered as any).authentication } as any,
     rendered.url,
@@ -156,16 +158,15 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
           metadata,
           { deadline: Date.now() + timeoutMs },
         );
-        const cap = () => {
+        call.on('data', (msg: any) => {
+          // cancel() is async; don't let in-flight messages push past the cap.
+          if (responses.length >= maxResponses) return;
+          responses.push(msg);
           if (responses.length >= maxResponses) {
             try {
               call.cancel();
             } catch { /* noop */ }
           }
-        };
-        call.on('data', (msg: any) => {
-          responses.push(msg);
-          cap();
         });
         call.on('end', () => resolve({ ok: true, responses }));
         call.on('error', (err: any) => {
@@ -203,16 +204,14 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
           metadata,
           { deadline: Date.now() + timeoutMs },
         );
-        const cap = () => {
+        (call as any).on('data', (msg: any) => {
+          if (responses.length >= maxResponses) return;
+          responses.push(msg);
           if (responses.length >= maxResponses) {
             try {
               (call as any).cancel();
             } catch { /* noop */ }
           }
-        };
-        (call as any).on('data', (msg: any) => {
-          responses.push(msg);
-          cap();
         });
         (call as any).on('end', () => resolve({ ok: true, responses }));
         (call as any).on('error', (err: any) => {

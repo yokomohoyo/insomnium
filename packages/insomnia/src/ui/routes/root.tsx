@@ -111,11 +111,13 @@ const Root = () => {
 
   // Revalidate loaders on structural DB changes (e.g. MCP writes from main).
   useEffect(() => {
-    return database.onChange((changes: ChangeBufferEvent[]) => {
+    const listener = (changes: ChangeBufferEvent[]) => {
       if (changes.some(([, doc]) => REVALIDATE_TYPES.has(doc.type))) {
         revalidate();
       }
-    });
+    };
+    database.onChange(listener);
+    return () => database.offChange(listener);
   }, [revalidate]);
 
   useEffect(() => {

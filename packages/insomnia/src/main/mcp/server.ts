@@ -43,6 +43,14 @@ export async function startMcpServer(): Promise<{ port: number }> {
 
   const httpServer = http.createServer(async (req, res) => {
     const url = req.url || '/';
+
+    // Unauthenticated liveness probe.
+    if (req.method === 'GET' && url === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
     if (!checkAuth(req, token)) {
       res.writeHead(401, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'unauthorized' }));
@@ -55,6 +63,7 @@ export async function startMcpServer(): Promise<{ port: number }> {
       transports.set(transport.sessionId, transport);
       res.on('close', () => {
         transports.delete(transport.sessionId);
+        mcpServer.close().catch(() => { /* noop */ });
       });
       await mcpServer.connect(transport);
       return;
@@ -69,12 +78,6 @@ export async function startMcpServer(): Promise<{ port: number }> {
         return;
       }
       await transport.handlePostMessage(req, res);
-      return;
-    }
-
-    if (req.method === 'GET' && url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
       return;
     }
 

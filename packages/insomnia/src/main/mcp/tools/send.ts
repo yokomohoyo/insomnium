@@ -21,7 +21,7 @@ export function registerSendTool(server: McpServer) {
       }
       let envId: string | null | undefined = environmentId;
       if (envId === undefined) {
-        const workspace = await findWorkspaceForRequest(requestId);
+        const workspace = await findWorkspaceForRequest(req.parentId);
         if (workspace) {
           const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
           envId = meta.activeEnvironmentId;
@@ -40,7 +40,7 @@ export function registerSendTool(server: McpServer) {
         caCert,
         settings,
       );
-      const stored = await models.response.create(response);
+      const stored = await models.response.create(response, settings.maxHistoryResponses);
       return {
         content: [{
           type: 'text',
@@ -58,10 +58,8 @@ export function registerSendTool(server: McpServer) {
   );
 }
 
-async function findWorkspaceForRequest(requestId: string) {
-  const req = await models.request.getById(requestId);
-  if (!req) return null;
-  let cur: string | null = req.parentId;
+async function findWorkspaceForRequest(parentId: string) {
+  let cur: string | null = parentId;
   const groups = await models.requestGroup.all();
   const seen = new Set<string>();
   while (cur && !seen.has(cur)) {

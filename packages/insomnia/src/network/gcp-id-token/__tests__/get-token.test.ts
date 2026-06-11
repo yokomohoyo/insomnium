@@ -145,6 +145,11 @@ describe('defaultAudienceForUrl', () => {
     expect(defaultAudienceForUrl('https://my-svc-abc.a.run.app/v1/foo')).toBe('https://my-svc-abc.a.run.app');
   });
 
+  it('normalizes grpc(s) schemes to http(s)', () => {
+    expect(defaultAudienceForUrl('grpcs://my-svc-abc.a.run.app')).toBe('https://my-svc-abc.a.run.app');
+    expect(defaultAudienceForUrl('grpc://localhost:50051')).toBe('http://localhost:50051');
+  });
+
   it('returns empty string for malformed URLs', () => {
     expect(defaultAudienceForUrl('not a url')).toBe('');
   });
