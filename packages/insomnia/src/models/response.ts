@@ -244,6 +244,66 @@ export const getBodyBuffer = (
   }
 };
 
+// Read at most ~maxBytes of the (decompressed) body, then stop - streams and
+// gunzips on the fly instead of materializing a huge body to slice it, tearing
+// down both streams early (no fd leak). `fullSize` is exact only when the whole
+// body fit; null when we stopped early.
+export const getBoundedBodyBuffer = async (
+  response: { bodyPath?: string; bodyCompression?: Compression } | undefined,
+  maxBytes: number,
+): Promise<{ buffer: Buffer; truncated: boolean; fullSize: number | null }> => {
+  if (!response?.bodyPath) {
+    return { buffer: Buffer.alloc(0), truncated: false, fullSize: 0 };
+  }
+  try {
+    fs.statSync(response.bodyPath);
+  } catch (err) {
+    console.warn('Failed to read response body', err.message);
+    return { buffer: Buffer.alloc(0), truncated: false, fullSize: null };
+  }
+  const fileStream = fs.createReadStream(response.bodyPath);
+  // .pipe() never adds an 'error' listener to the source and we iterate the
+  // gunzip, not fileStream - so a disk read error here would crash the process.
+  // Swallow it; the for-await below handles graceful return.
+  fileStream.on('error', () => {});
+  const gunzip = response.bodyCompression === 'zip' ? zlib.createGunzip() : null;
+  const source: Readable = gunzip ? fileStream.pipe(gunzip) : fileStream;
+  // One chunk past maxBytes so we can tell "exactly maxBytes" from "more remained".
+  const cap = maxBytes + 8;
+  const chunks: Buffer[] = [];
+  let total = 0;
+  let reachedCap = false;
+  let readError = false;
+  try {
+    for await (const chunk of source) {
+      const buf = chunk as Buffer;
+      chunks.push(buf);
+      total += buf.length;
+      if (total >= cap) {
+        reachedCap = true;
+        break;
+      }
+    }
+  } catch (err) {
+    readError = true;
+    console.warn('Failed to read response body', (err as Error).message);
+    // Return whatever we managed to read rather than throwing.
+  } finally {
+    // Destroy BOTH: .pipe() doesn't propagate destroy to the source, so the fd
+    // leaks if we only destroy the gunzip.
+    gunzip?.destroy();
+    fileStream.destroy();
+  }
+  const buffer = Buffer.concat(chunks);
+  return {
+    buffer,
+    // Read error (e.g. corrupt gzip): treat as truncated, not a complete body.
+    truncated: readError || buffer.length > maxBytes,
+    // null = size unknown: we deliberately stopped, or errored mid-read.
+    fullSize: (reachedCap || readError) ? null : buffer.length,
+  };
+};
+
 export function getTimeline(response: Response, showBody?: boolean) {
   const { timelinePath, bodyPath } = response;
 

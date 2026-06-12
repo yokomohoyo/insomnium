@@ -50,14 +50,16 @@ const config = {
     entitlements: "./build/static/entitlements.mac.inherit.plist",
     entitlementsInherit: "./build/static/entitlements.mac.inherit.plist",
     artifactName: `${BINARY_PREFIX}-\${version}.\${ext}`,
+    // arm64 only: Electron has dropped Intel (x86_64) macOS support, so a
+    // "universal" build would just bloat the artifact with a dead Intel slice.
     target: [
       {
         target: "dmg",
-        arch: "universal",
+        arch: "arm64",
       },
       {
         target: "zip",
-        arch: "universal",
+        arch: "arm64",
       },
     ],
     extendInfo: {

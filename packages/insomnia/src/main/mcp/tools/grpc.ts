@@ -8,6 +8,7 @@ import { isGrpcRequest } from '../../../models/grpc-request';
 import { getAuthHeaders } from '../../../network/authentication';
 import { parseGrpcUrl } from '../../../network/grpc/parse-grpc-url';
 import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
+import { assertSafeHeaders, findWorkspaceForRequest } from './util';
 
 export function registerGrpcTools(server: McpServer) {
   server.tool(
@@ -29,8 +30,9 @@ export function registerGrpcTools(server: McpServer) {
       try {
         return await sendGrpcInner(args);
       } catch (err) {
+        // Don't return err.stack - it leaks absolute paths (username/install layout).
         return {
-          content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message || String(err), stack: (err as Error).stack }) }],
+          content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message || String(err) }) }],
           isError: true,
         };
       }
@@ -69,6 +71,45 @@ interface SendGrpcArgs {
   messages?: Record<string, any>[];
 }
 
+interface GrpcResult {
+  ok: boolean;
+  response?: any;
+  responses?: any[];
+  status?: any;
+  error?: any;
+}
+
+// Settle a gRPC call exactly once, with a backstop timer so a server that goes
+// silent after cancel()/deadline can't hang the request and leak the client.
+function settleWithBackstop(
+  timeoutMs: number,
+  onBackstop: () => GrpcResult,
+  executor: (settle: (value: GrpcResult) => void) => void,
+): Promise<GrpcResult> {
+  return new Promise<GrpcResult>((resolve, reject) => {
+    let settled = false;
+    const settle = (value: GrpcResult) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const timer = setTimeout(() => settle(onBackstop()), timeoutMs + 2000);
+    timer.unref?.();
+    try {
+      executor(settle);
+    } catch (err) {
+      // A synchronous executor throw (e.g. call.write/end) would leave the timer
+      // armed; clear it and reject so the caller's finally{ client.close() } runs.
+      settled = true;
+      clearTimeout(timer);
+      reject(err);
+    }
+  });
+}
+
 async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeoutMs, maxResponses, messages }: SendGrpcArgs): Promise<any> {
   const req = await models.grpcRequest.getById(requestId);
   if (!req || !isGrpcRequest(req)) {
@@ -76,8 +117,12 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   }
   let envId: string | null | undefined = environmentId;
   if (envId === undefined) {
-    const meta = await models.workspaceMeta.getOrCreateByParentId(req.parentId);
-    envId = meta.activeEnvironmentId;
+    // WorkspaceMeta is keyed by workspace id; a folder id would mint a junk meta doc.
+    const workspace = await findWorkspaceForRequest(req.parentId);
+    if (workspace) {
+      const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
+      envId = meta.activeEnvironmentId;
+    }
   }
   const rendered = await getRenderedGrpcRequest({
     request: req,
@@ -97,18 +142,23 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
     return { content: [{ type: 'text', text: JSON.stringify({ error: 'URL not specified' }) }], isError: true };
   }
 
-  // Mirrors buildGrpcMetadata in ipc/grpc.ts.
-  const metadata = new Metadata();
-  for (const m of (rendered as any).metadata || []) {
-    if (!m.disabled && m.name) metadata.add(m.name, m.value || '');
-  }
   // gRPC has no HTTP method/body: only header-emitting strategies work here;
   // signature-based ones (Hawk, OAuth 1) would sign garbage.
   const authHeaders = await getAuthHeaders(
     { _id: rendered._id, method: '', body: {}, authentication: (rendered as any).authentication } as any,
     rendered.url,
   );
-  for (const h of authHeaders) metadata.add(h.name, h.value);
+  // Mirrors buildGrpcMetadata in ipc/grpc.ts. Validate before adding so a
+  // model-supplied metadata name/value can't smuggle a CR/LF (header injection).
+  const metaEntries = [
+    ...((rendered as any).metadata || []).map((m: any) => ({ name: m.name, value: m.value || '', disabled: m.disabled })),
+    ...authHeaders.map(h => ({ name: h.name, value: h.value })),
+  ];
+  assertSafeHeaders(metaEntries);
+  const metadata = new Metadata();
+  for (const e of metaEntries) {
+    if (!e.disabled && e.name) metadata.add(e.name, e.value);
+  }
 
   const needsClientMessages = methodType === 'client' || methodType === 'bidi';
   if (needsClientMessages && (!messages || messages.length === 0)) {
@@ -129,101 +179,111 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   const client = new Client(url, enableTls ? credentials.createSsl() : credentials.createInsecure());
   const started = Date.now();
 
-  let result: { ok: boolean; response?: any; responses?: any[]; status?: any; error?: any };
+  let result: GrpcResult;
+  const deadline = Date.now() + timeoutMs;
+  const timedOut = (): GrpcResult => ({ ok: false, error: { code: 4, message: `gRPC call exceeded ${timeoutMs}ms with no terminal response` } });
 
   try {
     if (methodType === 'unary') {
-      result = await new Promise(resolve => {
+      result = await settleWithBackstop(timeoutMs, timedOut, settle => {
         client.makeUnaryRequest(
           method.path,
           method.requestSerialize,
           method.responseDeserialize,
           firstBody,
           metadata,
-          { deadline: Date.now() + timeoutMs },
+          { deadline },
           (err: any, response: any) => {
-            if (err) resolve({ ok: false, error: { code: err.code, details: err.details, message: err.message } });
-            else resolve({ ok: true, response });
+            if (err) settle({ ok: false, error: { code: err.code, details: err.details, message: err.message } });
+            else settle({ ok: true, response });
           },
         );
       });
     } else if (methodType === 'server') {
-      result = await new Promise(resolve => {
-        const responses: any[] = [];
-        const call = client.makeServerStreamRequest(
-          method.path,
-          method.requestSerialize,
-          method.responseDeserialize,
-          firstBody,
-          metadata,
-          { deadline: Date.now() + timeoutMs },
-        );
-        call.on('data', (msg: any) => {
-          // cancel() is async; don't let in-flight messages push past the cap.
-          if (responses.length >= maxResponses) return;
-          responses.push(msg);
-          if (responses.length >= maxResponses) {
-            try {
-              call.cancel();
-            } catch { /* noop */ }
-          }
+      const responses: any[] = [];
+      result = await settleWithBackstop(timeoutMs,
+        () => ({ ok: true, responses, status: { truncated: true, timedOut: true } }),
+        settle => {
+          const call = client.makeServerStreamRequest(
+            method.path,
+            method.requestSerialize,
+            method.responseDeserialize,
+            firstBody,
+            metadata,
+            { deadline },
+          );
+          call.on('data', (msg: any) => {
+            // cancel() is async; don't let in-flight messages push past the cap.
+            if (responses.length >= maxResponses) return;
+            responses.push(msg);
+            if (responses.length >= maxResponses) {
+              try {
+                call.cancel();
+              } catch { /* noop */ }
+              // Settle now (not on the CANCELLED event) so client.close() runs
+              // even if the server goes silent.
+              settle({ ok: true, responses, status: { truncated: true } });
+            }
+          });
+          call.on('end', () => settle({ ok: true, responses }));
+          call.on('error', (err: any) => {
+            // code 1 = CANCELLED - our own cancel after maxResponses.
+            if (err?.code === 1 && responses.length >= maxResponses) {
+              settle({ ok: true, responses, status: { truncated: true } });
+              return;
+            }
+            settle({ ok: false, error: { code: err.code, details: err.details, message: err.message }, responses });
+          });
         });
-        call.on('end', () => resolve({ ok: true, responses }));
-        call.on('error', (err: any) => {
-          // code 1 = CANCELLED - our own cancel after maxResponses.
-          if (err?.code === 1 && responses.length >= maxResponses) {
-            resolve({ ok: true, responses, status: { truncated: true } });
-            return;
-          }
-          resolve({ ok: false, error: { code: err.code, details: err.details, message: err.message }, responses });
-        });
-      });
     } else if (methodType === 'client') {
-      result = await new Promise(resolve => {
+      result = await settleWithBackstop(timeoutMs, timedOut, settle => {
         const call = client.makeClientStreamRequest(
           method.path,
           method.requestSerialize,
           method.responseDeserialize,
           metadata,
-          { deadline: Date.now() + timeoutMs },
+          { deadline },
           (err: any, response: any) => {
-            if (err) resolve({ ok: false, error: { code: err.code, details: err.details, message: err.message } });
-            else resolve({ ok: true, response });
+            if (err) settle({ ok: false, error: { code: err.code, details: err.details, message: err.message } });
+            else settle({ ok: true, response });
           },
         );
         for (const m of messages!) (call as any).write(m);
         (call as any).end();
       });
     } else { // bidi
-      result = await new Promise(resolve => {
-        const responses: any[] = [];
-        const call = client.makeBidiStreamRequest(
-          method.path,
-          method.requestSerialize,
-          method.responseDeserialize,
-          metadata,
-          { deadline: Date.now() + timeoutMs },
-        );
-        (call as any).on('data', (msg: any) => {
-          if (responses.length >= maxResponses) return;
-          responses.push(msg);
-          if (responses.length >= maxResponses) {
-            try {
-              (call as any).cancel();
-            } catch { /* noop */ }
-          }
+      const responses: any[] = [];
+      result = await settleWithBackstop(timeoutMs,
+        () => ({ ok: true, responses, status: { truncated: true, timedOut: true } }),
+        settle => {
+          const call = client.makeBidiStreamRequest(
+            method.path,
+            method.requestSerialize,
+            method.responseDeserialize,
+            metadata,
+            { deadline },
+          );
+          (call as any).on('data', (msg: any) => {
+            if (responses.length >= maxResponses) return;
+            responses.push(msg);
+            if (responses.length >= maxResponses) {
+              try {
+                (call as any).cancel();
+              } catch { /* noop */ }
+              settle({ ok: true, responses, status: { truncated: true } });
+            }
+          });
+          (call as any).on('end', () => settle({ ok: true, responses }));
+          (call as any).on('error', (err: any) => {
+            if (err?.code === 1 && responses.length >= maxResponses) {
+              settle({ ok: true, responses, status: { truncated: true } });
+              return;
+            }
+            settle({ ok: false, error: { code: err.code, details: err.details, message: err.message }, responses });
+          });
+          for (const m of messages!) (call as any).write(m);
+          (call as any).end();
         });
-        (call as any).on('end', () => resolve({ ok: true, responses }));
-        (call as any).on('error', (err: any) => {
-          if (err?.code === 1 && responses.length >= maxResponses) {
-            resolve({ ok: true, responses, status: { truncated: true } });
-            return;
-          }
-          resolve({ ok: false, error: { code: err.code, details: err.details, message: err.message }, responses });
-        });
-        for (const m of messages!) (call as any).write(m);
-        (call as any).end();
-      });
     }
   } finally {
     try {

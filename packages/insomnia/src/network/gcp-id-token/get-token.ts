@@ -56,6 +56,8 @@ interface CacheEntry {
 }
 
 const tokenCache = new Map<string, CacheEntry>();
+// Concurrent sends for the same (audience, identity) share one mint.
+const pendingMints = new Map<string, Promise<string>>();
 const TOKEN_TTL_MS = 50 * 60 * 1000;
 
 const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -75,13 +77,23 @@ export async function getGcpIdToken({ source, audience }: MintOptions): Promise<
   if (cached && cached.expiresAt > Date.now()) {
     return cached.token;
   }
-  const token = await mintIdToken(cred, source, audience);
-  tokenCache.set(cacheKey, { token, expiresAt: Date.now() + TOKEN_TTL_MS });
-  return token;
+  const pending = pendingMints.get(cacheKey);
+  if (pending) {
+    return pending;
+  }
+  const mint = mintIdToken(cred, source, audience)
+    .then(token => {
+      tokenCache.set(cacheKey, { token, expiresAt: Date.now() + TOKEN_TTL_MS });
+      return token;
+    })
+    .finally(() => pendingMints.delete(cacheKey));
+  pendingMints.set(cacheKey, mint);
+  return mint;
 }
 
 export function _resetGcpIdTokenCache(): void {
   tokenCache.clear();
+  pendingMints.clear();
 }
 
 async function loadCredential(source: CredentialSource): Promise<AnyCredential> {

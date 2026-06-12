@@ -58,6 +58,41 @@ describe('SqliteStore', () => {
     expect(store.find('Request', {}, { created: -1 }, 2).map(d => d._id)).toEqual(['req_1', 'req_3']);
   });
 
+  it('handles $in on hoisted columns, including empty and combined operators', () => {
+    store.insert(doc('req_1'));
+    store.insert(doc('req_2', { parentId: 'wrk_2' }));
+    store.insert(doc('req_3', { parentId: 'wrk_3' }));
+    expect(store.find('Request', { parentId: { $in: ['wrk_1', 'wrk_3'] } }).map(d => d._id)).toEqual(['req_1', 'req_3']);
+    expect(store.find('Request', { _id: { $in: [] } })).toEqual([]);
+    expect(store.find('Request', { _id: { $in: ['req_1', 'req_2'], $nin: ['req_2'] } }).map(d => d._id)).toEqual(['req_1']);
+  });
+
+  it('applies limit only after non-hoisted filters', () => {
+    // The newest doc fails the filter; a premature SQL LIMIT would return [].
+    store.insert(doc('req_1', { created: 1, metaSortKey: 0 }));
+    store.insert(doc('req_2', { created: 2, metaSortKey: 9 }));
+    store.insert(doc('req_3', { created: 3, metaSortKey: 0 }));
+    expect(store.find('Request', { metaSortKey: { $gt: 1 } }, { created: -1 }, 1).map(d => d._id)).toEqual(['req_2']);
+  });
+
+  it('sorts by non-hoisted keys in JS', () => {
+    store.insert(doc('req_1', { name: 'b' }));
+    store.insert(doc('req_2', { name: 'a' }));
+    expect(store.find('Request', {}, { name: 1 }).map(d => d._id)).toEqual(['req_2', 'req_1']);
+  });
+
+  it('counts with hoisted and non-hoisted queries', () => {
+    store.insert(doc('req_1'));
+    store.insert(doc('req_2', { parentId: 'wrk_2', metaSortKey: 5 }));
+    store.insert(doc('req_3', { parentId: 'wrk_2' }));
+    expect(store.count('Request', { parentId: 'wrk_2' })).toBe(2);
+    expect(store.count('Request', { metaSortKey: { $gt: 1 } })).toBe(1);
+  });
+
+  it('returns null when updating a missing doc', () => {
+    expect(store.update(doc('req_ghost'))).toBeNull();
+  });
+
   it('updates and removes', () => {
     store.insert(doc('req_1', { name: 'before' }));
     store.update(doc('req_1', { name: 'after' }));
@@ -70,6 +105,40 @@ describe('SqliteStore', () => {
     const inserted = store.insert(doc('req_1', { headers: [{ name: 'a' }] }));
     inserted.headers.push({ name: 'b' });
     expect(store.find('Request', { _id: 'req_1' })[0].headers).toEqual([{ name: 'a' }]);
+  });
+
+  it('upsert inserts then replaces, returning a detached copy', () => {
+    const a = store.upsert(doc('req_1', { name: 'first' }));
+    expect(a.name).toBe('first');
+    a.name = 'mutated';
+    expect(store.find('Request', { _id: 'req_1' })[0].name).toBe('first');
+    store.upsert(doc('req_1', { name: 'second' }));
+    expect(store.count('Request', { _id: 'req_1' })).toBe(1);
+    expect(store.find('Request', { _id: 'req_1' })[0].name).toBe('second');
+  });
+
+  describe('transaction', () => {
+    it('commits all writes on success', () => {
+      store.transaction(() => {
+        store.insert(doc('req_1'));
+        store.insert(doc('req_2'));
+      });
+      expect(store.count('Request')).toBe(2);
+    });
+
+    it('rolls the whole batch back on failure', () => {
+      store.insert(doc('req_1'));
+      expect(() => store.transaction(() => {
+        store.insert(doc('req_2'));
+        store.insert(doc('req_1')); // duplicate PK -> throws mid-transaction
+      })).toThrow();
+      // req_2 must not survive the rollback.
+      expect(store.find('Request', {}, { _id: 1 }).map(d => d._id)).toEqual(['req_1']);
+    });
+
+    it('rejects an async callback instead of silently losing atomicity', () => {
+      expect(() => store.transaction((() => Promise.resolve()) as () => void)).toThrow(/synchronous/);
+    });
   });
 
   describe('findDescendants', () => {

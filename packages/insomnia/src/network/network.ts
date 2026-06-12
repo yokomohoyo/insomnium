@@ -34,6 +34,7 @@ import {
 } from '../utils/url/querystring';
 import { getAuthHeaders, getAuthQueryParamsList } from './authentication';
 import { cancellableCurlRequest } from './cancellation';
+import { assertSafeHeaders } from './header-injection';
 import { addSetCookiesToToughCookieJar } from './set-cookie-util';
 import { urlMatchesCertHost } from './url-matches-cert-host';
 
@@ -113,6 +114,9 @@ export async function sendCurlAndWriteTimeline(
   // signed separately in parse-header-strings) and so don't conflict.
   const authHeaders = await getAuthHeaders(renderedRequest, finalUrl);
   authHeaders.forEach(h => renderedRequest.headers.push(h));
+  // Validate the final list (incl. auth-derived headers) so a CR/LF in any
+  // header or auth-strategy field can't inject into libcurl's HTTPHEADER.
+  assertSafeHeaders(renderedRequest.headers);
   const requestOptions = {
     requestId,
     req: renderedRequest,

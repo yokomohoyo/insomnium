@@ -8,6 +8,7 @@ import {
   patchAuthStrategy,
   removeAuthStrategy,
 } from '../../../models/request';
+import { redactSecrets } from './util';
 
 export function registerAuthTools(server: McpServer) {
   server.tool(
@@ -23,7 +24,7 @@ export function registerAuthTools(server: McpServer) {
       return {
         content: [{
           type: 'text',
-          text: JSON.stringify(strategies.map((s, i) => ({ index: i, ...s })), null, 2),
+          text: JSON.stringify(redactSecrets(strategies.map((s, i) => ({ index: i, ...s }))), null, 2),
         }],
       };
     },
