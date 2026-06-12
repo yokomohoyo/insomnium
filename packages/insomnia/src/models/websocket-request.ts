@@ -101,8 +101,9 @@ export async function duplicate(request: WebSocketRequest, patch: Partial<WebSoc
   // Calculate new sort key
   const sortKeyIncrement = (nextSortKey - request.metaSortKey) / 2;
   const metaSortKey = request.metaSortKey + sortKeyIncrement;
+  // Inherit the original name (incl. '' for unnamed) instead of the module
+  // display-name constant ('WebSocketRequest').
   return database.duplicate<WebSocketRequest>(request, {
-    name,
     metaSortKey,
     ...patch,
   });

@@ -40,6 +40,9 @@ export function registerSendTool(server: McpServer) {
       } catch (err) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
       }
+      // No redirects: the SSRF guard only checks the initial url, so libcurl
+      // following a 30x to a metadata host would bypass it.
+      rendered.settingFollowRedirects = 'off';
       // Certificates are parented to the workspace, not the request's folder.
       const certParentId = workspace ? workspace._id : req.parentId;
       const clientCertificates = await models.clientCertificate.findByParentId(certParentId);

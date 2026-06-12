@@ -65,18 +65,25 @@ export function findByParentId(parentId: string) {
 }
 
 export async function getOrCreateForParentId(parentId: string) {
+  // Deterministic base env ID. It helps reduce sync complexity since we won't
+  // have to de-duplicate environments.
+  const baseId = `${prefix}_${crypto.createHash('sha1').update(parentId).digest('hex')}`;
   const environments = await db.find<Environment>(type, {
     parentId,
   });
 
   if (!environments.length) {
-    return create({
-      parentId,
-      name: 'Base Environment',
-      // Deterministic base env ID. It helps reduce sync complexity since we won't have to
-      // de-duplicate environments.
-      _id: `${prefix}_${crypto.createHash('sha1').update(parentId).digest('hex')}`,
-    });
+    try {
+      return await create({ parentId, name: 'Base Environment', _id: baseId });
+    } catch (err) {
+      // A concurrent caller may have inserted it first (duplicate PK on the
+      // deterministic _id); the row that won the race is the base env we want.
+      const existing = await getById(baseId);
+      if (existing) {
+        return existing;
+      }
+      throw err;
+    }
   }
 
   return environments[environments.length - 1];

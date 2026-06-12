@@ -4,14 +4,36 @@ import type { Workspace } from '../../../models/workspace';
 // Re-exported from the network layer so gRPC metadata can reuse it.
 export { assertSafeHeaders } from '../../../network/header-injection';
 
-// Cloud-metadata endpoints - the canonical SSRF target; no legit use here.
+// Cloud-metadata SSRF targets, compared after canonicalizing the host. (new
+// URL() already normalizes decimal/hex/octal IPv4, so those are covered.)
 const BLOCKED_HOSTS = new Set([
-  '169.254.169.254',
+  '169.254.169.254',           // AWS/GCP/Azure IMDS
+  'fd00:ec2::254',             // AWS IPv6 IMDS
   'metadata.google.internal',
   'metadata',
-  '[fd00:ec2::254]',
-  'fd00:ec2::254',
 ]);
+
+// Unbracket IPv6 and unwrap IPv4-mapped IPv6 (::ffff:a9fe:a9fe) to its IPv4.
+function canonicalHost(hostname: string): string {
+  let h = hostname.toLowerCase();
+  if (h.startsWith('[') && h.endsWith(']')) {
+    h = h.slice(1, -1);
+  }
+  const mapped = h.match(/^::ffff:(.+)$/);
+  if (mapped) {
+    const rest = mapped[1];
+    if (rest.includes('.')) {
+      return rest;
+    }
+    const hex = rest.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+    if (hex) {
+      const hi = parseInt(hex[1], 16);
+      const lo = parseInt(hex[2], 16);
+      return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+    }
+  }
+  return h;
+}
 
 // Restrict an LLM-driven request URL to http(s) and block cloud-metadata hosts.
 // Loopback/private hosts stay allowed (local dev). Throws if disallowed.
@@ -25,7 +47,7 @@ export function assertSafeRequestUrl(rawUrl: string): void {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Refusing to send: scheme '${parsed.protocol}' is not allowed (only http and https).`);
   }
-  if (BLOCKED_HOSTS.has(parsed.hostname.toLowerCase())) {
+  if (BLOCKED_HOSTS.has(canonicalHost(parsed.hostname))) {
     throw new Error(`Refusing to send: '${parsed.hostname}' is a cloud-metadata endpoint and is blocked.`);
   }
 }
@@ -46,7 +68,7 @@ const AUTH_SECRET_FIELDS: Record<string, string[]> = {
   oauth2: ['code'],
   oauth1: ['code'],
 };
-const SECRET_HEADER = /^(authorization|proxy-authorization|cookie|x-api-key|x-auth-token|api-key)$/i;
+const SECRET_HEADER = /^(set-cookie|authorization|proxy-authorization|cookie|x-api-key|x-auth-token|api-key)$/i;
 const REDACTED = '***REDACTED***';
 
 function isSecretKey(normalized: string, authFields: string[] | undefined): boolean {

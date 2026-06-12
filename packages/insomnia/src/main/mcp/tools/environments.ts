@@ -50,6 +50,16 @@ export function registerEnvironmentTools(server: McpServer) {
     'Set the active environment for a workspace by environment id.',
     { workspaceId: z.string(), environmentId: z.string().nullable() },
     async ({ workspaceId, environmentId }) => {
+      // Only allow clearing (null), the workspace's base env, or one of its
+      // sub-envs - not an arbitrary/foreign id.
+      if (environmentId !== null) {
+        const baseEnv = await models.environment.getOrCreateForParentId(workspaceId);
+        const env = await models.environment.getById(environmentId);
+        const belongs = !!env && (env._id === baseEnv._id || env.parentId === baseEnv._id);
+        if (!belongs) {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: `environment ${environmentId} does not belong to workspace ${workspaceId}` }) }], isError: true };
+        }
+      }
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
       await models.workspaceMeta.update(meta, { activeEnvironmentId: environmentId });
       return { content: [{ type: 'text', text: JSON.stringify({ ok: true, activeEnvironmentId: environmentId }) }] };

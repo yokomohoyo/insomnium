@@ -163,6 +163,20 @@ export class SqliteStore {
     return { where, params, rest, cacheable };
   }
 
+  // Tolerate a corrupt row (disk fault / partial write) by skipping it rather
+  // than failing the whole query, mirroring the legacy importer.
+  private parseRows(rows: { json: string }[]): StoreDoc[] {
+    const out: StoreDoc[] = [];
+    for (const row of rows) {
+      try {
+        out.push(JSON.parse(row.json));
+      } catch (err) {
+        console.warn('[sqlite-store] skipping unparseable doc row', err);
+      }
+    }
+    return out;
+  }
+
   find(
     type: string,
     query: StoreQuery = {},
@@ -189,7 +203,7 @@ export class SqliteStore {
     const statement = cacheable ? this.prepare(sql) : this.db.prepare(sql);
     const rows = statement.all(...params) as { json: string }[];
 
-    let docs: StoreDoc[] = rows.map(row => JSON.parse(row.json));
+    let docs: StoreDoc[] = this.parseRows(rows);
     if (needsJsFilter) {
       docs = docs.filter(doc => docMatches(doc, rest));
     }
@@ -210,8 +224,8 @@ export class SqliteStore {
       const statement = cacheable ? this.prepare(sql) : this.db.prepare(sql);
       const rows = statement.all(...params) as { json: string }[];
       let n = 0;
-      for (const row of rows) {
-        if (docMatches(JSON.parse(row.json), rest)) {
+      for (const doc of this.parseRows(rows)) {
+        if (docMatches(doc, rest)) {
           n++;
         }
       }
@@ -242,12 +256,12 @@ export class SqliteStore {
       SELECT docs.json FROM (SELECT _id, MIN(depth) AS depth FROM tree GROUP BY _id) m
       CROSS JOIN docs ON docs._id = m._id
       WHERE docs._id != ?${typeFilter}
-      ORDER BY m.depth, docs.created
+      ORDER BY m.depth, docs.created, docs._id
     `;
     // typeFilter arity varies with types.length; cache only the fixed no-types SQL.
     const statement = types.length > 0 ? this.db.prepare(sql) : this.prepare(sql);
     const rows = statement.all(rootId, rootType, stopType, rootId, ...types) as { json: string }[];
-    return rows.map(row => JSON.parse(row.json));
+    return this.parseRows(rows);
   }
 
   // Writes return a detached copy (as NeDB did): callers may mutate the

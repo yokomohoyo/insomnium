@@ -209,17 +209,30 @@ export const transformUrl = (url: string, params: RequestParameter[], segs: Requ
 const extractCookies = async (headerResults: HeaderResult[], cookieJar: any, finalUrl: string, settingStoreCookies: boolean) => {
   // add set-cookie headers to file(cookiejar) and database
   if (settingStoreCookies) {
-    // supports many set-cookies over many redirects
-    const redirects: string[][] = headerResults.map(({ headers }: any) => getSetCookiesFromResponseHeaders(headers));
-    const setCookieStrings: string[] = redirects.flat();
-    const totalSetCookies = setCookieStrings.length;
-    if (totalSetCookies) {
-      const currentUrl = getCurrentUrl({ headerResults, finalUrl });
-      const { cookies, rejectedCookies } = await addSetCookiesToToughCookieJar({ setCookieStrings, currentUrl, cookieJar });
-      const hasCookiesToPersist = totalSetCookies > rejectedCookies.length;
-      if (hasCookiesToPersist) {
-        return { cookies, rejectedCookies, totalSetCookies };
+    // Scope each hop's Set-Cookie to THAT hop's url, not the final one, else an
+    // intermediate host's cookie gets attributed to the final host.
+    let hopUrl = finalUrl;
+    let cookies = cookieJar.cookies;
+    const rejectedCookies: string[] = [];
+    let totalSetCookies = 0;
+    for (const result of headerResults) {
+      const setCookieStrings = getSetCookiesFromResponseHeaders(result.headers);
+      totalSetCookies += setCookieStrings.length;
+      if (setCookieStrings.length) {
+        const added = await addSetCookiesToToughCookieJar({ setCookieStrings, currentUrl: hopUrl, cookieJar: { cookies } });
+        cookies = added.cookies;
+        rejectedCookies.push(...added.rejectedCookies);
       }
+      // Advance to the next hop's request url via this hop's Location header.
+      const location = getLocationHeader(result.headers);
+      if (location && location.value) {
+        try {
+          hopUrl = new URL(location.value, hopUrl).toString();
+        } catch { /* keep current hopUrl */ }
+      }
+    }
+    if (totalSetCookies && totalSetCookies > rejectedCookies.length) {
+      return { cookies, rejectedCookies, totalSetCookies };
     }
   }
   return { cookies: [], rejectedCookies: [], totalSetCookies: 0 };

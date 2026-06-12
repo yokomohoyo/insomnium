@@ -169,13 +169,13 @@ interface MethodDefs {
   example?: Record<string, any>;
 }
 const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeader[]): Promise<MethodDefs[]> => {
+  const { url, enableTls } = parseGrpcUrl(host);
+  const client = new grpcReflection.Client(url,
+    enableTls ? credentials.createSsl() : credentials.createInsecure(),
+    grpcOptions,
+    filterDisabledMetaData(metadata)
+  );
   try {
-    const { url, enableTls } = parseGrpcUrl(host);
-    const client = new grpcReflection.Client(url,
-      enableTls ? credentials.createSsl() : credentials.createInsecure(),
-      grpcOptions,
-      filterDisabledMetaData(metadata)
-    );
     const services = await client.listServices();
     const methodsPromises = services.map(async service => {
       const fileContainingSymbol = await client.fileContainingSymbol(service);
@@ -217,8 +217,12 @@ const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeade
       return methods;
     });
     return (await Promise.all(methodsPromises)).flat();
-  } catch (error) {
-    throw error;
+  } finally {
+    // Close the underlying grpc-js client so the reflection channel/sockets
+    // don't leak on every load.
+    try {
+ (client as any).grpcClient?.close?.();
+} catch { /* noop */ }
   }
 };
 export const loadMethodsFromReflection = async (options: { url: string; metadata: GrpcRequestHeader[] }): Promise<GrpcMethodInfo[]> => {
@@ -361,13 +365,16 @@ export const start = (
       event.reply('grpc.start', request._id);
 
     } catch (error) {
-      // TODO: How do we want to handle this case, where the message cannot be parsed?
-      //  Currently an error will be shown, but the stream will not be cancelled.
+      // Setup failed before the call was registered in grpcCalls - close the
+      // eagerly-created client so it doesn't leak.
+      try {
+        client.close();
+      } catch { /* noop */ }
       event.reply('grpc.error', request._id, error);
     }
     }).catch(err => event.reply('grpc.error', request._id, err));
     return;
-  });
+  }).catch(err => event.reply('grpc.error', request._id, err));
 };
 
 export const sendMessage = (
@@ -380,12 +387,18 @@ export const sendMessage = (
     // this must happen in the next tick otherwise the stream does not flush correctly
     // Try removing it and using a bidi RPC and notice messages don't send consistently
     process.nextTick(() => {
-      // @ts-expect-error -- TSCONVERSION only write if the call is ClientWritableStream | ClientDuplexStream
-      grpcCalls.get(requestId)?.write(messageBody, err => {
-        if (err) {
-          console.error('[gRPC] Error when writing to stream', err);
-        }
-      });
+      const call = grpcCalls.get(requestId);
+      // Only client-streaming / bidi calls are writable; calling write() on a
+      // unary/server call would throw an uncaught TypeError out of nextTick.
+      if (call && typeof (call as any).write === 'function') {
+        (call as any).write(messageBody, (err: Error | null) => {
+          if (err) {
+            console.error('[gRPC] Error when writing to stream', err);
+          }
+        });
+      } else {
+        event.reply('grpc.error', requestId, new Error('Cannot send a message: this gRPC call is not writable (only client-streaming and bidi accept messages)'));
+      }
     });
   } catch (error) {
     event.reply('grpc.error', requestId, error);
