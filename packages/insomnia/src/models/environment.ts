@@ -67,7 +67,7 @@ export function findByParentId(parentId: string) {
 export async function getOrCreateForParentId(parentId: string) {
   // Deterministic base env ID. It helps reduce sync complexity since we won't
   // have to de-duplicate environments.
-  const baseId = `${prefix}_${crypto.createHash('sha1').update(parentId).digest('hex')}`;
+  const baseId = `${prefix}_${crypto.createHash('sha256').update(parentId).digest('hex')}`;
   const environments = await db.find<Environment>(type, {
     parentId,
   });
