@@ -53,10 +53,29 @@ export const database = {
     }
     const flushId = await database.bufferChanges();
 
-    // Perform from least to most dangerous
-    await Promise.all(upsert.map(doc => database.upsert(doc, true)));
-    await Promise.all(remove.map(doc => database.unsafeRemove(doc, true)));
+    // Resolve async work up front (store.transaction is sync), then write the
+    // batch atomically - a failure rolls it all back instead of half-applying.
+    const s = store;
+    const toUpsert = await Promise.all(upsert.map(async doc => ({
+      doc: await models.initModel(doc.type, doc),
+      existed: !!(await database.get(doc.type, doc._id)),
+    })));
 
+    const emitted: ChangeBufferEvent[] = [];
+    s.transaction(() => {
+      for (const { doc, existed } of toUpsert) {
+        const stored = s.upsert(doc) as BaseModel;
+        emitted.push([existed ? 'update' : 'insert', stored, true]);
+      }
+      s.removeByIds(remove.map(d => d._id));
+      for (const d of remove) {
+        emitted.push(['remove', d, true]);
+      }
+    });
+
+    for (const [event, doc, fromSync] of emitted) {
+      await notifyOfChange(event, doc, fromSync);
+    }
     await database.flushChanges(flushId);
   },
 
@@ -66,8 +85,10 @@ export const database = {
       return _send<number>('bufferChanges', ...arguments);
     }
     bufferingChanges = true;
-    setTimeout(database.flushChanges, millis);
-    return ++bufferChangesId;
+    const id = ++bufferChangesId;
+    // Flush only this buffer; flushChanges() with no id would flush newer buffers too.
+    setTimeout(() => database.flushChanges(id), millis);
+    return id;
   },
 
   /** buffers database changes and returns a buffer id */
@@ -289,6 +310,7 @@ export const database = {
   ) => {
     if (forceReset) {
       changeListeners = [];
+      changeHooksRegistered = false;
       store?.close();
       store = null;
       initializedTypes.clear();
@@ -320,18 +342,22 @@ export const database = {
       }
     }
 
-    electron.ipcMain.on('db.fn', async (e, fnName, replyChannel, ...args) => {
-      try {
-        // @ts-expect-error -- mapping unsoundness
-        const result = await database[fnName](...args);
-        e.sender.send(replyChannel, null, result);
-      } catch (err) {
-        e.sender.send(replyChannel, {
-          message: err.message,
-          stack: err.stack,
-        });
-      }
-    });
+    // Repeat init() calls (forceReset, tests) must not stack a second handler.
+    if (!ipcHandlerRegistered) {
+      ipcHandlerRegistered = true;
+      electron.ipcMain.on('db.fn', async (e, fnName, replyChannel, ...args) => {
+        try {
+          // @ts-expect-error -- mapping unsoundness
+          const result = await database[fnName](...args);
+          e.sender.send(replyChannel, null, result);
+        } catch (err) {
+          e.sender.send(replyChannel, {
+            message: err.message,
+            stack: err.stack,
+          });
+        }
+      });
+    }
 
     // NOTE: Only repair the DB if we're not running in memory. Repairing here causes tests to hang indefinitely for some reason.
     // TODO: Figure out why this makes tests hang
@@ -342,41 +368,44 @@ export const database = {
 
     // This isn't the best place for this but w/e
     // Listen for response deletions and delete corresponding response body files
-    database.onChange(async (changes: ChangeBufferEvent[]) => {
-      for (const [type, doc] of changes) {
-        // TODO(TSCONVERSION) what's returned here is the entire model implementation, not just a model
-        // The type definition will be a little confusing
-        const m: Record<string, any> | null = models.getModel(doc.type);
+    if (!changeHooksRegistered) {
+      changeHooksRegistered = true;
+      database.onChange(async (changes: ChangeBufferEvent[]) => {
+        for (const [type, doc] of changes) {
+          // TODO(TSCONVERSION) what's returned here is the entire model implementation, not just a model
+          // The type definition will be a little confusing
+          const m: Record<string, any> | null = models.getModel(doc.type);
 
-        if (!m) {
-          continue;
-        }
+          if (!m) {
+            continue;
+          }
 
-        if (type === 'remove' && typeof m.hookRemove === 'function') {
-          try {
-            await m.hookRemove(doc, consoleLog);
-          } catch (err) {
-            consoleLog(`[db] Delete hook failed for ${type} ${doc._id}: ${err.message}`);
+          if (type === 'remove' && typeof m.hookRemove === 'function') {
+            try {
+              await m.hookRemove(doc, consoleLog);
+            } catch (err) {
+              consoleLog(`[db] Delete hook failed for ${type} ${doc._id}: ${err.message}`);
+            }
+          }
+
+          if (type === 'insert' && typeof m.hookInsert === 'function') {
+            try {
+              await m.hookInsert(doc, consoleLog);
+            } catch (err) {
+              consoleLog(`[db] Insert hook failed for ${type} ${doc._id}: ${err.message}`);
+            }
+          }
+
+          if (type === 'update' && typeof m.hookUpdate === 'function') {
+            try {
+              await m.hookUpdate(doc, consoleLog);
+            } catch (err) {
+              consoleLog(`[db] Update hook failed for ${type} ${doc._id}: ${err.message}`);
+            }
           }
         }
-
-        if (type === 'insert' && typeof m.hookInsert === 'function') {
-          try {
-            await m.hookInsert(doc, consoleLog);
-          } catch (err) {
-            consoleLog(`[db] Insert hook failed for ${type} ${doc._id}: ${err.message}`);
-          }
-        }
-
-        if (type === 'update' && typeof m.hookUpdate === 'function') {
-          try {
-            await m.hookUpdate(doc, consoleLog);
-          } catch (err) {
-            consoleLog(`[db] Update hook failed for ${type} ${doc._id}: ${err.message}`);
-          }
-        }
-      }
-    });
+      });
+    }
 
     for (const model of models.all()) {
       // @ts-expect-error -- TSCONVERSION optional type on response
@@ -421,8 +450,10 @@ export const database = {
 
     const flushId = await database.bufferChanges();
 
+    const s = store;
     const docs = await database.withDescendants(doc);
-    store.removeByIds(docs.map(d => d._id));
+    // One transaction so a chunked multi-DELETE tree can't be left half-deleted.
+    s.transaction(() => s.removeByIds(docs.map(d => d._id)));
 
     docs.map(d => notifyOfChange('remove', d, fromSync));
     await database.flushChanges(flushId);
@@ -434,11 +465,14 @@ export const database = {
     }
     const flushId = await database.bufferChanges();
 
+    const s = store;
+    const toRemove: BaseModel[] = [];
     for (const doc of await database.find<T>(type, query)) {
-      const docs = await database.withDescendants(doc);
-      store.removeByIds(docs.map(d => d._id));
-      docs.map(d => notifyOfChange('remove', d, false));
+      toRemove.push(...await database.withDescendants(doc));
     }
+    // All matched trees in one transaction so removeWhere is atomic.
+    s.transaction(() => s.removeByIds(toRemove.map(d => d._id)));
+    toRemove.map(d => notifyOfChange('remove', d, false));
 
     await database.flushChanges(flushId);
   },
@@ -459,7 +493,12 @@ export const database = {
     }
 
     const docWithDefaults = await models.initModel<T>(doc.type, doc);
-    const stored = store.update(docWithDefaults) as T;
+    const stored = store.update(docWithDefaults) as T | null;
+    if (!stored) {
+      // Don't emit an update event for a doc that no longer exists.
+      console.warn(`[db] Skipped update of missing ${doc.type} ${doc._id}`);
+      return docWithDefaults;
+    }
     notifyOfChange('update', stored, fromSync);
     return stored;
   },
@@ -468,13 +507,14 @@ export const database = {
     if (!store) {
       return _send<T>('upsert', ...arguments);
     }
-    const existingDoc = await database.get<T>(doc.type, doc._id);
-
-    if (existingDoc) {
-      return database.update<T>(doc, fromSync);
-    } else {
-      return database.insert<T>(doc, fromSync);
-    }
+    // Atomic INSERT OR REPLACE for the write; we only read existence to pick the
+    // event type. A plain get-then-insert races: two concurrent upserts of a new
+    // _id both insert and the second throws a PK violation.
+    const existed = !!(await database.get<T>(doc.type, doc._id));
+    const docWithDefaults = await models.initModel<T>(doc.type, doc);
+    const stored = store.upsert(docWithDefaults) as T;
+    notifyOfChange(existed ? 'update' : 'insert', stored, fromSync);
+    return stored;
   },
 
   withAncestors: async function<T extends BaseModel>(doc: T | null, types: string[] = allTypes()) {
@@ -539,6 +579,8 @@ export const database = {
 // Null until init(); the renderer never initializes and proxies over IPC.
 let store: SqliteStore | null = null;
 const initializedTypes = new Set<string>();
+let ipcHandlerRegistered = false;
+let changeHooksRegistered = false;
 
 // ~~~~~~~ //
 // HELPERS //

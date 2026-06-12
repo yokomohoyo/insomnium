@@ -81,6 +81,20 @@ describe('getGcpIdToken', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('dedupes concurrent mints for the same audience + identity', async () => {
+    const json = generateSaKey();
+    let release: (value: Response) => void = () => {};
+    fetchMock.mockReturnValueOnce(new Promise<Response>(resolve => {
+      release = resolve;
+    }));
+    const a = getGcpIdToken({ source: { kind: 'sa-inline', json }, audience: 'https://svc.run.app' });
+    const b = getGcpIdToken({ source: { kind: 'sa-inline', json }, audience: 'https://svc.run.app' });
+    release({ ok: true, status: 200, statusText: 'OK', json: () => Promise.resolve({ id_token: 'tok-shared' }) } as Response);
+    expect(await a).toBe('tok-shared');
+    expect(await b).toBe('tok-shared');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('mints a fresh token when audience differs', async () => {
     const json = generateSaKey();
     fetchMock.mockReturnValueOnce(okJson({ id_token: 'tok-a' }));

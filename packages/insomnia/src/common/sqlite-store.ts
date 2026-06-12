@@ -84,6 +84,9 @@ const nedbDateReviver = (_key: string, value: any) =>
     ? value.$$date
     : value;
 
+// Hoisted columns; sorts on these run in SQL (NULL ordering matches compareValues).
+const HOISTED_SORT_COLUMNS = new Set(['_id', 'type', 'parentId', 'created', 'modified']);
+
 export class SqliteStore {
   private readonly db: DatabaseSync;
   private readonly statements = new Map<string, import('node:sqlite').StatementSync>();
@@ -125,49 +128,98 @@ export class SqliteStore {
     return row.n === 0;
   }
 
+  // Hoist _id/parentId conditions (equality, null, $in) into SQL; `rest` filters in JS.
+  private buildWhere(type: string, query: StoreQuery) {
+    const where = ['type = ?'];
+    const params: (string | number)[] = [type];
+    const rest: StoreQuery = {};
+    // Variable-arity IN clauses would bloat the statement cache.
+    let cacheable = true;
+
+    for (const [key, cond] of Object.entries(query)) {
+      const hoisted = key === '_id' || key === 'parentId';
+      if (hoisted && typeof cond === 'string') {
+        where.push(`${key} = ?`);
+        params.push(cond);
+      } else if (key === 'parentId' && (cond === null || cond === undefined)) {
+        where.push('parentId IS NULL');
+      } else if (hoisted && isOperator(cond) && Array.isArray(cond.$in) && cond.$in.every(v => typeof v === 'string')) {
+        if (cond.$in.length === 0) {
+          where.push('1 = 0'); // $in [] matches nothing
+        } else {
+          where.push(`${key} IN (${cond.$in.map(() => '?').join(', ')})`);
+          params.push(...cond.$in);
+          cacheable = false;
+        }
+        const restOps: OperatorQuery = { ...cond };
+        delete restOps.$in;
+        if (Object.keys(restOps).length > 0) {
+          rest[key] = restOps;
+        }
+      } else {
+        rest[key] = cond;
+      }
+    }
+    return { where, params, rest, cacheable };
+  }
+
   find(
     type: string,
     query: StoreQuery = {},
     sort: Record<string, number> = {},
     limit: number | null = null,
   ): StoreDoc[] {
-    // _id/parentId match in SQL via the hoisted columns; other keys match in JS.
-    const where = ['type = ?'];
-    const params: string[] = [type];
-    const rest: StoreQuery = {};
+    const { where, params, rest, cacheable } = this.buildWhere(type, query);
+    const needsJsFilter = Object.keys(rest).length > 0;
 
-    for (const [key, cond] of Object.entries(query)) {
-      if (key === '_id' && typeof cond === 'string') {
-        where.push('_id = ?');
-        params.push(cond);
-      } else if (key === 'parentId' && typeof cond === 'string') {
-        where.push('parentId = ?');
-        params.push(cond);
-      } else if (key === 'parentId' && (cond === null || cond === undefined)) {
-        where.push('parentId IS NULL');
-      } else {
-        rest[key] = cond;
-      }
+    const sortEntries = Object.entries(sort);
+    const sqlSort = sortEntries.length > 0 && sortEntries.every(([key]) => HOISTED_SORT_COLUMNS.has(key));
+    // LIMIT in SQL is only safe when all filtering happened in SQL.
+    const sqlLimit = typeof limit === 'number' && limit >= 0 && !needsJsFilter
+      && (sqlSort || sortEntries.length === 0);
+
+    let sql = `SELECT json FROM docs WHERE ${where.join(' AND ')}`;
+    if (sqlSort) {
+      sql += ` ORDER BY ${sortEntries.map(([key, direction]) => `${key} ${direction < 0 ? 'DESC' : 'ASC'}`).join(', ')}`;
     }
-
-    const rows = this.prepare(`SELECT json FROM docs WHERE ${where.join(' AND ')}`)
-      .all(...params) as { json: string }[];
+    if (sqlLimit && typeof limit === 'number') {
+      sql += ' LIMIT ?';
+      params.push(limit);
+    }
+    const statement = cacheable ? this.prepare(sql) : this.db.prepare(sql);
+    const rows = statement.all(...params) as { json: string }[];
 
     let docs: StoreDoc[] = rows.map(row => JSON.parse(row.json));
-    if (Object.keys(rest).length > 0) {
+    if (needsJsFilter) {
       docs = docs.filter(doc => docMatches(doc, rest));
     }
-    if (Object.keys(sort).length > 0) {
+    if (!sqlSort && sortEntries.length > 0) {
       docs.sort(makeComparator(sort));
     }
-    if (typeof limit === 'number' && limit >= 0) {
+    if (!sqlLimit && typeof limit === 'number' && limit >= 0) {
       docs = docs.slice(0, limit);
     }
     return docs;
   }
 
   count(type: string, query: StoreQuery = {}): number {
-    return this.find(type, query).length;
+    const { where, params, rest, cacheable } = this.buildWhere(type, query);
+    if (Object.keys(rest).length > 0) {
+      // Count via the JS predicate without materializing a doc array.
+      const sql = `SELECT json FROM docs WHERE ${where.join(' AND ')}`;
+      const statement = cacheable ? this.prepare(sql) : this.db.prepare(sql);
+      const rows = statement.all(...params) as { json: string }[];
+      let n = 0;
+      for (const row of rows) {
+        if (docMatches(JSON.parse(row.json), rest)) {
+          n++;
+        }
+      }
+      return n;
+    }
+    const sql = `SELECT COUNT(*) AS n FROM docs WHERE ${where.join(' AND ')}`;
+    const statement = cacheable ? this.prepare(sql) : this.db.prepare(sql);
+    return (statement.get(...params) as { n: number }).n;
   }
 
   // Transitive descendants of rootId (root excluded), level-ordered like the
@@ -192,7 +244,9 @@ export class SqliteStore {
       WHERE docs._id != ?${typeFilter}
       ORDER BY m.depth, docs.created
     `;
-    const rows = this.prepare(sql).all(rootId, rootType, stopType, rootId, ...types) as { json: string }[];
+    // typeFilter arity varies with types.length; cache only the fixed no-types SQL.
+    const statement = types.length > 0 ? this.db.prepare(sql) : this.prepare(sql);
+    const rows = statement.all(rootId, rootType, stopType, rootId, ...types) as { json: string }[];
     return rows.map(row => JSON.parse(row.json));
   }
 
@@ -205,16 +259,20 @@ export class SqliteStore {
     return JSON.parse(json);
   }
 
-  update(doc: StoreDoc): StoreDoc {
+  // Returns null when the row doesn't exist (e.g. deleted concurrently).
+  update(doc: StoreDoc): StoreDoc | null {
     const json = JSON.stringify(doc);
-    this.prepare('UPDATE docs SET type = ?, parentId = ?, created = ?, modified = ?, json = ? WHERE _id = ?')
+    const { changes } = this.prepare('UPDATE docs SET type = ?, parentId = ?, created = ?, modified = ?, json = ? WHERE _id = ?')
       .run(doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, json, doc._id);
-    return JSON.parse(json);
+    return Number(changes) === 0 ? null : JSON.parse(json);
   }
 
-  upsert(doc: StoreDoc): void {
+  // Atomic insert-or-replace; returns a detached copy like insert/update.
+  upsert(doc: StoreDoc): StoreDoc {
+    const json = JSON.stringify(doc);
     this.prepare('INSERT OR REPLACE INTO docs (_id, type, parentId, created, modified, json) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(doc));
+      .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, json);
+    return JSON.parse(json);
   }
 
   removeByIds(ids: string[]): void {
@@ -222,14 +280,20 @@ export class SqliteStore {
     for (let i = 0; i < ids.length; i += CHUNK) {
       const chunk = ids.slice(i, i + CHUNK);
       const placeholders = chunk.map(() => '?').join(', ');
-      this.prepare(`DELETE FROM docs WHERE _id IN (${placeholders})`).run(...chunk);
+      // Arity varies (esp. the final chunk); prepare uncached to avoid cache bloat.
+      this.db.prepare(`DELETE FROM docs WHERE _id IN (${placeholders})`).run(...chunk);
     }
   }
 
+  // Strictly synchronous: node:sqlite has one connection-level transaction, so
+  // an async fn would COMMIT before its writes run - guard against a thenable.
   transaction(fn: () => void): void {
     this.db.exec('BEGIN');
     try {
-      fn();
+      const result = fn() as unknown;
+      if (result !== null && typeof result === 'object' && typeof (result as { then?: unknown }).then === 'function') {
+        throw new Error('transaction(fn) requires a synchronous callback; it returned a Promise, which would commit before the work completed.');
+      }
       this.db.exec('COMMIT');
     } catch (err) {
       this.db.exec('ROLLBACK');

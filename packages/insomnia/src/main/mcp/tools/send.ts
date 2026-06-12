@@ -5,6 +5,7 @@ import { getRenderedRequestAndContext } from '../../../common/render';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import * as networkUtils from '../../../network/network';
+import { assertSafeRequestUrl, findWorkspaceForRequest } from './util';
 
 export function registerSendTool(server: McpServer) {
   server.tool(
@@ -19,21 +20,30 @@ export function registerSendTool(server: McpServer) {
       if (!req || !isRequest(req)) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'HTTP request not found' }) }], isError: true };
       }
+      const workspace = await findWorkspaceForRequest(req.parentId);
       let envId: string | null | undefined = environmentId;
-      if (envId === undefined) {
-        const workspace = await findWorkspaceForRequest(req.parentId);
-        if (workspace) {
-          const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
-          envId = meta.activeEnvironmentId;
-        }
+      if (envId === undefined && workspace) {
+        const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
+        envId = meta.activeEnvironmentId;
       }
       const settings = await models.settings.getOrCreate();
       const { request: rendered } = await getRenderedRequestAndContext({
         request: req,
         environmentId: envId || '',
       });
-      const clientCertificates = await models.clientCertificate.findByParentId(req.parentId);
-      const caCert = await models.caCertificate.findByParentId(req.parentId);
+      // Validate the FINAL url (after params/segments/auth query params fold in)
+      // so an LLM can't bypass the SSRF guard via a malicious segment/param.
+      // Headers are validated in the network send path.
+      try {
+        const { finalUrl } = networkUtils.transformUrl(rendered.url, rendered.parameters, rendered.segmentParams, rendered.authentication, rendered.settingEncodeUrl);
+        assertSafeRequestUrl(finalUrl);
+      } catch (err) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+      }
+      // Certificates are parented to the workspace, not the request's folder.
+      const certParentId = workspace ? workspace._id : req.parentId;
+      const clientCertificates = await models.clientCertificate.findByParentId(certParentId);
+      const caCert = await models.caCertificate.findByParentId(certParentId);
       const response = await networkUtils.sendCurlAndWriteTimeline(
         rendered,
         clientCertificates,
@@ -56,18 +66,4 @@ export function registerSendTool(server: McpServer) {
       };
     },
   );
-}
-
-async function findWorkspaceForRequest(parentId: string) {
-  let cur: string | null = parentId;
-  const groups = await models.requestGroup.all();
-  const seen = new Set<string>();
-  while (cur && !seen.has(cur)) {
-    seen.add(cur);
-    const ws = await models.workspace.getById(cur);
-    if (ws) return ws;
-    const g = groups.find(x => x._id === cur);
-    cur = g ? g.parentId : null;
-  }
-  return null;
 }
