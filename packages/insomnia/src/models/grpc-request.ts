@@ -122,8 +122,9 @@ export async function duplicate(request: GrpcRequest, patch: Partial<GrpcRequest
   // Calculate new sort key
   const sortKeyIncrement = (nextSortKey - request.metaSortKey) / 2;
   const metaSortKey = request.metaSortKey + sortKeyIncrement;
+  // Inherit the original name (incl. '' for unnamed) instead of the module
+  // display-name constant ('GrpcRequest').
   return db.duplicate<GrpcRequest>(request, {
-    name,
     metaSortKey,
     ...patch,
   });

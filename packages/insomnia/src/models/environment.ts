@@ -1,5 +1,3 @@
-import * as crypto from 'crypto';
-
 import { database as db } from '../common/database';
 import type { BaseModel } from './index';
 
@@ -65,18 +63,25 @@ export function findByParentId(parentId: string) {
 }
 
 export async function getOrCreateForParentId(parentId: string) {
+  // Deterministic base env ID (derived from parentId) so sync converges without
+  // de-duplicating. parentId is already unique, so no hash is needed.
+  const baseId = `${prefix}_${parentId}`;
   const environments = await db.find<Environment>(type, {
     parentId,
   });
 
   if (!environments.length) {
-    return create({
-      parentId,
-      name: 'Base Environment',
-      // Deterministic base env ID. It helps reduce sync complexity since we won't have to
-      // de-duplicate environments.
-      _id: `${prefix}_${crypto.createHash('sha1').update(parentId).digest('hex')}`,
-    });
+    try {
+      return await create({ parentId, name: 'Base Environment', _id: baseId });
+    } catch (err) {
+      // A concurrent caller may have inserted it first (duplicate PK on the
+      // deterministic _id); the row that won the race is the base env we want.
+      const existing = await getById(baseId);
+      if (existing) {
+        return existing;
+      }
+      throw err;
+    }
   }
 
   return environments[environments.length - 1];

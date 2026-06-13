@@ -42,47 +42,61 @@ export async function startMcpServer(): Promise<{ port: number }> {
   const transports = new Map<string, SSEServerTransport>();
 
   const httpServer = http.createServer(async (req, res) => {
-    const url = req.url || '/';
+    // The awaits below (connect/handlePostMessage) can reject; an uncaught
+    // rejection here would crash the Electron main process.
+    try {
+      const url = req.url || '/';
 
-    // Unauthenticated liveness probe.
-    if (req.method === 'GET' && url === '/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: true }));
-      return;
-    }
-
-    if (!checkAuth(req, token)) {
-      res.writeHead(401, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'unauthorized' }));
-      return;
-    }
-
-    if (req.method === 'GET' && url === '/sse') {
-      const mcpServer = buildMcpServer();
-      const transport = new SSEServerTransport('/message', res);
-      transports.set(transport.sessionId, transport);
-      res.on('close', () => {
-        transports.delete(transport.sessionId);
-        mcpServer.close().catch(() => { /* noop */ });
-      });
-      await mcpServer.connect(transport);
-      return;
-    }
-
-    if (req.method === 'POST' && url.startsWith('/message')) {
-      const sessionId = new URL(url, 'http://localhost').searchParams.get('sessionId');
-      const transport = sessionId ? transports.get(sessionId) : null;
-      if (!transport) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'unknown sessionId' }));
+      // Unauthenticated liveness probe.
+      if (req.method === 'GET' && url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
         return;
       }
-      await transport.handlePostMessage(req, res);
-      return;
-    }
 
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'not found' }));
+      if (!checkAuth(req, token)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'unauthorized' }));
+        return;
+      }
+
+      if (req.method === 'GET' && url === '/sse') {
+        const mcpServer = buildMcpServer();
+        const transport = new SSEServerTransport('/message', res);
+        transports.set(transport.sessionId, transport);
+        res.on('close', () => {
+          transports.delete(transport.sessionId);
+          mcpServer.close().catch(() => { /* noop */ });
+        });
+        await mcpServer.connect(transport);
+        return;
+      }
+
+      if (req.method === 'POST' && url.startsWith('/message')) {
+        const sessionId = new URL(url, 'http://localhost').searchParams.get('sessionId');
+        const transport = sessionId ? transports.get(sessionId) : null;
+        if (!transport) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'unknown sessionId' }));
+          return;
+        }
+        await transport.handlePostMessage(req, res);
+        return;
+      }
+
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'not found' }));
+    } catch (err) {
+      console.error('[mcp] request handler error:', err);
+      if (!res.headersSent) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'internal error' }));
+      } else {
+        try {
+          res.end();
+        } catch { /* noop */ }
+      }
+    }
   });
 
   await new Promise<void>((resolve, reject) => {

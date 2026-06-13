@@ -44,7 +44,10 @@ async function resolveAuthStrategy(
 
   if (strategy.type === AUTH_API_KEY && strategy.addTo === HEADER) {
     const { key, value } = strategy;
-    return { name: key, value: value };
+    if (!key) {
+      return undefined; // no header name -> nothing to emit (and avoids a crash downstream)
+    }
+    return { name: key, value: value ?? '' };
   }
 
   if (strategy.type === AUTH_API_KEY && strategy.addTo === COOKIE) {
@@ -85,6 +88,8 @@ async function resolveAuthStrategy(
   if (strategy.type === AUTH_OAUTH_2) {
     // HACK: GraphQL requests use a child request to fetch the schema with an
     // ID of "{{request_id}}.graphql". Reuse the parent's tokens. See #835.
+    // Lenient by design: with no token, send without auth so the user can probe
+    // the endpoint (it's a testing tool); just log the failure.
     try {
       const tokenId = requestId.match(/\.graphql$/) ? requestId.replace(/\.graphql$/, '') : requestId;
       const oAuth2Token = await getOAuth2Token(tokenId, strategy as unknown as AuthTypeOAuth2);
@@ -162,10 +167,16 @@ export async function getAuthHeaders(renderedRequest: RenderedRequest, url: stri
     const header = await resolveAuthStrategy(strategy, renderedRequest, url);
     if (!header) continue;
     const finalName = strategy.headerName || header.name;
+    if (!finalName) continue; // can't place a header without a name
     const existing = out.findIndex(h => h.name.toLowerCase() === finalName.toLowerCase());
     if (existing >= 0) {
-      console.warn(`[auth] Strategy ${strategy.type} overwriting existing ${finalName} header`);
-      out[existing] = { name: finalName, value: header.value };
+      if (finalName.toLowerCase() === 'cookie') {
+        // Multiple Cookie strategies must combine, not overwrite each other.
+        out[existing] = { name: out[existing].name, value: `${out[existing].value}; ${header.value}` };
+      } else {
+        console.warn(`[auth] Strategy ${strategy.type} overwriting existing ${finalName} header`);
+        out[existing] = { name: finalName, value: header.value };
+      }
     } else {
       out.push({ name: finalName, value: header.value });
     }

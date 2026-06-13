@@ -305,7 +305,7 @@ export const getBoundedBodyBuffer = async (
 };
 
 export function getTimeline(response: Response, showBody?: boolean) {
-  const { timelinePath, bodyPath } = response;
+  const { timelinePath } = response;
 
   if (!timelinePath) {
     return [];
@@ -320,7 +320,8 @@ export function getTimeline(response: Response, showBody?: boolean) {
       {
         name: 'DataOut',
         timestamp: Date.now(),
-        value: fs.readFileSync(bodyPath).toString(),
+        // getBodyBuffer gunzips 'zip' bodies; a raw read would emit binary gzip.
+        value: (getBodyBuffer(response, '') as Buffer | string).toString(),
       },
     ] : [];
     const output = [...timeline, ...body];

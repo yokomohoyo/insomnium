@@ -352,8 +352,9 @@ export async function duplicate(request: Request, patch: Partial<Request> = {}) 
   // Calculate new sort key
   const sortKeyIncrement = (nextSortKey - request.metaSortKey) / 2;
   const metaSortKey = request.metaSortKey + sortKeyIncrement;
+  // Don't seed `name` from the module display-name constant ('Request') - let
+  // db.duplicate inherit the original request's name (incl. '' for unnamed).
   return db.duplicate<Request>(request, {
-    name,
     metaSortKey,
     ...patch,
   });

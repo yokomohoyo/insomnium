@@ -84,9 +84,8 @@ export const database = {
     if (!store) {
       return _send<number>('bufferChanges', ...arguments);
     }
-    bufferingChanges = true;
     const id = ++bufferChangesId;
-    // Flush only this buffer; flushChanges() with no id would flush newer buffers too.
+    openBuffers.add(id);
     setTimeout(() => database.flushChanges(id), millis);
     return id;
   },
@@ -96,8 +95,9 @@ export const database = {
     if (!store) {
       return _send<number>('bufferChangesIndefinitely', ...arguments);
     }
-    bufferingChanges = true;
-    return ++bufferChangesId;
+    const id = ++bufferChangesId;
+    openBuffers.add(id);
+    return id;
   },
 
   count: async function<T extends BaseModel>(type: string, query: Query = {}) {
@@ -240,12 +240,18 @@ export const database = {
       return _send<void>('flushChanges', ...arguments);
     }
 
-    // Only flush if ID is 0 or the current flush ID is the same as passed
-    if (id !== 0 && bufferChangesId !== id) {
-      return;
+    if (id !== 0) {
+      openBuffers.delete(id);
+      // Wait until every outstanding buffer has closed so overlapping buffered
+      // ops coalesce into one emission instead of stranding each other.
+      if (openBuffers.size > 0) {
+        return;
+      }
+    } else {
+      // A forced flush (no id) ends the whole buffering session.
+      openBuffers.clear();
     }
 
-    bufferingChanges = false;
     const changes = [...changeBuffer];
     changeBuffer = [];
 
@@ -527,6 +533,9 @@ export const database = {
     }
 
     let docsToReturn: T[] = doc ? [doc] : [];
+    // Guard against parentId cycles (e.g. a request reparented onto itself or a
+    // descendant via update_request) - without this the walk recurses forever.
+    const seen = new Set<string>([doc._id]);
 
     async function next(docs: T[]): Promise<T[]> {
       const foundDocs: T[] = [];
@@ -535,7 +544,10 @@ export const database = {
         for (const type of types) {
           // If the doc is null, we want to search for parentId === null
           const another = await database.get<T>(type, d.parentId);
-          another && foundDocs.push(another);
+          if (another && !seen.has(another._id)) {
+            seen.add(another._id);
+            foundDocs.push(another);
+          }
         }
       }
 
@@ -631,8 +643,10 @@ function getDBFilePath(modelType: string) {
 // ~~~~~~~~~~~~~~~~ //
 // Change Listeners //
 // ~~~~~~~~~~~~~~~~ //
-let bufferingChanges = false;
-let bufferChangesId = 1;
+let bufferChangesId = 0;
+// Outstanding buffer ids; the change buffer drains only when this empties, so
+// overlapping buffered ops coalesce instead of stranding each other's events.
+const openBuffers = new Set<number>();
 
 export type ChangeBufferEvent<T extends BaseModel = BaseModel> = [
   event: ChangeType,
@@ -651,8 +665,8 @@ async function notifyOfChange<T extends BaseModel>(event: ChangeType, doc: T, fr
 
   changeBuffer.push([event, updatedDoc, fromSync]);
 
-  // Flush right away if we're not buffering
-  if (!bufferingChanges) {
+  // Flush right away if nothing is buffering
+  if (openBuffers.size === 0) {
     await database.flushChanges();
   }
 }

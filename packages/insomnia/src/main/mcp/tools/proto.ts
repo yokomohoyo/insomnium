@@ -1,3 +1,5 @@
+import path from 'node:path';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
@@ -5,6 +7,20 @@ import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { addDirectoryFromPath, addFileFromPath } from '../../../network/grpc/proto-loader';
 import { loadMethods } from '../../ipc/grpc';
+
+// LLM-supplied path: require absolute + traversal-free (and .proto for single
+// imports) so it can't be steered into reading an arbitrary file off disk.
+function assertSafeProtoPath(rawPath: string, requireProtoExt: boolean): void {
+  if (!rawPath || !path.isAbsolute(rawPath)) {
+    throw new Error(`'${rawPath}' must be an absolute path.`);
+  }
+  if (path.normalize(rawPath).split(path.sep).includes('..')) {
+    throw new Error('path must not contain \'..\' traversal.');
+  }
+  if (requireProtoExt && !rawPath.toLowerCase().endsWith('.proto')) {
+    throw new Error(`'${rawPath}' is not a .proto file.`);
+  }
+}
 
 export function registerProtoTools(server: McpServer) {
   server.tool(
@@ -61,6 +77,11 @@ export function registerProtoTools(server: McpServer) {
       if (!workspace) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'workspace not found' }) }], isError: true };
       }
+      try {
+        assertSafeProtoPath(directoryPath, false);
+      } catch (err) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+      }
       const result = await addDirectoryFromPath(directoryPath, workspace);
       const loaded = result.success ? result.loaded : [];
       return {
@@ -88,6 +109,11 @@ export function registerProtoTools(server: McpServer) {
       const workspace = await models.workspace.getById(workspaceId);
       if (!workspace) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'workspace not found' }) }], isError: true };
+      }
+      try {
+        assertSafeProtoPath(filePath, true);
+      } catch (err) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
       }
       const result = await addFileFromPath(filePath, workspace);
       return {

@@ -11,6 +11,7 @@ import {
   hasContentTypeHeader,
 } from '../../common/misc';
 import { getAuthStrategies } from '../../models/request';
+import { assertSafeHeaders } from '../../network/header-injection';
 import { DEFAULT_BOUNDARY } from './multipart';
 
 // Special header value that will prevent the header being sent
@@ -76,11 +77,14 @@ export const parseHeaderStrings = ({ req, finalUrl, requestBody, requestBodyPath
     headers.push({ name: 'content-type', value: DISABLE_HEADER_VALUE });
   }
 
-  return headers.filter((h: any) => h.name)
-    .map(({ name, value }: any) =>
-      value === '' ? `${name};` // Curl needs a semicolon suffix to send empty header values
-        : value === DISABLE_HEADER_VALUE ? `${name}:` // Tell Curl NOT to send the header if value is null
-          : `${name}: ${value}`);
+  const toSend = headers.filter((h: any) => h.name);
+  // Validate the final set (incl. AWS-IAM headers added above, which the
+  // network.ts guard never sees) so no CR/LF injects a curl header line.
+  assertSafeHeaders(toSend);
+  return toSend.map(({ name, value }: any) =>
+    value === '' ? `${name};` // Curl needs a semicolon suffix to send empty header values
+      : value === DISABLE_HEADER_VALUE ? `${name}:` // Tell Curl NOT to send the header if value is null
+        : `${name}: ${value}`);
 };
 
 interface AWSOptions {
