@@ -1,0 +1,49 @@
+{
+  "name": "insomnium-mcp",
+  "version": "1.0.0",
+  "description": "MCP stdio launcher that bridges AI clients to a running Insomnium API client — list, inspect, and run your saved REST/GraphQL/gRPC requests over the Model Context Protocol.",
+  "license": "MIT",
+  "author": "Archy <archy@archgpt.dev>",
+  "type": "module",
+  "mcpName": "io.github.yokomohoyo/insomnium",
+  "bin": {
+    "insomnium-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "server.json",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "model-context-protocol",
+    "insomnium",
+    "insomnia",
+    "api-client",
+    "rest"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yokomohoyo/insomnium.git",
+    "directory": "packages/insomnium-mcp"
+  },
+  "homepage": "https://github.com/yokomohoyo/insomnium#readme",
+  "bugs": {
+    "url": "https://github.com/yokomohoyo/insomnium/issues"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}

@@ -7,6 +7,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
 import * as models from '../../models';
+import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerTools } from './tools';
 
 interface RunningServer {
@@ -110,6 +111,12 @@ export async function startMcpServer(): Promise<{ port: number }> {
   const addr = httpServer.address();
   const port = typeof addr === 'object' && addr ? addr.port : requestedPort;
   current = { http: httpServer, port, transports };
+  // Advertise port + token for the external launcher; non-fatal on failure.
+  try {
+    await writeDiscoveryFile({ port, token });
+  } catch (err) {
+    console.error('[mcp] failed to write discovery file:', err);
+  }
   console.log(`[mcp] listening on http://127.0.0.1:${port}`);
   return { port };
 }
@@ -124,6 +131,7 @@ export async function stopMcpServer(): Promise<void> {
     } catch { /* noop */ }
   }
   await new Promise<void>(resolve => server.http.close(() => resolve()));
+  await removeDiscoveryFile();
   console.log('[mcp] stopped');
 }
 
