@@ -58,7 +58,7 @@ jobs:
       #   run: git checkout -b ${{ env.RELEASE_BRANCH }}
 
       - name: Create Branch # Create a branch if it doesn't exist
-        uses: peterjgrainger/action-create-branch@v2.0.1
+        uses: peterjgrainger/action-create-branch@v4.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
