@@ -1,0 +1,47 @@
+{
+  "name": "insomnium-cli",
+  "version": "1.0.0",
+  "description": "Command-line interface for driving a running Insomnium API client over its loopback MCP server — list, inspect, and run saved requests from the shell or an LLM agent.",
+  "license": "MIT",
+  "author": "Archy <archy@archgpt.dev>",
+  "type": "module",
+  "bin": {
+    "insomnium": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "insomnium",
+    "insomnia",
+    "api-client",
+    "cli",
+    "mcp",
+    "llm",
+    "agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yokomohoyo/insomnium.git",
+    "directory": "packages/insomnium-cli"
+  },
+  "homepage": "https://github.com/yokomohoyo/insomnium#readme",
+  "bugs": {
+    "url": "https://github.com/yokomohoyo/insomnium/issues"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.6"
+  }
+}

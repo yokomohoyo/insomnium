@@ -19,7 +19,8 @@
     "packages/insomnia-send-request",
     "packages/insomnia",
     "packages/insomnia-smoke-test",
-    "packages/insomnium-mcp"
+    "packages/insomnium-mcp",
+    "packages/insomnium-cli"
   ],
   "scripts": {
     "dev": "npm start --workspace=packages/insomnia",
