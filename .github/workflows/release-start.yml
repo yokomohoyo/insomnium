@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: main
@@ -58,14 +58,14 @@ jobs:
       #   run: git checkout -b ${{ env.RELEASE_BRANCH }}
 
       - name: Create Branch # Create a branch if it doesn't exist
-        uses: peterjgrainger/action-create-branch@v2.0.1
+        uses: peterjgrainger/action-create-branch@v4.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           branch: ${{ env.RELEASE_BRANCH }}
 
       - name: Checkout branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_BRANCH }}
           persist-credentials: false
@@ -99,7 +99,7 @@ jobs:
           RELEASE_GH_TOKEN: ${{ secrets.RELEASE_GH_TOKEN }}
 
       - name: Run the Action
-        uses: devops-infra/action-pull-request@v1.2.1
+        uses: devops-infra/action-pull-request@v1.3.0
         with:
           github_token: ${{ secrets.RELEASE_GH_TOKEN }}
           source_branch: ${{ env.RELEASE_BRANCH}}
