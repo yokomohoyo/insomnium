@@ -22,6 +22,16 @@ export function discoveryFilePath(): string {
     || path.join(os.homedir(), '.insomnium', 'mcp.json');
 }
 
+// The discovery file is written by the local app, but it's still untrusted
+// input: validate it targets loopback so a tampered file can't redirect the
+// authenticated connection (bearer token) to a remote host.
+function isLoopbackHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+  if (h === 'localhost' || h === '::1' || h === '[::1]') return true;
+  // 127.0.0.0/8
+  return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
+}
+
 export async function readDiscovery(): Promise<Discovery> {
   const file = discoveryFilePath();
   let raw: string;
@@ -41,6 +51,20 @@ export async function readDiscovery(): Promise<Discovery> {
   }
   if (!parsed.port || !parsed.token) {
     throw new CliError(`discovery file ${file} is missing port/token`);
+  }
+  if (!Number.isInteger(parsed.port) || parsed.port < 1 || parsed.port > 65535) {
+    throw new CliError(`discovery file ${file} has an invalid port: ${parsed.port}`);
+  }
+  if (parsed.url !== undefined) {
+    let host: string;
+    try {
+      host = new URL(parsed.url).hostname;
+    } catch {
+      throw new CliError(`discovery file ${file} has an invalid url: ${parsed.url}`);
+    }
+    if (!isLoopbackHost(host)) {
+      throw new CliError(`discovery file ${file} url must target loopback, got host: ${host}`);
+    }
   }
   return parsed;
 }

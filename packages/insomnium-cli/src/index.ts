@@ -143,6 +143,7 @@ async function cmdCall(name: string, p: Parsed): Promise<void> {
   if (result.isError) process.exitCode = 2;
 }
 
+// Host is pinned to loopback; `port` is validated (bounded integer) in readDiscovery.
 function checkHealth(port: number): Promise<boolean> {
   return new Promise(resolve => {
     const req = http.get({ host: '127.0.0.1', port, path: '/health', timeout: 2000 }, res => {
