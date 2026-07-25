@@ -72,9 +72,16 @@ Commit that file. It is public key material — safe to have in the repository.
 
 ### 4. Enable GitHub Pages
 
-**Settings → Pages → Source: Deploy from a branch**, branch `gh-pages`, folder
-`/ (root)`. The workflow publishes into the `apt/` subdirectory, so the repo
-lands at `https://yokomohoyo.github.io/insomnium/apt`.
+**Settings → Pages → Source: GitHub Actions.**
+
+Not "Deploy from a branch". The `.deb` files are ~120 MB each and GitHub rejects
+any pushed file over 100 MB, so a `gh-pages` branch cannot physically hold this
+repository — the first attempt at that failed with `GH001: Large files detected`.
+The workflow uploads the site as an artifact instead, which has no per-file
+limit. There is no `gh-pages` branch and there should not be one.
+
+The workflow builds into `_site/apt/`, so the repo lands at
+`https://yokomohoyo.github.io/insomnium/apt`.
 
 That URL is hardcoded in the postinst template. If Pages is served from a custom
 domain, update `APT_SOURCE_URL` there to match.
@@ -89,22 +96,35 @@ The workflow triggers on `release: published`, after release assets exist. It:
 2. Builds `dists/stable/main/binary-amd64/Packages` with `apt-ftparchive`
 3. Generates and GPG-signs `Release`, producing `InRelease` and `Release.gpg`
 4. Verifies its own signature and that the index actually lists `insomnium`
-5. Publishes the tree to `gh-pages` under `apt/`
+5. Checks the payload against the published-site limit
+6. Uploads `_site` as a Pages artifact and deploys it
 
 It can also be run manually via **workflow_dispatch**, which takes a `keep`
 input if you need a different number of retained releases.
 
-### The size limit is the real constraint
+### Two size limits, and why the deployment method matters
 
-Each `.deb` is ~125 MB. GitHub Pages has a soft site-size limit in the region of
-1 GB, so the workflow keeps only the **5 most recent** releases in the pool and
-republishes the whole tree each run (`keep_files: false`). Bumping `keep` much
-past 5 will run the site into that limit — confirm the current limits before
-raising it. If you need deeper history, a hosted apt service (Cloudsmith,
-packagecloud) is the better answer; both have OSS tiers.
+Each `.deb` is ~120 MB, which runs into two separate GitHub limits:
 
-Because the tree is republished wholesale, dropping out of the pool is how old
-versions are pruned — there is no separate cleanup step.
+| Limit | Value | Applies to |
+| --- | --- | --- |
+| Per-file push limit | 100 MB, hard | Any file committed to a git branch |
+| Published-site limit | ~1 GB, soft | The deployed Pages site |
+
+The per-file limit is why this uses **artifact-based** Pages deployment. A
+branch-based deploy (`gh-pages`) has to push each `.deb` through git, and every
+one of them is over 100 MB — unfixable by pruning, since a single package
+already exceeds it.
+
+The site limit still applies to the artifact, so the workflow keeps the **5 most
+recent** releases with a `.deb` (≈600 MB) and rebuilds the whole tree each run.
+A guard step fails the build above 900 MB and warns above 700 MB, so raising
+`keep` surfaces the problem before deploy time rather than after. If you need
+deeper history, a hosted apt service (Cloudsmith, packagecloud) is the better
+answer; both have OSS tiers.
+
+Because the tree is rebuilt wholesale each run, dropping out of the pool is how
+old versions are pruned — there is no separate cleanup step.
 
 ---
 
