@@ -3,8 +3,8 @@ name: APT Repository
 # Publishes a signed APT repository to GitHub Pages so installed .deb packages
 # can be upgraded with `apt upgrade` instead of a manual re-download.
 #
-# The .deb files themselves are NOT committed to the repo — they are pulled
-# from GitHub Release assets each run and republished to the gh-pages branch.
+# The .deb files themselves are NOT committed to git — they are pulled from
+# GitHub Release assets each run and deployed as a Pages artifact.
 #
 # Required repository secrets:
 #   APT_GPG_PRIVATE_KEY  ASCII-armoured private key used to sign the release index
@@ -26,12 +26,22 @@ concurrency:
   group: apt-repo
   cancel-in-progress: false
 
+# Pages is deployed from a workflow ARTIFACT, not a gh-pages branch. That is
+# deliberate: a branch would have to carry the .deb files through `git push`,
+# and at ~120 MB each they exceed GitHub's hard 100 MB per-file limit. The
+# artifact path has no per-file limit (the ~1 GB published-site limit still
+# applies — see the pool sizing note below).
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -55,7 +65,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           KEEP: ${{ github.event.inputs.keep || '5' }}
         run: |
-          mkdir -p repo/pool/main/i/insomnium
+          mkdir -p _site/apt/pool/main/i/insomnium
           # Newest-first; limit generously then trim, since not every release
           # necessarily carries a .deb asset.
           gh release list --repo "$GITHUB_REPOSITORY" --limit 50 \
@@ -66,7 +76,7 @@ jobs:
           while read -r tag; do
             [ "$downloaded" -ge "$KEEP" ] && break
             if gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-                 --pattern '*.deb' --dir repo/pool/main/i/insomnium --clobber 2>/dev/null; then
+                 --pattern '*.deb' --dir _site/apt/pool/main/i/insomnium --clobber 2>/dev/null; then
               downloaded=$((downloaded + 1))
               echo "included $tag"
             else
@@ -79,11 +89,11 @@ jobs:
             exit 1
           fi
           echo "pooled $downloaded release(s)"
-          du -sh repo/pool
+          du -sh _site/apt/pool
 
       - name: Build and sign repository index
         run: |
-          cd repo
+          cd _site/apt
           mkdir -p dists/stable/main/binary-amd64
 
           # NOTE: no --arch here. apt-ftparchive's --arch filter matches nothing
@@ -117,18 +127,35 @@ jobs:
 
       - name: Verify the index is readable and signed
         run: |
-          cd repo
+          cd _site/apt
           gpg --verify dists/stable/InRelease
           grep -q '^Package: insomnium$' dists/stable/main/binary-amd64/Packages
           echo "versions published:"
           awk '/^Package: insomnium$/{p=1} p&&/^Version:/{print "  " $2; p=0}' \
             dists/stable/main/binary-amd64/Packages
 
-      - name: Publish to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Check the payload fits the published-site limit
+        run: |
+          BYTES=$(du -sb _site | cut -f1)
+          MB=$((BYTES / 1024 / 1024))
+          echo "site payload: ${MB} MB"
+          # GitHub's published-site limit is ~1 GB. Warn well before it so a
+          # future `keep` bump does not fail at deploy time.
+          if [ "$MB" -gt 900 ]; then
+            echo "::error::Site payload ${MB} MB is at or over the ~1 GB published-site limit. Lower the 'keep' input."
+            exit 1
+          elif [ "$MB" -gt 700 ]; then
+            echo "::warning::Site payload ${MB} MB is approaching the ~1 GB published-site limit."
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./repo
-          destination_dir: apt
-          keep_files: false
-          commit_message: "Publish APT repository (${{ github.event.release.tag_name || 'manual' }})"
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
