@@ -29,6 +29,23 @@ Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can
 brew install --cask yokomohoyo/tap/insomnium
 ```
 
+### Debian / Ubuntu (APT)
+
+```sh
+curl -fsSL https://yokomohoyo.github.io/insomnium/apt/insomnium-archive-keyring.gpg \
+  | sudo tee /usr/share/keyrings/insomnium-archive-keyring.gpg > /dev/null
+
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/insomnium-archive-keyring.gpg] https://yokomohoyo.github.io/insomnium/apt stable main" \
+  | sudo tee /etc/apt/sources.list.d/insomnium.list
+
+sudo apt update && sudo apt install insomnium
+```
+
+Updates then arrive through `apt upgrade` like any other package. Installing the
+`.deb` directly also registers this repository, so a downloaded `.deb` stays up
+to date too — see [docs/apt-repository.md](docs/apt-repository.md) for details
+and how to opt out.
+
 Alternatively, you can build Insomnium from source on your local machine using `npm run app-package`.
 
 

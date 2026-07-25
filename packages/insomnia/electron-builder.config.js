@@ -37,6 +37,13 @@ const config = {
       to: ".",
       filter: "opensource-licenses.txt",
     },
+    // Public half of the APT signing key. The deb postinst copies this to
+    // /usr/share/keyrings so apt can verify the repo. Harmless on other platforms.
+    {
+      from: "./packaging/linux",
+      to: ".",
+      filter: "insomnium-archive-keyring.gpg",
+    },
   ],
   extraMetadata: {
     main: "main.min.js", // Override the main path in package.json
@@ -139,6 +146,15 @@ const config = {
         target: "snap",
       },
     ],
+  },
+  deb: {
+    // "default" is not a real Debian section.
+    fpm: ["--deb-field", "Section: devel"],
+    // These REPLACE electron-builder's built-in templates rather than extending
+    // them — both files start as verbatim copies of the originals. See the note
+    // at the top of each.
+    afterInstall: "packaging/linux/after-install.tpl",
+    afterRemove: "packaging/linux/after-remove.tpl",
   },
   snap: {
     base: "core22",
