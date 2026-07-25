@@ -31,7 +31,7 @@
         },
         {
           "name": "Cookie",
-          "value": "CookieTestConsent={stamp:\\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=='%2Cnecessary..."
+          "value": "CookieTestConsent={stamp:'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=='%2Cnecessary..."
         },
         {
           "name": "Connection",

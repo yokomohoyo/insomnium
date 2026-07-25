@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { quote } from 'shell-quote';
 
-import { Parameter } from '../entities';
+import { ImportRequest, Parameter } from '../entities';
 import { convert } from './curl';
 
 describe('curl', () => {
@@ -151,6 +151,41 @@ describe('curl', () => {
           params: expected,
         },
       }]);
+    });
+  });
+
+  describe("ANSI-C quoted strings ($'...')", () => {
+    const headersOf = (rawData: string) => {
+      const resources = convert(rawData) as ImportRequest[];
+      return resources.find(({ _type }) => _type === 'request')?.headers;
+    };
+
+    it('decodes escaped quotes without swallowing later arguments', () => {
+      expect(
+        headersOf("curl 'https://example.com' -H $'A: {s:\\'V\\'%2Cn}' -H 'B: keep' -H 'C: two'"),
+      ).toEqual([
+        { name: 'A', value: "{s:'V'%2Cn}" },
+        { name: 'B', value: 'keep' },
+        { name: 'C', value: 'two' },
+      ]);
+    });
+
+    it('decodes control-character, hex, unicode and octal escapes', () => {
+      expect(
+        headersOf("curl 'https://example.com' -H $'T: a\\tb' -H $'X: \\x41' -H $'U: \\u0042' -H $'O: \\101'"),
+      ).toEqual([
+        { name: 'T', value: 'a\tb' },
+        { name: 'X', value: 'A' },
+        { name: 'U', value: 'B' },
+        { name: 'O', value: 'A' },
+      ]);
+    });
+
+    it('leaves ordinary quoted strings untouched', () => {
+      expect(headersOf("curl 'https://example.com' -H 'A: plain' -H 'B: two'")).toEqual([
+        { name: 'A', value: 'plain' },
+        { name: 'B', value: 'two' },
+      ]);
     });
   });
 });
