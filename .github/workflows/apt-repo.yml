@@ -1,0 +1,134 @@
+name: APT Repository
+
+# Publishes a signed APT repository to GitHub Pages so installed .deb packages
+# can be upgraded with `apt upgrade` instead of a manual re-download.
+#
+# The .deb files themselves are NOT committed to the repo — they are pulled
+# from GitHub Release assets each run and republished to the gh-pages branch.
+#
+# Required repository secrets:
+#   APT_GPG_PRIVATE_KEY  ASCII-armoured private key used to sign the release index
+#   APT_GPG_PASSPHRASE   passphrase for that key (set to an empty secret if none)
+#
+# See docs/apt-repository.md for one-time setup.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: Number of most recent releases to keep in the pool
+        required: false
+        default: "5"
+
+concurrency:
+  group: apt-repo
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends apt-utils gnupg
+
+      - name: Import signing key
+        env:
+          APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APT_GPG_PRIVATE_KEY" ]; then
+            echo "::error::APT_GPG_PRIVATE_KEY is not set. See docs/apt-repository.md."
+            exit 1
+          fi
+          printf '%s' "$APT_GPG_PRIVATE_KEY" | gpg --batch --import
+          echo "APT_GPG_KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '/^sec:/ {print $5; exit}')" >> "$GITHUB_ENV"
+
+      - name: Download .deb assets from recent releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: ${{ github.event.inputs.keep || '5' }}
+        run: |
+          mkdir -p repo/pool/main/i/insomnium
+          # Newest-first; limit generously then trim, since not every release
+          # necessarily carries a .deb asset.
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 50 \
+            --json tagName,isDraft \
+            --jq '.[] | select(.isDraft | not) | .tagName' > tags.txt
+
+          downloaded=0
+          while read -r tag; do
+            [ "$downloaded" -ge "$KEEP" ] && break
+            if gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+                 --pattern '*.deb' --dir repo/pool/main/i/insomnium --clobber 2>/dev/null; then
+              downloaded=$((downloaded + 1))
+              echo "included $tag"
+            else
+              echo "skipped $tag (no .deb asset)"
+            fi
+          done < tags.txt
+
+          if [ "$downloaded" -eq 0 ]; then
+            echo "::error::No .deb assets found in any release; nothing to publish."
+            exit 1
+          fi
+          echo "pooled $downloaded release(s)"
+          du -sh repo/pool
+
+      - name: Build and sign repository index
+        run: |
+          cd repo
+          mkdir -p dists/stable/main/binary-amd64
+
+          # NOTE: no --arch here. apt-ftparchive's --arch filter matches nothing
+          # for these files and silently emits an empty index; the architecture
+          # is constrained by the Release Architectures field instead.
+          apt-ftparchive packages pool > dists/stable/main/binary-amd64/Packages
+          gzip -9 -k -f dists/stable/main/binary-amd64/Packages
+
+          apt-ftparchive \
+            -o APT::FTPArchive::Release::Origin=Insomnium \
+            -o APT::FTPArchive::Release::Label=Insomnium \
+            -o APT::FTPArchive::Release::Suite=stable \
+            -o APT::FTPArchive::Release::Codename=stable \
+            -o APT::FTPArchive::Release::Components=main \
+            -o APT::FTPArchive::Release::Architectures=amd64 \
+            release dists/stable > dists/stable/Release
+
+          # InRelease (inline-signed) is what modern apt prefers; Release.gpg is
+          # kept for older clients.
+          gpg --batch --yes --pinentry-mode loopback \
+            --passphrase "${{ secrets.APT_GPG_PASSPHRASE }}" \
+            --local-user "$APT_GPG_KEY_ID" \
+            --clearsign -o dists/stable/InRelease dists/stable/Release
+          gpg --batch --yes --pinentry-mode loopback \
+            --passphrase "${{ secrets.APT_GPG_PASSPHRASE }}" \
+            --local-user "$APT_GPG_KEY_ID" \
+            -abs -o dists/stable/Release.gpg dists/stable/Release
+
+          # Public key served for humans following the manual install docs.
+          gpg --export "$APT_GPG_KEY_ID" > insomnium-archive-keyring.gpg
+
+      - name: Verify the index is readable and signed
+        run: |
+          cd repo
+          gpg --verify dists/stable/InRelease
+          grep -q '^Package: insomnium$' dists/stable/main/binary-amd64/Packages
+          echo "versions published:"
+          awk '/^Package: insomnium$/{p=1} p&&/^Version:/{print "  " $2; p=0}' \
+            dists/stable/main/binary-amd64/Packages
+
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./repo
+          destination_dir: apt
+          keep_files: false
+          commit_message: "Publish APT repository (${{ github.event.release.tag_name || 'manual' }})"
