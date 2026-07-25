@@ -1,4 +1,4 @@
-import { ControlOperator, parse, ParseEntry } from 'shell-quote';
+import { ControlOperator, GlobPattern, parse, ParseEntry } from 'shell-quote';
 import { URL } from 'url';
 
 import { Converter, ImportRequest, Parameter, PostData } from '../entities';
@@ -359,6 +359,66 @@ const getPairValue = <T extends string | boolean>(
   return defaultValue;
 };
 
+const ANSI_C_ESCAPES: Record<string, string> = {
+  a: '\x07',
+  b: '\b',
+  e: '\x1b',
+  f: '\f',
+  n: '\n',
+  r: '\r',
+  t: '\t',
+  v: '\v',
+  '\\': '\\',
+  "'": "'",
+  '"': '"',
+  '?': '?',
+};
+
+// Decode the body of an ANSI-C quoted string ($'...'), minus its delimiters.
+const decodeAnsiCString = (body: string): string => {
+  let out = '';
+
+  for (let i = 0; i < body.length; i++) {
+    if (body[i] !== '\\' || i === body.length - 1) {
+      out += body[i];
+      continue;
+    }
+
+    const next = body[++i];
+    const simple = ANSI_C_ESCAPES[next];
+
+    if (simple !== undefined) {
+      out += simple;
+      continue;
+    }
+
+    // \xHH, \uHHHH and \nnn octal
+    const hex = next === 'x' || next === 'u';
+    const width = next === 'x' ? 2 : 4;
+    const digits = hex
+      ? body.slice(i + 1).match(/^[0-9a-fA-F]+/)?.[0].slice(0, width)
+      : body.slice(i).match(/^[0-7]{1,3}/)?.[0];
+
+    if (!digits) {
+      out += '\\' + next;
+      continue;
+    }
+
+    out += String.fromCharCode(parseInt(digits, hex ? 16 : 8));
+    i += hex ? digits.length : digits.length - 1;
+  }
+
+  return out;
+};
+
+// shell-quote mis-tokenizes $'...' containing escaped quotes, swallowing the
+// tokens that follow it. Decode those strings up front and hand shell-quote an
+// ordinary single-quoted string instead.
+const normalizeAnsiCQuotes = (rawData: string): string =>
+  rawData.replace(/\$'((?:[^'\\]|\\.)*)'/g, (_match, body: string) =>
+    "'" + decodeAnsiCString(body).split("'").join("'\\''") + "'",
+  );
+
 export const convert: Converter = rawData => {
   requestCount = 1;
 
@@ -367,7 +427,7 @@ export const convert: Converter = rawData => {
   }
 
   // Parse the whole thing into one big tokenized list
-  const parseEntries = parse(rawData);
+  const parseEntries = parse(normalizeAnsiCQuotes(rawData));
 
   // ~~~~~~~~~~~~~~~~~~~~~~ //
   // Aggregate the commands //
@@ -390,9 +450,7 @@ export const convert: Converter = rawData => {
       continue;
     }
 
-    const { op } = parseEntry as
-      | { op: 'glob'; pattern: string }
-      | { op: ControlOperator };
+    const { op } = parseEntry as ControlOperator | GlobPattern;
 
     // `;` separates commands
     if (op === ';') {
@@ -401,18 +459,8 @@ export const convert: Converter = rawData => {
       continue;
     }
 
-    if (op?.startsWith('$')) {
-      // Handle the case where literal like -H $'Header: \'Some Quoted Thing\''
-      const str = op.slice(2, op.length - 1).replace(/\\'/g, "'");
-
-      currentCommand.push(str);
-      continue;
-    }
-
     if (op === 'glob') {
-      currentCommand.push(
-        (parseEntry as { op: 'glob'; pattern: string }).pattern,
-      );
+      currentCommand.push((parseEntry as GlobPattern).pattern);
       continue;
     }
 
