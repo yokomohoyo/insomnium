@@ -170,7 +170,7 @@
     "ncp": "^2.0.0",
     "objectpath": "^2.0.0",
     "openapi-types": "^7.0.1",
-    "postcss": "^8.5.18",
+    "postcss": "^8.5.23",
     "react": "^18.2.0",
     "react-aria": "3.23.1",
     "react-aria-components": "^1.0.0-alpha.6",
