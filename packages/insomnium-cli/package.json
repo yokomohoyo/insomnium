@@ -1,6 +1,6 @@
 {
   "name": "insomnium-cli",
-  "version": "1.0.1-rc.0",
+  "version": "1.0.1-rc.1",
   "description": "Command-line interface for driving a running Insomnium API client over its loopback MCP server — list, inspect, and run saved requests from the shell or an LLM agent.",
   "license": "MIT",
   "author": "Archy <archy@archgpt.dev>",
