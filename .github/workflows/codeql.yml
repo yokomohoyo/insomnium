@@ -1,13 +1,13 @@
 name: CodeQL
 
 # Static analysis for JS/TS. Findings land in the repo's "Code scanning" tab.
-# Runs on every push (any branch), every PR, and weekly on a cron so newly-
-# published query updates pick up issues even when nothing's been pushed.
+# Runs on pushes to main, every PR, and weekly on a cron so newly-published
+# query updates pick up issues even when nothing has been pushed.
 
 on:
   push:
     branches:
-      - "**"
+      - main
   pull_request:
     types:
       - opened
@@ -16,7 +16,8 @@ on:
     # Weekly, Monday 06:00 UTC. Lets weekly query-pack updates surface issues.
     - cron: "0 6 * * 1"
 
-# Cancel duplicate runs (push + PR on the same branch) like the Test workflow.
+# `push` is limited to main so PR branches only run via `pull_request`, like
+# the Test workflow. Concurrency cancels runs superseded by a newer commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true

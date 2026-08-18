@@ -5,14 +5,15 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - "**"
+      - main
   pull_request:
     types:
       - opened
       - synchronize
 
-# Pushes to a PR branch trigger both `push` and `pull_request` events.
-# Cancel the older duplicate run so we don't burn double CI minutes.
+# `push` is limited to main: PR branches are covered by the `pull_request`
+# event, so they run once instead of twice. Concurrency then only has to
+# cancel runs superseded by a newer commit on the same branch.
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
