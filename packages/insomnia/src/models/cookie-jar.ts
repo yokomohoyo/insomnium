@@ -1,5 +1,3 @@
-import crypto from 'crypto';
-
 import { database as db } from '../common/database';
 import type { BaseModel } from './index';
 
@@ -73,8 +71,9 @@ export async function getOrCreateForParentId(parentId: string) {
     return create({
       parentId,
       // Deterministic ID. It helps reduce sync complexity since we won't have to
-      // de-duplicate environments.
-      _id: `${prefix}_${crypto.createHash('sha1').update(parentId).digest('hex')}`,
+      // de-duplicate environments. parentId is already unique, so no hash is
+      // needed -- this matches how models/environment.ts derives its base env ID.
+      _id: `${prefix}_${parentId}`,
     });
   } else {
     return cookieJars[0];
