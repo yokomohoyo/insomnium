@@ -1,4 +1,11 @@
+import { TextDecoder, TextEncoder } from "node:util";
+
 globalThis.__DEV__ = false;
+
+// jsdom does not provide TextEncoder/TextDecoder, but react-router v7 reaches for
+// them at module load, which fails every suite that transitively imports it.
+globalThis.TextEncoder = globalThis.TextEncoder ?? TextEncoder;
+globalThis.TextDecoder = globalThis.TextDecoder ?? (TextDecoder as typeof globalThis.TextDecoder);
 
 globalThis.requestAnimationFrame = (callback: FrameRequestCallback) => {
   process.nextTick(callback);
