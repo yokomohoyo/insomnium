@@ -11,7 +11,6 @@ import type { BaseModel } from '../models/index';
 import * as models from '../models/index';
 import type { Workspace } from '../models/workspace';
 import { generateId } from './misc';
-import { dummyStartingWorkspace, importToWorkspaceFromJSON } from './import';
 import type { SqliteStore, StoreQuery } from './sqlite-store';
 
 export interface Query {
@@ -532,7 +531,7 @@ export const database = {
       return [];
     }
 
-    let docsToReturn: T[] = doc ? [doc] : [];
+    let docsToReturn: T[] = [doc];
     // Guard against parentId cycles (e.g. a request reparented onto itself or a
     // descendant via update_request) - without this the walk recurses forever.
     const seen = new Set<string>([doc._id]);
