@@ -77,11 +77,15 @@
     "@xmldom/xmldom": "^0.8.10"
   },
   "overrides": {
-    "minimatch": "^3.1.4",
+    "minimatch@^3.0.0": "^3.1.4",
     "xml2js": "^0.5.0",
     "lodash": "^4.18.1",
     "serialize-javascript": "^7.0.5",
     "form-data": "^4.0.6",
-    "@asyncapi/specs": "6.11.1"
+    "@asyncapi/specs": "6.11.1",
+    "xmldom": "npm:@xmldom/xmldom@^0.8.13",
+    "js-yaml@^3.13.1": "^3.15.1",
+    "js-yaml@^4.1.0": "^4.3.2",
+    "js-cookie": "^3.0.8"
   }
 }
