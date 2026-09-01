@@ -90,7 +90,9 @@ domain, update `APT_SOURCE_URL` there to match.
 
 ## How it runs
 
-The workflow triggers on `release: published`, after release assets exist. It:
+The workflow triggers on `workflow_run` once **Release On Publish** completes
+successfully, so the `.deb` assets are already uploaded by the time it starts.
+It:
 
 1. Downloads `.deb` assets from the most recent releases (default 5 — see below)
 2. Builds `dists/stable/main/binary-amd64/Packages` with `apt-ftparchive`
@@ -101,6 +103,13 @@ The workflow triggers on `release: published`, after release assets exist. It:
 
 It can also be run manually via **workflow_dispatch**, which takes a `keep`
 input if you need a different number of retained releases.
+
+> It deliberately does *not* trigger on `release: published`. That event runs in
+> the tag's context, and the `github-pages` environment only permits deployments
+> from `main`, so the job was rejected before any step ran:
+> `Tag "<version>" is not allowed to deploy to github-pages due to environment
+> protection rules.` A `workflow_run` event runs in the default branch's context
+> instead, which satisfies the rule.
 
 ### Two size limits, and why the deployment method matters
 

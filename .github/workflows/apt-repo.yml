@@ -12,9 +12,15 @@ name: APT Repository
 #
 # See docs/apt-repository.md for one-time setup.
 
+# Triggered by workflow_run rather than `release: published`, for two reasons:
+# a workflow_run event runs in the DEFAULT BRANCH's context, which is what the
+# github-pages environment's protection rule requires (a release event runs in
+# the tag's context and is rejected outright); and it starts only once Release
+# On Publish has finished uploading the .deb, instead of racing it.
 on:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ["Release On Publish"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       keep:
@@ -38,6 +44,8 @@ permissions:
 
 jobs:
   publish:
+    # Skip when the triggering build failed; a manual dispatch always runs.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
