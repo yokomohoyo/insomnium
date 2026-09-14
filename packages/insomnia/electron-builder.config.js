@@ -69,6 +69,7 @@ const config = {
         arch: "arm64",
       },
     ],
+    minimumSystemVersion: '13.0.0',
     extendInfo: {
       NSRequiresAquaSystemAppearance: false,
     },
