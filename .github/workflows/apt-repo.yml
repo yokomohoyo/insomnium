@@ -44,8 +44,11 @@ permissions:
 
 jobs:
   publish:
-    # Skip when the triggering build failed; a manual dispatch always runs.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Skip when the triggering build failed, or wasn't started by publishing a
+    # release (a manual re-run or dry run); a manual dispatch always runs.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release') }}
     runs-on: ubuntu-latest
     environment:
       name: github-pages
