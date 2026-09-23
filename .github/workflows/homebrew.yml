@@ -76,11 +76,14 @@ jobs:
         env:
           VERSION: ${{ steps.resolve.outputs.version }}
           SHA256: ${{ steps.resolve.outputs.sha256 }}
-          TAG: ${{ steps.tag.outputs.tag }}
         run: |
+          # The url interpolates #{version}, so bumping version is enough.
+          if ! grep -qF 'releases/download/#{version}/' tap/Casks/insomnium.rb; then
+            echo "::error::Cask url must use #{version} in the release path"
+            exit 1
+          fi
           ruby -i -pe '$_ = $_.sub(/version "[^"]*"/, "version \"#{ENV["VERSION"]}\"")
-                            .sub(/sha256 "[^"]*"/, "sha256 \"#{ENV["SHA256"]}\"")
-                            .sub(%r{releases/download/[^/]+/Insomnium}, "releases/download/#{ENV["TAG"]}/Insomnium")' \
+                            .sub(/sha256 "[^"]*"/, "sha256 \"#{ENV["SHA256"]}\"")' \
             tap/Casks/insomnium.rb
           git -C tap diff Casks/insomnium.rb || true
 
