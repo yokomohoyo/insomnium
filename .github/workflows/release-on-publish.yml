@@ -17,6 +17,11 @@ on:
         description: Tag of an existing release to (re)build artifacts for
         required: true
         type: string
+      dry_run:
+        description: Build (and sign) but don't upload anything to the release
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.event.inputs.tag }}
@@ -36,11 +41,13 @@ jobs:
             csc_link_secret: DESIGNER_MAC_CSC_LINK
             csc_key_password_secret: DESIGNER_MAC_CSC_KEY_PASSWORD
           - os: windows-latest
-            csc_link_secret: DESIGNER_WINDOWS_CSC_LINK
-            csc_key_password_secret: DESIGNER_WINDOWS_CSC_KEY_PASSWORD
           - os: ubuntu-latest
-            csc_link_secret: ""
-            csc_key_password_secret: ""
+
+    env:
+      # Windows signing goes through SignPath Foundation and switches on once the
+      # SIGNPATH_* repository variables and the SIGNPATH_API_TOKEN secret exist.
+      # Until then Windows builds stay unsigned but take the same path.
+      SIGN_WINDOWS: ${{ matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
 
     steps:
       - name: Resolve target tag
@@ -77,14 +84,152 @@ jobs:
           CSC_LINK: ${{ secrets[matrix.csc_link_secret] }}
           CSC_KEY_PASSWORD: ${{ secrets[matrix.csc_key_password_secret] }}
 
-      - name: Package app (Windows / Linux)
-        if: matrix.os != 'macos-latest'
+      - name: Package app (Linux)
+        if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: npm run app-package
         env:
           NODE_OPTIONS: "--max_old_space_size=6144"
-          CSC_LINK: ${{ secrets[matrix.csc_link_secret] }}
-          CSC_KEY_PASSWORD: ${{ secrets[matrix.csc_key_password_secret] }}
+
+      # Windows packages in two passes so Insomnium.exe can be signed before the
+      # installers embed it: electron-builder rewrites the exe's asar-integrity
+      # resource while packing, so it can only be signed after `--dir`, and the
+      # Squirrel installer and portable exe then have to be built from that
+      # signed copy with `--prepackaged`. The installers themselves are signed
+      # in a second request afterwards.
+      - name: Build app (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: npm run build:app --workspace=packages/insomnia
+        env:
+          NODE_OPTIONS: "--max_old_space_size=6144"
+
+      - name: Package unpacked app (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        working-directory: packages/insomnia
+        run: npx electron-builder build --win --dir --config electron-builder.config.js --publish never
+        env:
+          USE_HARD_LINKS: "false"
+
+      - name: Upload app exe for signing (Windows)
+        id: unsigned-app
+        if: env.SIGN_WINDOWS == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-app-exe-${{ github.run_number }}
+          path: packages/insomnia/dist/win-unpacked/Insomnium.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign app exe (SignPath)
+        if: env.SIGN_WINDOWS == 'true'
+        # v2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: app-exe
+          github-artifact-id: ${{ steps.unsigned-app.outputs.artifact-id }}
+          # Each request waits for a manual approval in SignPath.
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: signed/app
+
+      - name: Swap in signed app exe (Windows)
+        if: env.SIGN_WINDOWS == 'true'
+        shell: pwsh
+        run: |
+          $sig = Get-AuthenticodeSignature signed/app/Insomnium.exe
+          if ($sig.Status -ne 'Valid') { throw "Signed Insomnium.exe is $($sig.Status): $($sig.StatusMessage)" }
+          Copy-Item signed/app/Insomnium.exe packages/insomnia/dist/win-unpacked/Insomnium.exe -Force
+
+      - name: Build installers from the unpacked app (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        working-directory: packages/insomnia
+        run: npx electron-builder build --win --prepackaged dist/win-unpacked --config electron-builder.config.js --publish never
+        env:
+          USE_HARD_LINKS: "false"
+
+      - name: Check the installer carries the app exe unchanged (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $want = (Get-FileHash packages/insomnia/dist/win-unpacked/Insomnium.exe).Hash
+          $nupkg = Get-ChildItem packages/insomnia/dist/squirrel-windows/*-full.nupkg | Select-Object -First 1
+          $zip = [IO.Compression.ZipFile]::OpenRead($nupkg.FullName)
+          try {
+            $entry = $zip.Entries | Where-Object { $_.FullName -like 'lib/*/Insomnium.exe' } | Select-Object -First 1
+            if (-not $entry) { throw "Insomnium.exe not found in $($nupkg.Name)" }
+            $tmp = New-TemporaryFile
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $tmp.FullName, $true)
+          } finally { $zip.Dispose() }
+          $got = (Get-FileHash $tmp.FullName).Hash
+          if ($got -ne $want) { throw "Insomnium.exe in $($nupkg.Name) ($got) differs from win-unpacked ($want)" }
+          "Insomnium.exe in $($nupkg.Name) matches win-unpacked ($want)"
+
+      - name: Stage installers for signing (Windows)
+        if: env.SIGN_WINDOWS == 'true'
+        shell: bash
+        run: |
+          mkdir -p to-sign
+          cp packages/insomnia/dist/squirrel-windows/*.exe packages/insomnia/dist/*-portable.exe to-sign/
+          ls -l to-sign
+
+      - name: Upload installers for signing (Windows)
+        id: unsigned-installers
+        if: env.SIGN_WINDOWS == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: unsigned-installers-${{ github.run_number }}
+          path: to-sign/*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign installers (SignPath)
+        if: env.SIGN_WINDOWS == 'true'
+        # v2
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.unsigned-installers.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 7200
+          output-artifact-directory: signed/installers
+
+      - name: Swap in signed installers (Windows)
+        if: env.SIGN_WINDOWS == 'true'
+        shell: bash
+        run: |
+          for f in signed/installers/*.exe; do
+            name=$(basename "$f")
+            if [[ "$name" == *-portable.exe ]]; then
+              cp -f "$f" "packages/insomnia/dist/$name"
+            else
+              cp -f "$f" "packages/insomnia/dist/squirrel-windows/$name"
+            fi
+          done
+
+      - name: Report Authenticode signatures (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $files = @(Get-Item packages/insomnia/dist/win-unpacked/Insomnium.exe) +
+                   @(Get-ChildItem packages/insomnia/dist/squirrel-windows/*.exe) +
+                   @(Get-ChildItem packages/insomnia/dist/*-portable.exe)
+          $bad = 0
+          foreach ($f in $files) {
+            $sig = Get-AuthenticodeSignature $f.FullName
+            "{0,-12} {1}  {2}" -f $sig.Status, $f.Name, $sig.SignerCertificate.Subject
+            if ($sig.Status -ne 'Valid') { $bad++ }
+          }
+          if ($env:SIGN_WINDOWS -eq 'true' -and $bad -gt 0) { throw "$bad Windows executable(s) are not validly signed" }
 
       - name: List built artifacts
         shell: bash
@@ -112,6 +257,7 @@ jobs:
             packages/insomnia/dist/*.tar.gz
 
       - name: Attach assets to release
+        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}

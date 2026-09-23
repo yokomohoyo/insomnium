@@ -201,6 +201,23 @@ Please read through our [contributing guidelines](CONTRIBUTING.md) and [code of 
 Check out our open-source [Insomnium Documentation](https://archgpt.dev/insomnium-doc). -->
 
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
+
+Windows release binaries are built from this repository by GitHub Actions ([`release-on-publish.yml`](.github/workflows/release-on-publish.yml)) and signed only after a maintainer approves each signing request.
+
+Team roles:
+
+- Committers and reviewers: [yokomohoyo](https://github.com/yokomohoyo)
+- Approvers: [yokomohoyo](https://github.com/yokomohoyo)
+
+Pull requests from people outside the committers are reviewed before merge.
+
+### Privacy policy
+
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Checking for updates happens only when you choose "Check now".
+
 ## License
 
 [MIT](LICENSE)
