@@ -1,9 +1,13 @@
 name: Bump Homebrew Cask
 
-# Fires after a successful Release On Publish run, reads the new DMG's SHA-256
-# from the release asset metadata, and pushes an updated cask file to
-# yokomohoyo/homebrew-tap. Also runnable manually with `workflow_dispatch` to
-# (re)bump an existing tag.
+# Fires after a successful Release On Publish run and points the cask in
+# yokomohoyo/homebrew-tap at the new DMG. Also runnable manually with
+# `workflow_dispatch` to (re)bump an existing tag, or with allow_downgrade to
+# roll the cask back to an earlier release on purpose.
+#
+# The cask keeps Homebrew's quarantine (tap PR #5), so a DMG that isn't signed
+# by us and notarized would open as "damaged and can't be opened". `verify`
+# therefore checks the DMG itself on macOS before `bump` touches the tap.
 #
 # Required secret: TAP_PUSH_TOKEN — fine-grained PAT scoped to
 # yokomohoyo/homebrew-tap with Contents: read/write.
@@ -18,12 +22,27 @@ on:
         description: Release tag to bump the cask to
         required: true
         type: string
+      allow_downgrade:
+        description: Allow moving the cask to an older release (intentional rollback)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
+# One bump at a time: each reads the cask it is about to change.
+concurrency:
+  group: homebrew-cask-bump
+  cancel-in-progress: false
+
+# bash adds -o pipefail.
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  bump:
+  verify:
     # Only a build started by publishing a release. A manually dispatched build
     # (a re-run, or a dry run) reports its branch as head_branch, not the tag,
     # so it can't be resolved here. After a manual re-run that re-uploads the
@@ -31,46 +50,94 @@ jobs:
     if: >-
       ${{ github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release') }}
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      sha256: ${{ steps.release.outputs.sha256 }}
+    env:
+      REPO: ${{ github.repository }}
+      TAG: ${{ github.event.inputs.tag || github.event.workflow_run.head_branch }}
+      MIN_VERSION: 0.3.0-rc.15 # first Developer ID signed + notarized release
+      EXPECTED_TEAM: M4B2LM9HCJ # Developer ID Application: Phillip Miller
     steps:
-      - name: Resolve tag
-        id: tag
-        env:
-          INPUT_TAG: ${{ github.event.inputs.tag }}
-          PARENT_TAG: ${{ github.event.workflow_run.head_branch }}
-        run: |
-          TAG="${INPUT_TAG:-$PARENT_TAG}"
-          if [ -z "$TAG" ]; then
-            echo "::error::Could not resolve release tag"
-            exit 1
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
-      - name: Read DMG digest + version from release
-        id: resolve
+      - name: Resolve and check the release
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.tag.outputs.tag }}
         run: |
-          set -euo pipefail
-          DIGEST=$(gh release view "$TAG" --repo "${{ github.repository }}" \
-            --json assets \
-            --jq '.assets[] | select(.name | endswith(".dmg")) | .digest' | head -1)
-          SHA256="${DIGEST#sha256:}"
-          if [ -z "$SHA256" ]; then
-            echo "::error::No DMG asset with a sha256 digest on tag $TAG (release may still be uploading)"
-            exit 1
-          fi
-          VERSION=$(gh api "repos/${{ github.repository }}/contents/packages/insomnia/package.json?ref=$TAG" \
+          if [ -z "$TAG" ]; then echo "::error::Could not resolve release tag"; exit 1; fi
+          VERSION=$(gh api "repos/$REPO/contents/packages/insomnia/package.json?ref=$TAG" \
             --jq '.content' | base64 -d | jq -r '.version')
-          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
-            echo "::error::Could not read version from packages/insomnia/package.json at $TAG"
+          # Checked before anything is written to GITHUB_OUTPUT.
+          VERSION="$VERSION" python3 - <<'PY'
+          import os, re, sys
+
+          NUM = r"(0|[1-9][0-9]*)"
+          PATTERN = re.compile(rf"{NUM}\.{NUM}\.{NUM}(?:-rc\.{NUM})?", re.ASCII)
+
+          def key(v):
+              m = PATTERN.fullmatch(v)
+              if not m:
+                  return None
+              major, minor, patch, rc = m.groups()
+              # a final release sorts after all of its release candidates
+              return (int(major), int(minor), int(patch), 1 if rc is None else 0, int(rc or 0))
+
+          tag, version, floor = (os.environ[k] for k in ("TAG", "VERSION", "MIN_VERSION"))
+          errors = []
+          if tag != version:
+              errors.append(f"tag {tag!r} does not match packages/insomnia version {version!r}; the cask url uses #{{version}}")
+          if key(version) is None:
+              errors.append(f"version {version!r} is not X.Y.Z or X.Y.Z-rc.N (cut releases with `npm --workspaces version prerelease --preid rc`)")
+          elif key(version) < key(floor):
+              errors.append(f"{version} is older than {floor}, the first notarized release; it would open as 'damaged'")
+          for e in errors:
+              print(f"::error::{e}")
+          sys.exit(1 if errors else 0)
+          PY
+          # The DMG the cask url actually downloads, not just the first *.dmg.
+          DMG="Insomnium.Core-$VERSION.dmg"
+          DIGEST=$(gh release view "$TAG" --repo "$REPO" --json assets |
+            jq -r --arg n "$DMG" '[.assets[] | select(.name == $n) | .digest] | if length == 1 then .[0] else "" end')
+          SHA256="${DIGEST#sha256:}"
+          if ! [[ "$SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "::error::No single $DMG asset with a sha256 digest on $TAG (release may still be uploading)"
             exit 1
           fi
-          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Bumping insomnium → $VERSION (sha256: $SHA256)"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "dmg=$DMG" >> "$GITHUB_OUTPUT"
+          echo "Release $TAG: $DMG sha256 $SHA256"
 
+      - name: Check the DMG is ours and notarized
+        env:
+          DMG: ${{ steps.release.outputs.dmg }}
+          SHA256: ${{ steps.release.outputs.sha256 }}
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/app.dmg" "https://github.com/$REPO/releases/download/$TAG/$DMG"
+          got=$(shasum -a 256 "$RUNNER_TEMP/app.dmg" | cut -d' ' -f1)
+          if [ "$got" != "$SHA256" ]; then
+            echo "::error::Downloaded $DMG hashes to $got, but the release asset digest is $SHA256"; exit 1
+          fi
+          mnt=$(hdiutil attach -nobrowse -readonly -noautoopen "$RUNNER_TEMP/app.dmg" | awk -F'\t' '/\/Volumes\//{print $NF}' | tail -1)
+          trap 'hdiutil detach "$mnt" -quiet || hdiutil detach "$mnt" -force -quiet || true' EXIT
+          app="$mnt/Insomnium.app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          team=$(codesign -dv "$app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
+          if [ "$team" != "$EXPECTED_TEAM" ]; then
+            echo "::error::$DMG is signed by team '${team:-none}', expected $EXPECTED_TEAM"; exit 1
+          fi
+          xcrun stapler validate "$app"
+          spctl --assess --type execute --verbose=4 "$app" 2>&1 | tee "$RUNNER_TEMP/spctl.log"
+          if ! grep -q ': accepted$' "$RUNNER_TEMP/spctl.log" || ! grep -q 'source=Notarized Developer ID' "$RUNNER_TEMP/spctl.log"; then
+            echo "::error::Gatekeeper does not accept $DMG as a notarized Developer ID app"; exit 1
+          fi
+          echo "$DMG: signed by $team, notarized, stapled, accepted by Gatekeeper"
+
+  bump:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout tap
         uses: actions/checkout@v7
         with:
@@ -78,49 +145,60 @@ jobs:
           token: ${{ secrets.TAP_PUSH_TOKEN }}
           path: tap
 
-      # The cask keeps Homebrew's quarantine (tap PR #5), so a build that isn't
-      # notarized opens as "damaged and can't be opened". Refuse anything older
-      # than the first notarized release, a tag whose version differs (the url
-      # interpolates #{version}), or a downgrade, e.g. a mistyped manual dispatch.
-      - name: Guard the bump
+      # A manual downgrade is refused unless allow_downgrade is set; an automatic
+      # one (e.g. an old release's build re-run after a newer release) is skipped.
+      - name: Check the bump goes forward
+        id: order
         env:
-          TAG: ${{ steps.tag.outputs.tag }}
-          VERSION: ${{ steps.resolve.outputs.version }}
-          MIN_VERSION: 0.3.0-rc.15 # first Developer ID signed + notarized release
+          VERSION: ${{ needs.verify.outputs.version }}
+          EVENT: ${{ github.event_name }}
+          ALLOW_DOWNGRADE: ${{ github.event.inputs.allow_downgrade }}
         run: |
-          CURRENT=$(sed -n 's/^  version "\(.*\)"$/\1/p' tap/Casks/insomnium.rb)
-          CURRENT="$CURRENT" python3 - <<'PY'
+          python3 - <<'PY'
           import os, re, sys
 
+          NUM = r"(0|[1-9][0-9]*)"
+          PATTERN = re.compile(rf"{NUM}\.{NUM}\.{NUM}(?:-rc\.{NUM})?", re.ASCII)
+
           def key(v):
-              m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?", v)
+              m = PATTERN.fullmatch(v)
               if not m:
                   return None
               major, minor, patch, rc = m.groups()
-              # a final release sorts after all of its release candidates
               return (int(major), int(minor), int(patch), 1 if rc is None else 0, int(rc or 0))
 
-          tag, version, floor, current = (os.environ[k] for k in ("TAG", "VERSION", "MIN_VERSION", "CURRENT"))
-          errors = []
-          if tag != version:
-              errors.append(f"tag {tag!r} does not match packages/insomnia version {version!r}; the cask url uses #{{version}}")
-          if key(version) is None:
-              errors.append(f"version {version!r} is not X.Y.Z or X.Y.Z-rc.N")
-          elif key(version) < key(floor):
-              errors.append(f"{version} is older than {floor}, the first notarized release; it would open as 'damaged'")
-          elif key(current) is not None and key(version) < key(current):
-              errors.append(f"{version} would downgrade the cask from {current}")
-          for e in errors:
-              print(f"::error::{e}")
-          if errors:
+          def out(skip):
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write(f"skip={'true' if skip else 'false'}\n")
+
+          version, event, allow = os.environ["VERSION"], os.environ["EVENT"], os.environ.get("ALLOW_DOWNGRADE") == "true"
+          path = "tap/Casks/insomnium.rb"
+          if not os.path.exists(path):
+              print(f"::error::{path} not found in the tap"); sys.exit(1)
+          text = open(path, encoding="utf-8").read().replace("\r", "")
+          # Same form the ruby rewrite in "Update cask" matches.
+          found = re.findall(r'^\s*version "([^"]*)"', text, re.M)
+          if len(found) != 1 or key(found[0]) is None:
+              print(f"::error::Expected one X.Y.Z[-rc.N] version line in {path}, found {found!r}; fix the cask by hand")
               sys.exit(1)
-          print(f"ok: {version} (floor {floor}, cask currently {current or 'unknown'})")
+          current = found[0]
+          if key(version) < key(current):
+              if event == "workflow_run":
+                  print(f"::notice::Not bumping: {version} is older than the cask's {current}")
+                  out(True); sys.exit(0)
+              if not allow:
+                  print(f"::error::{version} would downgrade the cask from {current}; for an intentional rollback re-run with allow_downgrade")
+                  sys.exit(1)
+              print(f"::warning::Rolling the cask back from {current} to {version} (allow_downgrade)")
+          print(f"ok: {current} -> {version}")
+          out(False)
           PY
 
       - name: Update cask
+        if: steps.order.outputs.skip != 'true'
         env:
-          VERSION: ${{ steps.resolve.outputs.version }}
-          SHA256: ${{ steps.resolve.outputs.sha256 }}
+          VERSION: ${{ needs.verify.outputs.version }}
+          SHA256: ${{ needs.verify.outputs.sha256 }}
         run: |
           # The url interpolates #{version}, so bumping version is enough.
           if ! grep -qF 'releases/download/#{version}/' tap/Casks/insomnium.rb; then
@@ -133,8 +211,9 @@ jobs:
           git -C tap diff Casks/insomnium.rb || true
 
       - name: Commit + push
+        if: steps.order.outputs.skip != 'true'
         env:
-          VERSION: ${{ steps.resolve.outputs.version }}
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
           cd tap
           if git diff --quiet Casks/insomnium.rb; then
