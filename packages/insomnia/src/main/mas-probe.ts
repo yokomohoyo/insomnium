@@ -46,6 +46,8 @@ const netrcPath = path.join(realHome, '.netrc');
 // Tiny, dependency-free and not deprecated on npm (a deprecated one makes
 // `yarn info` print a warning, which install-plugin.ts treats as failure).
 const PLUGIN = 'insomnia-plugin-jsonc';
+// Optional report-name suffix, e.g. "-ls" for the LaunchServices-launched run.
+const TAG = process.env.INSOMNIUM_MAS_PROBE_TAG ? `-${process.env.INSOMNIUM_MAS_PROBE_TAG}` : '';
 
 let probeDir = '';
 
@@ -101,7 +103,7 @@ function buildReport(extra: Record<string, any> = {}) {
 function flush(extra: Record<string, any> = {}) {
   try {
     fs.mkdirSync(probeDir, { recursive: true });
-    fs.writeFileSync(path.join(probeDir, `probe-report-phase${phase}.json`), JSON.stringify(buildReport(extra), null, 2));
+    fs.writeFileSync(path.join(probeDir, `probe-report-phase${phase}${TAG}.json`), JSON.stringify(buildReport(extra), null, 2));
   } catch (err: any) {
     out(`MASPROBE:FLUSH-FAILED ${err?.code} ${err?.message}`);
   }
@@ -333,6 +335,9 @@ async function phase1() {
   await check('fs-documents-direct-read', 'main', 'EPERM', () => mainRead(docsIn));
   await check('fs-plain-home-direct-read', 'main', 'EPERM', () => mainRead(plainFile));
   await check('fs-real-home-write', 'main', 'EPERM', () => mainWrite(path.join(realHome, 'mas-probe-home-write.txt'), 'x'));
+  // Code that builds home paths from os.homedir() silently points into the container.
+  await check('fs-homedir-relative-netrc', 'main', 'ENOENT (os.homedir() is the container)', () => mainRead(path.join(os.homedir(), '.netrc')));
+  await check('fs-gcloud-adc-real-home', 'main', 'EPERM', () => mainRead(path.join(realHome, '.config', 'gcloud', 'application_default_credentials.json')));
 
   const udRendererFile = path.join(app.getPath('userData'), 'mas-probe', 'fs-renderer.txt');
   await check('renderer-fs-userdata-rw', 'renderer', 'ok (inherits container)', () => rendererEval(
@@ -616,7 +621,7 @@ async function relaunched() {
     at: new Date().toISOString(),
   };
   fs.mkdirSync(probeDir, { recursive: true });
-  fs.writeFileSync(path.join(probeDir, 'relaunched.json'), JSON.stringify(info, null, 2));
+  fs.writeFileSync(path.join(probeDir, `relaunched${TAG}.json`), JSON.stringify(info, null, 2));
   stage('relaunched-marker-written', info);
 }
 
@@ -659,7 +664,7 @@ export async function runMasProbe() {
   out('MASPROBE:REPORT-BEGIN');
   out(JSON.stringify(report));
   out('MASPROBE:REPORT-END');
-  out(`MASPROBE:REPORT-PATH ${path.join(probeDir, `probe-report-phase${phase}.json`)}`);
+  out(`MASPROBE:REPORT-PATH ${path.join(probeDir, `probe-report-phase${phase}${TAG}.json`)}`);
   stage('done');
   setTimeout(() => app.exit(0), 500);
 }

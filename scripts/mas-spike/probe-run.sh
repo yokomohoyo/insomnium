@@ -70,7 +70,10 @@ rm -f "$HOME/Documents/probe-out.txt" "$HOME/Documents/probe-out-sibling.txt" "$
 echo "plain $FLAVOR" > "$HOME/mas-probe-plain/probe-plain.txt"
 printf 'machine 127.0.0.1\nlogin probeuser\npassword probepass\n' > "$HOME/.netrc"
 chmod 600 "$HOME/.netrc"
-ls -la "$HOME/Documents" "$HOME/.netrc" > "$EVID/fixtures.txt" 2>&1
+mkdir -p "$HOME/.config/gcloud"
+[ -e "$HOME/.config/gcloud/application_default_credentials.json" ] ||
+  echo '{"type":"mas-probe-fixture"}' > "$HOME/.config/gcloud/application_default_credentials.json"
+ls -la "$HOME/Documents" "$HOME/.netrc" "$HOME/.config/gcloud" > "$EVID/fixtures.txt" 2>&1
 
 # ---------------------------------------------------------------- helpers
 launch() { # <phase> <hard-timeout-seconds>
@@ -293,6 +296,40 @@ shot p3-after-relaunch
 sleep 3
 cleanup_procs
 
+# ---------------------------------------------------------------- phase 3 again, launched by LaunchServices
+# `open` is how a user starts the app (Finder/Dock/Spotlight); exec'ing the binary
+# from a shell differs in responsible process and environment.
+log "=== phase 3 via LaunchServices (open)"
+for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do rm -f "$d/relaunched-ls.json" "$d/probe-report-phase3-ls.json"; done
+LOG="$EVID/phase3-ls.stdout.log"
+t 150 open -n -W --env INSOMNIUM_MAS_PROBE=1 --env INSOMNIUM_MAS_PROBE_PHASE=3 --env INSOMNIUM_MAS_PROBE_TAG=ls \
+  --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-ls.txt" 2>&1
+obs "phase3-ls open exit: $?"
+RELAUNCHED=""
+for i in $(seq 1 60); do
+  for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do
+    [ -f "$d/relaunched-ls.json" ] && RELAUNCHED="$d/relaunched-ls.json"
+    [ -f "$d/probe-report-phase3-ls.json" ] && cp "$d/probe-report-phase3-ls.json" "$EVID/"
+  done
+  [ -n "$RELAUNCHED" ] && break
+  sleep 1
+done
+if [ -n "$RELAUNCHED" ]; then
+  cp "$RELAUNCHED" "$EVID/relaunched-ls.json"
+  RPID=$(grep -m1 '"pid"' "$RELAUNCHED" | tr -cd '0-9')
+  if [ -n "$RPID" ]; then
+    APP_PID="$RPID"
+    sandbox_status p3-ls-relaunched
+  fi
+  obs "relaunch (LaunchServices-launched parent): marker written ($RELAUNCHED)"
+else
+  obs "relaunch (LaunchServices-launched parent): NO marker after 60s"
+fi
+[ -f "$EVID/probe-report-phase3-ls.json" ] && obs "phase3-ls report collected" || obs "phase3-ls report: not found"
+shot p3-ls-after-relaunch
+sleep 9
+cleanup_procs
+
 # ---------------------------------------------------------------- MCP discovery file + container listing
 ls -la "$HOME/.insomnium" > "$EVID/real-home-insomnium-dir.txt" 2>&1
 find "$HOME/Library/Containers/$BUNDLE_ID" -maxdepth 6 \( -name 'mcp.json' -o -name '.insomnium' -o -name 'mas-probe' \) > "$EVID/container-probe-files.txt" 2>&1
@@ -321,9 +358,9 @@ const fs = require("fs"), path = require("path");
 const [dir, flavor] = process.argv.slice(1);
 const read = f => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch { return null; } };
 const phases = {};
-for (const p of ["1", "2", "3"]) phases[p] = read(`probe-report-phase${p}.json`) || read(`probe-report-phase${p}.stdout.json`);
+for (const p of ["1", "2", "3", "3-ls"]) phases[p] = read(`probe-report-phase${p}.json`) || read(`probe-report-phase${p}.stdout.json`);
 const observations = fs.readFileSync(path.join(dir, "observations.txt"), "utf8").split("\n").filter(Boolean);
-const report = { flavor, phases, relaunched: read("relaunched.json"), observations };
+const report = { flavor, phases, relaunched: read("relaunched.json"), relaunched_ls: read("relaunched-ls.json"), observations };
 fs.writeFileSync(path.join(dir, "probe-report.json"), JSON.stringify(report, null, 2));
 const rows = [];
 for (const [p, r] of Object.entries(phases)) for (const c of (r && r.checks) || []) rows.push(`${flavor}\tp${p}\t${c.where}\t${c.id}\t${c.result}\t${c.error_code || ""}`);
