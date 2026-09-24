@@ -613,9 +613,19 @@ async function saveFileGrantChecks(prefix: string, file: string) {
 async function appGroupCheck(id: string) {
   await check(id, 'main', 'ok with a team-signed build; ad-hoc: containermanagerd REJECTS the group (round 1 exec\'d instance still wrote it)', async () => {
     const data = `group ${phase}${TAG} ${Date.now()}`;
+    const existedBefore = fs.existsSync(groupFile);
     await fs.promises.mkdir(path.dirname(groupFile), { recursive: true }).catch(() => null);
     await fs.promises.writeFile(groupFile, data);
-    return { path: groupFile, wrote: data.length, readBack: (await fs.promises.readFile(groupFile, 'utf8')) === data };
+    // and a file that cannot exist yet, so creation is tested in every launch mode
+    const fresh = path.join(path.dirname(groupFile), `mas-probe-${phase}${TAG}-${process.pid}.txt`);
+    await fs.promises.writeFile(fresh, data);
+    return {
+      path: groupFile,
+      existed_before: existedBefore,
+      readBack: (await fs.promises.readFile(groupFile, 'utf8')) === data,
+      created_new_file: fresh,
+      new_file_readBack: (await fs.promises.readFile(fresh, 'utf8')) === data,
+    };
   }, 20000);
 }
 

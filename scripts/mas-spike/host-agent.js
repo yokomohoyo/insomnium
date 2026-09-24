@@ -51,7 +51,10 @@ const SB_PATHS = [
   ['file-read-data', '/etc/ssl/cert.pem'],
   ['file-read-data', D], // listing ~/Documents itself
   ['file-read-data', path.join(D, 'probe-dir', 'sub1', 'sub2', 'deep.txt')],
+  // NB: sandbox_check answers DENY for file-write-create on any path that does not exist
+  // yet, even inside a granted directory where the app does create files (round 2 run 3).
   ['file-write-create', path.join(D, 'probe-dir', 'host-check-new.txt')],
+  ['file-write-data', path.join(D, 'probe-dir', 'top.txt')],
   ['file-read-data', path.join(D, 'protos', 'b.proto')],
   ['file-read-data', path.join(D, 'certs', 'client.key')],
   ['file-read-data', path.join(D, 'ls-in.txt')],
