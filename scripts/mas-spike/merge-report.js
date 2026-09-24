@@ -22,7 +22,7 @@ const text = f => {
   }
 };
 
-const PHASES = ['1', '2', '3', 'relaunched', '3-ls', 'relaunched-ls', 'lsd', 'url-cold', '4'];
+const PHASES = ['1', '2', 'idle', 'lockcheck-first', 'lockcheck-second', '3', 'relaunched', '3-ls', 'relaunched-ls', 'lsd', 'url-cold', '4'];
 const phases = {};
 for (const p of PHASES) {
   let r = read(`probe-report-phase${p}.json`) || read(`agent-reports/probe-report-phase${p}.json`) || read(`probe-report-phase${p}.stdout.json`);
@@ -77,6 +77,34 @@ if (fs.existsSync(snapDir)) {
 fs.writeFileSync(path.join(dir, 'sandbox-evidence.tsv'), `${['snapshot', 'pid', 'kind', 'sandbox_check', 'etc_ssl_cert_pem', 'libsecinit_AppSandbox', 'denied'].join('\t')}\n${
   evidence.map(e => [e.snapshot, e.pid, e.kind, e.sandboxed, e.etc_ssl_cert_pem, e.libsecinit_appsandbox, e.deny.join(', ')].join('\t')).join('\n')}\n`);
 
+// crash reports: who died, how, and the child-of-a-sandboxed-parent signature
+const crashes = [];
+const crashDir = path.join(dir, 'crash-reports');
+if (fs.existsSync(crashDir)) {
+  for (const f of fs.readdirSync(crashDir).filter(n => n.endsWith('.ips')).sort()) {
+    try {
+      const raw = fs.readFileSync(path.join(crashDir, f), 'utf8');
+      const nl = raw.indexOf('\n');
+      const hdr = JSON.parse(raw.slice(0, nl));
+      const body = JSON.parse(raw.slice(nl + 1));
+      crashes.push({
+        file: f,
+        name: hdr.name || hdr.app_name,
+        timestamp: hdr.timestamp,
+        pid: body.pid,
+        parentPid: body.parentPid,
+        procPath: body.procPath,
+        termination: body.termination && body.termination.indicator,
+        exception: body.exception && `${body.exception.type} ${body.exception.signal || ''}`.trim(),
+        asiSignatures: body.asiSignatures || null,
+      });
+    } catch (e) {
+      crashes.push({ file: f, parse_error: String(e.message).slice(0, 100) });
+    }
+  }
+}
+fs.writeFileSync(path.join(dir, 'crash-summary.tsv'), `${crashes.map(c => [c.file, c.name, c.pid, c.parentPid, c.termination || c.exception, (c.asiSignatures || []).join(',')].join('\t')).join('\n')}\n`);
+
 const observations = text('observations.txt').split('\n').filter(Boolean);
 const report = {
   os: oslabel,
@@ -89,6 +117,11 @@ const report = {
   observations,
   sandbox_evidence: evidence,
   libsecinit_appsandbox_pids: Object.fromEntries(secinit),
+  crashes,
+  notes: [
+    'Sandbox evidence = libsecinit AppSandbox lines per pid, the container path, host sandbox_check (no-report), /etc/ssl/cert.pem allow (App Sandbox) vs DENY (Chromium seatbelt). process.mas / getAppMetrics().sandboxed are NOT evidence (hard-coded in MAS builds).',
+    'Ad-hoc signatures: the designated requirement is the cdhash, so the simulated-update bookmark results may not predict team-signed (Apple Distribution) behaviour.',
+  ],
 };
 fs.writeFileSync(path.join(dir, 'probe-report.json'), JSON.stringify(report, null, 2));
 

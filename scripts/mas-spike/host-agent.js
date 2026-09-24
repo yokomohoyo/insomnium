@@ -141,11 +141,15 @@ async function snapshot(label, pidSpec, rendererPid) {
 }
 
 // ---------------------------------------------------------------- dialog driver
+const drivers = new Map(); // key -> Promise resolved when that driver exits
 function startDriver(q) {
   const fd = fs.openSync(path.join(EVID, 'dialog-driver.log'), 'a');
   const child = spawn('perl', ['-e', 'alarm shift; exec @ARGV', '150', 'bash', path.join(HERE, 'drive-dialog.sh'),
     q.key || '0', q.id || 'dialog', q.drive || 'goto', q.pid || '0', q.path || '', EVID], { stdio: ['ignore', fd, fd] });
-  child.on('exit', (code, sig) => log('driver exit', q.key, code, sig));
+  drivers.set(String(q.key), new Promise(resolve => child.on('exit', (code, sig) => {
+    log('driver exit', q.key, code, sig);
+    resolve({ code, sig });
+  })));
   fs.closeSync(fd);
 }
 
@@ -193,6 +197,13 @@ function tlsServer() {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ client_cn: cn, authorized: req.socket.authorized, url: req.url }));
   });
+  let conns = 0;
+  s.on('secureConnection', sock => {
+    const pc = sock.getPeerCertificate();
+    const e = { at: new Date().toISOString(), event: 'handshake', conn: ++conns, client_cn: pc && pc.subject ? pc.subject.CN : null, authorized: sock.authorized, resumed: sock.isSessionReused() };
+    tlsLog.push(e);
+    log('tls', e);
+  });
   s.on('tlsClientError', err => {
     const e = { at: new Date().toISOString(), event: 'tlsClientError', code: err.code || null, message: String(err.message).slice(0, 200) };
     tlsLog.push(e);
@@ -232,9 +243,13 @@ const control = http.createServer(async (req, res) => {
       case '/dialog':
         startDriver(q);
         return send(200, { started: true, key: q.key });
-      case '/dialog-closed':
+      case '/dialog-closed': {
         fs.writeFileSync(path.join(EVID, `.dialog-closed-${safe(q.key)}`), new Date().toISOString());
-        return send(200, { ok: true });
+        // answer only once the driver is gone, so its late keystrokes cannot hit the next dialog
+        const d = drivers.get(String(q.key));
+        const r = d ? await Promise.race([d, sleep(30000).then(() => 'still running after 30s')]) : 'no driver';
+        return send(200, { ok: true, driver: r });
+      }
       case '/open-url': {
         const r = spawnSync('open', [q.url], { encoding: 'utf8', timeout: 30000 });
         const out = { status: r.status, signal: r.signal, stdout: (r.stdout || '').slice(0, 300), stderr: (r.stderr || '').slice(0, 300), error: r.error ? String(r.error.message) : null };

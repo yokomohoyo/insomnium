@@ -112,6 +112,13 @@ syntax = "proto3";
 package probe;
 message B { string v = 1; }
 EOF
+# control: an import that does not exist at all
+cat > "$D/protos/c.proto" <<'EOF'
+syntax = "proto3";
+package probe;
+import "missing.proto";
+message C { Missing m = 1; }
+EOF
 # probe 6: local CA, server cert (SAN 127.0.0.1), client cert/key in ~/Documents/certs
 OPENSSL=openssl
 [ -x /opt/homebrew/opt/openssl@3/bin/openssl ] && OPENSSL=/opt/homebrew/opt/openssl@3/bin/openssl
@@ -163,13 +170,62 @@ t 60 "$LSREGISTER" -f "$APP" > "$EVID/lsregister.txt" 2>&1
 t 20 "$LSHANDLER" insomnia > "$EVID/ls-handler-before.txt" 2>&1
 
 # ---------------------------------------------------------------- helpers
-launch() { # <phase> <hard-timeout-seconds>
-  local phase="$1" secs="$2"
-  LOG="$EVID/phase$phase.stdout.log"
-  INSOMNIUM_MAS_PROBE=1 INSOMNIUM_MAS_PROBE_PHASE="$phase" INSOMNIUM_MAS_PROBE_REAL_HOME="$HOME" INSOMNIUM_MAS_PROBE_CA_B64="$CA_B64" \
-    perl -e 'alarm shift; exec @ARGV' "$secs" "$EXE" > "$LOG" 2>&1 &
+# Chromium's single-instance files. A MAS instance killed with SIGKILL can leave
+# tmp/S/SingletonCookie behind in the container, after which the next launch fails
+# requestSingleInstanceLock() and quits (round-2 run 1). The harness records and clears
+# them before every launch, except in the force-quit experiment that measures exactly that.
+singleton_state() { # <label>
+  {
+    echo "## $1 $(date +%H:%M:%S)"
+    ls -la "$UD"/Singleton* 2>&1
+    ls -la "$CONTAINER/Data/tmp/S" 2>&1
+  } >> "$EVID/singleton-files.txt"
+}
+clear_stale() { # <label>
+  local n
+  n=$( (ls -d "$UD"/Singleton* "$CONTAINER/Data/tmp/S/"Singleton* 2>/dev/null || true) | wc -l | tr -d ' ')
+  if [ "$n" != 0 ]; then
+    singleton_state "stale-before-$1"
+    obs "stale singleton files before $1: $n (cleared)"
+    rm -f "$UD"/Singleton* "$CONTAINER/Data/tmp/S/"Singleton*
+  fi
+}
+
+launch() { # <phase> <hard-timeout-seconds>   (env PROBE_TAG, NO_CLEAR)
+  local phase="$1" secs="$2" tag="${PROBE_TAG:-}"
+  [ -n "${NO_CLEAR:-}" ] || clear_stale "phase$phase${tag:+-$tag}"
+  LOG="$EVID/phase$phase${tag:+-$tag}.stdout.log"
+  LAUNCH_AGENT_LINES=$(wc -l < "$EVID/host-agent.log" 2>/dev/null || echo 0)
+  INSOMNIUM_MAS_PROBE=1 INSOMNIUM_MAS_PROBE_PHASE="$phase" INSOMNIUM_MAS_PROBE_TAG="$tag" INSOMNIUM_MAS_PROBE_REAL_HOME="$HOME" \
+    INSOMNIUM_MAS_PROBE_CA_B64="$CA_B64" perl -e 'alarm shift; exec @ARGV' "$secs" "$EXE" > "$LOG" 2>&1 &
   APP_PID=$!
-  log "phase $phase launched pid $APP_PID (hard timeout ${secs}s)"
+  log "phase $phase${tag:+ ($tag)} launched pid $APP_PID (hard timeout ${secs}s)"
+}
+
+# Wait for the probe's start stage; if the app stalls before it (a modal alert before
+# 'ready'), record the screen and the alert text, then press Return once.
+startup_guard() { # <label> [phase-name-in-agent-log]
+  local label="$1" ph="${2:-}" i=0 pid
+  while [ "$i" -lt 90 ]; do
+    grep -q 'MASPROBE:STAGE start' "$LOG" 2>/dev/null && return 0
+    [ -n "$ph" ] && tail -n +"$((LAUNCH_AGENT_LINES + 1))" "$EVID/host-agent.log" 2>/dev/null | grep -q "\"phase\":\"$ph\"" && return 0
+    sleep 0.5
+    i=$((i + 1))
+  done
+  pid="$(pgrep -f "$APP/Contents/MacOS/Insomnium" | head -1)"
+  shot "stall-$label"
+  t 30 osascript -e "tell application \"System Events\" to tell (first process whose unix id is ${pid:-0}) to get {name, value of static texts, name of buttons} of every window" > "$EVID/stall-$label.txt" 2>&1
+  obs "STARTUP STALL in $label (pid ${pid:-none}): $(tr '\n' ' ' < "$EVID/stall-$label.txt" | cut -c1-400)"
+  [ -n "$pid" ] || return 1
+  t 20 osascript -e "tell application \"System Events\" to set frontmost of (first process whose unix id is $pid) to true" >> "$EVID/osascript.log" 2>&1
+  t 20 osascript -e 'tell application "System Events" to key code 36' >> "$EVID/osascript.log" 2>&1
+  return 1
+}
+
+lock_obs() { # <label>: did main.development.ts give up on the single-instance lock?
+  local n
+  n=$(grep -c 'Failed to get instance lock' "$LOG" 2>/dev/null)
+  [ "${n:-0}" = 0 ] || obs "$1: '[app] Failed to get instance lock' x$n"
 }
 
 wait_marker() { # <grep-pattern> <seconds>
@@ -212,8 +268,14 @@ wait_exit() { # <seconds>
   log "pid $APP_PID exit status $EXIT_RC"
 }
 
-cleanup_procs() {
-  pkill -9 -f "$APP/Contents" 2>/dev/null
+cleanup_procs() { # graceful first (SIGTERM makes Electron quit normally), then SIGKILL leftovers
+  local i=0
+  pkill -TERM -f "$APP/Contents/MacOS/Insomnium" 2>/dev/null
+  while pgrep -f "$APP/Contents/MacOS/Insomnium" > /dev/null && [ "$i" -lt 16 ]; do sleep 0.5; i=$((i + 1)); done
+  if pgrep -f "$APP/Contents" > /dev/null; then
+    log "cleanup: SIGKILL leftovers: $(pgrep -f "$APP/Contents" | tr '\n' ' ')"
+    pkill -9 -f "$APP/Contents" 2>/dev/null
+  fi
   sleep 1
 }
 
@@ -248,12 +310,13 @@ container_meta() { # <label>
 # ---------------------------------------------------------------- phase 1
 log "=== phase 1"
 launch 1 1000
-sleep 12
+startup_guard p1 1
 shot p1-00-startup
 wait_marker 'MASPROBE:STAGE done' 960 || true
 shot p1-99-end
 wait_exit 30
 obs "phase1 exit: $EXIT_RC"
+lock_obs phase1
 collect 1
 cleanup_procs
 ls -la "$D" "$D/probe-dir" > "$EVID/documents-after-p1.txt" 2>&1
@@ -263,24 +326,60 @@ container_meta after-p1
 # ---------------------------------------------------------------- phase 2
 log "=== phase 2"
 launch 2 300
+startup_guard p2 2
 wait_marker 'MASPROBE:STAGE done' 280 || true
 wait_exit 20
 obs "phase2 exit: $EXIT_RC"
+lock_obs phase2
 collect 2
 cleanup_procs
 cat "$D/probe-out.txt" > "$EVID/probe-out-after-p2.txt" 2>&1
 ls -la "$D/probe-dir" > "$EVID/probe-dir-after-p2.txt" 2>&1
 
+# ---------------------------------------------------------------- force-quit experiment
+# Kill a fully started instance with SIGKILL (like Force Quit or a crash), then start the
+# app again twice WITHOUT clearing Chromium's singleton files.
+log "=== force-quit experiment"
+launch idle 200
+startup_guard idle idle
+if wait_marker 'MASPROBE:STAGE idle-ready' 120; then
+  singleton_state fq-1-running
+  kill -9 "$APP_PID" 2>/dev/null
+  sleep 5
+  pgrep -fl "$APP/Contents" > "$EVID/fq-ps-after-kill.txt" 2>&1
+  pkill -9 -f "$APP/Contents" 2>/dev/null
+  wait "$APP_PID" 2>/dev/null
+  obs "force-quit: SIGKILLed main pid $APP_PID"
+  collect idle
+  sleep 1
+  singleton_state fq-2-after-kill
+  for tag in first second; do
+    NO_CLEAR=1 PROBE_TAG=$tag launch lockcheck 120
+    startup_guard "lockcheck-$tag" "lockcheck-$tag"
+    wait_marker 'MASPROBE:STAGE done' 90 || true
+    wait_exit 15
+    obs "force-quit: relaunch ($tag) exit $EXIT_RC, 'Failed to get instance lock' x$(grep -c 'Failed to get instance lock' "$LOG"), renderer-ready ok x$(grep -c '"id":"renderer-ready","where":"main","expect_mas":"[^"]*","result":"ok"' "$LOG")"
+    collect "lockcheck-$tag"
+    cleanup_procs
+    singleton_state "fq-3-after-lockcheck-$tag"
+  done
+else
+  obs "force-quit: the idle instance never became ready"
+  cleanup_procs
+fi
+
 # ---------------------------------------------------------------- phase 3 (relaunch)
 log "=== phase 3"
 for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do rm -f "$d/relaunched.json"; done
 launch 3 120
+startup_guard p3 3
 wait_marker 'MASPROBE:STAGE relaunching' 120 || true
 wait_exit 30
 obs "phase3 exit: $EXIT_RC"
 collect 3
 if wait_file "$EVID/agent-reports/probe-report-phaserelaunched.json" 100; then
   obs "relaunch: the relaunched instance reported (agent)"
+  sleep 3
 else
   obs "relaunch: NO report from the relaunched instance after 100s"
 fi
@@ -293,13 +392,16 @@ cleanup_procs
 # ---------------------------------------------------------------- phase 3 again, launched by LaunchServices
 log "=== phase 3 via LaunchServices (open)"
 for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do rm -f "$d/relaunched-ls.json" "$d/probe-report-phase3-ls.json"; done
+clear_stale phase3-ls
 LOG="$EVID/phase3-ls.stdout.log"
 t 150 open -n -W --env INSOMNIUM_MAS_PROBE=1 --env INSOMNIUM_MAS_PROBE_PHASE=3 --env INSOMNIUM_MAS_PROBE_TAG=ls \
   --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-3-ls.txt" 2>&1
 obs "phase3-ls open exit: $?"
+lock_obs phase3-ls
 collect 3-ls
 if wait_file "$EVID/agent-reports/probe-report-phaserelaunched-ls.json" 100; then
   obs "relaunch (LaunchServices-launched parent): the relaunched instance reported (agent)"
+  sleep 3
 else
   obs "relaunch (LaunchServices-launched parent): NO report after 100s"
 fi
@@ -310,28 +412,39 @@ cleanup_procs
 
 # ---------------------------------------------------------------- phase lsd: LaunchServices-launched dialogs + app group
 log "=== phase lsd (open -n -W: the app is its own responsible process)"
+clear_stale phaselsd
 LOG="$EVID/phaselsd.stdout.log"
+LAUNCH_AGENT_LINES=$(wc -l < "$EVID/host-agent.log")
 t 420 open -n -W --env INSOMNIUM_MAS_PROBE=1 --env INSOMNIUM_MAS_PROBE_PHASE=lsd --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" \
-  --env "INSOMNIUM_MAS_PROBE_CA_B64=$CA_B64" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-lsd.txt" 2>&1
+  --env "INSOMNIUM_MAS_PROBE_CA_B64=$CA_B64" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-lsd.txt" 2>&1 &
+OPEN_PID=$!
+startup_guard lsd lsd
+wait "$OPEN_PID"
 obs "phase lsd open exit: $?"
+lock_obs phaselsd
 collect lsd
 ps -axo pid,ppid,user,command | grep -F "$APP" | grep -v grep | cut -c1-260 > "$EVID/ps-after-lsd.txt"
 cleanup_procs
 
 # ---------------------------------------------------------------- url-cold: open insomnia://... while not running
 log "=== url-cold"
+clear_stale url-cold
 t 20 "$LSHANDLER" insomnia > "$EVID/ls-handler-before-url-cold.txt" 2>&1
 mkdir -p "$UD/mas-probe" 2>> "$EVID/probe-run.log"
 if echo '{"phase":"url-cold"}' > "$UD/mas-probe/arm.json" 2>> "$EVID/probe-run.log"; then
   obs "url-cold: arm file written to $UD/mas-probe/arm.json"
+  LOG=/dev/null
+  LAUNCH_AGENT_LINES=$(wc -l < "$EVID/host-agent.log")
   t 90 open 'insomnia://app/probe?x=1&cold=1' > "$EVID/open-url-cold.txt" 2>&1
   obs "url-cold: open exit $?"
+  startup_guard url-cold url-cold
   if wait_file "$EVID/agent-reports/probe-report-phaseurl-cold.json" 60; then
     obs "url-cold: the URL-launched instance reported (agent)"
+    sleep 3
   else
     obs "url-cold: NO report from a URL-launched instance after 60s"
   fi
-  [ -f "$UD/mas-probe/arm.json" ] && obs "url-cold: arm file NOT consumed" || obs "url-cold: arm file consumed"
+  if [ -f "$UD/mas-probe/arm.json" ]; then obs "url-cold: arm file NOT consumed"; else obs "url-cold: arm file consumed"; fi
 else
   obs "url-cold: could not write the arm file (container write from the host blocked?)"
 fi
@@ -345,10 +458,7 @@ log "=== simulated update"
 container_meta before-update
 t 60 codesign -dvvv "$APP" > "$EVID/update-codesign-before.txt" 2>&1
 OLD_V="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")"
-case "$OLD_V" in
-  ''|*[!0-9]*) NEW_V="$OLD_V.1" ;;
-  *) NEW_V=$((OLD_V + 1)) ;;
-esac
+if printf '%s' "$OLD_V" | grep -qE '^[0-9]+$'; then NEW_V=$((OLD_V + 1)); else NEW_V="$OLD_V.1"; fi
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_V" "$APP/Contents/Info.plist"
 bash "$HERE/sign-adhoc.sh" "$APP" "$ENT" "$ENT_INHERIT" > "$EVID/update-sign.log" 2>&1
 obs "update re-sign exit: $?"
@@ -363,9 +473,11 @@ obs "update: CFBundleVersion $OLD_V -> $NEW_V, cdhash $CD_BEFORE -> $CD_AFTER"
 # ---------------------------------------------------------------- phase 4 (post-update)
 log "=== phase 4"
 launch 4 300
+startup_guard p4 4 || { sleep 20; startup_guard p4-retry 4; }
 wait_marker 'MASPROBE:STAGE done' 280 || true
 wait_exit 20
 obs "phase4 exit: $EXIT_RC"
+lock_obs phase4
 collect 4
 cleanup_procs
 container_meta after-p4
@@ -398,7 +510,8 @@ done
 : > "$EVID/crash-control-found.txt"
 while read -r kind pid _; do
   f="$(grep -lsE "\"pid\" ?: ?$pid[,}]" "$EVID/crash-reports/"* 2>/dev/null | head -1)"
-  echo "$kind pid=$pid report=${f:+$(basename "$f")}${f:-MISSING}" >> "$EVID/crash-control-found.txt"
+  if [ -n "$f" ]; then r="$(basename "$f")"; else r=MISSING; fi
+  echo "$kind pid=$pid report=$r" >> "$EVID/crash-control-found.txt"
 done < "$EVID/crash-control.txt"
 obs "crash positive controls: $(tr '\n' ';' < "$EVID/crash-control-found.txt")"
 obs "crash reports since start: $(ls "$EVID/crash-reports" | tr '\n' ' ')"

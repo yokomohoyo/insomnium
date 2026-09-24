@@ -65,6 +65,7 @@ const probeDirFx = path.join(docs, 'probe-dir');
 const protosDir = path.join(docs, 'protos');
 const protoA = path.join(protosDir, 'a.proto');
 const protoB = path.join(protosDir, 'b.proto');
+const protoC = path.join(protosDir, 'c.proto'); // imports missing.proto, which does not exist
 const certsDir = path.join(docs, 'certs');
 const caPath = path.join(certsDir, 'ca.crt');
 const certPath = path.join(certsDir, 'client.crt');
@@ -286,16 +287,18 @@ function requestDrive(id: string, drive: string, drivePath: string) {
   return key;
 }
 
-function dialogDone(key: string, info: any) {
+// Waits until the agent's driver for this dialog has exited, so a late keystroke from
+// one driver can never land in the next dialog.
+async function dialogDone(key: string, info: any) {
   stage('dialog-closed', { key, ...info });
-  agentQuiet(`/dialog-closed?key=${encodeURIComponent(key)}`);
+  await agentQuiet(`/dialog-closed?key=${encodeURIComponent(key)}`, { timeoutMs: 40000 });
 }
 
 async function openDriven(id: string, drive: string, drivePath: string, opts: Electron.OpenDialogOptions): Promise<any> {
   app.focus({ steal: true });
   const key = requestDrive(id, drive, drivePath);
   const r: any = await dialog.showOpenDialog({ title: `MASPROBE ${id}`, securityScopedBookmarks: true, ...opts });
-  dialogDone(key, { canceled: r.canceled, filePaths: r.filePaths });
+  await dialogDone(key, { canceled: r.canceled, filePaths: r.filePaths });
   return r;
 }
 
@@ -303,7 +306,7 @@ async function saveDriven(id: string, drive: string, drivePath: string, opts: El
   app.focus({ steal: true });
   const key = requestDrive(id, drive, drivePath);
   const r: any = await dialog.showSaveDialog({ title: `MASPROBE ${id}`, securityScopedBookmarks: true, ...opts });
-  dialogDone(key, { canceled: r.canceled, filePath: r.filePath });
+  await dialogDone(key, { canceled: r.canceled, filePath: r.filePath });
   return r;
 }
 
@@ -478,11 +481,15 @@ function curlRequest(url: string, opts: [string, any][] = [], caBlob?: string | 
       curl.setOpt(Curl.option.CAINFO_BLOB, caBlob ?? tls.rootCertificates.join('\n'));
     }
     curl.setOpt(Curl.option.TIMEOUT, 20);
-    try {
-      // keep a CA store loaded by one request from masking a later unreadable CAINFO
-      curl.setOpt('CA_CACHE_TIMEOUT', 0);
-    } catch {
-      /* option unknown to this libcurl */
+    // node-libcurl shares one multi handle, so without these a kept-alive TLS connection
+    // (or a cached session / CA store) from an earlier request would be reused and the
+    // cert/key/CA files would never be opened again.
+    for (const [k, v] of [['FRESH_CONNECT', 1], ['FORBID_REUSE', 1], ['SSL_SESSIONID_CACHE', 0], ['CA_CACHE_TIMEOUT', 0]] as [string, number][]) {
+      try {
+        curl.setOpt(k, v);
+      } catch {
+        /* option unknown to this libcurl */
+      }
     }
     for (const [k, v] of opts) {
       curl.setOpt(k, v);
@@ -701,7 +708,7 @@ async function protoProbe() {
   await check('proto-main-read-b-sibling', 'main', 'EPERM (sibling not granted)', () => mainRead(protoB));
   await check('proto-renderer-read-b-sibling', 'renderer', 'EPERM', () => rendererRead(protoB));
   await check('proto-loader-main-single-file-grant', 'main', 'error: import "b.proto" unreadable', () => mainLoad(protoA));
-  await check('proto-loader-renderer-single-file-grant', 'renderer', 'error: import "b.proto" unreadable', () => rendererLoad(protoA));
+  await check('proto-loader-renderer-single-file-grant', 'renderer', 'error: import "b.proto" unreadable (round-2 run 1: never settles in MAS)', () => rendererLoad(protoA), 20000);
   await check('proto-dialog-open-dir', 'main', 'ok; chosen == ~/Documents/protos', async () => {
     const r = await openDriven('proto-dialog-open-dir', 'goto', `${protosDir}/`, { defaultPath: protosDir, properties: ['openDirectory'] });
     const detail = { canceled: r.canceled, filePaths: r.filePaths };
@@ -710,6 +717,10 @@ async function protoProbe() {
   await check('proto-main-read-b-after-dir-grant', 'main', 'ok', () => mainRead(protoB));
   await check('proto-loader-main-after-dir-grant', 'main', 'ok (types include probe.B, probe.ProbeService)', () => mainLoad(protoA));
   await check('proto-loader-renderer-after-dir-grant', 'renderer', 'ok', () => rendererLoad(protoA));
+  // Control for the renderer hang: an import that does not exist at all (ENOENT), in both
+  // flavors. @protobufjs/fetch retries a failed fs read with XMLHttpRequest when one exists.
+  await check('proto-loader-main-missing-import-control', 'main', 'error (ENOENT) in both flavors', () => mainLoad(protoC));
+  await check('proto-loader-renderer-missing-import-control', 'renderer', 'both flavors: does a missing import also never settle in the renderer?', () => rendererLoad(protoC), 20000);
 }
 
 // Probe 6: client certificates through libcurl against a TLS server that requires one.
@@ -768,7 +779,8 @@ async function certProbe() {
   const got: Record<string, string> = {};
   const want = [caPath, certPath, keyPath];
   await check('cert-dialog-multi', 'main', 'ok; ca.crt, client.crt, client.key chosen in one multi-select dialog', async () => {
-    const r = await openDriven('cert-dialog-multi', 'goto-selectall', `${certsDir}/`, { defaultPath: certsDir, properties: ['openFile', 'multiSelections'] });
+    // Go-To a file inside certs/ opens that folder's column; Cmd-A then selects all three.
+    const r = await openDriven('cert-dialog-multi', 'goto-selectall', caPath, { defaultPath: certsDir, properties: ['openFile', 'multiSelections'] });
     (r.filePaths || []).forEach((p: string, i: number) => {
       got[p] = r.bookmarks?.[i] || '';
     });
@@ -1173,6 +1185,30 @@ async function phaseUrlCold() {
   }));
 }
 
+// Force-quit experiment, part 1: the script SIGKILLs this instance (main only, like Force
+// Quit) once it is fully up.
+async function phaseIdle() {
+  await envCheck();
+  await rendererReady();
+  await sleep(3000);
+  await check('instance-lock', 'main', 'held', () => ({ has_single_instance_lock: app.hasSingleInstanceLock() }));
+  await agentQuiet(`/report?name=${encodeURIComponent(`phase${phase}${TAG}`)}`, { method: 'POST', body: buildReport({ partial: true }) });
+  stage('idle-ready');
+  await new Promise(() => null); // until SIGKILL (or the watchdog)
+}
+
+// Part 2: the next launch after the force quit. main.development.ts calls app.quit() when
+// requestSingleInstanceLock() fails; the will-quit hook then still flushes this report.
+async function phaseLockcheck() {
+  await envCheck();
+  await sleep(4000);
+  await check('instance-lock-after-force-quit', 'main', 'held (run 1 MAS: stale SingletonCookie -> "[app] Failed to get instance lock" -> app quits)', () => {
+    const held = app.hasSingleInstanceLock();
+    return held ? { has_single_instance_lock: held } : probeError('NO_INSTANCE_LOCK', { has_single_instance_lock: held });
+  });
+  await rendererReady();
+}
+
 // After a simulated update: same bundle id, new CFBundleVersion, re-signed (ad-hoc: new cdhash).
 async function phase4() {
   await envCheck();
@@ -1215,6 +1251,10 @@ export async function runMasProbe() {
     processGone.push({ kind: 'child', ...details, at: new Date().toISOString() });
     out(`MASPROBE:PROCESS-GONE child ${J(details)}`);
   });
+  app.on('will-quit', () => {
+    out('MASPROBE:WILL-QUIT');
+    flush({ will_quit: true, has_single_instance_lock_at_quit: app.hasSingleInstanceLock() });
+  });
   stage('start', { phase, tag: TAG, pid: process.pid, userData: app.getPath('userData') });
   agentQuiet(`/stage?name=start&phase=${encodeURIComponent(phase + TAG)}&pid=${process.pid}`);
 
@@ -1241,6 +1281,10 @@ export async function runMasProbe() {
     await phaseUrlCold();
   } else if (phase === '4') {
     await phase4();
+  } else if (phase === 'idle') {
+    await phaseIdle();
+  } else if (phase === 'lockcheck') {
+    await phaseLockcheck();
   }
   clearTimeout(watchdog);
   const report = buildReport({ finished: true });
