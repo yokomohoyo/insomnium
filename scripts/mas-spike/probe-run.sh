@@ -61,7 +61,9 @@ obs "ElectronTeamID: $(/usr/libexec/PlistBuddy -c 'Print :ElectronTeamID' "$APP/
 SBCHECK="$RUNNER_TEMP/sbcheck"
 # paths probed for every process (no spaces in them, so word splitting is fine)
 SBPATHS="$HOME/.netrc $HOME/Documents/probe-in.txt $HOME/Documents/probe-out.txt /etc/ssl/cert.pem"
-clang -o "$SBCHECK" "$HERE/sbcheck.c" > "$EVID/sbcheck-build.txt" 2>&1 || log "sbcheck build failed"
+{ clang -DUSE_NO_REPORT -o "$SBCHECK" "$HERE/sbcheck.c" && echo "built with SANDBOX_CHECK_NO_REPORT"; } > "$EVID/sbcheck-build.txt" 2>&1 ||
+  { clang -o "$SBCHECK" "$HERE/sbcheck.c" && echo "built WITHOUT no-report (its queries show up as deny lines)"; } >> "$EVID/sbcheck-build.txt" 2>&1 ||
+  log "sbcheck build failed"
 
 # ---------------------------------------------------------------- fixtures
 mkdir -p "$HOME/Documents" "$HOME/mas-probe-plain"

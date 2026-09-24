@@ -274,6 +274,7 @@ async function envCheck() {
     return {
       process_mas: (process as any).mas ?? null,
       process_sandboxed: (process as any).sandboxed ?? null,
+      start_accessing_security_scoped_resource: typeof (app as any).startAccessingSecurityScopedResource,
       electron: process.versions.electron,
       exec_path: process.execPath,
       user_data: userData,
@@ -338,6 +339,8 @@ async function phase1() {
   // Code that builds home paths from os.homedir() silently points into the container.
   await check('fs-homedir-relative-netrc', 'main', 'ENOENT (os.homedir() is the container)', () => mainRead(path.join(os.homedir(), '.netrc')));
   await check('fs-gcloud-adc-real-home', 'main', 'EPERM', () => mainRead(path.join(realHome, '.config', 'gcloud', 'application_default_credentials.json')));
+  // Container Downloads is a symlink to ~/Downloads, usable only with files.downloads.read-write.
+  await check('fs-downloads-write', 'main', 'EPERM (no files.downloads.read-write entitlement)', () => mainWrite(path.join(app.getPath('downloads'), 'mas-probe-download.txt'), 'dl'));
 
   const udRendererFile = path.join(app.getPath('userData'), 'mas-probe', 'fs-renderer.txt');
   await check('renderer-fs-userdata-rw', 'renderer', 'ok (inherits container)', () => rendererEval(
