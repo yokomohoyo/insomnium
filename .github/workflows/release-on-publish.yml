@@ -99,7 +99,7 @@ jobs:
         run: |
           app=packages/insomnia/dist/mac-arm64/Insomnium.app
           codesign --verify --deep --strict --verbose=2 "$app"
-          codesign -dv "$app" 2>&1 | grep -E '^(Authority|TeamIdentifier|Runtime Version)='
+          codesign -dvv "$app" 2>&1 | grep -E '^(Authority|TeamIdentifier|Runtime Version|Timestamp)='
           xcrun stapler validate "$app"
           spctl --assess --type execute --verbose=4 "$app"
 
