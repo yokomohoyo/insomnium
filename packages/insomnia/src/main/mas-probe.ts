@@ -43,7 +43,9 @@ const docsIn = path.join(realHome, 'Documents', 'probe-in.txt');
 const docsOut = path.join(realHome, 'Documents', 'probe-out.txt');
 const plainFile = path.join(realHome, 'mas-probe-plain', 'probe-plain.txt');
 const netrcPath = path.join(realHome, '.netrc');
-const PLUGIN = 'insomnia-plugin-default-headers';
+// Tiny, dependency-free and not deprecated on npm (a deprecated one makes
+// `yarn info` print a warning, which install-plugin.ts treats as failure).
+const PLUGIN = 'insomnia-plugin-jsonc';
 
 let probeDir = '';
 
@@ -365,6 +367,19 @@ async function phase1() {
   const inPath = openedPath || docsIn;
   await check('dialog-open-main-read', 'main', 'ok (PowerBox grant)', () => mainRead(inPath));
   await check('dialog-open-renderer-read', 'renderer', 'EPERM (grant is main-process only)', () => rendererRead(inPath));
+  // A renderer process spawned only after the grant: tells a grant copied at
+  // spawn time apart from one shared live by the whole inherited sandbox.
+  await check('dialog-open-new-renderer-read', 'renderer', 'EPERM (grant is main-process only)', async () => {
+    const win = new BrowserWindow({ show: false, webPreferences: { nodeIntegration: true, contextIsolation: false, sandbox: false } });
+    try {
+      await win.loadURL('data:text/html,<p>mas-probe</p>');
+      const r = await win.webContents.executeJavaScript(`(() => { try { const d = require('fs').readFileSync(${JSON.stringify(inPath)}, 'utf8'); return { ok: true, bytes: d.length }; } catch (e) { return { ok: false, code: e.code || e.name, message: e.message }; } })()`, true);
+      const detail = { new_renderer_pid: win.webContents.getOSProcessId(), main_window_renderer_pid: mainWindow?.webContents.getOSProcessId() ?? null, ...r };
+      return r.ok ? detail : probeError(r.code, detail);
+    } finally {
+      win.destroy();
+    }
+  });
 
   // --- DIALOG: save ---
   let savedPath: string | null = null;
@@ -388,6 +403,12 @@ async function phase1() {
   await check('dialog-save-renderer-read-after-main-write', 'renderer', 'EPERM', () => rendererRead(outPath));
   await check('dialog-save-main-write-sibling', 'main', 'EPERM (grant covers the chosen file only)', () =>
     mainWrite(path.join(path.dirname(outPath), 'probe-out-sibling.txt'), 'sibling'));
+  // Give the test script a window to run sandbox_check() on every process against the granted paths.
+  stage('dialogs-done', { renderer_pid: mainWindow?.webContents.getOSProcessId() ?? null });
+  await new Promise(r => setTimeout(r, 6000));
+
+  await check('fs-app-group-container-rw', 'main', 'ok with a team-signed build (ad-hoc: containermanagerd rejects the group)', () =>
+    mainWrite(path.join(realHome, 'Library', 'Group Containers', 'M4B2LM9HCJ.com.insomnium.app', 'mas-probe.txt'), `group ${Date.now()}`));
 
   // --- NETWORK ---
   await check('net-libcurl-require', 'main', 'ok', () => {
@@ -450,15 +471,48 @@ async function phase1() {
       timeout: 20000,
       encoding: 'utf8',
     }), s => s.trim() === '1'), 30000);
+  // Same child, but have it report its own view: home, ~/.netrc, the file the
+  // parent was granted by the open dialog, and the parent's container.
+  const childScript = `const fs = require('fs'), os = require('os');
+    const t = p => { try { fs.readFileSync(p); return 'ok'; } catch (e) { return e.code || String(e); } };
+    const [netrc, docs, ud] = process.argv.slice(1);
+    console.log(JSON.stringify({ one: 1, pid: process.pid, homedir: os.homedir(), HOME: process.env.HOME || null,
+      netrc: t(netrc), granted_doc: t(docs), parent_userdata_file: t(ud) }));`;
+  await check('child-run-as-node-view', 'main', 'child is sandboxed with its own copy of the entitlements; no parent grant', () => {
+    const r = spawnSync(process.execPath, ['-e', childScript, netrcPath, inPath, udFile], {
+      env: { ELECTRON_RUN_AS_NODE: '1' },
+      timeout: 20000,
+      encoding: 'utf8',
+    });
+    const res: any = spawnResult(r, s => s.includes('"one":1'));
+    if (res.__probe_error) {
+      return res;
+    }
+    try {
+      return { ...JSON.parse(String(r.stdout).trim().split('\n').pop() || '{}'), exit: r.status };
+    } catch {
+      return res;
+    }
+  }, 30000);
   await check('child-bin-sh', 'main', 'ok (system binary inherits the sandbox)', () =>
     spawnResult(spawnSync('/bin/sh', ['-c', 'echo sh-ok; id -un'], { timeout: 10000, encoding: 'utf8' }), s => s.includes('sh-ok')));
+  const yarnPath = path.resolve(app.getAppPath(), '../bin/yarn-standalone.js');
+  await check('child-yarn-version', 'main', 'crash/kill (bundled yarn via ELECTRON_RUN_AS_NODE)', () =>
+    spawnResult(spawnSync(process.execPath, ['--no-deprecation', yarnPath, '--version'], {
+      env: { NODE_ENV: 'production', ELECTRON_RUN_AS_NODE: 'true' },
+      timeout: 30000,
+      encoding: 'utf8',
+    }), s => /^\d+\.\d+/.test(s.trim())), 40000);
+  const pluginDir = path.join(process.env['INSOMNIA_DATA_PATH'] || app.getPath('userData'), 'plugins', PLUGIN);
   await check('child-plugin-install', 'main', 'error (yarn child is process.execPath)', async () => {
     const { default: installPlugin } = await import('./install-plugin');
     await installPlugin(PLUGIN);
-    const pluginDir = path.join(process.env['INSOMNIA_DATA_PATH'] || app.getPath('userData'), 'plugins', PLUGIN);
     const ok = fs.existsSync(path.join(pluginDir, 'package.json'));
-    return ok ? { plugin: PLUGIN, pluginDir } : probeError('NOT_INSTALLED', { plugin: PLUGIN, pluginDir });
-  }, 120000);
+    return ok ? { plugin: PLUGIN, pluginDir, files: fs.readdirSync(pluginDir) } : probeError('NOT_INSTALLED', { plugin: PLUGIN, pluginDir });
+  }, 150000);
+  await check('child-plugin-load-renderer', 'renderer', 'ok if installed (plugins load from the container)', () => (fs.existsSync(pluginDir)
+    ? rendererEval(`const m = require(${JSON.stringify(pluginDir)}); return { exports: Object.keys(m || {}) };`)
+    : probeError('NOT_INSTALLED', pluginDir)));
 
   // --- MCP ---
   await check('mcp-server', 'main', 'ok (network.server); discovery file lands in container home', async () => {
@@ -494,7 +548,10 @@ async function phase1() {
 
 async function phase2() {
   await envCheck();
+  await rendererReady();
   await check('persist-direct-read', 'main', 'EPERM (no grant after relaunch)', () => mainRead(docsIn));
+  await check('persist-renderer-direct-read', 'renderer', 'EPERM (no grant after relaunch)', () => rendererRead(docsIn));
+  let stop: any = null;
   await check('persist-bookmark-read', 'main', 'ok (security-scoped bookmark)', () => {
     const bookmark = loadBookmark('open');
     if (!bookmark) {
@@ -504,15 +561,17 @@ async function phase2() {
     if (typeof fn !== 'function') {
       return probeError('API_MISSING', 'app.startAccessingSecurityScopedResource is not a function in this build');
     }
-    const stop = fn.call(app, bookmark);
-    try {
-      return { ...mainRead(docsIn), stop_is_function: typeof stop === 'function' };
-    } finally {
-      if (typeof stop === 'function') {
-        stop();
-      }
-    }
+    stop = fn.call(app, bookmark);
+    return { ...mainRead(docsIn), stop_is_function: typeof stop === 'function' };
   });
+  // While main holds the bookmark's access open, can the renderer read too?
+  await check('persist-renderer-read-during-access', 'renderer', 'EPERM (access is main-process only)', () => rendererRead(docsIn));
+  stage('bookmark-access-open', { renderer_pid: mainWindow?.webContents.getOSProcessId() ?? null });
+  await new Promise(r => setTimeout(r, 6000));
+  if (typeof stop === 'function') {
+    stop();
+  }
+  await check('persist-renderer-read-after-stop', 'renderer', 'EPERM', () => rendererRead(docsIn));
   await check('persist-direct-read-after-stop', 'main', 'EPERM', () => mainRead(docsIn));
   await check('persist-save-bookmark-write', 'main', 'ok (security-scoped bookmark)', () => {
     const bookmark = loadBookmark('save');
@@ -583,7 +642,8 @@ export async function runMasProbe() {
   if (phase === 'relaunched') {
     await relaunched();
     clearTimeout(watchdog);
-    setTimeout(() => app.exit(0), 1000);
+    // stay up briefly so the test script can sandbox_check() this pid
+    setTimeout(() => app.exit(0), 8000);
     return;
   }
   if (phase === '1') {

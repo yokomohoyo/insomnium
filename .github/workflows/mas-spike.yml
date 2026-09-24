@@ -122,6 +122,10 @@ jobs:
           perl -e 'alarm 25; exec @ARGV' "$C/Contents/MacOS/Insomnium" > "$OUT/attempt-b-launch.log" 2>&1 && echo "launch exit 0" >> "$OUT/attempt-b-launch.log" || echo "launch exit $?" >> "$OUT/attempt-b-launch.log"
           tail -30 "$OUT/attempt-b-launch.log"
           pkill -9 -f "$RUNNER_TEMP/eb-adhoc" || true
+          perl -e 'alarm 120; exec @ARGV' log show --last 2m --style syslog --predicate \
+            'process == "amfid" OR (process == "kernel" AND (eventMessage CONTAINS "AMFI" OR eventMessage CONTAINS[c] "insomnium")) OR process == "taskgated" OR process CONTAINS "Insomnium"' \
+            > "$OUT/attempt-b-launch-unified-log.txt" 2>&1 || true
+          grep -iE "amfi|restricted|entitlement|provision|kill" "$OUT/attempt-b-launch-unified-log.txt" | cut -c1-400 | tail -30 || true
 
       - name: Upload evidence
         if: always()

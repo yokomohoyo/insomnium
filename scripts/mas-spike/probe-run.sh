@@ -59,6 +59,8 @@ obs "codesign-signature: $(grep -E '^Signature|^TeamIdentifier|^CodeDirectory' "
 obs "ElectronTeamID: $(/usr/libexec/PlistBuddy -c 'Print :ElectronTeamID' "$APP/Contents/Info.plist" 2>&1)"
 
 SBCHECK="$RUNNER_TEMP/sbcheck"
+# paths probed for every process (no spaces in them, so word splitting is fine)
+SBPATHS="$HOME/.netrc $HOME/Documents/probe-in.txt $HOME/Documents/probe-out.txt /etc/ssl/cert.pem"
 clang -o "$SBCHECK" "$HERE/sbcheck.c" > "$EVID/sbcheck-build.txt" 2>&1 || log "sbcheck build failed"
 
 # ---------------------------------------------------------------- fixtures
@@ -128,10 +130,10 @@ sandbox_status() { # <label>
   {
     echo "# kernel sandbox_check(pid, NULL) — 1 = sandboxed; file-read-data probes via SANDBOX_FILTER_PATH"
     echo "## main pid $APP_PID"
-    "$SBCHECK" "$APP_PID" "$HOME/.netrc" "$HOME/Documents/probe-in.txt" /etc/ssl/cert.pem
+    "$SBCHECK" "$APP_PID" $SBPATHS
     for p in $(pgrep -f "$APP/Contents/Frameworks"); do
       echo "## $(ps -o pid=,command= -p "$p" | cut -c1-220)"
-      "$SBCHECK" "$p" "$HOME/.netrc" /etc/ssl/cert.pem
+      "$SBCHECK" "$p" $SBPATHS
     done
     echo "## ps"
     ps -axo pid,ppid,user,command | grep -F "$APP" | grep -v grep | cut -c1-260
@@ -230,6 +232,10 @@ if wait_marker 'MASPROBE:STAGE save-dialog-shown' 120; then
   fi
 fi
 
+if wait_marker 'MASPROBE:STAGE dialogs-done' 60; then
+  sandbox_status p1-after-dialogs
+fi
+
 wait_marker 'MASPROBE:STAGE done' 300 || true
 shot p1-99-end
 wait_exit 30
@@ -244,6 +250,9 @@ log "=== phase 2"
 launch 2 180
 if wait_marker '"id":"env"' 90; then
   sandbox_status p2
+fi
+if wait_marker 'MASPROBE:STAGE bookmark-access-open' 90; then
+  sandbox_status p2-bookmark-access-open
 fi
 wait_marker 'MASPROBE:STAGE done' 150 || true
 wait_exit 20
@@ -271,6 +280,11 @@ done
 ps -axo pid,ppid,command | grep -F "$APP" | grep -v grep | cut -c1-260 > "$EVID/ps-after-relaunch.txt"
 if [ -n "$RELAUNCHED" ]; then
   cp "$RELAUNCHED" "$EVID/relaunched.json"
+  RPID=$(grep -m1 '"pid"' "$RELAUNCHED" | tr -cd '0-9')
+  if [ -n "$RPID" ]; then
+    APP_PID="$RPID"
+    sandbox_status p3-relaunched
+  fi
   obs "relaunch: marker written by relaunched instance ($RELAUNCHED)"
 else
   obs "relaunch: NO marker after 60s"
