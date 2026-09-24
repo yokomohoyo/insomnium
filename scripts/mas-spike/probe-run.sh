@@ -224,7 +224,7 @@ startup_guard() { # <label> [phase-name-in-agent-log]
 
 lock_obs() { # <label>: did main.development.ts give up on the single-instance lock?
   local n
-  n=$(grep -c 'Failed to get instance lock' "$LOG" 2>/dev/null)
+  n=$(grep -c '› \[app\] Failed to get instance lock' "$LOG" 2>/dev/null)
   [ "${n:-0}" = 0 ] || obs "$1: '[app] Failed to get instance lock' x$n"
 }
 
@@ -358,7 +358,7 @@ if wait_marker 'MASPROBE:STAGE idle-ready' 120; then
     startup_guard "lockcheck-$tag" "lockcheck-$tag"
     wait_marker 'MASPROBE:STAGE done' 90 || true
     wait_exit 15
-    obs "force-quit: relaunch ($tag) exit $EXIT_RC, 'Failed to get instance lock' x$(grep -c 'Failed to get instance lock' "$LOG"), renderer-ready ok x$(grep -c '"id":"renderer-ready","where":"main","expect_mas":"[^"]*","result":"ok"' "$LOG")"
+    obs "force-quit: relaunch ($tag) exit $EXIT_RC, app log '[app] Failed to get instance lock' x$(grep -c '› \[app\] Failed to get instance lock' "$LOG"), singleton errors x$(grep -c 'process_singleton_posix' "$LOG"), probe reached renderer-ready: $(grep '^MASPROBE:CHECK {"id":"renderer-ready"' "$LOG" | grep -c '"result":"ok"')"
     collect "lockcheck-$tag"
     cleanup_procs
     singleton_state "fq-3-after-lockcheck-$tag"
@@ -394,8 +394,12 @@ log "=== phase 3 via LaunchServices (open)"
 for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do rm -f "$d/relaunched-ls.json" "$d/probe-report-phase3-ls.json"; done
 clear_stale phase3-ls
 LOG="$EVID/phase3-ls.stdout.log"
+LAUNCH_AGENT_LINES=$(wc -l < "$EVID/host-agent.log")
 t 150 open -n -W --env INSOMNIUM_MAS_PROBE=1 --env INSOMNIUM_MAS_PROBE_PHASE=3 --env INSOMNIUM_MAS_PROBE_TAG=ls \
-  --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-3-ls.txt" 2>&1
+  --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-3-ls.txt" 2>&1 &
+OPEN_PID=$!
+startup_guard 3-ls 3-ls
+wait "$OPEN_PID"
 obs "phase3-ls open exit: $?"
 lock_obs phase3-ls
 collect 3-ls

@@ -56,6 +56,9 @@ const SB_PATHS = [
   ['file-read-data', path.join(D, 'certs', 'client.key')],
   ['file-read-data', path.join(D, 'ls-in.txt')],
   ['file-write-create', path.join(HOME, 'Library', 'Group Containers', 'M4B2LM9HCJ.com.insomnium.app', 'host-check.txt')],
+  // the file the probe itself writes there (exists after phase 1)
+  ['file-read-data', path.join(HOME, 'Library', 'Group Containers', 'M4B2LM9HCJ.com.insomnium.app', 'mas-probe.txt')],
+  ['file-write-data', path.join(HOME, 'Library', 'Group Containers', 'M4B2LM9HCJ.com.insomnium.app', 'mas-probe.txt')],
   ['network-outbound', '/private/tmp/insomnium-probe.sock'],
 ];
 
