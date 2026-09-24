@@ -1,21 +1,31 @@
 #!/bin/bash
 # SPIKE ONLY (spike/mas-sandbox, never merge).
-# Drives the INSOMNIUM_MAS_PROBE phases against a built, signed Insomnium.app and
-# collects evidence: static codesign/entitlement dumps, kernel sandbox status of
-# every process, screenshots of the driven dialogs, the probe reports, crash
-# reports, and the unified log (sandbox deny lines).
-# Usage: probe-run.sh <Insomnium.app> <flavor> <evidence-dir>
+# Round 2: drives the INSOMNIUM_MAS_PROBE phases against a built, signed Insomnium.app and
+# collects evidence: static codesign/entitlement dumps, host-side sandbox_check() of every
+# app process (requested by the probe through host-agent.js), screenshots of the driven
+# dialogs, the probe reports, crash reports (with positive controls) and the unified log.
+# Usage: probe-run.sh <Insomnium.app> <flavor> <evidence-dir> <parent-ent.plist> <inherit-ent.plist> [os-label]
 set -uo pipefail
 
 APP="$1"
 FLAVOR="$2"
 EVID="$3"
+ENT="$4"
+ENT_INHERIT="$5"
+OSLABEL="${6:-unknown}"
 EXE="$APP/Contents/MacOS/Insomnium"
 BUNDLE_ID=com.insomnium.app
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CONTAINER_UD="$HOME/Library/Containers/$BUNDLE_ID/Data/Library/Application Support/Insomnium"
+CONTAINER="$HOME/Library/Containers/$BUNDLE_ID"
+CONTAINER_UD="$CONTAINER/Data/Library/Application Support/Insomnium"
 PLAIN_UD="$HOME/Library/Application Support/Insomnium"
-mkdir -p "$EVID/screens"
+if [ "$FLAVOR" = mas ]; then UD="$CONTAINER_UD"; else UD="$PLAIN_UD"; fi
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+TOOLS="${RUNNER_TEMP:-/tmp}/mas-probe-tools"
+SBCHECK="$TOOLS/sbcheck"
+LSHANDLER="$TOOLS/lshandler"
+CERTGEN="$TOOLS/certgen"
+mkdir -p "$EVID/screens" "$TOOLS" "$CERTGEN"
 touch "$EVID/.start-marker"
 START_TS="$(date '+%Y-%m-%d %H:%M:%S')"
 OBS="$EVID/observations.txt"
@@ -23,20 +33,22 @@ OBS="$EVID/observations.txt"
 APP_PID=""
 EXIT_RC=""
 LOG=""
+AGENT_PID=""
 
 log() { echo "[probe-run $(date +%H:%M:%S)] $*" | tee -a "$EVID/probe-run.log" >&2; }
 obs() { echo "$*" | tee -a "$OBS"; }
 t() { local s="$1"; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
 
 # ---------------------------------------------------------------- static evidence
-log "flavor=$FLAVOR app=$APP"
+log "flavor=$FLAVOR os=$OSLABEL app=$APP"
 {
   sw_vers; uname -a; id; echo "HOME=$HOME"
+  sysctl -n machdep.cpu.brand_string 2>/dev/null
   file "$EXE"
 } > "$EVID/system.txt" 2>&1
+obs "sw_vers: $(sw_vers | tr '\n' ' ' | tr -s ' \t' ' ')"
 t 60 codesign -dvvv "$APP" > "$EVID/codesign-main.txt" 2>&1
 t 60 codesign -d --entitlements :- "$APP" > "$EVID/entitlements-main.xml" 2> "$EVID/entitlements-main.stderr"
-t 60 codesign -d --entitlements - --xml "$APP" > "$EVID/entitlements-main.xml2" 2>&1
 HELPER="$APP/Contents/Frameworks/Insomnium Helper (Renderer).app"
 t 60 codesign -dvvv "$HELPER" > "$EVID/codesign-helper-renderer.txt" 2>&1
 t 60 codesign -d --entitlements :- "$HELPER" > "$EVID/entitlements-helper-renderer.xml" 2> "$EVID/entitlements-helper-renderer.stderr"
@@ -55,33 +67,106 @@ find "$APP" -name '*.provisionprofile' > "$EVID/provisionprofile.txt" 2>&1
 obs "codesign-verify: $(tail -2 "$EVID/codesign-verify.txt" | tr '\n' ' ')"
 obs "main-entitlement-keys: $(grep -o '<key>[^<]*</key>' "$EVID/entitlements-main.xml" | sed 's/<[^>]*>//g' | tr '\n' ' ')"
 obs "renderer-helper-entitlement-keys: $(grep -o '<key>[^<]*</key>' "$EVID/entitlements-helper-renderer.xml" | sed 's/<[^>]*>//g' | tr '\n' ' ')"
-obs "codesign-signature: $(grep -E '^Signature|^TeamIdentifier|^CodeDirectory' "$EVID/codesign-main.txt" | tr '\n' ' ')"
+obs "codesign-signature: $(grep -E '^Signature|^TeamIdentifier|^CodeDirectory|^CDHash=' "$EVID/codesign-main.txt" | tr '\n' ' ')"
 obs "ElectronTeamID: $(/usr/libexec/PlistBuddy -c 'Print :ElectronTeamID' "$APP/Contents/Info.plist" 2>&1)"
+obs "CFBundleVersion: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist" 2>&1)"
 
-SBCHECK="$RUNNER_TEMP/sbcheck"
-# paths probed for every process (no spaces in them, so word splitting is fine)
-SBPATHS="$HOME/.netrc $HOME/Documents/probe-in.txt $HOME/Documents/probe-out.txt /etc/ssl/cert.pem"
-{ clang -DUSE_NO_REPORT -o "$SBCHECK" "$HERE/sbcheck.c" && echo "built with SANDBOX_CHECK_NO_REPORT"; } > "$EVID/sbcheck-build.txt" 2>&1 ||
-  { clang -o "$SBCHECK" "$HERE/sbcheck.c" && echo "built WITHOUT no-report (its queries show up as deny lines)"; } >> "$EVID/sbcheck-build.txt" 2>&1 ||
+# ---------------------------------------------------------------- tools
+{ clang -DUSE_NO_REPORT -o "$SBCHECK" "$HERE/sbcheck.c" && echo "sbcheck built with SANDBOX_CHECK_NO_REPORT"; } > "$EVID/tools-build.txt" 2>&1 ||
+  { clang -o "$SBCHECK" "$HERE/sbcheck.c" && echo "sbcheck built WITHOUT no-report (its queries show up as deny lines)"; } >> "$EVID/tools-build.txt" 2>&1 ||
   log "sbcheck build failed"
+{ clang -fobjc-arc -framework AppKit -framework CoreServices -framework Foundation -o "$LSHANDLER" "$HERE/lshandler.m" && echo "lshandler built"; } >> "$EVID/tools-build.txt" 2>&1 ||
+  log "lshandler build failed"
 
 # ---------------------------------------------------------------- fixtures
-mkdir -p "$HOME/Documents" "$HOME/mas-probe-plain"
-echo "probe-in $(date +%s) $FLAVOR" > "$HOME/Documents/probe-in.txt"
-rm -f "$HOME/Documents/probe-out.txt" "$HOME/Documents/probe-out-sibling.txt" "$HOME/mas-probe-home-write.txt"
+D="$HOME/Documents"
+mkdir -p "$D" "$HOME/mas-probe-plain"
+echo "probe-in $(date +%s) $FLAVOR" > "$D/probe-in.txt"
+echo "ls-in $(date +%s) $FLAVOR" > "$D/ls-in.txt"
+rm -f "$D/probe-out.txt" "$D/probe-out-sibling.txt" "$D/ls-out.txt" "$D/ls-out-sibling.txt" "$HOME/mas-probe-home-write.txt"
 echo "plain $FLAVOR" > "$HOME/mas-probe-plain/probe-plain.txt"
 printf 'machine 127.0.0.1\nlogin probeuser\npassword probepass\n' > "$HOME/.netrc"
 chmod 600 "$HOME/.netrc"
 mkdir -p "$HOME/.config/gcloud"
 [ -e "$HOME/.config/gcloud/application_default_credentials.json" ] ||
   echo '{"type":"mas-probe-fixture"}' > "$HOME/.config/gcloud/application_default_credentials.json"
-ls -la "$HOME/Documents" "$HOME/.netrc" "$HOME/.config/gcloud" > "$EVID/fixtures.txt" 2>&1
+# probe 1: a directory tree to grant with openDirectory
+rm -rf "$D/probe-dir"
+mkdir -p "$D/probe-dir/sub1/sub2"
+echo "top" > "$D/probe-dir/top.txt"
+echo "nested" > "$D/probe-dir/sub1/nested.txt"
+echo "deep" > "$D/probe-dir/sub1/sub2/deep.txt"
+# probe 2: a.proto imports its sibling b.proto
+rm -rf "$D/protos"
+mkdir -p "$D/protos"
+cat > "$D/protos/a.proto" <<'EOF'
+syntax = "proto3";
+package probe;
+import "b.proto";
+service ProbeService { rpc Ping (PingRequest) returns (PingReply); }
+message PingRequest { B b = 1; }
+message PingReply { string msg = 1; }
+EOF
+cat > "$D/protos/b.proto" <<'EOF'
+syntax = "proto3";
+package probe;
+message B { string v = 1; }
+EOF
+# probe 6: local CA, server cert (SAN 127.0.0.1), client cert/key in ~/Documents/certs
+OPENSSL=openssl
+[ -x /opt/homebrew/opt/openssl@3/bin/openssl ] && OPENSSL=/opt/homebrew/opt/openssl@3/bin/openssl
+rm -rf "$D/certs"
+mkdir -p "$D/certs"
+(
+  set -e
+  cd "$CERTGEN"
+  printf 'basicConstraints=critical,CA:TRUE\nkeyUsage=critical,keyCertSign,cRLSign\nsubjectKeyIdentifier=hash\n' > ca.ext
+  printf 'subjectAltName=IP:127.0.0.1,DNS:localhost\nbasicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\n' > server.ext
+  printf 'basicConstraints=CA:FALSE\nkeyUsage=digitalSignature,keyEncipherment\nextendedKeyUsage=clientAuth\n' > client.ext
+  "$OPENSSL" req -new -newkey rsa:2048 -nodes -keyout ca.key -out ca.csr -subj "/CN=MAS Probe CA"
+  "$OPENSSL" x509 -req -in ca.csr -signkey ca.key -out "$D/certs/ca.crt" -days 3 -extfile ca.ext
+  "$OPENSSL" req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr -subj "/CN=127.0.0.1"
+  "$OPENSSL" x509 -req -in server.csr -CA "$D/certs/ca.crt" -CAkey ca.key -CAcreateserial -out server.crt -days 3 -extfile server.ext
+  "$OPENSSL" req -new -newkey rsa:2048 -nodes -keyout "$D/certs/client.key" -out client.csr -subj "/CN=mas-probe-client"
+  "$OPENSSL" x509 -req -in client.csr -CA "$D/certs/ca.crt" -CAkey ca.key -CAcreateserial -out "$D/certs/client.crt" -days 3 -extfile client.ext
+) > "$EVID/certgen.log" 2>&1 || log "cert generation failed (see certgen.log)"
+"$OPENSSL" x509 -in "$D/certs/client.crt" -noout -subject -issuer >> "$EVID/certgen.log" 2>&1
+CA_B64="$(base64 < "$D/certs/ca.crt" | tr -d '\n')"
+ls -laR "$D" "$HOME/.netrc" "$HOME/.config/gcloud" > "$EVID/fixtures.txt" 2>&1
+
+# ---------------------------------------------------------------- host agent + fixture servers
+rm -f "$EVID/.agent-ready"
+t 3000 node "$HERE/host-agent.js" "$EVID" "$SBCHECK" "$APP" "$LSHANDLER" "$CERTGEN" > "$EVID/host-agent.stdout.log" 2>&1 &
+AGENT_PID=$!
+for i in $(seq 1 40); do [ -f "$EVID/.agent-ready" ] && break; sleep 0.5; done
+[ -f "$EVID/.agent-ready" ] && obs "host agent up (pid $AGENT_PID)" || obs "host agent NOT ready"
+sleep 1
+{
+  echo "## unix socket /tmp"; t 10 curl -sS --max-time 5 --unix-socket /tmp/insomnium-probe.sock http://x/selftest; echo " rc=$?"
+  echo "## unix socket ~/probe.sock"; t 10 curl -sS --max-time 5 --unix-socket "$HOME/probe.sock" http://x/selftest; echo " rc=$?"
+  echo "## TLS without client cert (must fail)"; t 10 curl -sS --max-time 5 --cacert "$D/certs/ca.crt" https://127.0.0.1:18443/selftest-nocert; echo " rc=$?"
+  echo "## TLS with client cert (must succeed, client_cn=mas-probe-client)"
+  t 10 curl -sS --max-time 5 --cacert "$D/certs/ca.crt" --cert "$D/certs/client.crt" --key "$D/certs/client.key" https://127.0.0.1:18443/selftest-cert; echo " rc=$?"
+} > "$EVID/fixtures-selftest.txt" 2>&1
+obs "fixture self-test: $(grep -c 'rc=0' "$EVID/fixtures-selftest.txt") of 4 curl calls rc=0 (expected 3: the no-cert TLS call must fail)"
+
+# ---------------------------------------------------------------- crash-report baseline positive control
+sleep 600 &
+SPID=$!
+sleep 0.5
+kill -SEGV "$SPID" 2>/dev/null
+wait "$SPID" 2>/dev/null
+echo "baseline-sleep $SPID $(date -u +%FT%TZ)" >> "$EVID/crash-control.txt"
+
+# ---------------------------------------------------------------- LaunchServices registration
+t 60 "$LSREGISTER" -f "$APP" > "$EVID/lsregister.txt" 2>&1
+t 20 "$LSHANDLER" insomnia > "$EVID/ls-handler-before.txt" 2>&1
 
 # ---------------------------------------------------------------- helpers
 launch() { # <phase> <hard-timeout-seconds>
   local phase="$1" secs="$2"
   LOG="$EVID/phase$phase.stdout.log"
-  INSOMNIUM_MAS_PROBE=1 INSOMNIUM_MAS_PROBE_PHASE="$phase" INSOMNIUM_MAS_PROBE_REAL_HOME="$HOME" \
+  INSOMNIUM_MAS_PROBE=1 INSOMNIUM_MAS_PROBE_PHASE="$phase" INSOMNIUM_MAS_PROBE_REAL_HOME="$HOME" INSOMNIUM_MAS_PROBE_CA_B64="$CA_B64" \
     perl -e 'alarm shift; exec @ARGV' "$secs" "$EXE" > "$LOG" 2>&1 &
   APP_PID=$!
   log "phase $phase launched pid $APP_PID (hard timeout ${secs}s)"
@@ -99,6 +184,16 @@ wait_marker() { # <grep-pattern> <seconds>
     i=$((i + 1))
   done
   log "timeout (${secs}s) waiting for '$pat'"
+  return 1
+}
+
+wait_file() { # <file> <seconds>
+  local f="$1" secs="$2" i=0
+  while [ "$i" -lt $((secs * 2)) ]; do
+    [ -f "$f" ] && return 0
+    sleep 0.5
+    i=$((i + 1))
+  done
   return 1
 }
 
@@ -123,148 +218,58 @@ cleanup_procs() {
 }
 
 shot() { t 20 screencapture -x "$EVID/screens/$1.png" >> "$EVID/probe-run.log" 2>&1 || log "screencapture failed: $1"; }
-front() { t 20 osascript -e "tell application \"System Events\" to set frontmost of (first process whose unix id is $APP_PID) to true" >> "$EVID/osascript.log" 2>&1 || log "front failed"; }
-keys() { log "keys: $1"; t 30 osascript -e "tell application \"System Events\" to $1" >> "$EVID/osascript.log" 2>&1 || log "osascript failed: $1"; }
-ui_dump() {
-  t 30 osascript -e "tell application \"System Events\" to tell (first process whose unix id is $APP_PID) to get {name, role description} of every window" > "$EVID/ui-$1.txt" 2>&1
-  t 30 osascript -e "tell application \"System Events\" to get name of every process whose visible is true" >> "$EVID/ui-$1.txt" 2>&1
-}
 
-sandbox_status() { # <label>
-  local out="$EVID/sandbox-status-$1.txt"
-  {
-    echo "# kernel sandbox_check(pid, NULL) — 1 = sandboxed; file-read-data probes via SANDBOX_FILTER_PATH"
-    echo "## main pid $APP_PID"
-    "$SBCHECK" "$APP_PID" $SBPATHS
-    for p in $(pgrep -f "$APP/Contents/Frameworks"); do
-      echo "## $(ps -o pid=,command= -p "$p" | cut -c1-220)"
-      "$SBCHECK" "$p" $SBPATHS
-    done
-    echo "## ps"
-    ps -axo pid,ppid,user,command | grep -F "$APP" | grep -v grep | cut -c1-260
-  } > "$out" 2>&1
-  obs "sandbox-status-$1: $(grep -c 'sandboxed=1' "$out") sandboxed / $(grep -c 'sandboxed=' "$out") processes checked"
-}
-
-collect() { # <phase>
-  local phase="$1" d found=""
-  for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do
-    if [ -f "$d/probe-report-phase$phase.json" ]; then
-      cp "$d/probe-report-phase$phase.json" "$EVID/" && found="$d"
-    fi
-  done
-  if [ -n "$found" ]; then
-    obs "phase$phase report collected from: $found"
+collect() { # <report-name, e.g. 1, 3-ls, relaunched-ls, url-cold>
+  local name="$1" d
+  if [ -f "$EVID/agent-reports/probe-report-phase$name.json" ]; then
+    cp "$EVID/agent-reports/probe-report-phase$name.json" "$EVID/probe-report-phase$name.json"
+    obs "phase$name report: posted to the host agent"
   else
-    obs "phase$phase report: not found on disk (container or plain userData)"
+    for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do
+      if [ -f "$d/probe-report-phase$name.json" ]; then
+        cp "$d/probe-report-phase$name.json" "$EVID/" && obs "phase$name report: copied from $d"
+      fi
+    done
+    [ -f "$EVID/probe-report-phase$name.json" ] || obs "phase$name report: NOT FOUND (agent or userData)"
   fi
-  sed -n '/MASPROBE:REPORT-BEGIN/,/MASPROBE:REPORT-END/p' "$LOG" | sed '1d;$d' > "$EVID/probe-report-phase$phase.stdout.json"
-  [ -s "$EVID/probe-report-phase$phase.stdout.json" ] || rm -f "$EVID/probe-report-phase$phase.stdout.json"
+  if [ -f "$EVID/phase$name.stdout.log" ]; then
+    sed -n '/MASPROBE:REPORT-BEGIN/,/MASPROBE:REPORT-END/p' "$EVID/phase$name.stdout.log" | sed '1d;$d' > "$EVID/probe-report-phase$name.stdout.json"
+    [ -s "$EVID/probe-report-phase$name.stdout.json" ] || rm -f "$EVID/probe-report-phase$name.stdout.json"
+  fi
+}
+
+container_meta() { # <label>
+  {
+    ls -la "$CONTAINER" 2>&1
+    plutil -p "$CONTAINER/.com.apple.containermanagerd.metadata.plist" 2>&1 | head -80
+  } > "$EVID/container-metadata-$1.txt"
 }
 
 # ---------------------------------------------------------------- phase 1
 log "=== phase 1"
-launch 1 420
+launch 1 1000
 sleep 12
 shot p1-00-startup
-ui_dump p1-startup
-if wait_marker '"id":"renderer-ready"' 120; then
-  sleep 2
-  sandbox_status p1
-  shot p1-01-renderer-ready
-fi
-
-# open dialog
-if wait_marker 'MASPROBE:STAGE open-dialog-shown' 150; then
-  sleep 3
-  ui_dump p1-open
-  shot p1-open-1-shown
-  front
-  sleep 1
-  keys 'keystroke "g" using {command down, shift down}'
-  sleep 2
-  shot p1-open-2-goto
-  keys "keystroke \"$HOME/Documents/probe-in.txt\""
-  sleep 2
-  shot p1-open-3-typed
-  keys 'key code 36'
-  sleep 3
-  shot p1-open-4-return1
-  if ! grep -q 'open-dialog-closed' "$LOG"; then
-    keys 'key code 36'
-    sleep 3
-    shot p1-open-5-return2
-  fi
-  if ! wait_marker 'open-dialog-closed' 15; then
-    obs "open dialog: NOT closed by automation"
-    ui_dump p1-open-stuck
-    shot p1-open-6-stuck
-    keys 'key code 53' # Escape so the probe can continue
-  else
-    obs "open dialog: $(grep 'open-dialog-closed' "$LOG" | head -1 | cut -c1-300)"
-  fi
-fi
-
-# save dialog
-if wait_marker 'MASPROBE:STAGE save-dialog-shown' 120; then
-  sleep 3
-  ui_dump p1-save
-  shot p1-save-1-shown
-  front
-  sleep 1
-  keys 'key code 36'
-  sleep 3
-  shot p1-save-2-return1
-  if ! wait_marker 'save-dialog-closed' 10; then
-    # fall back to Go-to-folder navigation, then Return
-    keys 'keystroke "g" using {command down, shift down}'
-    sleep 2
-    keys "keystroke \"$HOME/Documents/\""
-    sleep 2
-    keys 'key code 36'
-    sleep 2
-    keys 'key code 36'
-    sleep 3
-    shot p1-save-3-fallback
-  fi
-  if ! wait_marker 'save-dialog-closed' 15; then
-    obs "save dialog: NOT closed by automation"
-    ui_dump p1-save-stuck
-    shot p1-save-4-stuck
-    keys 'key code 53'
-  else
-    obs "save dialog: $(grep 'save-dialog-closed' "$LOG" | head -1 | cut -c1-300)"
-  fi
-fi
-
-if wait_marker 'MASPROBE:STAGE dialogs-done' 60; then
-  sandbox_status p1-after-dialogs
-fi
-
-wait_marker 'MASPROBE:STAGE done' 300 || true
+wait_marker 'MASPROBE:STAGE done' 960 || true
 shot p1-99-end
 wait_exit 30
 obs "phase1 exit: $EXIT_RC"
 collect 1
 cleanup_procs
-ls -la "$HOME/Documents" > "$EVID/documents-after-p1.txt" 2>&1
-cat "$HOME/Documents/probe-out.txt" > "$EVID/probe-out-after-p1.txt" 2>&1
+ls -la "$D" "$D/probe-dir" > "$EVID/documents-after-p1.txt" 2>&1
+cat "$D/probe-out.txt" > "$EVID/probe-out-after-p1.txt" 2>&1
+container_meta after-p1
 
 # ---------------------------------------------------------------- phase 2
 log "=== phase 2"
-launch 2 180
-if wait_marker '"id":"env"' 90; then
-  sandbox_status p2
-fi
-if wait_marker 'MASPROBE:STAGE bookmark-access-open' 90; then
-  sandbox_status p2-bookmark-access-open
-fi
-wait_marker 'MASPROBE:STAGE done' 150 || true
+launch 2 300
+wait_marker 'MASPROBE:STAGE done' 280 || true
 wait_exit 20
 obs "phase2 exit: $EXIT_RC"
 collect 2
 cleanup_procs
-cat "$HOME/Documents/probe-out.txt" > "$EVID/probe-out-after-p2.txt" 2>&1
+cat "$D/probe-out.txt" > "$EVID/probe-out-after-p2.txt" 2>&1
+ls -la "$D/probe-dir" > "$EVID/probe-dir-after-p2.txt" 2>&1
 
 # ---------------------------------------------------------------- phase 3 (relaunch)
 log "=== phase 3"
@@ -274,100 +279,143 @@ wait_marker 'MASPROBE:STAGE relaunching' 120 || true
 wait_exit 30
 obs "phase3 exit: $EXIT_RC"
 collect 3
-RELAUNCHED=""
-for i in $(seq 1 60); do
-  for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do
-    if [ -f "$d/relaunched.json" ]; then RELAUNCHED="$d/relaunched.json"; fi
-  done
-  [ -n "$RELAUNCHED" ] && break
-  sleep 1
-done
-ps -axo pid,ppid,command | grep -F "$APP" | grep -v grep | cut -c1-260 > "$EVID/ps-after-relaunch.txt"
-if [ -n "$RELAUNCHED" ]; then
-  cp "$RELAUNCHED" "$EVID/relaunched.json"
-  RPID=$(grep -m1 '"pid"' "$RELAUNCHED" | tr -cd '0-9')
-  if [ -n "$RPID" ]; then
-    APP_PID="$RPID"
-    sandbox_status p3-relaunched
-  fi
-  obs "relaunch: marker written by relaunched instance ($RELAUNCHED)"
+if wait_file "$EVID/agent-reports/probe-report-phaserelaunched.json" 100; then
+  obs "relaunch: the relaunched instance reported (agent)"
 else
-  obs "relaunch: NO marker after 60s"
+  obs "relaunch: NO report from the relaunched instance after 100s"
 fi
+collect relaunched
+for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do [ -f "$d/relaunched.json" ] && cp "$d/relaunched.json" "$EVID/relaunched.json"; done
+ps -axo pid,ppid,command | grep -F "$APP" | grep -v grep | cut -c1-260 > "$EVID/ps-after-relaunch.txt"
 shot p3-after-relaunch
-sleep 3
 cleanup_procs
 
 # ---------------------------------------------------------------- phase 3 again, launched by LaunchServices
-# `open` is how a user starts the app (Finder/Dock/Spotlight); exec'ing the binary
-# from a shell differs in responsible process and environment.
 log "=== phase 3 via LaunchServices (open)"
 for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do rm -f "$d/relaunched-ls.json" "$d/probe-report-phase3-ls.json"; done
 LOG="$EVID/phase3-ls.stdout.log"
 t 150 open -n -W --env INSOMNIUM_MAS_PROBE=1 --env INSOMNIUM_MAS_PROBE_PHASE=3 --env INSOMNIUM_MAS_PROBE_TAG=ls \
-  --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-ls.txt" 2>&1
+  --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-3-ls.txt" 2>&1
 obs "phase3-ls open exit: $?"
-RELAUNCHED=""
-for i in $(seq 1 60); do
-  for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do
-    [ -f "$d/relaunched-ls.json" ] && RELAUNCHED="$d/relaunched-ls.json"
-    [ -f "$d/probe-report-phase3-ls.json" ] && cp "$d/probe-report-phase3-ls.json" "$EVID/"
-  done
-  [ -n "$RELAUNCHED" ] && break
-  sleep 1
-done
-if [ -n "$RELAUNCHED" ]; then
-  cp "$RELAUNCHED" "$EVID/relaunched-ls.json"
-  RPID=$(grep -m1 '"pid"' "$RELAUNCHED" | tr -cd '0-9')
-  if [ -n "$RPID" ]; then
-    APP_PID="$RPID"
-    sandbox_status p3-ls-relaunched
-  fi
-  obs "relaunch (LaunchServices-launched parent): marker written ($RELAUNCHED)"
+collect 3-ls
+if wait_file "$EVID/agent-reports/probe-report-phaserelaunched-ls.json" 100; then
+  obs "relaunch (LaunchServices-launched parent): the relaunched instance reported (agent)"
 else
-  obs "relaunch (LaunchServices-launched parent): NO marker after 60s"
+  obs "relaunch (LaunchServices-launched parent): NO report after 100s"
 fi
-[ -f "$EVID/probe-report-phase3-ls.json" ] && obs "phase3-ls report collected" || obs "phase3-ls report: not found"
+collect relaunched-ls
+for d in "$CONTAINER_UD/mas-probe" "$PLAIN_UD/mas-probe"; do [ -f "$d/relaunched-ls.json" ] && cp "$d/relaunched-ls.json" "$EVID/relaunched-ls.json"; done
 shot p3-ls-after-relaunch
-sleep 9
 cleanup_procs
+
+# ---------------------------------------------------------------- phase lsd: LaunchServices-launched dialogs + app group
+log "=== phase lsd (open -n -W: the app is its own responsible process)"
+LOG="$EVID/phaselsd.stdout.log"
+t 420 open -n -W --env INSOMNIUM_MAS_PROBE=1 --env INSOMNIUM_MAS_PROBE_PHASE=lsd --env "INSOMNIUM_MAS_PROBE_REAL_HOME=$HOME" \
+  --env "INSOMNIUM_MAS_PROBE_CA_B64=$CA_B64" --stdout "$LOG" --stderr "$LOG" "$APP" > "$EVID/open-lsd.txt" 2>&1
+obs "phase lsd open exit: $?"
+collect lsd
+ps -axo pid,ppid,user,command | grep -F "$APP" | grep -v grep | cut -c1-260 > "$EVID/ps-after-lsd.txt"
+cleanup_procs
+
+# ---------------------------------------------------------------- url-cold: open insomnia://... while not running
+log "=== url-cold"
+t 20 "$LSHANDLER" insomnia > "$EVID/ls-handler-before-url-cold.txt" 2>&1
+mkdir -p "$UD/mas-probe" 2>> "$EVID/probe-run.log"
+if echo '{"phase":"url-cold"}' > "$UD/mas-probe/arm.json" 2>> "$EVID/probe-run.log"; then
+  obs "url-cold: arm file written to $UD/mas-probe/arm.json"
+  t 90 open 'insomnia://app/probe?x=1&cold=1' > "$EVID/open-url-cold.txt" 2>&1
+  obs "url-cold: open exit $?"
+  if wait_file "$EVID/agent-reports/probe-report-phaseurl-cold.json" 60; then
+    obs "url-cold: the URL-launched instance reported (agent)"
+  else
+    obs "url-cold: NO report from a URL-launched instance after 60s"
+  fi
+  [ -f "$UD/mas-probe/arm.json" ] && obs "url-cold: arm file NOT consumed" || obs "url-cold: arm file consumed"
+else
+  obs "url-cold: could not write the arm file (container write from the host blocked?)"
+fi
+ps -axo pid,ppid,command | grep -F "Insomnium.app" | grep -v grep | cut -c1-260 > "$EVID/ps-url-cold.txt"
+collect url-cold
+rm -f "$UD/mas-probe/arm.json"
+cleanup_procs
+
+# ---------------------------------------------------------------- simulated update: bump CFBundleVersion + re-sign
+log "=== simulated update"
+container_meta before-update
+t 60 codesign -dvvv "$APP" > "$EVID/update-codesign-before.txt" 2>&1
+OLD_V="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Contents/Info.plist")"
+case "$OLD_V" in
+  ''|*[!0-9]*) NEW_V="$OLD_V.1" ;;
+  *) NEW_V=$((OLD_V + 1)) ;;
+esac
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $NEW_V" "$APP/Contents/Info.plist"
+bash "$HERE/sign-adhoc.sh" "$APP" "$ENT" "$ENT_INHERIT" > "$EVID/update-sign.log" 2>&1
+obs "update re-sign exit: $?"
+t 60 codesign -dvvv "$APP" > "$EVID/update-codesign-after.txt" 2>&1
+t 60 "$LSREGISTER" -f "$APP" >> "$EVID/lsregister.txt" 2>&1
+CD_BEFORE="$(grep -m1 '^CDHash=' "$EVID/update-codesign-before.txt" | cut -d= -f2)"
+CD_AFTER="$(grep -m1 '^CDHash=' "$EVID/update-codesign-after.txt" | cut -d= -f2)"
+printf '{"old_bundle_version":"%s","new_bundle_version":"%s","cdhash_before":"%s","cdhash_after":"%s","note":"ad-hoc signature: the designated requirement is the cdhash, so a team-signed update may behave differently"}\n' \
+  "$OLD_V" "$NEW_V" "$CD_BEFORE" "$CD_AFTER" > "$EVID/update-info.json"
+obs "update: CFBundleVersion $OLD_V -> $NEW_V, cdhash $CD_BEFORE -> $CD_AFTER"
+
+# ---------------------------------------------------------------- phase 4 (post-update)
+log "=== phase 4"
+launch 4 300
+wait_marker 'MASPROBE:STAGE done' 280 || true
+wait_exit 20
+obs "phase4 exit: $EXIT_RC"
+collect 4
+cleanup_procs
+container_meta after-p4
 
 # ---------------------------------------------------------------- MCP discovery file + container listing
 ls -la "$HOME/.insomnium" > "$EVID/real-home-insomnium-dir.txt" 2>&1
-find "$HOME/Library/Containers/$BUNDLE_ID" -maxdepth 6 \( -name 'mcp.json' -o -name '.insomnium' -o -name 'mas-probe' \) > "$EVID/container-probe-files.txt" 2>&1
-t 60 find "$HOME/Library/Containers/$BUNDLE_ID/Data" -maxdepth 3 > "$EVID/container-tree.txt" 2>&1
+find "$CONTAINER" -maxdepth 6 \( -name 'mcp.json' -o -name '.insomnium' -o -name 'mas-probe' \) > "$EVID/container-probe-files.txt" 2>&1
+t 60 find "$CONTAINER/Data" -maxdepth 3 > "$EVID/container-tree.txt" 2>&1
 ls -la "$HOME/Library/Group Containers/" > "$EVID/group-containers.txt" 2>&1
+ls -la "$HOME/Library/Group Containers/M4B2LM9HCJ.com.insomnium.app" >> "$EVID/group-containers.txt" 2>&1
+t 20 "$LSHANDLER" insomnia > "$EVID/ls-handler-after.txt" 2>&1
 
-# ---------------------------------------------------------------- crash reports + unified log
+# ---------------------------------------------------------------- crash reports (with positive controls)
 mkdir -p "$EVID/crash-reports"
-for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
+REPORT_DIRS="$HOME/Library/Logs/DiagnosticReports /Library/Logs/DiagnosticReports"
+for i in $(seq 1 45); do
+  missing=0
+  while read -r kind pid _; do
+    [ -n "$pid" ] && [ "$pid" != null ] || continue
+    grep -rlsE "\"pid\" ?: ?$pid[,}]" $REPORT_DIRS > /dev/null 2>&1 || missing=$((missing + 1))
+  done < "$EVID/crash-control.txt"
+  [ "$missing" -eq 0 ] && break
+  sleep 2
+done
+for d in $REPORT_DIRS; do
   find "$d" -type f -newer "$EVID/.start-marker" 2>/dev/null | while IFS= read -r f; do
     cp "$f" "$EVID/crash-reports/" 2>/dev/null
   done
 done
+: > "$EVID/crash-control-found.txt"
+while read -r kind pid _; do
+  f="$(grep -lsE "\"pid\" ?: ?$pid[,}]" "$EVID/crash-reports/"* 2>/dev/null | head -1)"
+  echo "$kind pid=$pid report=${f:+$(basename "$f")}${f:-MISSING}" >> "$EVID/crash-control-found.txt"
+done < "$EVID/crash-control.txt"
+obs "crash positive controls: $(tr '\n' ';' < "$EVID/crash-control-found.txt")"
 obs "crash reports since start: $(ls "$EVID/crash-reports" | tr '\n' ' ')"
 
-t 240 log show --start "$START_TS" --style syslog --info --predicate \
-  'process CONTAINS "Insomnium" OR subsystem == "com.apple.sandbox.reporting" OR process == "sandboxd" OR (process == "kernel" AND (eventMessage CONTAINS[c] "sandbox" OR eventMessage CONTAINS "AMFI")) OR process == "amfid" OR (process == "tccd" AND eventMessage CONTAINS[c] "insomnium") OR (process == "containermanagerd" AND eventMessage CONTAINS[c] "insomnium")' \
+# ---------------------------------------------------------------- unified log
+t 300 log show --start "$START_TS" --style syslog --info --predicate \
+  'process CONTAINS "Insomnium" OR subsystem == "com.apple.sandbox.reporting" OR process == "sandboxd" OR (process == "kernel" AND (eventMessage CONTAINS[c] "sandbox" OR eventMessage CONTAINS "AMFI")) OR process == "amfid" OR (process == "tccd" AND eventMessage CONTAINS[c] "insomnium") OR (process == "containermanagerd" AND eventMessage CONTAINS[c] "insomnium") OR process == "ScopedBookmarkAgent" OR (process == "launchservicesd" AND eventMessage CONTAINS[c] "insomni") OR (process == "ReportCrash" AND eventMessage CONTAINS[c] "insomnium")' \
   > "$EVID/unified-log.txt" 2>&1
 grep -iE 'deny|violation' "$EVID/unified-log.txt" > "$EVID/unified-log-deny.txt"
-obs "unified log: $(wc -l < "$EVID/unified-log.txt") lines, $(wc -l < "$EVID/unified-log-deny.txt") deny/violation lines"
-gzip -k "$EVID/unified-log.txt" && rm -f "$EVID/unified-log.txt"
+grep -oE 'deny\([0-9]+\) [a-z0-9*-]+ [^ ]+' "$EVID/unified-log-deny.txt" | sed -E 's/deny\([0-9]+\)/deny/' | sort | uniq -c | sort -rn > "$EVID/deny-summary.txt"
+grep -iE 'ScopedBookmarkAgent|containermanagerd' "$EVID/unified-log.txt" | cut -c1-600 > "$EVID/unified-log-bookmark-container.txt"
+obs "unified log: $(wc -l < "$EVID/unified-log.txt") lines, $(wc -l < "$EVID/unified-log-deny.txt") deny/violation lines, $(grep -c 'Description: AppSandbox' "$EVID/unified-log.txt") libsecinit AppSandbox lines"
 
 # ---------------------------------------------------------------- merged report
-node -e '
-const fs = require("fs"), path = require("path");
-const [dir, flavor] = process.argv.slice(1);
-const read = f => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), "utf8")); } catch { return null; } };
-const phases = {};
-for (const p of ["1", "2", "3", "3-ls"]) phases[p] = read(`probe-report-phase${p}.json`) || read(`probe-report-phase${p}.stdout.json`);
-const observations = fs.readFileSync(path.join(dir, "observations.txt"), "utf8").split("\n").filter(Boolean);
-const report = { flavor, phases, relaunched: read("relaunched.json"), relaunched_ls: read("relaunched-ls.json"), observations };
-fs.writeFileSync(path.join(dir, "probe-report.json"), JSON.stringify(report, null, 2));
-const rows = [];
-for (const [p, r] of Object.entries(phases)) for (const c of (r && r.checks) || []) rows.push(`${flavor}\tp${p}\t${c.where}\t${c.id}\t${c.result}\t${c.error_code || ""}`);
-fs.writeFileSync(path.join(dir, "summary.tsv"), rows.join("\n") + "\n");
-console.log(rows.join("\n"));
-' "$EVID" "$FLAVOR"
+kill "$AGENT_PID" 2>/dev/null
+node "$HERE/merge-report.js" "$EVID" "$FLAVOR" "$OSLABEL"
+gzip -k "$EVID/unified-log.txt" && rm -f "$EVID/unified-log.txt"
+rm -f "$EVID"/.dialog-closed-*
 log "done"
 exit 0

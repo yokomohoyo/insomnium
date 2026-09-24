@@ -3,6 +3,7 @@ import electron, { app, ipcMain, session } from 'electron';
 import { BrowserWindow } from 'electron';
 import contextMenu from 'electron-context-menu';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+import fs from 'fs';
 import path from 'path';
 
 import { userDataFolder } from '../config/config.json';
@@ -103,11 +104,36 @@ app.on('ready', async () => {
 });
 
 // SPIKE ONLY (spike/mas-sandbox, never merge): Mac App Store sandbox probe.
-// Inert unless INSOMNIUM_MAS_PROBE=1, or this is the instance the probe's own
-// app.relaunch() started (it passes --mas-probe-relaunched). It starts in
-// parallel with the normal 'ready' work so main-process checks still run if
-// app init stalls; renderer checks wait for the main window.
-if (process.env.INSOMNIUM_MAS_PROBE === '1' || process.argv.includes('--mas-probe-relaunched')) {
+// Inert unless INSOMNIUM_MAS_PROBE=1, this is the instance the probe's own
+// app.relaunch() started (it passes --mas-probe-relaunched), or the test script
+// armed a one-shot phase in <userData>/mas-probe/arm.json (a LaunchServices URL
+// launch carries no environment). It starts in parallel with the normal 'ready'
+// work so main-process checks still run if app init stalls; renderer checks wait
+// for the main window. The open-url listener is registered here, at module load,
+// so a URL that launches the app is not missed.
+const masProbeArm = (() => {
+  try {
+    const f = path.join(app.getPath('userData'), 'mas-probe', 'arm.json');
+    if (!fs.existsSync(f)) {
+      return null;
+    }
+    const j = JSON.parse(fs.readFileSync(f, 'utf8'));
+    fs.unlinkSync(f);
+    return j && typeof j.phase === 'string' ? j : null;
+  } catch {
+    return null;
+  }
+})();
+if (masProbeArm) {
+  process.env.INSOMNIUM_MAS_PROBE_PHASE = masProbeArm.phase;
+}
+if (process.env.INSOMNIUM_MAS_PROBE === '1' || process.argv.includes('--mas-probe-relaunched') || masProbeArm) {
+  const masProbeOpenUrls: any[] = [];
+  (globalThis as any).__masProbeOpenUrls = masProbeOpenUrls;
+  app.on('open-url', (_event, url) => {
+    masProbeOpenUrls.push({ url, at: new Date().toISOString(), app_ready: app.isReady() });
+    process.stdout.write(`MASPROBE:OPEN-URL ${url}\n`);
+  });
   app.whenReady()
     .then(async () => {
       const { runMasProbe } = await import('./main/mas-probe');
