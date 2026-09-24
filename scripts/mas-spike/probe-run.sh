@@ -133,9 +133,10 @@ mkdir -p "$D/certs"
   "$OPENSSL" req -new -newkey rsa:2048 -nodes -keyout ca.key -out ca.csr -subj "/CN=MAS Probe CA"
   "$OPENSSL" x509 -req -in ca.csr -signkey ca.key -out "$D/certs/ca.crt" -days 3 -extfile ca.ext
   "$OPENSSL" req -new -newkey rsa:2048 -nodes -keyout server.key -out server.csr -subj "/CN=127.0.0.1"
-  "$OPENSSL" x509 -req -in server.csr -CA "$D/certs/ca.crt" -CAkey ca.key -CAcreateserial -out server.crt -days 3 -extfile server.ext
+  # -CAserial keeps the serial file out of ~/Documents/certs (only ca.crt, client.crt, client.key there)
+  "$OPENSSL" x509 -req -in server.csr -CA "$D/certs/ca.crt" -CAkey ca.key -CAserial "$CERTGEN/ca.srl" -CAcreateserial -out server.crt -days 3 -extfile server.ext
   "$OPENSSL" req -new -newkey rsa:2048 -nodes -keyout "$D/certs/client.key" -out client.csr -subj "/CN=mas-probe-client"
-  "$OPENSSL" x509 -req -in client.csr -CA "$D/certs/ca.crt" -CAkey ca.key -CAcreateserial -out "$D/certs/client.crt" -days 3 -extfile client.ext
+  "$OPENSSL" x509 -req -in client.csr -CA "$D/certs/ca.crt" -CAkey ca.key -CAserial "$CERTGEN/ca.srl" -CAcreateserial -out "$D/certs/client.crt" -days 3 -extfile client.ext
 ) > "$EVID/certgen.log" 2>&1 || log "cert generation failed (see certgen.log)"
 "$OPENSSL" x509 -in "$D/certs/client.crt" -noout -subject -issuer >> "$EVID/certgen.log" 2>&1
 CA_B64="$(base64 < "$D/certs/ca.crt" | tr -d '\n')"

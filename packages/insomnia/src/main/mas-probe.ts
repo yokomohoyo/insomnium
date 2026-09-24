@@ -24,7 +24,7 @@
 //   url-cold  started by `open insomnia://...` while the app was not running
 //   4         after a simulated update (CFBundleVersion bump + re-sign): old bookmarks
 
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
@@ -869,12 +869,13 @@ async function crashControls() {
     await agentQuiet(`/crash-control?kind=renderer&pid=${pid}`);
     return { pid, details: d };
   }, 25000);
-  await check('crash-positive-control-child', 'main', 'ELECTRON_RUN_AS_NODE child aborts (SIGABRT); the script must find its .ips', async () => {
-    // writeSync: stdout to a pipe is asynchronous on macOS and abort() would drop it
-    const r = spawnSync(process.execPath, ['-e', 'require("fs").writeSync(1, process.pid + "\\n"); process.abort()'], { env: { ELECTRON_RUN_AS_NODE: '1' }, timeout: 20000, encoding: 'utf8' });
-    const pid = parseInt(String(r.stdout || '').trim(), 10) || null;
+  await check('crash-positive-control-child', 'main', 'ELECTRON_RUN_AS_NODE child aborts (SIGABRT; on 14/15 it dies earlier with SIGTRAP); the script must find its .ips', async () => {
+    // async spawn so the pid is known even when the child dies before running any JS
+    const child = spawn(process.execPath, ['-e', 'process.abort()'], { env: { ELECTRON_RUN_AS_NODE: '1' }, stdio: 'ignore' });
+    const pid = child.pid ?? null;
+    const exit = await withTimeout(new Promise<any>(resolve => child.on('exit', (code, signal) => resolve({ code, signal }))), 20000, 'child exit');
     await agentQuiet(`/crash-control?kind=child&pid=${pid}`);
-    return { pid, status: r.status, signal: r.signal };
+    return { pid, ...exit };
   }, 30000);
 }
 
