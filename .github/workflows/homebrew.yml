@@ -10,7 +10,10 @@ name: Bump Homebrew Cask
 # therefore checks the DMG itself on macOS before `bump` touches the tap.
 #
 # Required secret: TAP_PUSH_TOKEN — fine-grained PAT scoped to
-# yokomohoyo/homebrew-tap with Contents: read/write.
+# yokomohoyo/homebrew-tap with Contents: read/write, stored in the
+# `homebrew-tap` environment, which only main may deploy to. Old tags carry
+# older, unguarded copies of this workflow; keeping the token out of
+# repository secrets stops a dispatch from those refs from pushing to the tap.
 
 on:
   workflow_run:
@@ -137,6 +140,7 @@ jobs:
   bump:
     needs: verify
     runs-on: ubuntu-latest
+    environment: homebrew-tap
     steps:
       - name: Checkout tap
         uses: actions/checkout@v7
