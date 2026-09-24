@@ -1,0 +1,133 @@
+# SPIKE ONLY (branch spike/mas-sandbox, never merge).
+# Empirical Mac App Store sandbox trial: builds an ad-hoc signed MAS flavor
+# (Electron's mas-arm64 build + sandbox entitlements) and a non-sandboxed control
+# with the same probe code, runs the INSOMNIUM_MAS_PROBE phases against each and
+# uploads the evidence.
+name: MAS sandbox spike
+
+on:
+  push:
+    branches:
+      - spike/mas-sandbox
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mas-spike-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: probe (${{ matrix.flavor }})
+    runs-on: macos-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [mas, control]
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Evidence dir
+        run: |
+          echo "EVID=$RUNNER_TEMP/evidence/${{ matrix.flavor }}" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/evidence/${{ matrix.flavor }}"
+          sw_vers
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Build app
+        run: npm run app-build
+        env:
+          NODE_OPTIONS: "--max_old_space_size=6144"
+
+      - name: Package (${{ matrix.flavor }})
+        working-directory: packages/insomnia
+        env:
+          USE_HARD_LINKS: "false"
+        run: |
+          if [ "${{ matrix.flavor }}" = mas ]; then T=mas; APPDIR=dist/mas-arm64; else T=dir; APPDIR=dist/mac-arm64; fi
+          set -o pipefail
+          npx electron-builder build --config electron-builder.config.js --publish never --arm64 --mac "$T" 2>&1 | tee "$EVID/electron-builder.log"
+          ls -la dist "$APPDIR"
+          APP="$PWD/$APPDIR/Insomnium.app"
+          test -d "$APP"
+          echo "APP=$APP" >> "$GITHUB_ENV"
+          # unsigned copy for the informational electron-builder ad-hoc signing attempt
+          mkdir -p "$RUNNER_TEMP/eb-adhoc"
+          ditto "$APP" "$RUNNER_TEMP/eb-adhoc/Insomnium.app"
+
+      - name: Ad-hoc sign (${{ matrix.flavor }})
+        run: |
+          set -o pipefail
+          if [ "${{ matrix.flavor }}" = mas ]; then
+            # Electron's MAS build derives its app-group IPC names from ElectronTeamID.
+            /usr/libexec/PlistBuddy -c "Add :ElectronTeamID string M4B2LM9HCJ" "$APP/Contents/Info.plist"
+            ENT=packages/insomnia/src/static/entitlements.mas.plist
+            ENT_INHERIT=packages/insomnia/src/static/entitlements.mas.inherit.plist
+          else
+            ENT=packages/insomnia/src/static/entitlements.mac.inherit.plist
+            ENT_INHERIT=packages/insomnia/src/static/entitlements.mac.inherit.plist
+          fi
+          bash scripts/mas-spike/sign-adhoc.sh "$APP" "$ENT" "$ENT_INHERIT" 2>&1 | tee "$EVID/sign.log"
+
+      - name: electron-builder's own ad-hoc MAS signing (informational)
+        if: matrix.flavor == 'mas'
+        continue-on-error: true
+        working-directory: packages/insomnia
+        env:
+          MAS_SPIKE_EB_IDENTITY: "-"
+          USE_HARD_LINKS: "false"
+          DEBUG: "electron-osx-sign*"
+        run: |
+          OUT="$EVID/eb-adhoc"
+          mkdir -p "$OUT"
+          C="$RUNNER_TEMP/eb-adhoc/Insomnium.app"
+          echo "## attempt A: as packaged (no ElectronTeamID)" | tee "$OUT/attempt-a.log"
+          perl -e 'alarm 600; exec @ARGV' npx electron-builder build --config electron-builder.config.js --publish never --arm64 --mac mas \
+            --prepackaged "$C" >> "$OUT/attempt-a.log" 2>&1 && echo "exit 0" >> "$OUT/attempt-a.log" || echo "exit $?" >> "$OUT/attempt-a.log"
+          tail -40 "$OUT/attempt-a.log"
+          codesign -d --entitlements :- "$C" > "$OUT/attempt-a-entitlements.xml" 2>&1 || true
+          echo "## attempt B: with ElectronTeamID=M4B2LM9HCJ" | tee "$OUT/attempt-b.log"
+          /usr/libexec/PlistBuddy -c "Add :ElectronTeamID string M4B2LM9HCJ" "$C/Contents/Info.plist" || true
+          perl -e 'alarm 600; exec @ARGV' npx electron-builder build --config electron-builder.config.js --publish never --arm64 --mac mas \
+            --prepackaged "$C" >> "$OUT/attempt-b.log" 2>&1 && echo "exit 0" >> "$OUT/attempt-b.log" || echo "exit $?" >> "$OUT/attempt-b.log"
+          tail -40 "$OUT/attempt-b.log"
+          codesign -dvvv "$C" > "$OUT/attempt-b-codesign.txt" 2>&1 || true
+          codesign -d --entitlements :- "$C" > "$OUT/attempt-b-entitlements.xml" 2>&1 || true
+          codesign --verify --deep --strict --verbose=2 "$C" > "$OUT/attempt-b-verify.txt" 2>&1 || true
+          cat "$OUT/attempt-b-entitlements.xml"
+
+      - name: Probe (${{ matrix.flavor }})
+        timeout-minutes: 30
+        run: bash scripts/mas-spike/probe-run.sh "$APP" "${{ matrix.flavor }}" "$EVID"
+
+      # After the probe so it cannot touch the container the probe uses first.
+      - name: Launch electron-builder-signed copy (informational)
+        if: always() && matrix.flavor == 'mas'
+        continue-on-error: true
+        run: |
+          OUT="$EVID/eb-adhoc"
+          C="$RUNNER_TEMP/eb-adhoc/Insomnium.app"
+          perl -e 'alarm 25; exec @ARGV' "$C/Contents/MacOS/Insomnium" > "$OUT/attempt-b-launch.log" 2>&1 && echo "launch exit 0" >> "$OUT/attempt-b-launch.log" || echo "launch exit $?" >> "$OUT/attempt-b-launch.log"
+          tail -30 "$OUT/attempt-b-launch.log"
+          pkill -9 -f "$RUNNER_TEMP/eb-adhoc" || true
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mas-spike-evidence-${{ matrix.flavor }}
+          path: ${{ runner.temp }}/evidence/${{ matrix.flavor }}
+          include-hidden-files: false
+          retention-days: 14

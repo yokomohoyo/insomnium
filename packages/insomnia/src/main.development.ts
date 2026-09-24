@@ -102,6 +102,23 @@ app.on('ready', async () => {
 
 });
 
+// SPIKE ONLY (spike/mas-sandbox, never merge): Mac App Store sandbox probe.
+// Inert unless INSOMNIUM_MAS_PROBE=1, or this is the instance the probe's own
+// app.relaunch() started (it passes --mas-probe-relaunched). It starts in
+// parallel with the normal 'ready' work so main-process checks still run if
+// app init stalls; renderer checks wait for the main window.
+if (process.env.INSOMNIUM_MAS_PROBE === '1' || process.argv.includes('--mas-probe-relaunched')) {
+  app.whenReady()
+    .then(async () => {
+      const { runMasProbe } = await import('./main/mas-probe');
+      await runMasProbe();
+    })
+    .catch(err => {
+      process.stdout.write(`MASPROBE:FATAL ${String(err?.stack || err)}\n`);
+      app.exit(3);
+    });
+}
+
 // Set as default protocol
 const defaultProtocol = `insomnia${isDevelopment() ? 'dev' : ''}`;
 const fullDefaultProtocol = `${defaultProtocol}://`;

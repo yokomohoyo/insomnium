@@ -78,6 +78,20 @@ const config = {
     notarize: process.env.APPLE_API_KEY ? true : false,
     asarUnpack: ["node_modules/@getinsomnia/node-libcurl"],
   },
+  // SPIKE ONLY (spike/mas-sandbox, never merge). electron-builder 26.16.1 builds
+  // the mas config as deepAssign(mac, mas), so every mac setting that must differ
+  // is overridden explicitly. identity stays null (inherited from mac when there is
+  // no CSC_LINK): the spike workflow ad-hoc signs the .app itself afterwards.
+  mas: {
+    // MAS_SPIKE_EB_IDENTITY=- lets the workflow record what electron-builder itself does
+    // with an ad-hoc MAS signature (informational step only).
+    ...(process.env.MAS_SPIKE_EB_IDENTITY ? { identity: process.env.MAS_SPIKE_EB_IDENTITY } : {}),
+    hardenedRuntime: false,
+    entitlements: "./build/static/entitlements.mas.plist",
+    entitlementsInherit: "./build/static/entitlements.mas.inherit.plist",
+    bundleShortVersion: "0.3.0",
+    bundleVersion: "1",
+  },
   dmg: {
     window: {
       width: 540,
