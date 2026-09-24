@@ -78,6 +78,45 @@ jobs:
           token: ${{ secrets.TAP_PUSH_TOKEN }}
           path: tap
 
+      # The cask keeps Homebrew's quarantine (tap PR #5), so a build that isn't
+      # notarized opens as "damaged and can't be opened". Refuse anything older
+      # than the first notarized release, a tag whose version differs (the url
+      # interpolates #{version}), or a downgrade, e.g. a mistyped manual dispatch.
+      - name: Guard the bump
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+          VERSION: ${{ steps.resolve.outputs.version }}
+          MIN_VERSION: 0.3.0-rc.15 # first Developer ID signed + notarized release
+        run: |
+          CURRENT=$(sed -n 's/^  version "\(.*\)"$/\1/p' tap/Casks/insomnium.rb)
+          CURRENT="$CURRENT" python3 - <<'PY'
+          import os, re, sys
+
+          def key(v):
+              m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?", v)
+              if not m:
+                  return None
+              major, minor, patch, rc = m.groups()
+              # a final release sorts after all of its release candidates
+              return (int(major), int(minor), int(patch), 1 if rc is None else 0, int(rc or 0))
+
+          tag, version, floor, current = (os.environ[k] for k in ("TAG", "VERSION", "MIN_VERSION", "CURRENT"))
+          errors = []
+          if tag != version:
+              errors.append(f"tag {tag!r} does not match packages/insomnia version {version!r}; the cask url uses #{{version}}")
+          if key(version) is None:
+              errors.append(f"version {version!r} is not X.Y.Z or X.Y.Z-rc.N")
+          elif key(version) < key(floor):
+              errors.append(f"{version} is older than {floor}, the first notarized release; it would open as 'damaged'")
+          elif key(current) is not None and key(version) < key(current):
+              errors.append(f"{version} would downgrade the cask from {current}")
+          for e in errors:
+              print(f"::error::{e}")
+          if errors:
+              sys.exit(1)
+          print(f"ok: {version} (floor {floor}, cask currently {current or 'unknown'})")
+          PY
+
       - name: Update cask
         env:
           VERSION: ${{ steps.resolve.outputs.version }}
