@@ -17,6 +17,11 @@ on:
         description: Tag of an existing release to (re)build artifacts for
         required: true
         type: string
+      dry_run:
+        description: Build but don't upload anything to the release
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.release.tag_name || github.event.inputs.tag }}
@@ -112,6 +117,7 @@ jobs:
             packages/insomnia/dist/*.tar.gz
 
       - name: Attach assets to release
+        if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}

@@ -24,7 +24,13 @@ permissions:
 
 jobs:
   bump:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only a build started by publishing a release. A manually dispatched build
+    # (a re-run, or a dry run) reports its branch as head_branch, not the tag,
+    # so it can't be resolved here. After a manual re-run that re-uploads the
+    # DMG, dispatch this workflow with the tag instead.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release') }}
     runs-on: ubuntu-latest
     steps:
       - name: Resolve tag
