@@ -64,11 +64,12 @@ export const assertWithinRoot = (parent: string, child: string): void => {
 // Write to a unique temp name, then rename into place, so a file that exists
 // at fullPath always has its full content. Concurrent callers skip files that
 // already exist and read them synchronously right away; a plain writeFile
-// creates the file empty before the content lands.
+// creates the file empty before the content lands. The file is created
+// exclusively and readable by its owner only, as os.tmpdir() can be shared.
 const writeFileAtomic = async (fullPath: string, content: string): Promise<void> => {
   const tmpPath = `${fullPath}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
   try {
-    await fs.promises.writeFile(tmpPath, content, { flag: 'wx' });
+    await fs.promises.writeFile(tmpPath, content, { flag: 'wx', mode: 0o600 });
     await fs.promises.rename(tmpPath, fullPath);
   } catch (err: any) {
     await fs.promises.rm(tmpPath, { force: true }).catch(() => {});

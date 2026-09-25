@@ -43,6 +43,8 @@ describe('writeProtoFile', () => {
   const expectWritten = (fullPath: string, content: string) => {
     const call = writeFileSpy.mock.calls.find(([p]) => String(p).startsWith(`${fullPath}.`));
     expect(call?.[1]).toEqual(content);
+    // Created exclusively and private to the user, since the temp dir can be shared
+    expect(call?.[2]).toEqual({ flag: 'wx', mode: 0o600 });
     expect(renameSpy).toHaveBeenCalledWith(call?.[0], fullPath);
   };
 
