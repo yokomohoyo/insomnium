@@ -9,7 +9,7 @@ import { userDataFolder } from '../config/config.json';
 import { getAppVersion, isDevelopment, isMac } from './common/constants';
 import { database } from './common/database';
 import log, { initializeLogging } from './common/log';
-import { backupIfNewerVersionAvailable } from './main/backup';
+import { backupDataIfVersionChanged } from './main/backup';
 import { deepLinks, linksFromArgv } from './main/deep-link-buffer';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
@@ -91,6 +91,35 @@ if (!process.env.PLAYWRIGHT) {
 
 // When the app is first launched
 app.on('ready', async () => {
+  // Disable deep linking in playwright e2e tests in order to run multiple tests in parallel
+  if (!process.env.PLAYWRIGHT) {
+    // Deep linking logic - https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app
+    // A second instance quits here, before it backs up or opens the data the first instance is using
+    if (!app.requestSingleInstanceLock()) {
+      console.error('[app] Failed to get instance lock');
+      app.quit();
+      return;
+    }
+    // Called when second instance launched with args (Windows/Linux)
+    app.on('second-instance', (_1, args) => {
+      console.log('Second instance listener received:', args.join('||'));
+      const links = linksFromArgv(args, fullDefaultProtocol);
+      links.forEach(url => console.log('[main] Open Deep Link URL sent from second instance', url));
+      // Until the first window exists the links wait for it, like the ones that launched the app
+      if (!launched) {
+        links.forEach(url => deepLinks.push(url, null));
+        return;
+      }
+      const window = windowUtils.getOrCreateWindow();
+      if (window.isMinimized()) {
+        window.restore();
+      }
+      window.focus();
+      // Held like the macOS links if the renderer is not listening yet
+      links.forEach(url => deepLinks.push(url, window.webContents));
+    });
+  }
+
   registerElectronHandlers();
   registerMainHandlers();
   registergRPCHandlers();
@@ -122,6 +151,7 @@ app.on('ready', async () => {
   }
 
   // Init some important things first
+  await backupDataIfVersionChanged();
   await database.init(models.types());
   await _createModelInstances();
 
@@ -179,7 +209,6 @@ app.on('activate', (_error, hasVisibleWindows) => {
 });
 
 const _launchApp = async () => {
-  let window: BrowserWindow;
   // Handle URLs sent via command line args
   ipcMain.handle('getMcpStatus', async () => {
     const { getRunningMcpServer } = await import('./main/mcp/server');
@@ -202,34 +231,9 @@ const _launchApp = async () => {
     // Links that launched the app go to the first window that is listening
     console.log('[main] Handling command line arguments', process.argv);
     linksFromArgv(process.argv.slice(1), fullDefaultProtocol).forEach(url => deepLinks.push(url, null));
-    // Deep linking logic - https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app
-    const gotTheLock = app.requestSingleInstanceLock();
-    if (!gotTheLock) {
-      console.error('[app] Failed to get instance lock');
-      app.quit();
-    } else {
-      // Called when second instance launched with args (Windows/Linux)
-      app.on('second-instance', (_1, args) => {
-        console.log('Second instance listener received:', args.join('||'));
-        window = windowUtils.getOrCreateWindow();
-        if (window) {
-          if (window.isMinimized()) {
-            window.restore();
-          }
-          window.focus();
-        }
-        // Held like the macOS links if the renderer is not listening yet
-        linksFromArgv(args, fullDefaultProtocol).forEach(url => {
-          console.log('[main] Open Deep Link URL sent from second instance', url);
-          deepLinks.push(url, window.webContents);
-        });
-      });
-      window = windowUtils.getOrCreateWindow();
-      launched = true;
-    }
-  } else {
-    window = windowUtils.getOrCreateWindow();
   }
+  windowUtils.getOrCreateWindow();
+  launched = true;
 
   // Don't send origin header from Insomnium because we're not technically using CORS
   session.defaultSession.webRequest.onBeforeSendHeaders((details, fn) => {

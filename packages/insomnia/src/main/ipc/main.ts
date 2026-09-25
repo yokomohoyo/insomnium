@@ -8,7 +8,6 @@ import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
-import { backup, restoreBackup } from '../backup';
 import { insomniaFetch } from '../insomniaFetch';
 import installPlugin from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
@@ -23,8 +22,6 @@ export interface MainBridgeAPI {
   restart: () => void;
   halfSecondAfterAppStart: () => void;
   manualUpdateCheck: () => void;
-  backup: () => Promise<void>;
-  restoreBackup: (version: string) => Promise<void>;
   spectralRun: (options: { contents: string; rulesetPath: string }) => Promise<ISpectralDiagnostic[]>;
   authorizeUserInWindow: typeof authorizeUserInWindow;
   setMenuBarVisibility: (visible: boolean) => void;
@@ -55,12 +52,6 @@ export function registerMainHandlers() {
     BrowserWindow.getAllWindows().forEach(w => {
       w.webContents.send('loggedIn');
     });
-  });
-  ipcMain.handle('backup', async () => {
-    return backup();
-  });
-  ipcMain.handle('restoreBackup', async (_, options: string) => {
-    return restoreBackup(options);
   });
   ipcMain.handle('authorizeUserInWindow', (_, options: Parameters<typeof authorizeUserInWindow>[0]) => {
     const { url, urlSuccessRegex, urlFailureRegex, sessionId } = options;
