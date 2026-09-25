@@ -1,5 +1,7 @@
 import { createWriteStream } from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 
 import * as contentDisposition from 'content-disposition';
 import { extension as mimeExtension } from 'mime-types';
@@ -293,31 +295,39 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
     });
   });
 };
-const writeToDownloadPath = (downloadPathAndName: string, responsePatch: ResponsePatch, requestMeta: RequestMeta, maxHistoryResponses: number) => {
+const writeBodyToFile = async (body: Readable, filePath: string): Promise<Error | null> => {
+  try {
+    // Unlike pipe(), pipeline() reports errors from either stream and only
+    // completes once the file has been fully written and closed.
+    await pipeline(body, createWriteStream(filePath));
+    return null;
+  } catch (err) {
+    // createWriteStream throws before pipeline() runs for an invalid path (e.g.
+    // a NUL byte in the name), so close the body here too. Its own errors no
+    // longer matter, but must not go unhandled.
+    body.on('error', () => {});
+    body.destroy();
+    return err instanceof Error ? err : new Error(String(err));
+  }
+};
+
+const writeToDownloadPath = async (downloadPathAndName: string, responsePatch: ResponsePatch, requestMeta: RequestMeta, maxHistoryResponses: number) => {
   guard(downloadPathAndName, 'filename should be set by now');
 
-  const to = createWriteStream(downloadPathAndName);
   const readStream = models.response.getBodyStream(responsePatch);
-  if (!readStream || typeof readStream === 'string') {
-    return null;
+  const error = !readStream || typeof readStream === 'string'
+    ? new Error('the response body could not be read')
+    : await writeBodyToFile(readStream, downloadPathAndName);
+
+  if (error) {
+    console.warn('Failed to download request after sending', downloadPathAndName, error);
   }
-  readStream.pipe(to);
-
-  return new Promise(resolve => {
-    readStream.on('end', async () => {
-      responsePatch.error = `Saved to ${downloadPathAndName}`;
-      const response = await models.response.create(responsePatch, maxHistoryResponses);
-      await models.requestMeta.update(requestMeta, { activeResponseId: response._id });
-      resolve(null);
-    });
-    readStream.on('error', async err => {
-      console.warn('Failed to download request after sending', responsePatch.bodyPath, err);
-      const response = await models.response.create(responsePatch, maxHistoryResponses);
-      await models.requestMeta.update(requestMeta, { activeResponseId: response._id });
-      resolve(null);
-    });
-  });
-
+  responsePatch.error = error
+    ? `Failed to save to ${downloadPathAndName}: ${error.message}`
+    : `Saved to ${downloadPathAndName}`;
+  const response = await models.response.create(responsePatch, maxHistoryResponses);
+  await models.requestMeta.update(requestMeta, { activeResponseId: response._id });
+  return null;
 };
 export interface SendActionParams {
   renderedRequest: RenderedRequest;

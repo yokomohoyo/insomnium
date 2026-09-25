@@ -8,8 +8,6 @@ import path from 'path';
 import { isDevelopment } from '../common/constants';
 import { assertValidPackageSpec } from './validate-package-spec';
 
-const YARN_DEPRECATED_WARN = /(?<keyword>warning)(?<dependencies>[^>:].+[>:])(?<issue>.+)/;
-
 interface InsomniaPlugin {
   // Insomnium attribute from package.json
   insomnia: {
@@ -114,7 +112,8 @@ async function _isInsomniaPlugin(lookupName: string) {
         },
       },
       (err, stdout, stderr) => {
-        if (stderr) {
+        // Yarn exits 0 for an unknown package, reporting it only on stderr
+        if (stderr && containsYarnErrors(stderr.toString())) {
           reject(new Error(`Yarn error ${stderr.toString()}`));
           return;
         }
@@ -206,7 +205,7 @@ async function _installPluginToTmpDir(lookupName: string) {
           return;
         }
 
-        if (stderr && !containsOnlyDeprecationWarnings(stderr)) {
+        if (stderr && containsYarnErrors(stderr.toString())) {
           reject(new Error(`Yarn error ${stderr.toString()}`));
           return;
         }
@@ -219,35 +218,35 @@ async function _installPluginToTmpDir(lookupName: string) {
   });
 }
 
-export function containsOnlyDeprecationWarnings(stderr: string) {
-  // Split on line breaks and remove falsy values (null, undefined, 0, -0, NaN, "", false)
-  const arr = stderr.split(/\r?\n/).filter(error => error);
-  // Retrieve all matching deprecated dependency warning
-  const warnings = arr.filter(error => isDeprecatedDependencies(error));
-  // Print each deprecation warnings to the console, so we don't hide them.
-  warnings.forEach(warning => console.warn('[plugins] deprecation warning during installation: ', warning));
-  // If they mismatch, it means there are warnings and errors
-  return warnings.length === arr.length;
+/**
+ * Yarn also writes warnings to stderr (deprecated dependencies, missing license
+ * field, peer dependencies, node warnings), so stderr output alone does not mean
+ * the command failed. Returns true only if yarn reported an error: an
+ * `error ...` line, or with --json a `{"type":"error",...}` line. Lines before
+ * the first error are logged so warnings aren't hidden; lines after it are
+ * usually the rest of a multi-line error (e.g. "Exit code: ...") and end up in
+ * the rejection message along with the rest of stderr.
+ */
+export function containsYarnErrors(stderr: string) {
+  for (const line of stderr.split(/\r?\n/).filter(line => line)) {
+    if (isYarnError(line)) {
+      return true;
+    }
+    console.warn('[plugins] yarn warning: ', line);
+  }
+  return false;
 }
 
-/**
- * Provided a string, it checks for the following message:<br>
- * <<[warning] xxx > yyy > zzz: yyy<n is [no longer maintained] and [not recommended for usage] <br>
- * due to the number of issues. Please, [upgrade your dependencies] to xxx>> <br>
- * @param str The error message
- * @returns {boolean} Returns true if it's a deprecated warning
- */
-export function isDeprecatedDependencies(str: string) {
-  // The issue contains the message as it is without the dependency list
-  const message = YARN_DEPRECATED_WARN.exec(str)?.groups?.issue;
-  // Strict check, everything must be matched to be a false positive
-  // !! is not a mistake, makes it returns boolean instead of undefined on error
-  return !!(
-    message &&
-    message.includes('no longer maintained') &&
-    message.includes('not recommended for usage') &&
-    message.includes('upgrade your dependencies')
-  );
+function isYarnError(line: string) {
+  if (line.startsWith('error ')) {
+    return true;
+  }
+
+  try {
+    return JSON.parse(line)?.type === 'error';
+  } catch {
+    return false;
+  }
 }
 
 function _getYarnPath() {
