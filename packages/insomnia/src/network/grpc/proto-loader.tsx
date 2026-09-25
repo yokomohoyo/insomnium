@@ -274,7 +274,11 @@ async function buildIncludeDirs(filePath: string, parent: ProtoDirectory | Works
 async function validateProtoFile(filePath: string, parent: ProtoDirectory | Workspace): Promise<ProtoLoadResult> {
   const includeDirs = await buildIncludeDirs(filePath, parent);
   try {
-    await protoLoader.load(filePath, {
+    // Sync on purpose: async load() retries a failed fs read with XMLHttpRequest
+    // when it exists, as in the renderer, so a missing import was fetched from
+    // the page origin and either loaded as empty or threw inside the request
+    // handler, leaving the promise pending forever. loadSync only uses fs.
+    protoLoader.loadSync(filePath, {
       keepCase: true,
       longs: String,
       enums: String,
@@ -291,11 +295,14 @@ async function validateProtoFile(filePath: string, parent: ProtoDirectory | Work
 // Friendlier error: if it looks like a missing import, point the user at fixes.
 function formatProtoLoadError(filePath: string, err: any): string {
   const msg = String(err?.message || err);
-  // protobufjs raises "illegal token '<'" when an import path resolves to a
-  // non-proto file (e.g. an HTML 404 page) - which usually means the import
-  // wasn't found on the include path and a stub got matched instead.
-  if (/illegal token '<'/.test(msg)) {
-    return `${filePath}: missing transitive proto import (${msg}). ` +
+  const isImport = typeof err?.path === 'string' && path.resolve(err.path) !== path.resolve(filePath);
+  if (isImport && (err.code === 'EACCES' || err.code === 'EPERM')) {
+    return `${filePath}: cannot read proto import (${msg}).`;
+  }
+  // An import that isn't on the include path (or can't be read there) is opened
+  // relative to the file importing it, which fails with ENOENT on that path.
+  if (isImport && err.code === 'ENOENT') {
+    return `${filePath}: missing or unreadable proto import (${msg}). ` +
       `If this is a buf project, run \`buf export . -o /tmp/flat\` and import /tmp/flat, ` +
       `or use the "Import from URL" button with your BSR module URL.`;
   }

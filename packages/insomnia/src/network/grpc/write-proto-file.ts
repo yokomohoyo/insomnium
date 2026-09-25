@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -60,6 +61,28 @@ export const assertWithinRoot = (parent: string, child: string): void => {
   }
 };
 
+// Write to a unique temp name, then rename into place, so a file that exists
+// at fullPath always has its full content. Concurrent callers skip files that
+// already exist and read them synchronously right away; a plain writeFile
+// creates the file empty before the content lands. The file is created
+// exclusively and readable by its owner only, as os.tmpdir() can be shared.
+const writeFileAtomic = async (fullPath: string, content: string): Promise<void> => {
+  const tmpPath = `${fullPath}.${process.pid}.${crypto.randomBytes(6).toString('hex')}.tmp`;
+  try {
+    await fs.promises.writeFile(tmpPath, content, { flag: 'wx', mode: 0o600 });
+    await fs.promises.rename(tmpPath, fullPath);
+  } catch (err: any) {
+    await fs.promises.rm(tmpPath, { force: true }).catch(() => {});
+    // Windows can refuse to replace a file that is open or that another caller
+    // just renamed into place; that is fine if it already has this content.
+    const current = await fs.promises.readFile(fullPath, 'utf8').catch(() => null);
+    if (['EPERM', 'EACCES', 'EEXIST'].includes(err?.code) && current === content) {
+      return;
+    }
+    throw err;
+  }
+};
+
 const recursiveWriteProtoDirectory = async (
   dir: ProtoDirectory,
   descendants: BaseModel[],
@@ -80,7 +103,8 @@ const recursiveWriteProtoDirectory = async (
     if (!forceWrite && fs.existsSync(fullPath)) {
       return;
     }
-    fs.promises.writeFile(fullPath, protoFile.protoText);
+    // Returned so callers wait for the write; loadMethods reads the tree right after.
+    return writeFileAtomic(fullPath, protoFile.protoText);
   }));
   // Get and write subdirectories
   const createdDirs = await Promise.all(
@@ -149,7 +173,7 @@ export const writeProtoFile = async (protoFile: ProtoFile, forceWrite = false): 
       return result;
     }
     // Write file
-    await fs.promises.writeFile(fullPath, protoFile.protoText);
+    await writeFileAtomic(fullPath, protoFile.protoText);
     return result;
   }
 };
