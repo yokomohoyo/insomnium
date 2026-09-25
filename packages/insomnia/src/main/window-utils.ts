@@ -130,10 +130,12 @@ export function createWindow() {
 
   console.log(`[main] Loading ${appUrl}`);
   newWindow?.loadURL(appUrl);
-  // Emitted when the window is closed.
-  newWindow?.on('closed', () => {
-    if (newWindow) {
-      windows.delete(newWindow);
+  // Emitted when the window is closed. It may not be the newest window, so use the one
+  // this handler belongs to.
+  const createdWindow = newWindow;
+  createdWindow.on('closed', () => {
+    windows.delete(createdWindow);
+    if (newWindow === createdWindow) {
       newWindow = windows.values().next().value || null;
     }
   });

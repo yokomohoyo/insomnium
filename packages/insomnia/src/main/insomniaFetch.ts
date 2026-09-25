@@ -2,6 +2,7 @@ import { BrowserWindow, net } from 'electron';
 
 import { getApiBaseURL, getClientString } from '../common/constants';
 import { delay } from '../common/misc';
+import { deepLinks } from './deep-link-buffer';
 
 interface FetchConfig {
   method: 'POST' | 'PUT' | 'GET';
@@ -54,8 +55,9 @@ export async function insomniaFetch<T = any>({ method, path, data, sessionId, or
   const response = await exponentialBackOff(`${origin || getApiBaseURL()}${path}`, config);
   const uri = response.headers.get('x-insomnia-command');
   if (uri) {
+    // Held for any window that is still loading, like other links
     for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send('shell:open', uri);
+      deepLinks.push(uri, window.webContents);
     }
   }
   const isJson = response.headers.get('content-type') === 'application/json' || path.match(/\.json$/);
