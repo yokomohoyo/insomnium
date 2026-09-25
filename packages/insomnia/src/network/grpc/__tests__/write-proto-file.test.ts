@@ -16,23 +16,34 @@ describe('writeProtoFile', () => {
   let existsSyncSpy: SpyInstance<any>;
   let tmpDirSpy: SpyInstance<any>;
   let writeFileSpy: SpyInstance<any>;
+  let renameSpy: SpyInstance<any>;
 
   const _setupSpies = () => {
     existsSyncSpy = jest.spyOn(fs, 'existsSync');
     tmpDirSpy = jest.spyOn(os, 'tmpdir');
     writeFileSpy = jest.spyOn(fs.promises, 'writeFile');
+    renameSpy = jest.spyOn(fs.promises, 'rename');
   };
 
   const _configureSpies = (tmpDir: string, exists: boolean) => {
     existsSyncSpy.mockReturnValue(exists);
     tmpDirSpy.mockReturnValue(tmpDir);
     writeFileSpy.mockResolvedValue(undefined);
+    renameSpy.mockResolvedValue(undefined);
   };
 
   const _restoreSpies = () => {
     existsSyncSpy.mockRestore();
     tmpDirSpy.mockRestore();
     writeFileSpy.mockRestore();
+    renameSpy.mockRestore();
+  };
+
+  // Files are written to a temp name next to fullPath, then renamed into place.
+  const expectWritten = (fullPath: string, content: string) => {
+    const call = writeFileSpy.mock.calls.find(([p]) => String(p).startsWith(`${fullPath}.`));
+    expect(call?.[1]).toEqual(content);
+    expect(renameSpy).toHaveBeenCalledWith(call?.[0], fullPath);
   };
 
   beforeEach(async () => {
@@ -69,7 +80,7 @@ describe('writeProtoFile', () => {
       expect(result.filePath).toEqual(expectedFileName);
       expect(result.dirs).toEqual([expectedDir]);
       expect(existsSyncSpy).toHaveBeenCalledWith(expectedFullPath);
-      expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath, pf.protoText);
+      expectWritten(expectedFullPath, pf.protoText);
     });
 
     it('doesnt write individual file if it already exists', async () => {
@@ -115,7 +126,35 @@ describe('writeProtoFile', () => {
       expect(result.filePath).toEqual(expectedFileName);
       expect(result.dirs).toEqual([expectedDir]);
       expect(existsSyncSpy).not.toHaveBeenCalledWith(expectedFullPath); // Not called because of the force flag
-      expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath, pf.protoText);
+      expectWritten(expectedFullPath, pf.protoText);
+    });
+
+    // Windows can refuse the rename into place; the write may only succeed if
+    // the file there already has the new content.
+    const writeWithRefusedRename = async (currentContent: string) => {
+      const w = await models.workspace.create();
+      const pf = await models.protoFile.create({
+        parentId: w._id,
+        protoText: 'text',
+      });
+      _configureSpies(path.join('.', 'foo', 'bar', 'baz'), true);
+      renameSpy.mockRejectedValue(Object.assign(new Error('EPERM: operation not permitted, rename'), { code: 'EPERM' }));
+      const rmSpy = jest.spyOn(fs.promises, 'rm').mockResolvedValue(undefined);
+      const readFileSpy = jest.spyOn(fs.promises, 'readFile').mockResolvedValue(currentContent);
+      try {
+        return await writeProtoFile(pf, true).then(() => 'written', (err: Error) => err.message);
+      } finally {
+        rmSpy.mockRestore();
+        readFileSpy.mockRestore();
+      }
+    };
+
+    it('accepts a refused replace when the file already has the content', async () => {
+      expect(await writeWithRefusedRename('text')).toBe('written');
+    });
+
+    it('fails a refused replace that would keep stale content', async () => {
+      expect(await writeWithRefusedRename('old text')).toContain('EPERM');
     });
   });
 
@@ -150,7 +189,7 @@ describe('writeProtoFile', () => {
       expect(result.filePath).toEqual(expectedFilePath);
       expect(result.dirs).toEqual([expectedRootDir]);
       expect(existsSyncSpy).toHaveBeenCalledWith(expectedFullPath);
-      expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath, pf.protoText);
+      expectWritten(expectedFullPath, pf.protoText);
     });
 
     it('can write files contained in nested folders', async () => {
@@ -200,10 +239,10 @@ describe('writeProtoFile', () => {
       expect(result.dirs).toEqual([expectedRootDir, expectedNestedDir]);
       // Root folder should be created and written to
       expect(existsSyncSpy).toHaveBeenCalledWith(expectedFullPath.root);
-      expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath.root, pfRoot.protoText);
+      expectWritten(expectedFullPath.root, pfRoot.protoText);
       // Nested folder should be created and written to
       expect(existsSyncSpy).toHaveBeenCalledWith(expectedFullPath.nested);
-      expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath.nested, pfNested.protoText);
+      expectWritten(expectedFullPath.nested, pfNested.protoText);
     });
 
     it('should not write file if it already exists', async () => {
@@ -337,7 +376,7 @@ describe('writeProtoFile', () => {
       expect(result.dirs).toEqual([expectedRootDir, expectedNestedDir]);
       expect(existsSyncSpy).not.toHaveBeenCalledWith(expectedFullPath.root); // Not called due to force flag
       expect(existsSyncSpy).not.toHaveBeenCalledWith(expectedFullPath.nested); // Not called due to force flag
-      expect(writeFileSpy).toHaveBeenCalledWith(expectedFullPath.nested, pfNested.protoText);
+      expectWritten(expectedFullPath.nested, pfNested.protoText);
     });
   });
 });

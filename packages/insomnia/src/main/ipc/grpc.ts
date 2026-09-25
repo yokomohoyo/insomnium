@@ -51,9 +51,12 @@ const grpcOptions = {
   defaults: true,
   oneofs: true,
 };
+// Protos are loaded with loadSync on purpose: async load() resolves the types
+// inside its file-read callback, so an unresolvable type throws there and the
+// returned promise never settles.
 const loadMethodsFromFilePath = async (filePath: string, includeDirs: string[]): Promise<MethodDefs[]> => {
   try {
-    const definition = await protoLoader.load(filePath, {
+    const definition = protoLoader.loadSync(filePath, {
       ...grpcOptions,
       includeDirs,
     });
@@ -113,7 +116,7 @@ const getRequestTemplatesFromProtoFile = async (
       return target;
     };
     console.log('[grpc-template] loading', filePath, 'with includeDirs', includeDirs);
-    await root.load(filePath, { keepCase: true });
+    root.loadSync(filePath, { keepCase: true });
     console.log('[grpc-template] loaded; resolving...');
     try {
       root.resolveAll();

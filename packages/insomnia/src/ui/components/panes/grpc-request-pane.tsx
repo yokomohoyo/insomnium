@@ -90,7 +90,13 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
       let loadedMethods = methods;
       if (methods === undefined) {
         console.log(`[gRPC] loading proto file methods pf=${activeRequest.protoFileId}`);
-        loadedMethods = await window.main.grpc.loadMethods(activeRequest.protoFileId);
+        try {
+          loadedMethods = await window.main.grpc.loadMethods(activeRequest.protoFileId);
+        } catch (error) {
+          // Empty list so the next render doesn't retry and show the error again.
+          loadedMethods = [];
+          showModal(ErrorModal, { title: 'Failed to load proto file methods', error });
+        }
         setMethods(loadedMethods);
       }
 
@@ -384,8 +390,12 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                 protoMethodName: undefined,
               });
               setGrpcState({ ...grpcState, method: undefined });
-              const methods = await window.main.grpc.loadMethods(protoFileId);
-              setMethods(methods);
+              try {
+                setMethods(await window.main.grpc.loadMethods(protoFileId));
+              } catch (error) {
+                setMethods([]);
+                showModal(ErrorModal, { title: 'Failed to load proto file methods', error });
+              }
               setIsProtoModalOpen(false);
             }
             setIsProtoModalOpen(false);
