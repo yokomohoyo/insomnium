@@ -37,6 +37,7 @@ const grpc: gRPCBridgeAPI = {
   loadMethods: options => ipcRenderer.invoke('grpc.loadMethods', options),
   loadMethodsFromReflection: options => ipcRenderer.invoke('grpc.loadMethodsFromReflection', options),
   fetchProto: (url, tokens) => ipcRenderer.invoke('grpc.fetchProto', url, tokens),
+  validateProto: (filePath, includeDirs) => ipcRenderer.invoke('grpc.validateProto', filePath, includeDirs),
 };
 const main: Window['main'] = {
   loginStateChange: () => ipcRenderer.send('loginStateChange'),

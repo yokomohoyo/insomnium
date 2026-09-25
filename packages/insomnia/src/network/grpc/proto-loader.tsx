@@ -1,8 +1,6 @@
 import fs from "fs";
 import path from "path";
 
-import * as protoLoader from "@grpc/proto-loader";
-
 import * as models from "../../models";
 import { database as db } from "../../common/database";
 import { ProtoDirectory } from "../../models/proto-directory";
@@ -10,6 +8,7 @@ import { ProtoFile } from "../../models/proto-file";
 import { writeProtoFile } from "./write-proto-file";
 import { Workspace } from "../../models/workspace";
 import type { FetchedProto } from "./proto-fetcher";
+import type { ProtoLoadError } from "../../main/proto-worker";
 
 export type ProtoLoadResult = { success: true; loaded: ProtoFile[]; errors: string[] } | { success: false; errors: string[] };
 
@@ -271,21 +270,28 @@ async function buildIncludeDirs(filePath: string, parent: ProtoDirectory | Works
   return [...ancestors, ...bufDirs];
 }
 
+type ProtoValidator = (filePath: string, includeDirs: string[]) => Promise<ProtoLoadError | undefined>;
+// validateProto from main/proto-worker, for callers in the main process (the
+// MCP tools). They set it, since importing that module here would also bundle
+// it into the renderer.
+let mainProcessValidator: ProtoValidator | undefined;
+export function setProtoValidator(validator: ProtoValidator) {
+  mainProcessValidator = validator;
+}
+
 async function validateProtoFile(filePath: string, parent: ProtoDirectory | Workspace): Promise<ProtoLoadResult> {
   const includeDirs = await buildIncludeDirs(filePath, parent);
   try {
-    // Sync on purpose: async load() retries a failed fs read with XMLHttpRequest
-    // when it exists, as in the renderer, so a missing import was fetched from
-    // the page origin and either loaded as empty or threw inside the request
-    // handler, leaving the promise pending forever. loadSync only uses fs.
-    protoLoader.loadSync(filePath, {
-      keepCase: true,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-      includeDirs: includeDirs,
-    });
+    // Loaded on the main process's proto worker thread, as loadMethods does,
+    // so parsing a large tree doesn't freeze the UI.
+    const validate = process.type === 'renderer' ? window.main.grpc.validateProto : mainProcessValidator;
+    if (!validate) {
+      throw new Error('Proto files cannot be validated in this process');
+    }
+    const error = await validate(filePath, includeDirs);
+    if (error) {
+      return { success: false, errors: [formatProtoLoadError(filePath, error)] };
+    }
     return { success: true, loaded: [], errors: [] };
   } catch (e: any) {
     return { success: false, errors: [formatProtoLoadError(filePath, e)] };

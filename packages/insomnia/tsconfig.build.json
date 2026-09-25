@@ -34,6 +34,7 @@
     "node_modules",
     "src/coverage",
     "src/main.min.js",
+    "src/proto-worker.min.js",
     "src/preload.js",
   ],
 }
