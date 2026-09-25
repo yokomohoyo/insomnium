@@ -41,6 +41,12 @@ export default async function build(options: Options) {
     format: 'cjs',
     external: ['electron'],
   });
+  const external = [
+    'electron',
+    '@getinsomnia/node-libcurl',
+    ...Object.keys(pkg.dependencies),
+    ...Object.keys(builtinModules),
+  ];
   const main = esbuild.build({
     entryPoints: ['./src/main.development.ts'],
     outfile: path.join(outdir, 'main.min.js'),
@@ -49,14 +55,20 @@ export default async function build(options: Options) {
     sourcemap: true,
     format: 'cjs',
     define: env,
-    external: [
-      'electron',
-      '@getinsomnia/node-libcurl',
-      ...Object.keys(pkg.dependencies),
-      ...Object.keys(builtinModules),
-    ],
+    external,
   });
-  return Promise.all([main, preload]);
+  // Worker thread the main process parses proto files on, loaded from next to main.min.js
+  const protoWorker = esbuild.build({
+    entryPoints: ['./src/main/proto-worker.ts'],
+    outfile: path.join(outdir, 'proto-worker.min.js'),
+    bundle: true,
+    platform: 'node',
+    sourcemap: true,
+    format: 'cjs',
+    define: env,
+    external,
+  });
+  return Promise.all([main, preload, protoWorker]);
 }
 
 // Build if ran as a cli script

@@ -1,9 +1,7 @@
 import { Call, ClientDuplexStream, ClientReadableStream, credentials, makeGenericClientConstructor, Metadata, ServiceError, status, StatusObject } from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import { AnyDefinition, EnumTypeDefinition, MessageTypeDefinition, PackageDefinition, ServiceDefinition } from '@grpc/proto-loader';
 import electron, { ipcMain, IpcMainEvent } from 'electron';
 import * as grpcReflection from 'grpc-reflection-js';
-import * as protobuf from 'protobufjs';
 
 import type { RenderedGrpcRequest, RenderedGrpcRequestBody } from '../../common/render';
 import * as models from '../../models';
@@ -13,6 +11,7 @@ import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
 import { fetchProto, FetchedProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
 import { guard } from '../../utils/guard';
+import { asServiceDefinition, grpcOptions, loadMethod, loadProto, validateProto } from '../proto-worker';
 import { generateRequestTemplate, mockRequestMethods } from './automock';
 
 const grpcCalls = new Map<string, Call>();
@@ -32,6 +31,7 @@ export interface gRPCBridgeAPI {
   loadMethods: typeof loadMethods;
   loadMethodsFromReflection: typeof loadMethodsFromReflection;
   fetchProto: (url: string, tokens?: ProtoFetchTokens) => Promise<FetchedProto>;
+  validateProto: typeof validateProto;
   closeAll: typeof closeAll;
 }
 export function registergRPCHandlers() {
@@ -43,36 +43,15 @@ export function registergRPCHandlers() {
   ipcMain.handle('grpc.loadMethods', (_, requestId) => loadMethods(requestId));
   ipcMain.handle('grpc.loadMethodsFromReflection', (_, requestId) => loadMethodsFromReflection(requestId));
   ipcMain.handle('grpc.fetchProto', (_, url: string, tokens?: ProtoFetchTokens) => fetchProto(url, tokens));
+  ipcMain.handle('grpc.validateProto', (_, filePath: string, includeDirs: string[]) => validateProto(filePath, includeDirs));
 }
-const grpcOptions = {
-  keepCase: true,
-  longs: String,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-};
-// Protos are loaded with loadSync on purpose: async load() resolves the types
-// inside its file-read callback, so an unresolvable type throws there and the
-// returned promise never settles.
-const loadMethodsFromFilePath = async (filePath: string, includeDirs: string[]): Promise<MethodDefs[]> => {
-  try {
-    const definition = protoLoader.loadSync(filePath, {
-      ...grpcOptions,
-      includeDirs,
-    });
-    return getMethodsFromPackageDefinition(definition);
-  } catch (error) {
-    throw error;
-  }
-};
 export const loadMethods = async (protoFileId: string): Promise<GrpcMethodInfo[]> => {
   const protoFile = await models.protoFile.getById(protoFileId);
   guard(protoFile, `Proto file ${protoFileId} not found`);
   const { filePath, dirs } = await writeProtoFile(protoFile);
-  const methods = await loadMethodsFromFilePath(filePath, dirs);
-  // protoLoader gives runtime serializers; parse again with protobufjs.Root
-  // to walk the Type tree for the request-body template.
-  const examples = await getRequestTemplatesFromProtoFile(filePath, dirs);
+  // Parsed on the proto worker thread, which also walks the protobufjs Type
+  // tree for the request-body templates.
+  const { methods, examples } = await loadProto(filePath, dirs);
   return methods.map(method => ({
     type: getMethodType(method),
     fullPath: method.path,
@@ -80,90 +59,7 @@ export const loadMethods = async (protoFileId: string): Promise<GrpcMethodInfo[]
   }));
 };
 
-// Map of `/<package>.<Service>/<Method>` -> request template.
-const getRequestTemplatesFromProtoFile = async (
-  filePath: string,
-  includeDirs: string[],
-): Promise<{ [methodPath: string]: object }> => {
-  const result: { [methodPath: string]: object } = {};
-  try {
-    const fs = await import('node:fs');
-    const path = await import('node:path');
-    const root = new protobuf.Root();
-    // Mimic protoLoader's includeDirs lookup so cross-tree imports resolve.
-    // protobufjs ships descriptor.proto / api.proto / etc. at this path.
-    const protobufjsGoogleDir = path.dirname(require.resolve('protobufjs/google/protobuf/descriptor.proto'));
-    root.resolvePath = (origin, target) => {
-      if (path.isAbsolute(target) && fs.existsSync(target)) {
-        return target;
-      }
-      for (const dir of [path.dirname(origin || filePath), ...includeDirs]) {
-        const candidate = path.join(dir, target);
-        if (fs.existsSync(candidate)) {
-          return candidate;
-        }
-      }
-      // Fall back to protobufjs' bundled well-known types (descriptor.proto etc).
-      // Needed because user protos often `extend google.protobuf.FileOptions`
-      // which can't resolve without the descriptor definitions loaded.
-      const wellKnown = target.match(/^google\/protobuf\/(.+)$/);
-      if (wellKnown) {
-        const bundled = path.join(protobufjsGoogleDir, wellKnown[1]);
-        if (fs.existsSync(bundled)) {
-          return bundled;
-        }
-      }
-      return target;
-    };
-    console.log('[grpc-template] loading', filePath, 'with includeDirs', includeDirs);
-    root.loadSync(filePath, { keepCase: true });
-    console.log('[grpc-template] loaded; resolving...');
-    try {
-      root.resolveAll();
-    } catch (err) {
-      // Unresolvable extensions are common in buf-style projects (gnostic,
-      // buf.validate). Drop them and keep going - templates only need the
-      // message types, not the extensions themselves.
-      console.warn('[grpc-template] resolveAll non-fatal:', (err as Error).message);
-    }
-    let svcCount = 0;
-    for (const ns of namespacesOf(root)) {
-      for (const svc of servicesIn(ns)) {
-        svcCount++;
-        for (const methodName of Object.keys(svc.methods)) {
-          const methodPath = `/${fullName(svc)}/${methodName}`;
-          try {
-            result[methodPath] = generateRequestTemplate(svc, methodName);
-          } catch (err) {
-            console.warn('[grpc-template] generation failed for', methodPath, (err as Error).message);
-          }
-        }
-      }
-    }
-    console.log('[grpc-template] found', svcCount, 'services,', Object.keys(result).length, 'templates');
-  } catch (err) {
-    console.warn('[grpc] proto file template parse failed:', err);
-  }
-  return result;
-};
-
-const namespacesOf = (ns: protobuf.NamespaceBase): protobuf.NamespaceBase[] => {
-  const out: protobuf.NamespaceBase[] = [ns];
-  for (const nested of ns.nestedArray) {
-    if (nested instanceof protobuf.Namespace) {
-      out.push(...namespacesOf(nested));
-    }
-  }
-  return out;
-};
-
-const servicesIn = (ns: protobuf.NamespaceBase): protobuf.Service[] => {
-  return ns.nestedArray.filter((n): n is protobuf.Service => n instanceof protobuf.Service);
-};
-
-// protobufjs `fullName` is `.pkg.Sub.Service`; gRPC paths drop the leading dot.
-const fullName = (svc: protobuf.Service): string => svc.fullName.replace(/^\./, '');
-interface MethodDefs {
+export interface MethodDefs {
   path: string;
   requestStream: boolean;
   responseStream: boolean;
@@ -260,36 +156,12 @@ export const getSelectedMethod = async (request: GrpcRequest): Promise<MethodDef
     const protoFile = await models.protoFile.getById(request.protoFileId);
     guard(protoFile?.protoText, `No proto file found for gRPC request ${request._id}`);
     const { filePath, dirs } = await writeProtoFile(protoFile);
-    const methods = await loadMethodsFromFilePath(filePath, dirs);
-    guard(methods, 'No methods found');
-    return methods.find(c => c.path === request.protoMethodName);
+    return loadMethod(filePath, dirs, request.protoMethodName ?? '');
   }
   const methods = await getMethodsFromReflection(request.url, request.metadata);
   guard(methods, 'No reflection methods found');
   return methods.find(c => c.path === request.protoMethodName);
 };
-export const getMethodsFromPackageDefinition = (packageDefinition: PackageDefinition): MethodDefs[] => {
-  return Object.values(packageDefinition)
-    .filter(isServiceDefinition)
-    .flatMap(Object.values);
-};
-
-const isServiceDefinition = (definition: AnyDefinition): definition is ServiceDefinition => {
-  return !!asServiceDefinition(definition);
-};
-const asServiceDefinition = (definition: AnyDefinition): ServiceDefinition | null => {
-  if (isMessageDefinition(definition) || isEnumDefinition(definition)) {
-    return null;
-  }
-  return definition;
-};
-const isMessageDefinition = (definition: AnyDefinition): definition is MessageTypeDefinition => {
-  return (definition as MessageTypeDefinition).format === 'Protocol Buffer 3 DescriptorProto';
-};
-const isEnumDefinition = (definition: AnyDefinition): definition is EnumTypeDefinition => {
-  return (definition as EnumTypeDefinition).format === 'Protocol Buffer 3 EnumDescriptorProto';
-};
-
 export const start = (
   event: IpcMainEvent,
   { request }: GrpcIpcRequestParams,

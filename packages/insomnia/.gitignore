@@ -4,5 +4,7 @@ build
 # Generated
 src/main.min.js
 src/main.min.js.map
+src/proto-worker.min.js
+src/proto-worker.min.js.map
 src/preload.js
 src/preload.js.map

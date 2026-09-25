@@ -1,11 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
+import { largeProtoText, longestStallDuring } from '../../../__jest__/proto-worker';
+import { validateProto } from '../../../main/proto-worker';
 import * as models from '../../../models';
-import { addFileFromPath, ProtoLoadResult } from '../proto-loader';
+import { addFileFromPath, ProtoLoadResult, setProtoValidator } from '../proto-loader';
+
+jest.mock('worker_threads', () => (jest.requireActual('../../../__jest__/proto-worker') as { workerThreads: unknown }).workerThreads);
+
+// As the main process's MCP tools do; the renderer validates through IPC
+setProtoValidator(validateProto);
 
 // Settle-or-fail guard so a hang shows up as a test failure instead of a jest timeout.
 const within = (promise: Promise<ProtoLoadResult>, ms = 2000) => Promise.race([
@@ -84,6 +92,20 @@ describe('addFileFromPath', () => {
     expect(result).toEqual({ success: false, errors: [expect.stringContaining('missing or unreadable proto import')] });
   });
 
+  it('rejects a file whose import is a FIFO instead of waiting on it, and keeps loading others', async () => {
+    if (process.platform === 'win32') {
+      return;
+    }
+    const workspace = await models.workspace.create();
+    execFileSync('mkfifo', [path.join(tmpDir, 'pipe.proto')]);
+    const filePath = writeProto('main.proto', 'import "pipe.proto";\nmessage A { string x = 1; }');
+
+    const result = await within(addFileFromPath(filePath, workspace));
+
+    expect(result).toEqual({ success: false, errors: [expect.stringContaining(`${path.join(tmpDir, 'pipe.proto')} is not a regular file`)] });
+    expect(await within(addFileFromPath(writeProto('ok.proto', 'message B { string x = 1; }'), workspace))).toMatchObject({ success: true });
+  });
+
   it('resolves imports through ancestor directories and bundled google types', async () => {
     const workspace = await models.workspace.create();
     const outer = await models.protoDirectory.create({ name: 'root', parentId: workspace._id });
@@ -100,4 +122,17 @@ describe('addFileFromPath', () => {
     expect(result).toMatchObject({ success: true, errors: [] });
     expect((result as ProtoLoadResult & { success: true }).loaded[0]).toMatchObject({ name: 'main.proto', parentId: inner._id });
   });
+
+  it('keeps the event loop running while a large proto is parsed', async () => {
+    const workspace = await models.workspace.create();
+    const filePath = path.join(tmpDir, 'big.proto');
+    fs.writeFileSync(filePath, largeProtoText());
+    // Load the code paths first, so only parsing the large proto is measured
+    await addFileFromPath(writeProto('small.proto', 'message A { string x = 1; }'), workspace);
+
+    const { result, elapsed, longestStall } = await longestStallDuring(() => addFileFromPath(filePath, workspace));
+
+    expect(result).toMatchObject({ success: true, errors: [] });
+    expect(longestStall).toBeLessThan(elapsed / 4);
+  }, 30000);
 });

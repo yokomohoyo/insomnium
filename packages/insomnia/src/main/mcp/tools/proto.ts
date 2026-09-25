@@ -5,8 +5,12 @@ import { z } from 'zod';
 
 import { database } from '../../../common/database';
 import * as models from '../../../models';
-import { addDirectoryFromPath, addFileFromPath } from '../../../network/grpc/proto-loader';
+import { addDirectoryFromPath, addFileFromPath, setProtoValidator } from '../../../network/grpc/proto-loader';
 import { loadMethods } from '../../ipc/grpc';
+import { validateProto } from '../../proto-worker';
+
+// addFileFromPath and addDirectoryFromPath validate through IPC in the renderer
+setProtoValidator(validateProto);
 
 // LLM-supplied path: require absolute + traversal-free (and .proto for single
 // imports) so it can't be steered into reading an arbitrary file off disk.
