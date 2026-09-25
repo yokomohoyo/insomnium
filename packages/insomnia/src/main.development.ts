@@ -10,7 +10,7 @@ import { changelogUrl, getAppVersion, isDevelopment, isMac } from './common/cons
 import { database } from './common/database';
 import log, { initializeLogging } from './common/log';
 import { backupIfNewerVersionAvailable } from './main/backup';
-import { createDeepLinkBuffer, linksFromArgv } from './main/deep-link-buffer';
+import { deepLinks, linksFromArgv } from './main/deep-link-buffer';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
@@ -57,22 +57,39 @@ app.on('web-contents-created', (_, contents) => {
   }
 });
 
-// Links wait here until the renderer sends 'halfSecondAfterAppStart'
-const deepLinks = createDeepLinkBuffer(url => {
-  const window = windowUtils.getOrCreateWindow();
-  if (window.isMinimized()) {
-    window.restore();
-  }
-  window.focus();
-  window.webContents.send('shell:open', url);
+// Links wait in deepLinks until the window they are for sends 'halfSecondAfterAppStart'.
+// A reload replaces the page and its 'shell:open' listener, and a crash or an error page
+// leaves none, so links wait until the window signals again.
+app.on('web-contents-created', (_, contents) => {
+  contents.on('did-navigate', () => deepLinks.unready(contents));
+  contents.on('render-process-gone', () => deepLinks.unready(contents));
+  contents.on('did-fail-load', (_event, errorCode, _description, _url, isMainFrame) => {
+    // -3 is ERR_ABORTED, a cancelled load that leaves the current page in place
+    if (isMainFrame && errorCode !== -3) {
+      deepLinks.unready(contents);
+    }
+  });
+  contents.once('destroyed', () => deepLinks.discard(contents));
 });
+// Set once _launchApp has opened the first window; links before then wait for that window
+let launched = false;
 // Disable deep linking in playwright e2e tests in order to run multiple tests in parallel
 if (!process.env.PLAYWRIGHT) {
   // macOS emits this before 'ready' when a link launches the app, so it must be registered now
   app.on('open-url', (event, url) => {
     event.preventDefault();
     console.log('[main] Open Deep Link URL', url);
-    deepLinks.push(url);
+    if (!launched) {
+      deepLinks.push(url, null);
+      return;
+    }
+    // Opens a window if all were closed (macOS); the link waits until it is listening
+    const window = windowUtils.getOrCreateWindow();
+    if (window.isMinimized()) {
+      window.restore();
+    }
+    window.focus();
+    deepLinks.push(url, window.webContents);
   });
 }
 
@@ -175,13 +192,22 @@ const _launchApp = async () => {
     const r = getRunningMcpServer();
     return r ? { running: true, port: r.port } : { running: false, port: null };
   });
-  ipcMain.once('halfSecondAfterAppStart', () => {
-    console.log('[main] Window ready, handling command line arguments', process.argv);
-    linksFromArgv(process.argv.slice(1), fullDefaultProtocol).forEach(url => deepLinks.push(url));
-    deepLinks.flush();
+  // Sent by every window's renderer once it listens for 'shell:open', and again after a reload
+  ipcMain.on('halfSecondAfterAppStart', event => {
+    // Held links open now, maybe long after the window came up, so bring it to the front
+    if (deepLinks.ready(event.sender)) {
+      const readyWindow = BrowserWindow.fromWebContents(event.sender);
+      if (readyWindow?.isMinimized()) {
+        readyWindow.restore();
+      }
+      readyWindow?.focus();
+    }
   });
   // Disable deep linking in playwright e2e tests in order to run multiple tests in parallel
   if (!process.env.PLAYWRIGHT) {
+    // Links that launched the app go to the first window that is listening
+    console.log('[main] Handling command line arguments', process.argv);
+    linksFromArgv(process.argv.slice(1), fullDefaultProtocol).forEach(url => deepLinks.push(url, null));
     // Deep linking logic - https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app
     const gotTheLock = app.requestSingleInstanceLock();
     if (!gotTheLock) {
@@ -201,10 +227,11 @@ const _launchApp = async () => {
         // Held like the macOS links if the renderer is not listening yet
         linksFromArgv(args, fullDefaultProtocol).forEach(url => {
           console.log('[main] Open Deep Link URL sent from second instance', url);
-          deepLinks.push(url);
+          deepLinks.push(url, window.webContents);
         });
       });
       window = windowUtils.getOrCreateWindow();
+      launched = true;
     }
   } else {
     window = windowUtils.getOrCreateWindow();
