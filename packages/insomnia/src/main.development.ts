@@ -10,6 +10,7 @@ import { changelogUrl, getAppVersion, isDevelopment, isMac } from './common/cons
 import { database } from './common/database';
 import log, { initializeLogging } from './common/log';
 import { backupIfNewerVersionAvailable } from './main/backup';
+import { createDeepLinkBuffer, linksFromArgv } from './main/deep-link-buffer';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
@@ -55,6 +56,25 @@ app.on('web-contents-created', (_, contents) => {
     contextMenu();
   }
 });
+
+// Links wait here until the renderer sends 'halfSecondAfterAppStart'
+const deepLinks = createDeepLinkBuffer(url => {
+  const window = windowUtils.getOrCreateWindow();
+  if (window.isMinimized()) {
+    window.restore();
+  }
+  window.focus();
+  window.webContents.send('shell:open', url);
+});
+// Disable deep linking in playwright e2e tests in order to run multiple tests in parallel
+if (!process.env.PLAYWRIGHT) {
+  // macOS emits this before 'ready' when a link launches the app, so it must be registered now
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    console.log('[main] Open Deep Link URL', url);
+    deepLinks.push(url);
+  });
+}
 
 // When the app is first launched
 app.on('ready', async () => {
@@ -157,11 +177,8 @@ const _launchApp = async () => {
   });
   ipcMain.once('halfSecondAfterAppStart', () => {
     console.log('[main] Window ready, handling command line arguments', process.argv);
-    const args = process.argv.slice(1).filter(a => a !== '.');
-    if (args.length) {
-      window = windowUtils.getOrCreateWindow();
-      window.webContents.send('shell:open', args.join());
-    }
+    linksFromArgv(process.argv.slice(1), fullDefaultProtocol).forEach(url => deepLinks.push(url));
+    deepLinks.flush();
   });
   // Disable deep linking in playwright e2e tests in order to run multiple tests in parallel
   if (!process.env.PLAYWRIGHT) {
@@ -181,25 +198,13 @@ const _launchApp = async () => {
           }
           window.focus();
         }
-        const lastArg = args.slice(-1).join();
-        console.log('[main] Open Deep Link URL sent from second instance', lastArg);
-        window.webContents.send('shell:open', lastArg);
+        // Held like the macOS links if the renderer is not listening yet
+        linksFromArgv(args, fullDefaultProtocol).forEach(url => {
+          console.log('[main] Open Deep Link URL sent from second instance', url);
+          deepLinks.push(url);
+        });
       });
       window = windowUtils.getOrCreateWindow();
-
-      app.on('open-url', (_event, url) => {
-        console.log('[main] Open Deep Link URL', url);
-        window = windowUtils.getOrCreateWindow();
-        if (window) {
-          if (window.isMinimized()) {
-            window.restore();
-          }
-          window.focus();
-        } else {
-          window = windowUtils.getOrCreateWindow();
-        }
-        window.webContents.send('shell:open', url);
-      });
     }
   } else {
     window = windowUtils.getOrCreateWindow();
