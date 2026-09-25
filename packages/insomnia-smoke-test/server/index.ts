@@ -23,13 +23,6 @@ app.get('/pets/:id', (req, res) => {
   res.status(200).send({ id: req.params.id });
 });
 
-app.get('/builds/check/*splat', (_req, res) => {
-  res.status(200).send({
-    url: 'https://github.com/ArchGPT/insomnium/releases/download/core@2023.5.6/Insomnium.Core-2023.5.6.zip',
-    name: '2099.1.0',
-  });
-});
-
 app.get('/sleep', (_req, res) => {
   res.status(200).send({ sleep: true });
 });

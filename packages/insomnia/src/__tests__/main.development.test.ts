@@ -15,14 +15,17 @@ const createMockWindow = () => {
 // What windowUtils.getOrCreateWindow() returns; replaced to open a new window
 let mockWindow = createMockWindow();
 
+const mockStartupSteps: string[] = [];
+let mockGotLock = true;
+
 jest.mock('electron', () => {
   const { EventEmitter } = jest.requireActual('events') as typeof import('events');
   const app = Object.assign(new EventEmitter(), {
     setPath: () => {},
     getPath: () => '/tmp',
     setAsDefaultProtocolClient: () => true,
-    requestSingleInstanceLock: () => true,
-    quit: () => {},
+    requestSingleInstanceLock: () => mockGotLock,
+    quit: () => mockStartupSteps.push('quit'),
   });
   const ipcMain = Object.assign(new EventEmitter(), { handle: () => {} });
   const session = {
@@ -41,10 +44,9 @@ jest.mock('electron-context-menu', () => () => {});
 jest.mock('electron-devtools-installer', () => ({}));
 jest.mock('../common/log', () => ({ __esModule: true, default: { info: () => {} }, initializeLogging: () => {} }));
 jest.mock('../common/database', () => ({
-  database: { init: async () => {}, find: async () => [], onChange: () => {} },
+  database: { init: async () => mockStartupSteps.push('database.init'), onChange: () => {} },
 }));
-jest.mock('../common/import', () => ({}));
-jest.mock('../main/backup', () => ({}));
+jest.mock('../main/backup', () => ({ backupDataIfVersionChanged: async () => mockStartupSteps.push('backup') }));
 jest.mock('../main/ipc/electron', () => ({ registerElectronHandlers: () => {} }));
 jest.mock('../main/ipc/grpc', () => ({ registergRPCHandlers: () => {} }));
 jest.mock('../main/ipc/main', () => ({ registerMainHandlers: () => {} }));
@@ -58,7 +60,6 @@ jest.mock('../models/index', () => ({
   types: () => [],
   stats: { get: async () => ({}) },
   settings: { type: 'Settings', getOrCreate: async () => ({ mcpEnabled: false }) },
-  workspace: { type: 'Workspace' },
 }));
 
 const startApp = () => {
@@ -175,6 +176,20 @@ describe('main.development deep links', () => {
 
     mockWindow = createMockWindow();
     app.emit('second-instance', {}, ['/opt/Insomnium/insomnium', url]);
+    expect(mockWindow.webContents.send).not.toHaveBeenCalled();
+
+    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
+    expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
+  });
+
+  it('holds a link from a second instance that arrives while the data is still loading', async () => {
+    const url = 'insomnia://app/alert?title=Early';
+    const { app, ipcMain } = startApp();
+    app.emit('ready');
+    // The backup and the database are not done yet
+    app.emit('second-instance', {}, ['/opt/Insomnium/insomnium', url]);
+    await waitForLaunch(ipcMain);
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
     ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
@@ -301,5 +316,31 @@ describe('main.development deep links', () => {
     process.env.PLAYWRIGHT = 'true';
     const { app } = startApp();
     expect(app.listenerCount('open-url')).toBe(0);
+  });
+});
+
+describe('main.development startup', () => {
+  beforeEach(() => {
+    mockStartupSteps.length = 0;
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    mockGotLock = true;
+  });
+
+  it('backs up the data before the database opens it', async () => {
+    const { app, ipcMain } = startApp();
+    app.emit('ready');
+    await waitForLaunch(ipcMain);
+    expect(mockStartupSteps).toEqual(['backup', 'database.init']);
+  });
+
+  it('quits a second instance before it backs up or opens the data', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockGotLock = false;
+    const { app } = startApp();
+    app.emit('ready');
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(mockStartupSteps).toEqual(['quit']);
   });
 });

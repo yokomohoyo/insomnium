@@ -135,8 +135,6 @@ export enum UpdateURL {
 // API
 export const getApiBaseURL = () => env.INSOMNIA_API_URL || 'https://api.insomnia.rest';
 
-export const getUpdatesBaseURL = () => env.INSOMNIA_UPDATES_URL || 'https://archgpt.dev/insomnium';
-
 // App website
 export const getAppWebsiteBaseURL = () => env.INSOMNIA_APP_WEBSITE_URL || 'https://app.insomnia.rest';
 

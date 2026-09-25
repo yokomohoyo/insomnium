@@ -705,8 +705,6 @@ export async function _fixDBShape() {
     await _applyApiSpecName(workspace);
   }
 
-  console.log(['workspaces'], workspaces);
-
   for (const gitRepository of await database.find<GitRepository>(models.gitRepository.type)) {
     await _fixOldGitURIs(gitRepository);
   }
