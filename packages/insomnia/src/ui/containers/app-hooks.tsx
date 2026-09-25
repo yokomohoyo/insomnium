@@ -10,10 +10,10 @@ export const AppHooks: FC = () => {
   useSettingsSideEffects();
   useGlobalKeyboardShortcuts();
   useThemeChange();
-  // Used for detecting if we just updated Insomnium and app --args or insomnia:// and
-  // useEffect(() => {
-  //   setTimeout(() => window.main.halfSecondAfterAppStart(), 500);
-  // }, []);
+  // Tells main the 'shell:open' listener is up, so it can send insomnia:// links that launched the app
+  useEffect(() => {
+    setTimeout(() => window.main.halfSecondAfterAppStart(), 500);
+  }, []);
 
   return null;
 };
