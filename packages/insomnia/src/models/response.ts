@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { Readable } from 'stream';
+import { pipeline, Readable } from 'stream';
 import zlib from 'zlib';
 
 import { database as db, Query } from '../common/database';
@@ -217,7 +217,16 @@ export const getBodyStream = (
     return readFailureValue === undefined ? null : readFailureValue;
   }
   if (response?.bodyCompression === 'zip') {
-    return fs.createReadStream(response?.bodyPath).pipe(zlib.createGunzip());
+    // Unlike pipe(), pipeline() passes a file read error on to the returned
+    // gunzip stream, so its consumer sees the error instead of waiting forever.
+    // pipeline() handles the error itself, so log it for consumers that do not
+    // listen for it, but not the errors that only mean the consumer stopped
+    // reading early.
+    return pipeline(fs.createReadStream(response?.bodyPath), zlib.createGunzip(), err => {
+      if (err && err.code !== 'ERR_STREAM_PREMATURE_CLOSE' && err.code !== 'ABORT_ERR') {
+        console.warn('Failed to read response body', err.message);
+      }
+    });
   } else {
     return fs.createReadStream(response?.bodyPath);
   }
@@ -262,12 +271,13 @@ export const getBoundedBodyBuffer = async (
     return { buffer: Buffer.alloc(0), truncated: false, fullSize: null };
   }
   const fileStream = fs.createReadStream(response.bodyPath);
-  // .pipe() never adds an 'error' listener to the source and we iterate the
-  // gunzip, not fileStream - so a disk read error here would crash the process.
-  // Swallow it; the for-await below handles graceful return.
-  fileStream.on('error', () => {});
-  const gunzip = response.bodyCompression === 'zip' ? zlib.createGunzip() : null;
-  const source: Readable = gunzip ? fileStream.pipe(gunzip) : fileStream;
+  // Unlike pipe(), pipeline() passes a file read error on to gunzip, so the
+  // for-await below sees it instead of waiting forever, and closes the file
+  // when gunzip is closed. The for-await reports the error, so the callback
+  // does not.
+  const source: Readable = response.bodyCompression === 'zip'
+    ? pipeline(fileStream, zlib.createGunzip(), () => {})
+    : fileStream;
   // One chunk past maxBytes so we can tell "exactly maxBytes" from "more remained".
   const cap = maxBytes + 8;
   const chunks: Buffer[] = [];
@@ -289,10 +299,8 @@ export const getBoundedBodyBuffer = async (
     console.warn('Failed to read response body', (err as Error).message);
     // Return whatever we managed to read rather than throwing.
   } finally {
-    // Destroy BOTH: .pipe() doesn't propagate destroy to the source, so the fd
-    // leaks if we only destroy the gunzip.
-    gunzip?.destroy();
-    fileStream.destroy();
+    // Also closes the file, through pipeline(), when we stopped early
+    source.destroy();
   }
   const buffer = Buffer.concat(chunks);
   return {

@@ -1,15 +1,16 @@
-import fs from 'fs';
 import React, { FC, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { getPreviewModeName, PREVIEW_MODE_SOURCE, PREVIEW_MODES } from '../../../common/constants';
 import { exportHarCurrentRequest } from '../../../common/har';
+import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import { isResponse } from '../../../models/response';
 import { useRequestMetaPatcher } from '../../hooks/use-request';
 import { RequestLoaderData } from '../../routes/request';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
+import { showError } from '../modals';
 
 interface Props {
   download: (pretty: boolean) => any;
@@ -33,8 +34,18 @@ export const PreviewModeDropdown: FC<Props> = ({
       return;
     }
 
-    const data = await exportHarCurrentRequest(activeRequest, activeResponse);
-    const har = JSON.stringify(data, null, '\t');
+    let har: string;
+    try {
+      // Fails when, for example, the request cannot be rendered
+      har = JSON.stringify(await exportHarCurrentRequest(activeRequest, activeResponse), null, '\t');
+    } catch (err) {
+      showError({
+        title: 'Export Failed',
+        message: `Failed to export as HAR: ${err.message}`,
+        error: err,
+      });
+      return;
+    }
 
     const { filePath } = await window.dialog.showSaveDialog({
       title: 'Export As HAR',
@@ -45,11 +56,14 @@ export const PreviewModeDropdown: FC<Props> = ({
     if (!filePath) {
       return;
     }
-    const to = fs.createWriteStream(filePath);
-    to.on('error', err => {
-      console.warn('Failed to export har', err);
-    });
-    to.end(har);
+    const error = await writeToFile(filePath, har);
+    if (error) {
+      showError({
+        title: 'Save Failed',
+        message: `Failed to save to ${filePath}: ${error.message}`,
+        error,
+      });
+    }
   }, [activeRequest, activeResponse]);
 
   const exportDebugFile = useCallback(async () => {
@@ -70,17 +84,18 @@ export const PreviewModeDropdown: FC<Props> = ({
       defaultPath: `${activeRequest.name.replace(/ +/g, '_')}-${Date.now()}.txt`,
     });
 
-    if (canceled) {
+    if (canceled || !filePath) {
       return;
     }
     const readStream = models.response.getBodyStream(activeResponse);
-
-    if (readStream && filePath && typeof readStream !== 'string') {
-      const to = fs.createWriteStream(filePath);
-      to.write(headers);
-      readStream.pipe(to);
-      to.on('error', err => {
-        console.warn('Failed to save full response', err);
+    const error = readStream && typeof readStream !== 'string'
+      ? await writeToFile(filePath, headers, readStream)
+      : new Error('the response body could not be read');
+    if (error) {
+      showError({
+        title: 'Save Failed',
+        message: `Failed to save to ${filePath}: ${error.message}`,
+        error,
       });
     }
   }, [activeRequest, activeResponse]);

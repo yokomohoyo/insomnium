@@ -1,10 +1,12 @@
-import fs from 'fs';
+import { text } from 'node:stream/consumers';
+
 import { extension as mimeExtension } from 'mime-types';
 import React, { FC, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { PREVIEW_MODE_SOURCE } from '../../../common/constants';
 import { getSetCookieHeaders } from '../../../common/misc';
+import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
 import { cancelRequestById } from '../../../network/cancellation';
 import { jsonPrettify } from '../../../utils/prettify/json';
@@ -86,35 +88,28 @@ export const ResponsePane: FC<Props> = ({
       defaultPath: `${activeRequest.name.replace(/ +/g, '_')}-${Date.now()}.${extension}`,
     });
 
-    if (canceled) {
+    if (canceled || !outputPath) {
       return;
     }
 
-    const readStream = models.response.getBodyStream(activeResponse);
-    const dataBuffers: any[] = [];
-
-    if (readStream && outputPath && typeof readStream !== 'string') {
-      readStream.on('data', data => {
-        dataBuffers.push(data);
-      });
-      readStream.on('end', () => {
-        const to = fs.createWriteStream(outputPath);
-        const finalBuffer = Buffer.concat(dataBuffers);
-        to.on('error', err => {
-          showError({
-            title: 'Save Failed',
-            message: 'Failed to save response body',
-            error: err,
-          });
-        });
-
-        if (prettify && contentType.includes('json')) {
-          to.write(jsonPrettify(finalBuffer.toString('utf8')));
-        } else {
-          to.write(finalBuffer);
-        }
-
-        to.end();
+    const body = models.response.getBodyStream(activeResponse);
+    let error: Error | null;
+    if (!body || typeof body === 'string') {
+      error = new Error('the response body could not be read');
+    } else if (prettify && contentType.includes('json')) {
+      // Prettifying needs the whole body in memory
+      error = await text(body).then(
+        json => writeToFile(outputPath, jsonPrettify(json)),
+        (err: Error) => err,
+      );
+    } else {
+      error = await writeToFile(outputPath, body);
+    }
+    if (error) {
+      showError({
+        title: 'Save Failed',
+        message: `Failed to save to ${outputPath}: ${error.message}`,
+        error,
       });
     }
   }, [activeRequest, activeResponse]);

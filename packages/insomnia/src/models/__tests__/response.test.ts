@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { Readable } from 'stream';
 import zlib from 'zlib';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
@@ -105,5 +106,51 @@ describe('getBoundedBodyBuffer()', () => {
     const missing = await models.response.getBoundedBodyBuffer({ bodyPath: '/nope/does-not-exist.zip', bodyCompression: 'zip' }, 1024);
     expect(missing.buffer.length).toBe(0);
     expect(missing.fullSize).toBeNull();
+  });
+
+  it('reports a read error of a gzip body as truncated with unknown size', async () => {
+    // Reading a folder fails with EISDIR after it was opened
+    const bodyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnia-body-'));
+    const { buffer, truncated, fullSize } = await models.response.getBoundedBodyBuffer({ bodyPath, bodyCompression: 'zip' }, 1024);
+    expect(buffer.length).toBe(0);
+    expect(truncated).toBe(true);
+    expect(fullSize).toBeNull();
+  });
+});
+
+describe('getBodyStream()', () => {
+  const readAll = async (stream: ReturnType<typeof models.response.getBodyStream>) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream as Readable) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks).toString();
+  };
+
+  it('gunzips a zip body', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnia-body-'));
+    const bodyPath = path.join(dir, 'body.zip');
+    fs.writeFileSync(bodyPath, zlib.gzipSync('Hello World!'));
+
+    await expect(readAll(models.response.getBodyStream({ bodyPath, bodyCompression: 'zip' }))).resolves.toBe('Hello World!');
+  });
+
+  it('passes a read error of a zip body on to the returned stream', async () => {
+    // Reading a folder fails with EISDIR after it was opened
+    const bodyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnia-body-'));
+
+    await expect(readAll(models.response.getBodyStream({ bodyPath, bodyCompression: 'zip' }))).rejects.toThrow('EISDIR');
+  });
+
+  it('logs a read error of a zip body for a consumer that does not listen for it', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const bodyPath = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnia-body-'));
+
+    const stream = models.response.getBodyStream({ bodyPath, bodyCompression: 'zip' }) as Readable;
+    stream.on('data', () => {});
+    await new Promise(resolve => stream.on('close', resolve));
+
+    expect(warn).toHaveBeenCalledWith('Failed to read response body', expect.stringContaining('EISDIR'));
+    warn.mockRestore();
   });
 });
