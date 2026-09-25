@@ -41,9 +41,8 @@ jest.mock('electron-context-menu', () => () => {});
 jest.mock('electron-devtools-installer', () => ({}));
 jest.mock('../common/log', () => ({ __esModule: true, default: { info: () => {} }, initializeLogging: () => {} }));
 jest.mock('../common/database', () => ({
-  database: { init: async () => {}, find: async () => [], onChange: () => {} },
+  database: { init: async () => {}, onChange: () => {} },
 }));
-jest.mock('../common/import', () => ({}));
 jest.mock('../main/backup', () => ({}));
 jest.mock('../main/ipc/electron', () => ({ registerElectronHandlers: () => {} }));
 jest.mock('../main/ipc/grpc', () => ({ registergRPCHandlers: () => {} }));
@@ -58,7 +57,6 @@ jest.mock('../models/index', () => ({
   types: () => [],
   stats: { get: async () => ({}) },
   settings: { type: 'Settings', getOrCreate: async () => ({ mcpEnabled: false }) },
-  workspace: { type: 'Workspace' },
 }));
 
 const startApp = () => {

@@ -6,7 +6,7 @@ import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-insta
 import path from 'path';
 
 import { userDataFolder } from '../config/config.json';
-import { changelogUrl, getAppVersion, isDevelopment, isMac } from './common/constants';
+import { getAppVersion, isDevelopment, isMac } from './common/constants';
 import { database } from './common/database';
 import log, { initializeLogging } from './common/log';
 import { backupIfNewerVersionAvailable } from './main/backup';
@@ -20,10 +20,6 @@ import { checkIfRestartNeeded } from './main/squirrel-startup';
 import * as updates from './main/updates';
 import * as windowUtils from './main/window-utils';
 import * as models from './models/index';
-import type { Stats } from './models/stats';
-import type { ToastNotification } from './ui/components/toast';
-import { dummyStartingWorkspace, importToWorkspaceFromJSON } from './common/import';
-import { Workspace } from './models/workspace';
 
 // Handle potential auto-update
 if (checkIfRestartNeeded()) {
@@ -128,8 +124,6 @@ app.on('ready', async () => {
   // Init some important things first
   await database.init(models.types());
   await _createModelInstances();
-  const workspaces = await database.find<Workspace>(models.workspace.type);
-  console.log("workspaces desu", workspaces);
 
   windowUtils.init();
   await _launchApp();
