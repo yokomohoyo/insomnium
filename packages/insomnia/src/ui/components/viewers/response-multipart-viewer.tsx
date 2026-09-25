@@ -13,7 +13,7 @@ import {
 } from '../../../common/constants';
 import type { ResponseHeader } from '../../../models/response';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../base/dropdown';
-import { showModal } from '../modals/index';
+import { showError, showModal } from '../modals/index';
 import { WrapperModal } from '../modals/wrapper-modal';
 import { ResponseHeadersViewer } from './response-headers-viewer';
 import { ResponseViewer } from './response-viewer';
@@ -113,18 +113,22 @@ export const ResponseMultipartViewer: FC<Props> = ({
     };
     const { canceled, filePath } = await window.dialog.showSaveDialog(options);
 
-    if (canceled) {
+    if (canceled || !filePath) {
       return;
     }
 
-    // Remember last exported path
-    window.localStorage.setItem('insomnia.lastExportPath', path.dirname(filename));
+    // Remember the folder the file was saved to
+    window.localStorage.setItem('insomnia.lastExportPath', path.dirname(filePath));
 
     // Save the file
     try {
       await fs.promises.writeFile(filePath, selectedPart.value);
     } catch (err) {
-      console.warn('Failed to save multipart to file', err);
+      showError({
+        title: 'Save Failed',
+        message: `Failed to save to ${filePath}: ${err.message}`,
+        error: err,
+      });
     }
   }, [selectedPart]);
 

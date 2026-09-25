@@ -1,7 +1,4 @@
-import { createWriteStream } from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 
 import * as contentDisposition from 'content-disposition';
 import { extension as mimeExtension } from 'mime-types';
@@ -12,6 +9,7 @@ import { CONTENT_TYPE_EVENT_STREAM, CONTENT_TYPE_GRAPHQL, CONTENT_TYPE_JSON, MET
 import { ChangeBufferEvent, database } from '../../common/database';
 import { getContentDispositionHeader } from '../../common/misc';
 import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
+import { writeToFile } from '../../common/write-to-file';
 import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
@@ -295,29 +293,13 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
     });
   });
 };
-const writeBodyToFile = async (body: Readable, filePath: string): Promise<Error | null> => {
-  try {
-    // Unlike pipe(), pipeline() reports errors from either stream and only
-    // completes once the file has been fully written and closed.
-    await pipeline(body, createWriteStream(filePath));
-    return null;
-  } catch (err) {
-    // createWriteStream throws before pipeline() runs for an invalid path (e.g.
-    // a NUL byte in the name), so close the body here too. Its own errors no
-    // longer matter, but must not go unhandled.
-    body.on('error', () => {});
-    body.destroy();
-    return err instanceof Error ? err : new Error(String(err));
-  }
-};
-
 const writeToDownloadPath = async (downloadPathAndName: string, responsePatch: ResponsePatch, requestMeta: RequestMeta, maxHistoryResponses: number) => {
   guard(downloadPathAndName, 'filename should be set by now');
 
   const readStream = models.response.getBodyStream(responsePatch);
   const error = !readStream || typeof readStream === 'string'
     ? new Error('the response body could not be read')
-    : await writeBodyToFile(readStream, downloadPathAndName);
+    : await writeToFile(downloadPathAndName, readStream);
 
   if (error) {
     console.warn('Failed to download request after sending', downloadPathAndName, error);

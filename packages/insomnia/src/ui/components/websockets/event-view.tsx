@@ -1,9 +1,9 @@
-import fs from 'fs';
 import React, { FC, useCallback } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { PREVIEW_MODE_FRIENDLY, PREVIEW_MODE_RAW, PREVIEW_MODE_SOURCE, PreviewMode } from '../../../common/constants';
+import { writeToFile } from '../../../common/write-to-file';
 import { CurlEvent, CurlMessageEvent } from '../../../main/network/curl';
 import { WebSocketEvent, WebSocketMessageEvent } from '../../../main/network/websocket';
 import { requestMeta } from '../../../models';
@@ -59,19 +59,14 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
       return;
     }
 
-    const to = fs.createWriteStream(outputPath);
-
-    to.on('error', err => {
+    const error = await writeToFile(outputPath, raw);
+    if (error) {
       showError({
         title: 'Save Failed',
-        message: 'Failed to save response body',
-        error: err,
+        message: `Failed to save to ${outputPath}: ${error.message}`,
+        error,
       });
-    });
-
-    to.write(raw);
-
-    to.end();
+    }
   }, [raw]);
 
   const handleCopyResponseToClipboard = useCallback(() => {

@@ -183,7 +183,8 @@ describe('sendAction with Send and Download', () => {
     // An unhandled 'error' from the body stream fails the test while waiting
     await new Promise(resolve => body?.closed ? resolve(null) : body?.once('close', resolve));
 
-    expect(response?.error).toContain('null bytes');
+    // The body is read before the file is created, so its failure is the one reported
+    expect(response?.error).toContain(`Failed to save to ${path.join(tmpDir, 'a\u0000b.bin')}: ENOENT`);
   });
 
   it('records an error instead of an empty file when the body cannot be read', async () => {
