@@ -148,8 +148,11 @@ const config = {
     ],
   },
   deb: {
-    // "default" is not a real Debian section.
-    fpm: ["--deb-field", "Section: devel"],
+    // Becomes fpm's --category, i.e. the control file's Section (fpm's default,
+    // "default", is not a real Debian section). Don't set it via
+    // `fpm: ["--deb-field", ...]` — that appends a second Section line, which
+    // newer dpkg rejects outright (#131).
+    packageCategory: "devel",
     // These REPLACE electron-builder's built-in templates rather than extending
     // them — both files start as verbatim copies of the originals. See the note
     // at the top of each.
