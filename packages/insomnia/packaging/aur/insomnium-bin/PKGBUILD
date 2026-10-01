@@ -1,0 +1,49 @@
+# Maintainer: yokomohoyo <yokomohoyo@users.noreply.github.com>
+#
+# Source of truth for the AUR package insomnium-bin. The "AUR Package"
+# workflow (.github/workflows/aur.yml) rewrites _pkgver and sha256sums for each
+# release, test-builds it in an Arch container and pushes it with a fresh
+# .SRCINFO. Edit anything else here, not on the AUR.
+
+pkgname=insomnium-bin
+_pkgver=0.3.0-rc.18
+# makepkg forbids '-' in pkgver; 0.3.0rc18 sorts before 0.3.0 in vercmp.
+pkgver=${_pkgver//-rc./rc}
+pkgrel=1
+pkgdesc="Privacy-focused, local-only API client for REST, GraphQL, gRPC and WebSockets (Insomnia fork)"
+arch=('x86_64')
+url="https://github.com/yokomohoyo/insomnium"
+license=('MIT')
+depends=('alsa-lib' 'at-spi2-core' 'dbus' 'expat' 'gtk3' 'hicolor-icon-theme' 'libnotify' 'libsecret' 'libxss' 'libxtst' 'nss' 'util-linux-libs' 'xdg-utils')
+optdepends=('libappindicator-gtk3: tray icon support')
+provides=('insomnium')
+conflicts=('insomnium' 'insomnium-git')
+options=('!strip' '!debug')
+source=("Insomnium.Core-${_pkgver}.deb::${url}/releases/download/${_pkgver}/Insomnium.Core-${_pkgver}.deb"
+        "LICENSE-${_pkgver}::https://raw.githubusercontent.com/yokomohoyo/insomnium/${_pkgver}/LICENSE")
+sha256sums=('86642b5d5881ad3fa5716099ebb0cc8868277ff8a56f569361335e47404f8521'
+            '8763e17d977f94e9573949df0734dbc16fa68e286d1353f1ea7a0b9acc3843bd')
+
+prepare() {
+  mkdir -p data
+  bsdtar -xf data.tar.xz -C data
+}
+
+package() {
+  cp -a data/opt "$pkgdir/"
+  install -Dm644 data/usr/share/applications/insomnium.desktop -t "$pkgdir/usr/share/applications/"
+  for size in 256x256 512x512; do
+    install -Dm644 "data/usr/share/icons/hicolor/$size/apps/insomnium.png" \
+      -t "$pkgdir/usr/share/icons/hicolor/$size/apps/"
+  done
+
+  # Debian-only extras: the APT source keyring and Ubuntu's AppArmor profile.
+  rm -f "$pkgdir/opt/Insomnium/resources/insomnium-archive-keyring.gpg" \
+        "$pkgdir/opt/Insomnium/resources/apparmor-profile"
+
+  install -d "$pkgdir/usr/bin"
+  ln -s /opt/Insomnium/insomnium "$pkgdir/usr/bin/insomnium"
+
+  install -Dm644 "LICENSE-${_pkgver}" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 "$pkgdir/opt/Insomnium/LICENSE.electron.txt" -t "$pkgdir/usr/share/licenses/$pkgname/"
+}

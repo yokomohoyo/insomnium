@@ -1,0 +1,193 @@
+name: AUR Package
+
+# Fires after a successful Release On Publish run and updates the AUR package
+# insomnium-bin to the new release's .deb. Also runnable manually with
+# `workflow_dispatch` to (re)publish an existing tag, and test-builds the
+# PKGBUILD on pull requests that touch it.
+#
+# The PKGBUILD in packages/insomnia/packaging/aur/insomnium-bin is the source of
+# truth. `build` rewrites its _pkgver for the release, recomputes the checksums,
+# checks the .deb against the release asset digest, builds and installs the
+# package in an Arch container and generates .SRCINFO. `publish` only pushes
+# those two files.
+#
+# Required secret: AUR_SSH_PRIVATE_KEY, the private half of an SSH key added to
+# the AUR account that maintains insomnium-bin, stored in the `aur` environment,
+# which only main may deploy to. Until it is set, `publish` skips with a warning.
+
+on:
+  workflow_run:
+    workflows: ["Release On Publish"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish to the AUR
+        required: true
+        type: string
+      allow_downgrade:
+        description: Allow moving the AUR package to an older release (intentional rollback)
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    paths:
+      - packages/insomnia/packaging/aur/**
+      - .github/workflows/aur.yml
+
+permissions:
+  contents: read
+
+# One publish at a time: each compares against what the AUR currently has.
+concurrency:
+  group: aur-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PKGDIR: packages/insomnia/packaging/aur/insomnium-bin
+
+jobs:
+  build:
+    # Same rule as homebrew.yml: only a build started by publishing a release.
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release') }}
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    outputs:
+      skip: ${{ steps.order.outputs.skip }}
+      pkgver: ${{ steps.srcinfo.outputs.pkgver }}
+    env:
+      REPO: ${{ github.repository }}
+      TAG: ${{ github.event.inputs.tag || github.event.workflow_run.head_branch }}
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm --needed git github-cli jq namcap pacman-contrib
+
+      - uses: actions/checkout@v7
+
+      - name: Point the PKGBUILD at the release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$TAG" ]; then echo "::error::Could not resolve release tag"; exit 1; fi
+          if ! [[ "$TAG" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-rc\.(0|[1-9][0-9]*))?$ ]]; then
+            echo "::error::Tag '$TAG' is not X.Y.Z or X.Y.Z-rc.N"; exit 1
+          fi
+          VERSION=$(gh api "repos/$REPO/contents/packages/insomnia/package.json?ref=$TAG" --jq '.content' | base64 -d | jq -r '.version')
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match packages/insomnia version $VERSION"; exit 1
+          fi
+          sed -i -E "s/^_pkgver=.*/_pkgver=$TAG/; s/^pkgrel=.*/pkgrel=1/" "$PKGDIR/PKGBUILD"
+
+      - name: Build, check and install
+        id: srcinfo
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          useradd -m builder
+          cp -r "$PKGDIR" /home/builder/pkg
+          chown -R builder /home/builder/pkg
+          cd /home/builder/pkg
+          # On a pull request makepkg verifies the committed checksums instead.
+          if [ "$GITHUB_EVENT_NAME" != pull_request ]; then su builder -c updpkgsums; fi
+          su builder -c 'makepkg --cleanbuild --nodeps --noconfirm && makepkg --printsrcinfo > .SRCINFO'
+
+          # The .deb must be the exact release asset, not just whatever the url served.
+          _pkgver=$(sed -n 's/^_pkgver=//p' PKGBUILD)
+          DEB="Insomnium.Core-$_pkgver.deb"
+          DIGEST=$(gh release view "$_pkgver" --repo "$REPO" --json assets |
+            jq -r --arg n "$DEB" '[.assets[] | select(.name == $n) | .digest] | if length == 1 then .[0] else "" end')
+          GOT=$(sed -n 's/^\tsha256sums = //p' .SRCINFO | head -1)
+          if [ "sha256:$GOT" != "$DIGEST" ]; then
+            echo "::error::$DEB hashes to $GOT, but the release asset digest is '${DIGEST:-missing}'"; exit 1
+          fi
+
+          # Informational: namcap flags /opt and the prebuilt node-libcurl RUNPATHs on every Electron -bin package.
+          namcap PKGBUILD *.pkg.tar.zst || true
+
+          pacman -U --noconfirm *.pkg.tar.zst
+          if ldd /opt/Insomnium/insomnium | grep 'not found'; then
+            echo "::error::insomnium has unresolved shared libraries; add the missing depends"; exit 1
+          fi
+          test -x /usr/bin/insomnium
+
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cp PKGBUILD .SRCINFO "$GITHUB_WORKSPACE/out/"
+          echo "pkgver=$(sed -n 's/^\tpkgver = //p' .SRCINFO)-$(sed -n 's/^\tpkgrel = //p' .SRCINFO)" >> "$GITHUB_OUTPUT"
+          cat .SRCINFO
+
+      # A manual downgrade is refused unless allow_downgrade is set; an automatic
+      # one (e.g. an old release's build re-run after a newer release) is skipped.
+      - name: Check the update goes forward
+        id: order
+        if: github.event_name != 'pull_request'
+        env:
+          NEW: ${{ steps.srcinfo.outputs.pkgver }}
+          EVENT: ${{ github.event_name }}
+          ALLOW_DOWNGRADE: ${{ github.event.inputs.allow_downgrade }}
+        run: |
+          CURRENT=$(curl -fsSL 'https://aur.archlinux.org/rpc/v5/info?arg[]=insomnium-bin' | jq -r '.results[0].Version // empty')
+          echo "AUR has ${CURRENT:-nothing}; built $NEW"
+          if [ -n "$CURRENT" ] && [ "$(vercmp "$NEW" "$CURRENT")" -lt 0 ]; then
+            if [ "$EVENT" = workflow_run ]; then
+              echo "::notice::Not publishing: $NEW is older than the AUR's $CURRENT"
+              echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            if [ "$ALLOW_DOWNGRADE" != true ]; then
+              echo "::error::$NEW would downgrade the AUR package from $CURRENT; for an intentional rollback re-run with allow_downgrade"; exit 1
+            fi
+            echo "::warning::Rolling the AUR package back from $CURRENT to $NEW (allow_downgrade)"
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aur-insomnium-bin
+          path: out/
+
+  publish:
+    needs: build
+    if: github.event_name != 'pull_request' && needs.build.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    environment: aur
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: aur-insomnium-bin
+          path: out
+
+      - name: Push to the AUR
+        env:
+          AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          PKGVER: ${{ needs.build.outputs.pkgver }}
+        run: |
+          if [ -z "$AUR_SSH_PRIVATE_KEY" ]; then
+            echo "::warning::AUR_SSH_PRIVATE_KEY is not set in the aur environment; skipping the AUR push"
+            exit 0
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$AUR_SSH_PRIVATE_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          # Ed25519 host key, matching the fingerprint published on aur.archlinux.org
+          # (SHA256:RFzBCUItH9LZS0cKB5UE6ceAYhBD5C8GeOBip8Z11+4).
+          echo 'aur.archlinux.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEuBKrPzbawxA/k2g6NcyV5jmqwJ2s+zpgZGZ7tpLIcN' > ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+
+          git clone ssh://aur@aur.archlinux.org/insomnium-bin.git aur
+          cp out/PKGBUILD out/.SRCINFO aur/
+          cd aur
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "AUR already at $PKGVER — nothing to do"
+            exit 0
+          fi
+          git config user.name "yokomohoyo"
+          git config user.email "yokomohoyo@users.noreply.github.com"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update to $PKGVER"
+          git push origin HEAD:master
