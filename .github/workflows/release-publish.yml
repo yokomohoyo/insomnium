@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Download artifact
-        uses: dawidd6/action-download-artifact@v24
+        uses: dawidd6/action-download-artifact@v26
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
           workflow: release-build.yml
