@@ -153,6 +153,26 @@ const config = {
     // `fpm: ["--deb-field", ...]` — that appends a second Section line, which
     // newer dpkg rejects outright (#131).
     packageCategory: "devel",
+    // Setting this replaces electron-builder's default list, so it is copied
+    // verbatim (FpmTarget.getDefaultDepends) plus two libraries Electron links
+    // directly that the defaults don't pull in everywhere: without them the app
+    // won't start on a minimal install.
+    // - ALSA: Ubuntu 24.04+ renamed it libasound2t64; the alternative keeps
+    //   older Debian/Ubuntu working.
+    // - libgbm1: missing on Ubuntu 22.04.
+    depends: [
+      "libgtk-3-0",
+      "libnotify4",
+      "libnss3",
+      "libxss1",
+      "libxtst6",
+      "xdg-utils",
+      "libatspi2.0-0",
+      "libuuid1",
+      "libsecret-1-0",
+      "libasound2t64 | libasound2",
+      "libgbm1",
+    ],
     // These REPLACE electron-builder's built-in templates rather than extending
     // them — both files start as verbatim copies of the originals. See the note
     // at the top of each.
