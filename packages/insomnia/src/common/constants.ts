@@ -43,19 +43,13 @@ export const getBrowserUserAgent = () => encodeURIComponent(
     .replace(/Electron\/\d+\.\d+\.\d+ /, ''),
 ).replace('%2C', ',');
 
-export function updatesSupported() {
-  // Updates are not supported on Linux
-  if (isLinux()) {
-    return false;
-  }
-
-  // Updates are not supported for Windows portable binaries
-  if (isWindows() && process.env['PORTABLE_EXECUTABLE_DIR']) {
-    return false;
-  }
-
-  return true;
-}
+// There is no in-app updater. The Squirrel updater inherited from Insomnia
+// pointed at update feeds on archgpt.dev, a domain this project doesn't control
+// that no longer serves them. Upstream had already stopped starting it in 2023
+// (9b81239), so it was removed. New versions ship as GitHub Releases
+// (https://github.com/yokomohoyo/insomnium/releases) and through the APT
+// repository and Homebrew.
+export const updatesSupported = () => false;
 
 export const getClientString = () => `${getAppEnvironment()}::${getAppPlatform()}::${getAppVersion()}`;
 // export const changelogUrl = () => appConfig.changelogUrl + '#' + version;
@@ -80,7 +74,6 @@ export const STATUS_CODE_PLUGIN_ERROR = -222;
 export const LARGE_RESPONSE_MB = 5;
 export const HUGE_RESPONSE_MB = 100;
 export const FLEXIBLE_URL_REGEX = /^(http|https):\/\/[\wàâäèéêëîïôóœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ\-_.]+[/\wàâäèéêëîïôóœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ.\-+=:\][@%^*&!#?;$~'(),]*/;
-export const CHECK_FOR_UPDATES_INTERVAL = 1000 * 60 * 60 * 3; // 3 hours
 
 // Available editor key map
 export enum EditorKeyMap {
@@ -125,12 +118,6 @@ export const displayModifierKey = (key: keyof Omit<KeyCombination, 'keyCode'>) =
       throw new Error(key + 'unrecognized key');
   }
 };
-
-// Update
-export enum UpdateURL {
-  mac = 'https://archgpt.dev/insomnium/builds/check/mac',
-  windows = 'https://archgpt.dev/insomnium/updates/win',
-}
 
 // API
 export const getApiBaseURL = () => env.INSOMNIA_API_URL || 'https://api.insomnia.rest';
