@@ -157,7 +157,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: aur
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: aur-insomnium-bin
           path: out
