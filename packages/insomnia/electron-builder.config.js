@@ -10,6 +10,11 @@ const BINARY_PREFIX = "Insomnium.Core";
 const config = {
   npmRebuild: false,
   appId: "com.insomnium.app",
+  // Without this, electron-builder writes "Copyright © <year> <author name>"
+  // into the macOS Info.plist and the Windows exe and installer, and author is
+  // the maintainer, not the copyright holder. Mirror LICENSE instead.
+  copyright:
+    "Copyright (c) Insomnia REST Client, Copyright (c) 2023 Insomnium REST Client",
   protocols: [
     {
       name: "Insomnium",
@@ -109,7 +114,7 @@ const config = {
   squirrelWindows: {
     artifactName: `${BINARY_PREFIX}-\${version}.\${ext}`,
     iconUrl:
-      "https://github.com/archGPT/insomnium/blob/main/packages/insomnia/src/icons/icon.png?raw=true",
+      "https://github.com/yokomohoyo/insomnium/blob/main/packages/insomnia/src/icons/icon.png?raw=true",
   },
   portable: {
     artifactName: `${BINARY_PREFIX}-\${version}-portable.\${ext}`,

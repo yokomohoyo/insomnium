@@ -43,7 +43,20 @@ export const getBrowserUserAgent = () => encodeURIComponent(
     .replace(/Electron\/\d+\.\d+\.\d+ /, ''),
 ).replace('%2C', ',');
 
+// In-app updates are off because there is no update feed. The feeds inherited
+// from upstream lived on archgpt.dev, which this project doesn't control and
+// which no longer serves them. New versions ship as GitHub Releases
+// (https://github.com/yokomohoyo/insomnium/releases) and through the APT
+// repository and Homebrew. To turn updates back on, point this at a
+// Squirrel-compatible feed for each platform. updatesSupported() below and
+// main/updates.ts both check it.
+export const UPDATE_FEED_URL: { mac: string; windows: string } | null = null;
+
 export function updatesSupported() {
+  if (!UPDATE_FEED_URL) {
+    return false;
+  }
+
   // Updates are not supported on Linux
   if (isLinux()) {
     return false;
@@ -125,12 +138,6 @@ export const displayModifierKey = (key: keyof Omit<KeyCombination, 'keyCode'>) =
       throw new Error(key + 'unrecognized key');
   }
 };
-
-// Update
-export enum UpdateURL {
-  mac = 'https://archgpt.dev/insomnium/builds/check/mac',
-  windows = 'https://archgpt.dev/insomnium/updates/win',
-}
 
 // API
 export const getApiBaseURL = () => env.INSOMNIA_API_URL || 'https://api.insomnia.rest';

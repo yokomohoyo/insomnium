@@ -5,12 +5,16 @@ import {
   getAppId,
   getAppVersion,
   isDevelopment,
-  UpdateURL,
+  UPDATE_FEED_URL,
 } from '../common/constants';
 import { delay } from '../common/misc';
 import * as models from '../models/index';
 import { guard } from '../utils/guard';
 const isUpdateSupported = () => {
+  if (!UPDATE_FEED_URL) {
+    console.log('[updater] No update feed configured, see UPDATE_FEED_URL');
+    return false;
+  }
   if (process.platform === 'linux') {
     console.log('[updater] Not supported on this platform', process.platform);
     return false;
@@ -31,7 +35,10 @@ const isUpdateSupported = () => {
 };
 const getUpdateUrl = (updateChannel: string): string | null => {
   guard(isUpdateSupported(), 'auto update is not supported');
-  const fullUrl = new URL(process.platform === 'win32' ? UpdateURL.windows : UpdateURL.mac);
+  if (!UPDATE_FEED_URL) {
+    return null;
+  }
+  const fullUrl = new URL(process.platform === 'win32' ? UPDATE_FEED_URL.windows : UPDATE_FEED_URL.mac);
   fullUrl.searchParams.append('v', getAppVersion());
   fullUrl.searchParams.append('app', getAppId());
   fullUrl.searchParams.append('channel', updateChannel);

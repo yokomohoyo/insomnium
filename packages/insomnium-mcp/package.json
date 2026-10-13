@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "MCP stdio launcher that bridges AI clients to a running Insomnium API client — list, inspect, and run your saved REST/GraphQL/gRPC requests over the Model Context Protocol.",
   "license": "MIT",
-  "author": "Archy <archy@archgpt.dev>",
+  "author": "yokomohoyo <yokomohoyo@users.noreply.github.com>",
   "type": "module",
   "mcpName": "io.github.yokomohoyo/insomnium",
   "bin": {

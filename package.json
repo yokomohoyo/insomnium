@@ -2,14 +2,14 @@
   "name": "insomnium",
   "private": true,
   "version": "1.0.0",
-  "author": "Archy <archy@archgpt.dev>",
+  "author": "yokomohoyo <yokomohoyo@users.noreply.github.com>",
   "description": "Insomnium is a cross-platform REST client, built on top of Electron.",
   "license": "MIT",
-  "repository": "https://github.com/ArchGPT/insomnium",
+  "repository": "https://github.com/yokomohoyo/insomnium",
   "bugs": {
-    "url": "https://github.com/ArchGPT/insomniumissues"
+    "url": "https://github.com/yokomohoyo/insomnium/issues"
   },
-  "homepage": "https://github.com/ArchGPT/insomnium#readme",
+  "homepage": "https://github.com/yokomohoyo/insomnium#readme",
   "engines": {
     "node": ">=24.18.0",
     "npm": ">=11.0.0"
