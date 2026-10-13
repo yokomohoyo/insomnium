@@ -97,7 +97,8 @@ It:
 1. Downloads `.deb` assets from the most recent releases (default 5 — see below)
 2. Builds `dists/stable/main/binary-amd64/Packages` with `apt-ftparchive`
 3. Generates and GPG-signs `Release`, producing `InRelease` and `Release.gpg`
-4. Verifies its own signature and that the index actually lists `insomnium`
+4. Verifies both signatures, that every file `Release` lists matches its
+   recorded hash, and that the index actually lists `insomnium`
 5. Checks the payload against the published-site limit
 6. Uploads `_site` as a Pages artifact and deploys it
 

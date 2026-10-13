@@ -103,6 +103,8 @@ jobs:
           du -sh _site/apt/pool
 
       - name: Build and sign repository index
+        env:
+          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
         run: |
           cd _site/apt
           mkdir -p dists/stable/main/binary-amd64
@@ -113,6 +115,11 @@ jobs:
           apt-ftparchive packages pool > dists/stable/main/binary-amd64/Packages
           gzip -9 -k -f dists/stable/main/binary-amd64/Packages
 
+          # Release is written outside dists/stable and then moved in. `release`
+          # hashes every file named Release in the tree it scans, and redirecting
+          # straight to dists/stable/Release creates that file (with the header
+          # already flushed) before the scan, so Release listed itself with a
+          # stale hash.
           apt-ftparchive \
             -o APT::FTPArchive::Release::Origin=Insomnium \
             -o APT::FTPArchive::Release::Label=Insomnium \
@@ -120,16 +127,19 @@ jobs:
             -o APT::FTPArchive::Release::Codename=stable \
             -o APT::FTPArchive::Release::Components=main \
             -o APT::FTPArchive::Release::Architectures=amd64 \
-            release dists/stable > dists/stable/Release
+            release dists/stable > "$RUNNER_TEMP/Release"
+          mv "$RUNNER_TEMP/Release" dists/stable/Release
 
           # InRelease (inline-signed) is what modern apt prefers; Release.gpg is
-          # kept for older clients.
+          # kept for older clients. Both are signed from the final Release. The
+          # passphrase arrives through env: an inline secrets expression would
+          # be pasted into this script, where the shell expands any $, ` or " in it.
           gpg --batch --yes --pinentry-mode loopback \
-            --passphrase "${{ secrets.APT_GPG_PASSPHRASE }}" \
+            --passphrase "$APT_GPG_PASSPHRASE" \
             --local-user "$APT_GPG_KEY_ID" \
             --clearsign -o dists/stable/InRelease dists/stable/Release
           gpg --batch --yes --pinentry-mode loopback \
-            --passphrase "${{ secrets.APT_GPG_PASSPHRASE }}" \
+            --passphrase "$APT_GPG_PASSPHRASE" \
             --local-user "$APT_GPG_KEY_ID" \
             -abs -o dists/stable/Release.gpg dists/stable/Release
 
@@ -140,6 +150,11 @@ jobs:
         run: |
           cd _site/apt
           gpg --verify dists/stable/InRelease
+          gpg --verify dists/stable/Release.gpg dists/stable/Release
+          # Every file Release lists must match the hash it records. This also
+          # fails a Release that lists itself, since no file can hold its own hash.
+          awk '/^SHA256:$/ {p=1; next} /^[^ ]/ {p=0} p {print $1 "  " $3}' dists/stable/Release \
+            | (cd dists/stable && sha256sum --strict --check)
           grep -q '^Package: insomnium$' dists/stable/main/binary-amd64/Packages
           echo "versions published:"
           awk '/^Package: insomnium$/{p=1} p&&/^Version:/{print "  " $2; p=0}' \
