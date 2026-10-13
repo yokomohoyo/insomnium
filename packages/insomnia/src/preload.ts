@@ -45,7 +45,6 @@ const main: Window['main'] = {
   openInBrowser: options => ipcRenderer.send('openInBrowser', options),
   halfSecondAfterAppStart: () => ipcRenderer.send('halfSecondAfterAppStart'),
   getMcpStatus: () => ipcRenderer.invoke('getMcpStatus'),
-  manualUpdateCheck: () => ipcRenderer.send('manualUpdateCheck'),
   authorizeUserInWindow: options => ipcRenderer.invoke('authorizeUserInWindow', options),
   spectralRun: options => ipcRenderer.invoke('spectralRun', options),
   setMenuBarVisibility: options => ipcRenderer.send('setMenuBarVisibility', options),

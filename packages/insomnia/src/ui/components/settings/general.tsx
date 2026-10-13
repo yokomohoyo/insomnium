@@ -11,12 +11,11 @@ import {
   updatesSupported,
 } from '../../../common/constants';
 import { docsKeyMaps } from '../../../common/documentation';
-import { HttpVersion, HttpVersions, UpdateChannel } from '../../../common/settings';
+import { HttpVersion, HttpVersions } from '../../../common/settings';
 import { strings } from '../../../common/strings';
 import { initNewOAuthSession } from '../../../network/o-auth-2/get-token';
 import { RootLoaderData } from '../../routes/root';
 import { Link } from '../base/link';
-import { CheckForUpdatesButton } from '../check-for-updates-button';
 import { Tooltip } from '../tooltip';
 import { BooleanSetting } from './boolean-setting';
 import { EnumSetting } from './enum-setting';
@@ -314,37 +313,7 @@ export const General: FC = () => {
         />
       </div>
 
-      {/* {updatesSupported() && (
-        <Fragment>
-          <hr className="pad-top" />
-          <div>
-            <div className="pull-right">
-              <CheckForUpdatesButton className="btn btn--outlined btn--super-duper-compact">
-                Check now
-              </CheckForUpdatesButton>
-            </div>
-            <h2>Software Updates</h2>
-          </div>
-          <BooleanSetting
-            label="Automatically download and install updates"
-            setting="updateAutomatically"
-            help="If disabled, receive a notification in-app when a new update is available."
-          />
-
-          <div className="for-row pad-top-sm">
-            <EnumSetting<UpdateChannel>
-              label="Update channel"
-              setting="updateChannel"
-              values={[
-                { value: UpdateChannel.stable, name: 'Release (recommended)' },
-                { value: UpdateChannel.beta, name: 'Early access (beta)' },
-              ]}
-            />
-          </div>
-        </Fragment>
-      )}
-
-      {!updatesSupported() && (
+      {/* {!updatesSupported() && (
         <><hr className="pad-top" />
           <h2>Notifications</h2>
           <BooleanSetting
