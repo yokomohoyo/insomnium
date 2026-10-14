@@ -184,6 +184,27 @@ const config = {
     afterInstall: "packaging/linux/after-install.tpl",
     afterRemove: "packaging/linux/after-remove.tpl",
   },
+  rpm: {
+    // Same gap as deb.depends above: this replaces electron-builder's default
+    // list, copied verbatim, and fpm adds no automatic requires, so without the
+    // last two the app won't start on a minimal Fedora, RHEL or openSUSE
+    // install (libasound.so.2 and libgbm.so.1 not found). They're required by
+    // soname rather than package name because every RPM distro provides those
+    // names from its own package: alsa-lib and mesa-libgbm on Fedora/RHEL,
+    // libasound2 and libgbm1 on openSUSE.
+    depends: [
+      "gtk3",
+      "libnotify",
+      "nss",
+      "libXScrnSaver",
+      "(libXtst or libXtst6)",
+      "xdg-utils",
+      "at-spi2-core",
+      "(libuuid or libuuid1)",
+      "libasound.so.2()(64bit)",
+      "libgbm.so.1()(64bit)",
+    ],
+  },
   snap: {
     base: "core22",
   },
