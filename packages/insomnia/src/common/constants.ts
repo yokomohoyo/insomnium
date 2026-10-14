@@ -67,7 +67,7 @@ export const REQUEST_TIME_TO_SHOW_COUNTER = 1; // Seconds
  *
  * While this isn't a perfect "magic-number" (it can be as low as 120ms and as high as 300) it serves as a rough average.
  *
- * For initial introduction, see https://github.com/ArchGPT/insomnium/blob/8aa274d21b351c4710f0bb833cba7deea3d56c29/app/ui/components/ResponsePane.js#L100
+ * For initial introduction, see https://github.com/Kong/insomnia/blob/8aa274d21b351c4710f0bb833cba7deea3d56c29/app/ui/components/ResponsePane.js#L100
 */
 export const REQUEST_SETUP_TEARDOWN_COMPENSATION = 200;
 export const STATUS_CODE_PLUGIN_ERROR = -222;
@@ -84,7 +84,7 @@ export enum EditorKeyMap {
 }
 
 // Hotkey
-// For an explanation of mnemonics on linux and windows see https://github.com/ArchGPT/insomnium/pull/1221#issuecomment-443543435 & https://docs.microsoft.com/en-us/cpp/windows/defining-mnemonics-access-keys?view=msvc-160#mnemonics-access-keys
+// For an explanation of mnemonics on linux and windows see https://github.com/Kong/insomnia/pull/1221#issuecomment-443543435 & https://docs.microsoft.com/en-us/cpp/windows/defining-mnemonics-access-keys?view=msvc-160#mnemonics-access-keys
 export const MNEMONIC_SYM = isMac() ? '' : '&';
 
 export const displayModifierKey = (key: keyof Omit<KeyCombination, 'keyCode'>) => {
@@ -129,7 +129,7 @@ export const getAppWebsiteBaseURL = () => env.INSOMNIA_APP_WEBSITE_URL || 'https
 export const getGitHubGraphQLApiURL = () => env.INSOMNIA_GITHUB_API_URL || 'https://api.github.com/graphql';
 
 // License
-export const getLicenseURL = () => env.INSOMNIUM_LICENSE_URL || 'https://github.com/ArchGPT/insomnium/blob/main/LICENSE';
+export const getLicenseURL = () => env.INSOMNIUM_LICENSE_URL || 'https://github.com/yokomohoyo/insomnium/blob/main/LICENSE';
 
 // SYNC
 export const DEFAULT_BRANCH_NAME = 'master';

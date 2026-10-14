@@ -93,7 +93,7 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 
 ## Backstory
 
-Insomnium is a fork of [Kong/insomnia at 2023.5.8](https://github.com/ArchGPT/insomnia), the last commit before compulsory account login was introduced. In a sense, Insomnium is a community response to [the latest product update that forces account creation w/o warning](https://news.ycombinator.com/item?id=37680522).
+Insomnium is a fork of [Kong/insomnia at 2023.5.8](https://github.com/Kong/insomnia/tree/core@2023.5.8), the last commit before compulsory account login was introduced. In a sense, Insomnium is a community response to [the latest product update that forces account creation w/o warning](https://news.ycombinator.com/item?id=37680522).
 
 ![HN](https://github.com/yokomohoyo/insomnium/blob/main/hn.png?raw=true)
 
@@ -107,7 +107,13 @@ I was among the users who were deeply affected by the recent change. I still thi
 
 ## Migration from Insomnia
 
-You can use the GUI (under `Preferences/Data`) or directly e.g. for linux `cp -r ~/.config/Insomnia ~/.config/Insomnium`. [For MacOS and Windows, you can read more here](https://archgpt.dev/insomnium/migration-guide). Feel free to open an issue/discussion if anything weird happens.
+You can use the GUI (under `Preferences/Data`) or copy the data folder directly, before starting Insomnium for the first time:
+
+- Linux: `cp -r ~/.config/Insomnia ~/.config/Insomnium`
+- macOS: `cp -R ~/Library/Application\ Support/Insomnia ~/Library/Application\ Support/Insomnium`
+- Windows (Command Prompt): `xcopy /E /I "%APPDATA%\Insomnia" "%APPDATA%\Insomnium"`
+
+Feel free to open an issue/discussion if anything weird happens.
 
 ## Develop Insomnium
 
@@ -195,11 +201,6 @@ Before submitting a bug or a feature request, you can read the
 ## Contributing
 
 Please read through our [contributing guidelines](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md). Included are directions for opening issues, coding standards, and notes on development.
-
-<!-- ## Documentation
-
-Check out our open-source [Insomnium Documentation](https://archgpt.dev/insomnium-doc). -->
-
 
 ## License
 

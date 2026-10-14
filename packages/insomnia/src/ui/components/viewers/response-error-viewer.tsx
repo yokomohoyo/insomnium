@@ -55,7 +55,7 @@ export const ResponseErrorViewer: FC<Props> = memo(({ error }) => {
         <Link
           button
           className="btn btn--clicky margin-top-sm"
-          href="https://github.com/ArchGPT/insomnium#bugs-and-feature-requests"
+          href="https://github.com/yokomohoyo/insomnium#bugs-and-feature-requests"
         >
           Submit an Issue
         </Link>

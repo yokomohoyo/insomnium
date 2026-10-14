@@ -204,7 +204,7 @@ jobs:
             Run locally:
 
             ```bash
-            # Make sure git remote is ArchGPT/insomnium...
+            # Make sure git remote is ${{ github.repository }}...
 
             git checkout main
             git merge --no-ff release/<replaced with version>
