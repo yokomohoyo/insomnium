@@ -184,6 +184,11 @@ export function escapeRegex(str: string) {
   return str.replace(ESCAPE_REGEX_MATCH, '\\$&');
 }
 
+// OAuth redirect URLs carry codes and tokens in the query or fragment; keep them out of logs.
+export function withoutSecrets(url: string) {
+  return url.split(/[?#]/)[0];
+}
+
 export interface FuzzyMatchOptions {
   splitSpace?: boolean;
   loose?: boolean;

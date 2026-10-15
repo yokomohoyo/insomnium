@@ -262,8 +262,6 @@ async function _applyRequestPluginHooks(
 ) {
   const newRenderedRequest = clone(renderedRequest);
 
-  console.log("[URL]", newRenderedRequest.url);
-  newRenderedRequest.url = newRenderedRequest.url.replace(":desu", "a");
 
   for (const { plugin, hook } of await plugins.getRequestHooks()) {
 
