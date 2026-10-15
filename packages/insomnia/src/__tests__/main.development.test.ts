@@ -53,6 +53,7 @@ jest.mock('../main/ipc/main', () => ({ registerMainHandlers: () => {} }));
 jest.mock('../main/network/curl', () => ({ registerCurlHandlers: () => {} }));
 jest.mock('../main/network/websocket', () => ({ registerWebSocketHandlers: () => {} }));
 jest.mock('../main/squirrel-startup', () => ({ checkIfRestartNeeded: () => false }));
+jest.mock('../main/web-hardening', () => ({ hardenWebContents: () => {}, lockDownSession: () => {} }));
 jest.mock('../main/mcp/server', () => ({ getRunningMcpServer: () => null }));
 jest.mock('../main/window-utils', () => ({ init: () => {}, getOrCreateWindow: () => mockWindow }));
 jest.mock('../models/index', () => ({
