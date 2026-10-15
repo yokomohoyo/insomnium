@@ -549,7 +549,8 @@ export const convert: Converter = async rawData => {
   } // Await here so we catch any exceptions
 
   try {
-    api = await SwaggerParser.validate(api);
+    // Imported specs are untrusted: never follow $refs to files or URLs.
+    api = await SwaggerParser.validate(api, { resolve: { external: false } });
   } catch (err) {
     // We already know it's a Swagger doc so we will try to import it anyway instead
     // of bailing out here.

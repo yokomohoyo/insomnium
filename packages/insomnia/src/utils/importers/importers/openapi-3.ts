@@ -808,6 +808,10 @@ export const convert: Converter = async rawData => {
 
   try {
     apiDocument = await SwaggerParser.validate(apiDocument, {
+      // Imported specs are untrusted: never follow $refs to files or URLs.
+      resolve: {
+        external: false,
+      },
       dereference: {
         circular: 'ignore',
       },
