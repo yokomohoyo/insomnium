@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { database } from '../common/database';
 import * as models from '../models';
+import { initNewOAuthSession } from '../network/o-auth-2/get-token';
 import { init as initPlugins } from '../plugins';
 import { applyColorScheme } from '../plugins/misc';
 import { guard } from '../utils/guard';
@@ -68,6 +69,10 @@ export async function renderApp() {
   await initPlugins();
 
   const settings = await models.settings.getOrCreate();
+
+  if (settings.clearOAuth2SessionOnRestart) {
+    initNewOAuthSession();
+  }
 
   await applyColorScheme(settings);
 
