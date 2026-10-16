@@ -7,8 +7,10 @@ import { join as pathJoin, resolve as pathResolve } from 'path';
 import { version } from '../../../package.json';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import {
+  AUTH_API_KEY,
   AUTH_AWS_IAM,
   AUTH_BASIC,
+  AUTH_BEARER,
   AUTH_NETRC,
   CONTENT_TYPE_FILE,
   CONTENT_TYPE_FORM_DATA,
@@ -21,6 +23,7 @@ import { _parseHeaders, getHttpVersion } from '../../main/network/libcurl-promis
 import { DEFAULT_BOUNDARY } from '../../main/network/multipart';
 import { _getAwsAuthHeaders } from '../../main/network/parse-header-strings';
 import * as models from '../../models';
+import type { Request } from '../../models/request';
 import * as networkUtils from '../network';
 import { getSetCookiesFromResponseHeaders } from '../network';
 
@@ -1041,5 +1044,93 @@ describe('getCurrentUrl for tough-cookie', () => {
     const headerResults = [{ headers: [{ name: 'Location', value: '/cookies' }] }, { headers: [{ name: 'location', value: '/biscuit' }] }];
     const finalUrl = 'http://mergemyshit.dev';
     expect(networkUtils.getCurrentUrl({ headerResults, finalUrl })).toEqual(finalUrl + '/biscuit');
+  });
+});
+
+describe('renderEventStreamConnection()', () => {
+  beforeEach(globalBeforeEach);
+
+  const renderEventStream = async (patch: Partial<Request>) => {
+    const workspace = await models.workspace.create();
+    const environment = await models.environment.create({
+      parentId: workspace._id,
+      data: { base: 'http://localhost:4000', topic: 'news', since: '42', trace: 'abc', token: 's3cret', apiKey: 'k3y' },
+    });
+    const request = await models.request.create({
+      parentId: workspace._id,
+      url: '{{ base }}/events/:topic',
+      headers: [{ name: 'Accept', value: 'text/event-stream' }],
+      ...patch,
+    });
+    return networkUtils.renderEventStreamConnection(request, environment._id);
+  };
+
+  it('renders the url with params, path segments and auth query params', async () => {
+    const connection = await renderEventStream({
+      parameters: [{ name: 'since', value: '{{ since }}' }, { name: 'off', value: '1', disabled: true }],
+      segmentParams: [{ name: 'topic', value: '{{ topic }}' }],
+      authentication: [{ type: AUTH_API_KEY, key: 'api_key', value: '{{ apiKey }}', addTo: 'queryParams' }],
+    });
+    expect(connection.url).toBe('http://localhost:4000/events/news?since=42&api_key=k3y');
+  });
+
+  it('sends rendered, enabled headers plus the auth strategies\' headers', async () => {
+    const connection = await renderEventStream({
+      headers: [
+        { name: 'Accept', value: 'text/event-stream' },
+        { name: 'X-Trace', value: '{{ trace }}' },
+        { name: 'X-Off', value: 'nope', disabled: true },
+      ],
+      authentication: [{ type: AUTH_BEARER, token: '{{ token }}' }],
+    });
+    expect(connection.headers).toEqual([
+      { name: 'Accept', value: 'text/event-stream' },
+      { name: 'X-Trace', value: 'abc' },
+      { name: 'Authorization', value: 'Bearer s3cret' },
+    ]);
+  });
+
+  it('suppresses the user agent when its header is disabled', async () => {
+    const connection = await renderEventStream({
+      headers: [{ name: 'User-Agent', value: 'custom', disabled: true }],
+    });
+    expect(connection.suppressUserAgent).toBe(true);
+    expect(connection.headers).toEqual([]);
+  });
+
+  it('rejects a header value that would inject another header line', async () => {
+    await expect(renderEventStream({
+      authentication: [{ type: AUTH_BEARER, token: 'x\r\nX-Injected: 1' }],
+    })).rejects.toThrow(/header 'Authorization' contains a CR, LF, or NUL/);
+  });
+
+  it('routes a unix socket url to its socket path', async () => {
+    const connection = await renderEventStream({ url: 'http://unix:/tmp/sse.sock:/events' });
+    expect(connection.socketPath).toBe('/tmp/sse.sock');
+    expect(connection.url).toBe('http://events');
+  });
+
+  it('does not render or keep a body, which a stream never sends', async () => {
+    const connection = await renderEventStream({
+      method: 'POST',
+      body: { mimeType: 'application/json', text: '{ "a": "{{ notDefined }}" }' },
+    });
+    expect(connection.url).toBe('http://localhost:4000/events/:topic');
+  });
+
+  it('keeps the request\'s cookie and redirect settings', async () => {
+    const connection = await renderEventStream({
+      settingSendCookies: false,
+      settingStoreCookies: false,
+      settingFollowRedirects: 'off',
+      settingRebuildPath: false,
+    });
+    expect(connection).toMatchObject({
+      settingSendCookies: false,
+      settingStoreCookies: false,
+      settingFollowRedirects: 'off',
+      settingRebuildPath: false,
+      cookies: [],
+    });
   });
 });

@@ -14,7 +14,9 @@ import type { ExtraRenderInfo, RenderedRequest, RenderPurpose, RequestAndContext
 import {
   getRenderedRequestAndContext,
   RENDER_PURPOSE_NO_RENDER,
+  RENDER_PURPOSE_SEND,
 } from '../common/render';
+import type { EventStreamConnection } from '../main/network/event-stream-request';
 import type { HeaderResult, ResponsePatch, ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import * as models from '../models';
 import { CaCertificate } from '../models/ca-certificate';
@@ -167,6 +169,30 @@ export async function sendCurlAndWriteTimeline(
     statusCode: lastRedirect.code,
     statusMessage: lastRedirect.reason,
     ...patch,
+  };
+}
+// Server-sent events stream from the main process, which uses the result as
+// given. Resolve it the way a send does (render, plugin hooks, final URL with
+// params/path segments/auth query params, auth headers), for the bodiless GET
+// the stream is actually sent as, so nothing unsent is rendered or signed.
+export async function renderEventStreamConnection(request: Request, environmentId: string): Promise<EventStreamConnection> {
+  const renderResult = await tryToInterpolateRequest({ ...request, method: 'GET', body: {} }, environmentId, RENDER_PURPOSE_SEND);
+  const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
+  const { finalUrl, socketPath } = transformUrl(renderedRequest.url, renderedRequest.parameters, renderedRequest.segmentParams, renderedRequest.authentication, renderedRequest.settingEncodeUrl);
+  const headers = [...renderedRequest.headers, ...await getAuthHeaders(renderedRequest, finalUrl)];
+  assertSafeHeaders(headers);
+  return {
+    url: finalUrl,
+    socketPath,
+    headers,
+    authentication: renderedRequest.authentication,
+    cookieJar: renderedRequest.cookieJar,
+    cookies: renderedRequest.cookies,
+    suppressUserAgent: renderedRequest.suppressUserAgent,
+    settingSendCookies: renderedRequest.settingSendCookies,
+    settingStoreCookies: renderedRequest.settingStoreCookies,
+    settingFollowRedirects: renderedRequest.settingFollowRedirects,
+    settingRebuildPath: renderedRequest.settingRebuildPath,
   };
 }
 export const responseTransform = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>) => {

@@ -109,6 +109,38 @@ resources:
     settingRebuildPath: true
     settingFollowRedirects: global
     _type: request
+  - _id: req_e6fab3568ed54f9d83c92e2c8006e151
+    parentId: wrk_5b5ab67830944ffcbec47528366ef403
+    modified: 1636141084436
+    created: 1636141078602
+    url: http://127.0.0.1:4010/events
+    name: connects to event stream with rendered headers and auth
+    description: ""
+    method: GET
+    body: {}
+    parameters: []
+    headers:
+      - name: Accept
+        value: text/event-stream
+      - name: X-Rendered
+        value: "{% base64 'encode', 'normal', 'smoke' %}"
+      - name: X-Disabled
+        value: should-not-be-sent
+        disabled: true
+    authentication:
+      type: bearer
+      disabled: false
+      token: smoke-token
+      prefix: ""
+    metaSortKey: -1636141078602
+    isPrivate: false
+    settingStoreCookies: true
+    settingSendCookies: true
+    settingDisableRenderRequestBody: false
+    settingEncodeUrl: true
+    settingRebuildPath: true
+    settingFollowRedirects: global
+    _type: request
   - _id: req_06a660bffe724e3fac14d7d09b4a5c9b
     parentId: wrk_5b5ab67830944ffcbec47528366ef403
     modified: 1636141067089
