@@ -4,7 +4,10 @@ import nunjucks from 'nunjucks/browser/nunjucks';
 import * as plugins from '../plugins/index';
 import { localTemplateTags } from '../ui/components/templating/local-template-tags';
 import BaseExtension from './base-extension';
+import { hardenNunjucksRuntime } from './harden-nunjucks';
 import type { NunjucksParsedTag } from './utils';
+
+hardenNunjucksRuntime(nunjucks.runtime);
 
 export class RenderError extends Error {
   // TODO: unsound definite assignment assertions

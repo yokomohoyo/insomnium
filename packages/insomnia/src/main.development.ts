@@ -17,6 +17,7 @@ import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
 import { registerWebSocketHandlers } from './main/network/websocket';
 import { checkIfRestartNeeded } from './main/squirrel-startup';
+import { hardenWebContents, lockDownSession } from './main/web-hardening';
 import * as windowUtils from './main/window-utils';
 import * as models from './models/index';
 
@@ -42,6 +43,8 @@ if (envDataPath) {
 
 // So if (window) checks don't throw
 global.window = global.window || undefined;
+
+hardenWebContents();
 
 // setup right click menu
 app.on('web-contents-created', (_, contents) => {
@@ -90,6 +93,7 @@ if (!process.env.PLAYWRIGHT) {
 
 // When the app is first launched
 app.on('ready', async () => {
+  lockDownSession(session.defaultSession);
   // Disable deep linking in playwright e2e tests in order to run multiple tests in parallel
   if (!process.env.PLAYWRIGHT) {
     // Deep linking logic - https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app

@@ -1,5 +1,6 @@
 import { BrowserWindow, dialog } from 'electron';
 
+import { withoutSecrets } from '../common/misc';
 import * as models from '../models';
 
 export enum ChromiumVerificationResult {
@@ -47,18 +48,18 @@ export function authorizeUserInWindow({
 
     function _parseUrl(currentUrl: string, source: string) {
       if (currentUrl.match(urlSuccessRegex)) {
-        console.log(`[oauth2] ${source}: Matched success redirect to "${currentUrl}" with ${urlSuccessRegex.toString()}`,);
+        console.log(`[oauth2] ${source}: Matched success redirect to "${withoutSecrets(currentUrl)}" with ${urlSuccessRegex.toString()}`,);
         finalUrl = currentUrl;
         child.close();
       } else if (currentUrl.match(urlFailureRegex)) {
-        console.log(`[oauth2] ${source}: Matched error redirect to "${currentUrl}" with ${urlFailureRegex.toString()}`,);
+        console.log(`[oauth2] ${source}: Matched error redirect to "${withoutSecrets(currentUrl)}" with ${urlFailureRegex.toString()}`,);
         finalUrl = currentUrl;
         child.close();
       } else if (currentUrl === url) {
         // It's the first one, so it's not a redirect
-        console.log(`[oauth2] ${source}: Loaded "${currentUrl}"`);
+        console.log(`[oauth2] ${source}: Loaded "${withoutSecrets(currentUrl)}"`);
       } else {
-        console.log(`[oauth2] ${source}: Ignoring URL "${currentUrl}". Didn't match ${urlSuccessRegex.toString()}`,);
+        console.log(`[oauth2] ${source}: Ignoring URL "${withoutSecrets(currentUrl)}". Didn't match ${urlSuccessRegex.toString()}`,);
       }
     }
 

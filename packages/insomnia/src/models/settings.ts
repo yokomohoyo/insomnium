@@ -29,7 +29,7 @@ export function init(): BaseSettings {
     clearOAuth2SessionOnRestart: true,
     darkTheme: getAppDefaultDarkTheme(),
     deviceId: null,
-    disableHtmlPreviewJs: false,
+    disableHtmlPreviewJs: true,
     disableResponsePreviewLinks: false,
     disableUpdateNotification: false,
     editorFontSize: 11,

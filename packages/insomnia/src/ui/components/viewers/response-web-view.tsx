@@ -31,6 +31,9 @@ export const ResponseWebView: FC<Props> = ({ webpreferences, body, url }) => {
       data-testid="ResponseWebView"
       ref={webviewRef}
       src="about:blank"
+      // Untrusted content: keep it out of the app's session (cookies, storage)
+      // eslint-disable-next-line react/no-unknown-property
+      partition="response-preview"
       // eslint-disable-next-line react/no-unknown-property
       webpreferences={webpreferences}
     />

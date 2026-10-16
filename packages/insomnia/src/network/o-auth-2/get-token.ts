@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import querystring from 'querystring';
 import { v4 as uuidv4 } from 'uuid';
 
-import { escapeRegex } from '../../common/misc';
+import { escapeRegex, withoutSecrets } from '../../common/misc';
 import * as models from '../../models';
 import type { OAuth2Token } from '../../models/o-auth-2-token';
 import type { AuthTypeOAuth2, OAuth2ResponseType, RequestHeader, RequestParameter } from '../../models/request';
@@ -70,7 +70,7 @@ export const getOAuth2Token = async (
       urlFailureRegex: /(error=)/,
       sessionId: getOAuthSession(),
     });
-    console.log('[oauth2] Detected redirect ' + redirectedTo);
+    console.log('[oauth2] Detected redirect ' + withoutSecrets(redirectedTo));
 
     const responseUrl = new URL(redirectedTo);
     if (responseUrl.searchParams.has('error')) {
@@ -118,7 +118,7 @@ export const getOAuth2Token = async (
         new RegExp(`${escapeRegex(authentication.redirectUrl)}.*([?&]error=)`, 'i') : /([?&]error=)/i,
       sessionId: getOAuthSession(),
     });
-    console.log('[oauth2] Detected redirect ' + redirectedTo);
+    console.log('[oauth2] Detected redirect ' + withoutSecrets(redirectedTo));
     const redirectParams = Object.fromEntries(new URL(redirectedTo).searchParams);
     if (redirectParams.error) {
       const code = redirectParams.error;

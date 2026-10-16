@@ -11,6 +11,8 @@ export const ResponsePDFViewer = (props: Props) => {
     <webview
       data-testid="ResponsePDFView"
       src={url}
+      // eslint-disable-next-line react/no-unknown-property
+      partition="response-preview"
     />
   );
 };

@@ -14,6 +14,7 @@ import { axiosRequest } from '../network/axios-request';
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
 import { WebSocketBridgeAPI } from '../network/websocket';
+import { assertDataOnlyRuleset } from '../spectral-ruleset';
 import { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {
@@ -106,11 +107,10 @@ export function registerMainHandlers() {
 
     if (rulesetPath) {
       try {
+        assertDataOnlyRuleset(await fs.promises.readFile(rulesetPath, 'utf8'));
         const ruleset = await bundleAndLoadRuleset(rulesetPath, {
           fs,
-          fetch: (url: string) => {
-            return axiosRequest({ url, method: 'GET' });
-          },
+          fetch: (url: string) => Promise.reject(new Error(`remote rulesets are not supported: ${url}`)),
         });
 
         spectral.setRuleset(ruleset);
