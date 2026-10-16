@@ -97,6 +97,8 @@ export interface Settings {
   autoDetectColorScheme: boolean;
   autoHideMenuBar: boolean;
   autocompleteDelay: number;
+  /** Opt-in: ask GitHub for the latest release and show a notice when it's newer. */
+  checkForNewReleases: boolean;
   clearOAuth2SessionOnRestart: boolean;
   darkTheme: string;
   deviceId: string | null;
@@ -104,7 +106,7 @@ export interface Settings {
 
   disableResponsePreviewLinks: boolean;
 
-  /** If true, Insomnium won't show a notification when new updates are available. Users can still check for updates in Preferences. */
+  /** @deprecated Unused; the release notice is controlled by checkForNewReleases. */
   disableUpdateNotification: boolean;
   editorFontSize: number;
   editorIndentSize: number;
@@ -139,7 +141,9 @@ export interface Settings {
   showPasswords: boolean;
   theme: string;
   timeout: number;
+  /** @deprecated Unused; there is no auto-updater. */
   updateAutomatically: boolean;
+  /** @deprecated Unused; there is no auto-updater. */
   updateChannel: UpdateChannel;
   useBulkHeaderEditor: boolean;
   useBulkParametersEditor: boolean;
