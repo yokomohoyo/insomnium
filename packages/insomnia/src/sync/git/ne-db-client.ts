@@ -16,8 +16,33 @@ import { SystemError } from './system-error';
 // whatever else it contains.
 export const isGitSyncedType = (type: string | null) => !!type && models.getModel(type)?.canSync === true;
 
+// Every type shares one _id keyspace, so the _id must carry its own type's
+// prefix (as generated ids do) or a synced doc could replace, say, a Settings row
+const hasOwnPrefix = (doc: BaseModel) => doc._id?.startsWith(`${models.getModel(doc.type)?.prefix}_`) === true;
+
+// Whether writing doc would touch another workspace: where its _id lives now or
+// where its parentId would put it. Only a positive answer counts, since during
+// checkouts and merges the workspace itself can be briefly missing.
+async function belongsElsewhere(doc: BaseModel, workspaceId: string) {
+  if (!hasOwnPrefix(doc)) {
+    return true;
+  }
+  if (isWorkspace(doc)) {
+    return doc._id !== workspaceId;
+  }
+  const existing = await db.get(doc.type, doc._id);
+  for (const placement of existing ? [existing, doc] : [doc]) {
+    const owner = (await db.withAncestors(placement)).find(isWorkspace);
+    if (owner && owner._id !== workspaceId) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // The documents a cloned repository may add, held to the same rules as
-// NeDBClient.writeFile: a synced type, in its type's folder, named by its _id.
+// NeDBClient.writeFile: a synced type, in its type's folder, named by its _id,
+// which carries its type's prefix.
 export async function readClonedDocs(fsClient: PromiseFsClient) {
   const docs: BaseModel[] = [];
   for (const type of await fsClient.promises.readdir(GIT_INSOMNIA_DIR)) {
@@ -28,7 +53,7 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
     const typeDir = path.join(GIT_INSOMNIA_DIR, type);
     for (const fileName of await fsClient.promises.readdir(typeDir)) {
       const doc: BaseModel | null = YAML.parse((await fsClient.promises.readFile(path.join(typeDir, fileName))).toString());
-      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName) {
+      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName || !hasOwnPrefix(doc)) {
         console.log(`[git] Ignoring ${type}/${fileName} in the cloned repository`);
         continue;
       }
@@ -40,7 +65,8 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
 
 // Writes a cloned repository into the project: its one Workspace and the other
 // synced documents. Nothing is written if that workspace is missing, ambiguous
-// or already in the app.
+// or already in the app. The workspace is new, so a doc whose _id is already
+// in the app, or whose parents lead outside the repository, is someone else's.
 export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string): Promise<
   { error: string } | { existingWorkspace: Workspace } | { workspace: Workspace }
 > {
@@ -54,9 +80,27 @@ export async function importClonedDocs(fsClient: PromiseFsClient, projectId: str
   if (existingWorkspace) {
     return { existingWorkspace };
   }
+  const byId = new Map(docs.map(doc => [doc._id, doc]));
+  const inRepository = (doc: BaseModel) => {
+    const seen = new Set<string>();
+    for (let current: BaseModel | undefined = doc; current; current = byId.get(current.parentId)) {
+      if (current._id === workspace._id) {
+        return true;
+      }
+      if (seen.has(current._id)) {
+        return false;
+      }
+      seen.add(current._id);
+    }
+    return false;
+  };
   workspace.parentId = projectId;
   workspace.scope = workspace.scope === WorkspaceScopeKeys.collection ? WorkspaceScopeKeys.collection : WorkspaceScopeKeys.design;
   for (const doc of docs) {
+    if (!inRepository(doc) || await db.get(doc.type, doc._id)) {
+      console.log(`[git] Ignoring ${doc.type} ${doc._id} in the cloned repository: it belongs elsewhere`);
+      continue;
+    }
     await db.upsert(doc);
   }
   return { workspace };
@@ -150,6 +194,11 @@ export class NeDBClient {
 
     if (type !== doc.type) {
       throw new Error(`Doc type does not match file path [${doc.type} != ${type || 'null'}]`);
+    }
+
+    if (await belongsElsewhere(doc, this._workspaceId)) {
+      console.log(`[git] Ignoring ${filePath}: it belongs to another workspace`);
+      return;
     }
 
     if (isWorkspace(doc)) {

@@ -18,7 +18,9 @@ export function routableFSClient(
     filePath = path.normalize(filePath);
 
     for (const prefix of Object.keys(otherFS)) {
-      if (filePath.indexOf(path.normalize(prefix)) === 0) {
+      // whole path segments only: '.insomnium-x' or 'gitfoo' are not under '.insomnium' or 'git'
+      const dir = path.normalize(prefix);
+      if (filePath === dir || filePath.startsWith(dir + path.sep)) {
         // TODO: remove non-null assertion
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         return otherFS[prefix].promises[method]!(filePath, ...args);

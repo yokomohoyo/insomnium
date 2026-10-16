@@ -86,9 +86,11 @@ interface InitFromCloneOptions {
  * We should set this explicitly (even if set to an empty string), because we have other code (such as fs clients and unit tests) that depend on the clone directory.
  */
 export const GIT_CLONE_DIR = '.';
-const gitInternalDirName = 'git';
 export const GIT_INSOMNIA_DIR_NAME = '.insomnium';
-export const GIT_INTERNAL_DIR = path.join(GIT_CLONE_DIR, gitInternalDirName);
+// Absolute, so no work-tree path (always relative to GIT_CLONE_DIR) can name
+// it: a repository file at git/config must not land in the real git config.
+// fsClient joins it under the repo folder, the same place on disk as before.
+export const GIT_INTERNAL_DIR = '/git';
 export const GIT_INSOMNIA_DIR = path.join(GIT_CLONE_DIR, GIT_INSOMNIA_DIR_NAME);
 
 interface BaseOpts {
@@ -124,6 +126,14 @@ export class GitVCS {
 
     if (await this.repoExists()) {
       console.log(`[git] Opened repo for ${gitDirectory}`);
+      // Insomnium never sets these. Before GIT_INTERNAL_DIR was absolute, a
+      // pulled git/config could, sending pushes and fetches (and credentials) elsewhere.
+      for (const key of ['remote.origin.pushurl', 'http.corsProxy']) {
+        if (await git.getConfig({ ...this._baseOpts, path: key }) !== undefined) {
+          console.warn(`[git] Removing ${key} from the repository config`);
+          await git.setConfig({ ...this._baseOpts, path: key, value: undefined });
+        }
+      }
     } else {
       console.log(`[git] Initialized repo in ${gitDirectory}`);
       let defaultBranch = 'main';
