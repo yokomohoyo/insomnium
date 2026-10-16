@@ -9,16 +9,14 @@ import { v4 as uuidV4 } from 'uuid';
 
 import { describeByteSize, generateId, getSetCookieHeaders } from '../../common/misc';
 import * as models from '../../models';
-import { CookieJar } from '../../models/cookie-jar';
 import { Environment } from '../../models/environment';
-import { RequestAuthentication, RequestHeader } from '../../models/request';
 import { Response } from '../../models/response';
 import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
+import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance } from './libcurl-promise';
-import { parseHeaderStrings } from './parse-header-strings';
 
 export interface CurlConnection extends Curl {
   _id: string;
@@ -82,15 +80,10 @@ const parseHeadersAndBuildTimeline = (url: string, headersWithStatus: HeaderInfo
   ];
   return { timeline, responseHeaders, statusCode, statusMessage, httpVersion };
 };
-interface OpenCurlRequestOptions {
+interface OpenCurlRequestOptions extends EventStreamConnection {
   requestId: string;
   workspaceId: string;
-  url: string;
-  headers: RequestHeader[];
-  authentication: RequestAuthentication;
-  cookieJar: CookieJar;
   initialPayload?: string;
-  suppressUserAgent: boolean;
 }
 const openCurlConnection = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -99,7 +92,8 @@ const openCurlConnection = async (
   const existingConnection = CurlConnections.get(options.requestId);
 
   if (existingConnection) {
-    console.warn('Connection still open to ' + existingConnection.getInfo(Curl.info.EFFECTIVE_URL));
+    // not the URL: it can carry an API key query param
+    console.warn('Connection still open for ' + options.requestId);
     return;
   }
   const request = await models.request.getById(options.requestId);
@@ -122,33 +116,32 @@ const openCurlConnection = async (
   const environment: Environment | null = await models.environment.getById(environmentId || 'n/a');
   const responseEnvironmentId = environment ? environment._id : null;
 
-  const caCert = await models.caCertificate.findByParentId(options.workspaceId);
-  const caCertficatePath = caCert?.path;
-  // attempt to read CA Certificate PEM from disk, fallback to root certificates
-  const caCertificate = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
-
   try {
     if (!options.url) {
       throw new Error('URL is required');
     }
+    const caCert = await models.caCertificate.findByParentId(options.workspaceId);
+    const caCertficatePath = caCert?.disabled === false ? caCert.path : null;
+    // attempt to read CA Certificate PEM from disk, fallback to root certificates
+    const caCertificate = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
     const readyStateChannel = `curl.${request._id}.readyState`;
 
     const settings = await models.settings.getOrCreate();
     const start = performance.now();
     const clientCertificates = await models.clientCertificate.findByParentId(options.workspaceId);
     const filteredClientCertificates = clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), options.url));
+    const { req, headerStrings } = buildEventStreamCurlRequest(options);
     const { curl, debugTimeline } = createConfiguredCurlInstance({
-      req: { ...request, cookieJar: options.cookieJar, cookies: [], suppressUserAgent: options.suppressUserAgent },
+      req,
       finalUrl: options.url,
       settings,
       caCert: caCertificate,
       certificates: filteredClientCertificates,
+      socketPath: options.socketPath,
     });
     debugTimeline.forEach(entry => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(entry) + '\n'));
     CurlConnections.set(options.requestId, curl);
     CurlConnections.get(options.requestId)?.enable(CurlFeature.StreamResponse);
-    // TODO: add authHeader and request body?
-    const headerStrings = parseHeaderStrings({ req: request, finalUrl: options.url });
     CurlConnections.get(options.requestId)?.setOpt(Curl.option.HTTPHEADER, headerStrings);
     CurlConnections.get(options.requestId)?.on('error', async (error, errorCode) => {
       const errorEvent: CurlErrorEvent = {
@@ -219,19 +212,19 @@ const openCurlConnection = async (
         elapsedTime: performance.now() - start,
         timelinePath,
         bodyPath: responseBodyPath,
-        settingSendCookies: request.settingSendCookies,
-        settingStoreCookies: request.settingStoreCookies,
+        settingSendCookies: req.settingSendCookies,
+        settingStoreCookies: req.settingStoreCookies,
         bodyCompression: null,
       };
       const settings = await models.settings.getOrCreate();
       const res = await models.response.create(responsePatch, settings.maxHistoryResponses);
       models.requestMeta.updateOrCreateByParentId(request._id, { activeResponseId: res._id });
 
-      if (request.settingStoreCookies) {
+      if (req.settingStoreCookies) {
         const setCookieStrings: string[] = getSetCookieHeaders(responseHeaders).map(h => h.value);
         const totalSetCookies = setCookieStrings.length;
         if (totalSetCookies) {
-          const currentUrl = request.url;
+          const currentUrl = req.url;
           const { cookies, rejectedCookies } = await addSetCookiesToToughCookieJar({ setCookieStrings, currentUrl, cookieJar: options.cookieJar });
           rejectedCookies.forEach(errorMessage => timeline.push({ value: `Rejected cookie: ${errorMessage}`, name: 'Text', timestamp: Date.now() }));
           const hasCookiesToPersist = totalSetCookies > rejectedCookies.length;
