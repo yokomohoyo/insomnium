@@ -3,6 +3,7 @@ import path from 'path';
 
 import { httpClient } from './http-client';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
+import { sanitizeGitConfig } from './sanitize-git-config';
 import { gitCallbacks } from './utils';
 
 export interface GitAuthor {
@@ -126,17 +127,14 @@ export class GitVCS {
 
     if (await this.repoExists()) {
       console.log(`[git] Opened repo for ${gitDirectory}`);
-      // Insomnium never sets these. Before GIT_INTERNAL_DIR was absolute, a
-      // pulled git/config could, sending pushes and fetches (and credentials) elsewhere.
-      for (const key of ['remote.origin.pushurl', 'http.corsProxy']) {
-        // each setConfig removes one entry, and there may be any number
-        const entries = (await git.getConfigAll({ ...this._baseOpts, path: key })).length;
-        if (entries) {
-          console.warn(`[git] Removing ${entries} ${key} entries from the repository config`);
-        }
-        for (let i = 0; i < entries; i++) {
-          await git.setConfig({ ...this._baseOpts, path: key, value: undefined });
-        }
+      // keep only the config Insomnium writes (see sanitize-git-config.ts)
+      const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+      const configPath = `${gitDirectory}/config`;
+      const config = (await fs.readFile(configPath, 'utf8').catch(() => '')).toString();
+      const sanitized = sanitizeGitConfig(config);
+      if (config && sanitized !== config) {
+        console.warn('[git] Removing settings Insomnium does not write from the repository config');
+        await fs.writeFile(configPath, sanitized);
       }
     } else {
       console.log(`[git] Initialized repo in ${gitDirectory}`);
