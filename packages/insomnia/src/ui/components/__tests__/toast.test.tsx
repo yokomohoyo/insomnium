@@ -61,6 +61,6 @@ describe('<Toast />', () => {
     await findByText(notice.message);
     window.localStorage.setItem(SEEN, JSON.stringify({ [notice.key]: true }));
     fireEvent(window, Object.assign(new Event('storage'), { key: SEEN }));
-    expect(queryByText(notice.message)).toBeNull();
+    await waitFor(() => expect(queryByText(notice.message)).toBeNull());
   });
 });
