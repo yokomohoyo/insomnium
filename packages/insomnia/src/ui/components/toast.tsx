@@ -98,16 +98,17 @@ export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewRelease
     return () => unsubscribe();
   }, []);
 
-  // another window dismissed it
+  // another window dismissed it; registered once and reads the current notice
+  // from state, so it can't miss an event between a render and a re-subscribe
   useEffect(() => {
     const onStorage = (event: StorageEvent) => {
-      if (event.key === INSOMNIA_NOTIFICATIONS_SEEN && notification && readSeen()[notification.key]) {
-        setNotification(null);
+      if (event.key === INSOMNIA_NOTIFICATIONS_SEEN) {
+        setNotification(current => current && readSeen()[current.key] ? null : current);
       }
     };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, [notification]);
+  }, []);
 
   // right away when turned on (and at startup), then hourly to catch a release while open
   useEffect(() => {
