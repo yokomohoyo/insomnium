@@ -127,6 +127,8 @@ export interface Settings {
   httpProxy: string;
   httpsProxy: string;
   showVariableSourceAndValue: boolean;
+  /** Unsafe legacy renegotiation and lenient TLS shutdown, for old servers */
+  legacyTls: boolean;
   lightTheme: string;
   lineWrapping?: boolean;
   maxHistoryResponses: number;

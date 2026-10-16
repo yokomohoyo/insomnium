@@ -3,7 +3,7 @@
 import { guard } from '../../utils/guard';
 guard(process.type !== 'renderer', 'Native abstractions for Nodejs module unavailable in renderer');
 
-import { Curl, CurlAuth, CurlCode, CurlFeature, CurlHttpVersion, CurlInfoDebug, CurlNetrc, CurlProtocol } from '@getinsomnia/node-libcurl';
+import { Curl, CurlAuth, CurlCode, CurlFeature, CurlHttpVersion, CurlInfoDebug, CurlNetrc } from '@getinsomnia/node-libcurl';
 import electron from 'electron';
 import fs from 'fs';
 import path from 'path';
@@ -48,6 +48,7 @@ interface SettingsUsedHere {
   proxyEnabled: boolean;
   timeout: number;
   validateSSL: boolean;
+  legacyTls: boolean;
   followRedirects: boolean;
   maxTimelineDataSizeKB: number;
   httpProxy: string;
@@ -268,8 +269,10 @@ export const createConfiguredCurlInstance = ({
   socketPath && curl.setOpt(Curl.option.UNIX_SOCKET_PATH, socketPath);
   // HTTP(S) only, for the request and any redirect: curl's other protocols
   // (file, ftp, gopher, smb, ...) would give requests local file access.
-  curl.setOpt(Curl.option.PROTOCOLS, CurlProtocol.HTTP | CurlProtocol.HTTPS);
-  curl.setOpt(Curl.option.REDIR_PROTOCOLS, CurlProtocol.HTTP | CurlProtocol.HTTPS);
+  curl.setOpt(Curl.option.PROTOCOLS_STR, 'http,https');
+  curl.setOpt(Curl.option.REDIR_PROTOCOLS_STR, 'http,https');
+  // opt-in: weakens TLS for every connection this handle makes
+  settings.legacyTls && curl.setLegacyTls(true);
 
   curl.setOpt(Curl.option.VERBOSE, true); // Set all the basic options
   curl.setOpt(Curl.option.NOPROGRESS, true); // True so debug function works

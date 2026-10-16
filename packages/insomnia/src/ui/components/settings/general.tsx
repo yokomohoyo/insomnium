@@ -181,6 +181,11 @@ export const General: FC = () => {
             help="If checked, validate SSL certificates for API requests. This does not affect SSL certificate validation during authentication."
           />
           <BooleanSetting
+            label="Allow legacy TLS servers"
+            setting="legacyTls"
+            help="For old servers that need unsafe TLS renegotiation or close connections without a proper TLS shutdown. This weakens TLS, so only turn it on if a server fails without it."
+          />
+          <BooleanSetting
             label="Follow redirects"
             setting="followRedirects"
           />

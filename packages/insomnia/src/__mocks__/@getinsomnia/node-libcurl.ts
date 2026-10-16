@@ -6,7 +6,6 @@ import { CurlFeature } from '@getinsomnia/node-libcurl/dist/enum/CurlFeature';
 import { CurlHttpVersion } from '@getinsomnia/node-libcurl/dist/enum/CurlHttpVersion';
 import { CurlInfoDebug } from '@getinsomnia/node-libcurl/dist/enum/CurlInfoDebug';
 import { CurlNetrc } from '@getinsomnia/node-libcurl/dist/enum/CurlNetrc';
-import { CurlProtocol } from '@getinsomnia/node-libcurl/dist/enum/CurlProtocol';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 
@@ -57,8 +56,8 @@ class Curl extends EventEmitter {
     SSL_VERIFYPEER: 'SSL_VERIFYPEER',
     TIMEOUT_MS: 'TIMEOUT_MS',
     UNIX_SOCKET_PATH: 'UNIX_SOCKET_PATH',
-    PROTOCOLS: 'PROTOCOLS',
-    REDIR_PROTOCOLS: 'REDIR_PROTOCOLS',
+    PROTOCOLS_STR: 'PROTOCOLS_STR',
+    REDIR_PROTOCOLS_STR: 'REDIR_PROTOCOLS_STR',
     UPLOAD: 'UPLOAD',
     URL: 'URL',
     USERAGENT: 'USERAGENT',
@@ -74,6 +73,13 @@ class Curl extends EventEmitter {
 
   enable(name) {
     this._features[name] = true;
+  }
+
+  setLegacyTls(enabled) {
+    if (enabled) {
+      this._options.LEGACY_TLS = true;
+    }
+    return this;
   }
 
   setOpt(name, value) {
@@ -203,6 +209,4 @@ module.exports = {
   CurlFeature: getTsEnumOnlyWithNamedMembers(CurlFeature),
   CurlNetrc: getTsEnumOnlyWithNamedMembers(CurlNetrc),
   CurlHttpVersion: getTsEnumOnlyWithNamedMembers(CurlHttpVersion),
-  // Real values: requests OR these into a bitmask
-  CurlProtocol,
 };
