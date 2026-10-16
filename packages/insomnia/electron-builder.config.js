@@ -213,6 +213,9 @@ const config = {
   // Only used by `npm run package:snap`; see the note in linux.target.
   snap: {
     base: "core22",
+    // Secret Service / KWallet access for saved credentials. Not auto-connected:
+    // `sudo snap connect insomnium:password-manager-service` (the app says so).
+    plugs: ["default", "password-manager-service"],
   },
 };
 

@@ -10,6 +10,7 @@ import { GitRepository } from '../models/git-repository';
 import type { BaseModel } from '../models/index';
 import * as models from '../models/index';
 import type { Workspace } from '../models/workspace';
+import type { CredentialGuard, GuardState, KeyWrapper } from './credential-guard';
 import { generateId } from './misc';
 import type { SqliteStore, StoreQuery } from './sqlite-store';
 
@@ -59,6 +60,7 @@ export const database = {
       doc: await models.initModel(doc.type, doc),
       existed: !!(await database.get(doc.type, doc._id)),
     })));
+    await ensureCredentialKey(toUpsert.map(({ doc }) => doc));
 
     const emitted: ChangeBufferEvent[] = [];
     s.transaction(() => {
@@ -309,7 +311,9 @@ export const database = {
 
   init: async (
     types: string[],
-    config: { inMemoryOnly?: boolean } = {},
+    // credentialKeys: the OS keychain wrapper (main process); without it nothing is encrypted.
+    // onCredentialStorageChange: called when a save changes how credentials are stored
+    config: { inMemoryOnly?: boolean; credentialKeys?: KeyWrapper; onCredentialStorageChange?: () => void } = {},
     forceReset = false,
     consoleLog: typeof console.log = console.log,
   ) => {
@@ -318,6 +322,7 @@ export const database = {
       changeHooksRegistered = false;
       store?.close();
       store = null;
+      credentialGuard = null;
       initializedTypes.clear();
     }
 
@@ -345,6 +350,41 @@ export const database = {
       if (imported > 0) {
         consoleLog(`[db] Imported ${imported} docs from legacy NeDB files`);
       }
+    }
+
+    // Credentials at rest. Attached after the legacy import, which then gets
+    // encrypted with everything else saved before this version.
+    if (!config.inMemoryOnly && config.credentialKeys && !credentialGuard) {
+      const target = store;
+      const { CredentialGuard } = await import('./credential-guard');
+      const guard = new CredentialGuard({ get: key => target.getMeta(key), set: (key, value) => target.setMeta(key, value) }, config.credentialKeys);
+      await guard.load();
+      target.attachGuard(guard);
+      credentialGuard = guard;
+      credentialStorageChanged = config.onCredentialStorageChange || null;
+      let sealed = 0;
+      if (target.hasUnsealedCredentials()) {
+        await guard.ensureKey();
+        sealed = target.sealCredentials();
+        if (sealed > 0) {
+          consoleLog(`[db] Encrypted the credentials in ${sealed} docs`);
+        }
+      }
+      // Once, and whenever old ciphertext or plaintext was replaced: earlier versions
+      // left deleted and overwritten rows (credentials among them) in free pages.
+      // Retried at the next launch if it fails (it needs up to twice the file's size
+      // in free disk).
+      if (sealed > 0 || target.getMeta(COMPACTED_META) !== '1') {
+        try {
+          target.compact();
+          target.setMeta(COMPACTED_META, '1');
+        } catch (err) {
+          console.warn('[db] Could not compact the database', err);
+        }
+      }
+      // windows ask for the startup state themselves; later changes are announced
+      announcedState = guard.state;
+      consoleLog(`[db] Credential storage: ${guard.state}`);
     }
 
     // Repeat init() calls (forceReset, tests) must not stack a second handler.
@@ -435,6 +475,7 @@ export const database = {
       return _send<T>('insert', ...arguments);
     }
     const docWithDefaults = initializeModel ? await models.initModel<T>(doc.type, doc) : doc;
+    await ensureCredentialKey([docWithDefaults]);
     const stored = store.insert(docWithDefaults) as T;
     notifyOfChange('insert', stored, fromSync);
     return stored;
@@ -498,6 +539,7 @@ export const database = {
     }
 
     const docWithDefaults = await models.initModel<T>(doc.type, doc);
+    await ensureCredentialKey([docWithDefaults]);
     const stored = store.update(docWithDefaults) as T | null;
     if (!stored) {
       // Don't emit an update event for a doc that no longer exists.
@@ -517,6 +559,7 @@ export const database = {
     // _id both insert and the second throws a PK violation.
     const existed = !!(await database.get<T>(doc.type, doc._id));
     const docWithDefaults = await models.initModel<T>(doc.type, doc);
+    await ensureCredentialKey([docWithDefaults]);
     const stored = store.upsert(docWithDefaults) as T;
     notifyOfChange(existed ? 'update' : 'insert', stored, fromSync);
     return stored;
@@ -589,6 +632,31 @@ export const database = {
 
 // Null until init(); the renderer never initializes and proxies over IPC.
 let store: SqliteStore | null = null;
+// Not on `database`: db.fn calls any property of it on behalf of the renderer.
+let credentialGuard: CredentialGuard | null = null;
+let credentialStorageChanged: (() => void) | null = null;
+let announcedState: GuardState = 'none';
+const COMPACTED_META = 'credentials.compacted';
+
+// The keychain is touched lazily, when the first credential is saved.
+async function ensureCredentialKey(docs: BaseModel[]) {
+  const guard = credentialGuard;
+  if (guard && docs.some(doc => guard.needsKey(doc))) {
+    await guard.ensureKey();
+    // concurrent first saves share one attempt; announce its outcome once
+    if (guard.state !== announcedState) {
+      announcedState = guard.state;
+      credentialStorageChanged?.();
+    }
+  }
+}
+
+// Main process only. state: none | ready | weak | locked | unavailable (see
+// credential-guard.ts); unreadableKeys: saved keys this keychain can't open.
+export const credentialStorageStatus = (): { state: GuardState; unreadableKeys: string[] } => ({
+  state: credentialGuard?.state ?? 'none',
+  unreadableKeys: credentialGuard?.unreadableKeys ?? [],
+});
 const initializedTypes = new Set<string>();
 let ipcHandlerRegistered = false;
 let changeHooksRegistered = false;

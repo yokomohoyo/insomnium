@@ -6,7 +6,8 @@ export const ProtoTokens: FC = () => (
   <div>
     <p className="faint italic margin-bottom-sm">
       Used by the "Import from URL" button in the proto-files modal. Leave blank
-      for public-only sources. Tokens are stored in the local settings file.
+      for public-only sources. Tokens are saved encrypted when a system
+      keychain is available.
     </p>
 
     <MaskedSetting

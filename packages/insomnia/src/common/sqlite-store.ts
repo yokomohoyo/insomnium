@@ -3,6 +3,8 @@
 
 import fs from 'fs';
 
+import { CREDENTIAL_FIELDS, type CredentialGuard } from './credential-guard';
+
 // Type-only: node:sqlite is loaded lazily, in the main process only.
 type DatabaseSync = import('node:sqlite').DatabaseSync;
 
@@ -90,6 +92,8 @@ const HOISTED_SORT_COLUMNS = new Set(['_id', 'type', 'parentId', 'created', 'mod
 export class SqliteStore {
   private readonly db: DatabaseSync;
   private readonly statements = new Map<string, import('node:sqlite').StatementSync>();
+  // encrypts credential fields at rest; null for in-memory stores (tests, send-request)
+  private guard: CredentialGuard | null = null;
 
   constructor(filename: string) {
     // getBuiltinModule loads node:sqlite even under module systems that don't know it (e.g. jest).
@@ -98,6 +102,7 @@ export class SqliteStore {
     this.db = new Database(filename);
     this.db.exec('PRAGMA journal_mode = WAL;');
     this.db.exec('PRAGMA synchronous = NORMAL;'); // safe with WAL; fsync on checkpoint, not per-commit
+    this.db.exec('PRAGMA secure_delete = ON;'); // overwritten rows (e.g. old plaintext credentials) don't linger in free pages
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS docs (
         _id TEXT PRIMARY KEY,
@@ -110,7 +115,78 @@ export class SqliteStore {
       CREATE INDEX IF NOT EXISTS idx_docs_type_parent ON docs (type, parentId);
       CREATE INDEX IF NOT EXISTS idx_docs_type_modified ON docs (type, modified);
       CREATE INDEX IF NOT EXISTS idx_docs_parent ON docs (parentId);
+      CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
     `);
+  }
+
+  getMeta(key: string): string | null {
+    const row = this.prepare('SELECT value FROM meta WHERE key = ?').get(key) as { value: string } | undefined;
+    return row ? row.value : null;
+  }
+
+  setMeta(key: string, value: string): void {
+    this.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(key, value);
+  }
+
+  attachGuard(guard: CredentialGuard | null): void {
+    this.guard = guard;
+  }
+
+  private raw(id: string): StoreDoc | null {
+    const row = this.prepare('SELECT json FROM docs WHERE _id = ?').get(id) as { json: string } | undefined;
+    return row ? this.parseRows([row])[0] || null : null;
+  }
+
+  // What goes on disk: credential fields sealed by the guard.
+  private stored(doc: StoreDoc): StoreDoc {
+    return this.guard && CREDENTIAL_FIELDS[doc.type] ? this.guard.sealDoc(doc, this.raw(doc._id)) : doc;
+  }
+
+  // What callers see: credential fields opened by the guard.
+  private opened(docs: StoreDoc[]): StoreDoc[] {
+    const guard = this.guard;
+    return guard ? docs.map(doc => guard.openDoc(doc)) : docs;
+  }
+
+  hasUnsealedCredentials(): boolean {
+    const guard = this.guard;
+    return !!guard && this.credentialRows().some(doc => guard.needsSealing(doc));
+  }
+
+  // Encrypts credentials saved before this version, and moves ones under an older
+  // key to the current one; returns how many docs changed.
+  sealCredentials(): number {
+    const guard = this.guard;
+    if (!guard || (guard.state !== 'ready' && guard.state !== 'weak')) {
+      return 0;
+    }
+    let changed = 0;
+    this.transaction(() => {
+      for (const doc of this.credentialRows()) {
+        if (guard.needsSealing(doc)) {
+          // opened first, so fields already sealed under the current key are kept as they are
+          const json = JSON.stringify(guard.sealDoc(guard.openDoc(doc), doc));
+          // e.g. an envelope under an older key that no longer decrypts stays as it is
+          if (json !== JSON.stringify(doc)) {
+            this.prepare('UPDATE docs SET json = ? WHERE _id = ?').run(json, doc._id);
+            changed++;
+          }
+        }
+      }
+    });
+    return changed;
+  }
+
+  // Rewrites the file so replaced rows (old plaintext) are gone from it and the WAL.
+  compact(): void {
+    this.db.exec('VACUUM;');
+    this.db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
+  }
+
+  private credentialRows(): StoreDoc[] {
+    const types = Object.keys(CREDENTIAL_FIELDS);
+    const rows = this.prepare(`SELECT json FROM docs WHERE type IN (${types.map(() => '?').join(', ')})`).all(...types) as { json: string }[];
+    return this.parseRows(rows);
   }
 
   // Re-preparing on every call costs more than the hot queries themselves.
@@ -213,7 +289,8 @@ export class SqliteStore {
     if (!sqlLimit && typeof limit === 'number' && limit >= 0) {
       docs = docs.slice(0, limit);
     }
-    return docs;
+    // after filtering: no query matches on a credential field, and discarded rows needn't be decrypted
+    return this.opened(docs);
   }
 
   count(type: string, query: StoreQuery = {}): number {
@@ -261,32 +338,32 @@ export class SqliteStore {
     // typeFilter arity varies with types.length; cache only the fixed no-types SQL.
     const statement = types.length > 0 ? this.db.prepare(sql) : this.prepare(sql);
     const rows = statement.all(rootId, rootType, stopType, rootId, ...types) as { json: string }[];
-    return this.parseRows(rows);
+    return this.opened(this.parseRows(rows));
   }
 
-  // Writes return a detached copy (as NeDB did): callers may mutate the
-  // result without aliasing the store.
+  // Writes return a detached plaintext copy (as NeDB did): callers may mutate
+  // the result without aliasing the store, and change events never carry ciphertext.
   insert(doc: StoreDoc): StoreDoc {
-    const json = JSON.stringify(doc);
+    const plain = JSON.stringify(doc);
     this.prepare('INSERT INTO docs (_id, type, parentId, created, modified, json) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, json);
-    return JSON.parse(json);
+      .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(this.stored(doc)));
+    return JSON.parse(plain);
   }
 
   // Returns null when the row doesn't exist (e.g. deleted concurrently).
   update(doc: StoreDoc): StoreDoc | null {
-    const json = JSON.stringify(doc);
+    const plain = JSON.stringify(doc);
     const { changes } = this.prepare('UPDATE docs SET type = ?, parentId = ?, created = ?, modified = ?, json = ? WHERE _id = ?')
-      .run(doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, json, doc._id);
-    return Number(changes) === 0 ? null : JSON.parse(json);
+      .run(doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(this.stored(doc)), doc._id);
+    return Number(changes) === 0 ? null : JSON.parse(plain);
   }
 
   // Atomic insert-or-replace; returns a detached copy like insert/update.
   upsert(doc: StoreDoc): StoreDoc {
-    const json = JSON.stringify(doc);
+    const plain = JSON.stringify(doc);
     this.prepare('INSERT OR REPLACE INTO docs (_id, type, parentId, created, modified, json) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, json);
-    return JSON.parse(json);
+      .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(this.stored(doc)));
+    return JSON.parse(plain);
   }
 
   removeByIds(ids: string[]): void {

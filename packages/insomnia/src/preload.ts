@@ -46,6 +46,7 @@ const main: Window['main'] = {
   halfSecondAfterAppStart: () => ipcRenderer.send('halfSecondAfterAppStart'),
   getMcpStatus: () => ipcRenderer.invoke('getMcpStatus'),
   checkForNewRelease: () => ipcRenderer.invoke('checkForNewRelease'),
+  credentialStorageNotices: () => ipcRenderer.invoke('credentialStorageNotices'),
   authorizeUserInWindow: options => ipcRenderer.invoke('authorizeUserInWindow', options),
   spectralRun: options => ipcRenderer.invoke('spectralRun', options),
   setMenuBarVisibility: options => ipcRenderer.send('setMenuBarVisibility', options),

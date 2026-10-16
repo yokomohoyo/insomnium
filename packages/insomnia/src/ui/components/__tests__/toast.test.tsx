@@ -14,12 +14,50 @@ const notice: ToastNotification = {
 
 describe('<Toast />', () => {
   const checkForNewRelease = jest.fn<() => Promise<ToastNotification | null>>();
+  const credentialStorageNotices = jest.fn<() => Promise<ToastNotification[]>>();
 
   beforeEach(() => {
     window.localStorage.clear();
     checkForNewRelease.mockReset();
     checkForNewRelease.mockResolvedValue(notice);
-    window.main = { checkForNewRelease, on: jest.fn(() => () => {}), openInBrowser: jest.fn() } as unknown as Window['main'];
+    credentialStorageNotices.mockReset();
+    credentialStorageNotices.mockResolvedValue([]);
+    window.main = { checkForNewRelease, credentialStorageNotices, on: jest.fn(() => () => {}), openInBrowser: jest.fn() } as unknown as Window['main'];
+  });
+
+  const credentialNotice: ToastNotification = { key: 'credentials-unreadable-a1', url: 'https://example.com', cta: 'Learn more', message: 'Some saved credentials read as empty' };
+  const weakNotice: ToastNotification = { key: 'credentials-weak', url: 'https://example.com', cta: 'Learn more', message: 'No system keyring was found' };
+
+  it('shows a credential storage notice even when release checks are off', async () => {
+    credentialStorageNotices.mockResolvedValue([credentialNotice]);
+    const { findByText } = render(<Toast checkForNewReleases={false} />);
+    await findByText(credentialNotice.message);
+    expect(checkForNewRelease).not.toHaveBeenCalled();
+  });
+
+  it('shows the first credential notice not yet dismissed', async () => {
+    credentialStorageNotices.mockResolvedValue([credentialNotice, weakNotice]);
+    window.localStorage.setItem(SEEN, JSON.stringify({ [credentialNotice.key]: true }));
+    const { findByText } = render(<Toast checkForNewReleases />);
+    await findByText(weakNotice.message);
+  });
+
+  it('shows a release once the credential notices were dismissed', async () => {
+    credentialStorageNotices.mockResolvedValue([credentialNotice]);
+    window.localStorage.setItem(SEEN, JSON.stringify({ [credentialNotice.key]: true }));
+    const { findByText } = render(<Toast checkForNewReleases />);
+    await findByText(notice.message);
+  });
+
+  it('shows what was waiting behind a notice right after it is dismissed', async () => {
+    credentialStorageNotices.mockResolvedValue([credentialNotice]);
+    const { findByText } = render(<Toast checkForNewReleases />);
+    await findByText(credentialNotice.message);
+    expect(checkForNewRelease).not.toHaveBeenCalled();
+    fireEvent.click(await findByText('Dismiss'));
+    await findByText(notice.message, {}, { timeout: 3000 });
+    // and nothing re-shows the dismissed one
+    expect(credentialStorageNotices).toHaveBeenCalledTimes(2);
   });
 
   it('does not ask main unless the user opted in', async () => {

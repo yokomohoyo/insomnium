@@ -56,6 +56,7 @@ const readSeen = (): SeenNotifications => {
 export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewReleases }) => {
   const [notification, setNotification] = useState<ToastNotification | null>(null);
   const [visible, setVisible] = useState(false);
+  const [checks, setChecks] = useState(0);
   const handleNotification = (notification: ToastNotification | null | undefined) => {
     if (!notification) {
       return;
@@ -74,11 +75,17 @@ export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewRelease
   };
   const checkForNotifications = async () => {
     // If there is a notification open, skip check
-    if (notification || !checkForNewReleases) {
+    if (notification) {
       return;
     }
-    // null unless a newer release exists; main asks GitHub at most once a day
-    handleNotification(await window.main.checkForNewRelease().catch(() => null));
+    const unseen = (candidate: ToastNotification | null) => candidate && !readSeen()[candidate.key] ? candidate : null;
+    // a problem storing credentials first; then, if opted in, a newer release
+    // (main asks GitHub at most once a day)
+    const credentials = await window.main.credentialStorageNotices().catch((): ToastNotification[] => []);
+    handleNotification(
+      credentials.map(unseen).find(Boolean)
+      || (checkForNewReleases ? unseen(await window.main.checkForNewRelease().catch(() => null)) : null),
+    );
   };
   // Seen once the user acts on it, not when it arrives, so a notice in a window
   // nobody looked at comes back
@@ -89,8 +96,12 @@ export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewRelease
     window.localStorage.setItem(INSOMNIA_NOTIFICATIONS_SEEN, JSON.stringify({ ...readSeen(), [notification.key]: true }, null, 2));
     // Hide the currently showing notification
     setVisible(false);
-    // Give time for toast to fade out, then remove it
-    setTimeout(() => setNotification(null), 1000);
+    // Give time for toast to fade out, then remove it and show whatever was
+    // waiting behind it (a release behind a credential notice)
+    setTimeout(() => {
+      setNotification(null);
+      setChecks(count => count + 1);
+    }, 1000);
   };
 
   useEffect(() => {
@@ -110,11 +121,12 @@ export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewRelease
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  // right away when turned on (and at startup), then hourly to catch a release while open
+  // right away when turned on (and at startup) or after a dismissal, then hourly
+  // to catch a release while open
   useEffect(() => {
     checkForNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkForNewReleases]);
+  }, [checkForNewReleases, checks]);
   useInterval(checkForNotifications, 60 * 60 * 1000);
 
   const productName = getProductName();
