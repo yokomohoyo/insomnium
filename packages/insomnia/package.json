@@ -26,6 +26,7 @@
     "build:sr": "esr esbuild.sr.ts && tsc --build tsconfig.build.sr.json",
     "lint": "eslint . --ext .js,.ts,.tsx --cache",
     "package": "npm run build:app && cross-env USE_HARD_LINKS=false electron-builder build --config electron-builder.config.js --publish never",
+    "package:snap": "electron-builder build --linux snap --config electron-builder.config.js --publish never --prepackaged dist/linux-unpacked",
     "start": "concurrently -n dev,app --kill-others \"npm run start:dev-server\" \"npm run start:electron\"",
     "start:dev-server": "vite dev",
     "start:electron": "npm run build:main.min.js && electron .",

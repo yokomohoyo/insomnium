@@ -147,9 +147,14 @@ const config = {
       {
         target: "rpm",
       },
-      {
-        target: "snap",
-      },
+      // No snap here: `npm run package:snap` builds it afterwards from the
+      // finished dist/linux-unpacked. The snap target (core22 template build,
+      // app-builder-lib targets/snap/coreLegacy.js, unchanged in 26.17.0)
+      // deletes chrome-sandbox from that shared dir while the targets above
+      // are still packing it in parallel. Building them together is why the
+      // deb and rpm shipped without it (so no SUID sandbox fallback on hosts
+      // without unprivileged user namespaces) and why the AppImage build
+      // sometimes failed with "copyfile .../chrome-sandbox ENOENT".
     ],
   },
   deb: {
@@ -205,6 +210,7 @@ const config = {
       "libgbm.so.1()(64bit)",
     ],
   },
+  // Only used by `npm run package:snap`; see the note in linux.target.
   snap: {
     base: "core22",
   },
