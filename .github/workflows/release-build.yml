@@ -79,6 +79,13 @@ jobs:
         env:
           NODE_OPTIONS: "--max_old_space_size=6144"
 
+      # A separate pass, after the other Linux targets: the snap target deletes
+      # chrome-sandbox from linux-unpacked (see electron-builder.config.js).
+      - name: Package snap (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: npm run package:snap --workspace=packages/insomnia
+
       #  For electron builder codesigning for macOS, CSC_LINK env variable advised to typically point to Developer ID Application.
       #  If distributing .pkg, would use Developer ID Installer certificate instead.
       #  Next step should be uncommenting the chunk below as we __may__ have the secrets now.

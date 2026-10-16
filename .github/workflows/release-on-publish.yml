@@ -110,6 +110,13 @@ jobs:
         env:
           NODE_OPTIONS: "--max_old_space_size=6144"
 
+      # A separate pass, after the other Linux targets: the snap target deletes
+      # chrome-sandbox from linux-unpacked (see electron-builder.config.js).
+      - name: Package snap (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: npm run package:snap --workspace=packages/insomnia
+
       - name: List built artifacts
         shell: bash
         run: ls -lh packages/insomnia/dist/ || true
