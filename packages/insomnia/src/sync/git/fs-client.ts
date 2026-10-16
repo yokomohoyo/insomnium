@@ -20,6 +20,10 @@ export const fsClient = (basePath: string) => {
 
   const wrap = (fn: FSWraps) => async (filePath: string, ...args: any[]) => {
     const modifiedPath = path.join(basePath, path.normalize(filePath));
+    const relative = path.relative(basePath, modifiedPath);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error(`Refusing ${filePath}: outside ${basePath}`);
+    }
     // @ts-expect-error -- TSCONVERSION
     return fn(modifiedPath, ...args);
   };

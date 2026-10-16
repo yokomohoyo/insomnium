@@ -215,6 +215,24 @@ describe('NeDBClient', () => {
       upsertSpy.mockRestore();
     });
 
+    describe('shared _id keyspace', () => {
+      const write = (doc: { _id: string; type: string; parentId: string | null; name?: string }) =>
+        new NeDBClient('wrk_1', DEFAULT_PROJECT_ID).writeFile(path.join(GIT_INSOMNIA_DIR, doc.type, `${doc._id}.yml`), YAML.stringify(doc));
+
+      it('ignores a synced doc whose _id is another type\'s, which would replace that row', async () => {
+        const settings = await models.settings.getOrCreate();
+        await write({ _id: settings._id, type: models.request.type, parentId: 'wrk_1' });
+        expect(await db.get(models.settings.type, settings._id)).toEqual(expect.objectContaining({ type: models.settings.type }));
+      });
+
+      it('still writes docs with their own prefix, or a legacy unprefixed _id', async () => {
+        await write({ _id: 'req_1', type: models.request.type, parentId: 'wrk_1', name: 'updated' });
+        await write({ _id: 'custom-1', type: models.request.type, parentId: 'wrk_1' });
+        expect((await models.request.getById('req_1'))?.name).toBe('updated');
+        expect(await models.request.getById('custom-1')).toBeTruthy();
+      });
+    });
+
     it('should throw error if type does not match', async () => {
       // Arrange
       const workspaceId = 'wrk_1';
@@ -294,11 +312,37 @@ describe('NeDBClient', () => {
       expect(await models.request.getById('req_9')).toBeFalsy();
     });
 
+    it('skips docs that are already in the app or whose parents lead outside the repository', async () => {
+      const fsClient = await cloned([
+        workspaceFile,
+        requestFile,
+        [models.request.type, 'req_1.yml', { _id: 'req_1', type: models.request.type, parentId: 'wrk_9', name: 'replaced' }],
+        [models.request.type, 'req_7.yml', { _id: 'req_7', type: models.request.type, parentId: 'fld_elsewhere' }],
+        [models.request.type, 'set_7.yml', { _id: 'set_7', type: models.request.type, parentId: 'wrk_9' }],
+      ]);
+      expect(await importClonedDocs(fsClient, DEFAULT_PROJECT_ID)).toHaveProperty('workspace');
+      expect(await models.request.getById('req_9')).toBeTruthy();
+      expect(await models.request.getById('req_1')).toEqual(expect.objectContaining({ parentId: 'wrk_1' }));
+      expect(await models.request.getById('req_7')).toBeFalsy();
+      expect(await db.get(models.request.type, 'set_7')).toBeFalsy();
+    });
+
     it('leaves a workspace that is already in the app alone', async () => {
       const fsClient = await cloned([[models.workspace.type, 'wrk_1.yml', { _id: 'wrk_1', type: models.workspace.type, name: 'replaced' }], requestFile]);
       expect(await importClonedDocs(fsClient, DEFAULT_PROJECT_ID)).toEqual({ existingWorkspace: expect.objectContaining({ _id: 'wrk_1' }) });
       expect((await models.workspace.getById('wrk_1'))?.name).not.toBe('replaced');
       expect(await models.request.getById('req_9')).toBeFalsy();
+    });
+  });
+
+  describe('unlink()', () => {
+    it('removes synced docs but never anything else', async () => {
+      const neDbClient = new NeDBClient('wrk_1', DEFAULT_PROJECT_ID);
+      const settings = await models.settings.getOrCreate();
+      await neDbClient.unlink(path.join(GIT_INSOMNIA_DIR, models.settings.type, `${settings._id}.yml`));
+      await neDbClient.unlink(path.join(GIT_INSOMNIA_DIR, models.request.type, 'req_1.yml'));
+      expect(await db.get(models.settings.type, settings._id)).toBeTruthy();
+      expect(await models.request.getById('req_1')).toBeFalsy();
     });
   });
 

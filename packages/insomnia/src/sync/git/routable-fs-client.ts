@@ -14,26 +14,32 @@ export function routableFSClient(
   defaultFS: git.PromiseFsClient,
   otherFS: Record<string, git.PromiseFsClient>,
 ) {
-  const execMethod = async (method: Methods, filePath: string, ...args: any[]) => {
+  const route = (filePath: string): [git.PromiseFsClient, string] => {
+    // isomorphic-git never builds a '..' segment itself, but accepts one from a
+    // tree entry or a server's ref name. Checked before normalizing, which would
+    // turn git/refs/../../config into git/config
+    if (filePath.split(/[\\/]/).includes('..')) {
+      throw new Error(`Refusing ${filePath}: it goes through '..'`);
+    }
     filePath = path.normalize(filePath);
-
     for (const prefix of Object.keys(otherFS)) {
-      if (filePath.indexOf(path.normalize(prefix)) === 0) {
-        // TODO: remove non-null assertion
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return otherFS[prefix].promises[method]!(filePath, ...args);
+      // whole path segments only: '.insomnium-x' or 'gitfoo' are not under '.insomnium' or 'git'
+      const dir = path.normalize(prefix);
+      if (filePath === dir || filePath.startsWith(dir + path.sep)) {
+        return [otherFS[prefix], filePath];
       }
     }
-
-    // Uncomment this to debug operations
-    // console.log('[routablefs] Executing', method, filePath, { args });
     // Fallback to default if no prefix matched
+    return [defaultFS, filePath];
+  };
+
+  const execMethod = async (method: Methods, filePath: string, ...args: any[]) => {
+    const [client, routedPath] = route(filePath);
+    // Uncomment this to debug operations
+    // console.log('[routablefs] Executing', method, routedPath, { args });
     // TODO: remove non-null assertion
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const result = await defaultFS.promises[method]!(filePath, ...args);
-    // Uncomment this to debug operations
-    // console.log('[routablefs] Executing', method, filePath, { args }, { result });
-    return result;
+    return client.promises[method]!(routedPath, ...args);
   };
 
   // @ts-expect-error -- TSCONVERSION declare and initialize together to avoid an error
@@ -46,8 +52,10 @@ export function routableFSClient(
   methods.rmdir = execMethod.bind(methods, 'rmdir');
   methods.stat = execMethod.bind(methods, 'stat');
   methods.lstat = execMethod.bind(methods, 'lstat');
-  methods.readlink = execMethod.bind(methods, 'readlink');
-  methods.symlink = execMethod.bind(methods, 'symlink');
+  // A symlink is stored as a plain file holding its target, since a real link
+  // could point anywhere on disk (isomorphic-git then indexes it as 100644)
+  methods.symlink = (target: string, linkPath: string) => execMethod('writeFile', linkPath, target);
+  methods.readlink = (linkPath: string) => execMethod('readFile', linkPath);
   return {
     promises: methods,
   };

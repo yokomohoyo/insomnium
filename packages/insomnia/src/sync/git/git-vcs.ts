@@ -3,6 +3,7 @@ import path from 'path';
 
 import { httpClient } from './http-client';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
+import { sanitizeGitConfig } from './sanitize-git-config';
 import { gitCallbacks } from './utils';
 
 export interface GitAuthor {
@@ -86,9 +87,11 @@ interface InitFromCloneOptions {
  * We should set this explicitly (even if set to an empty string), because we have other code (such as fs clients and unit tests) that depend on the clone directory.
  */
 export const GIT_CLONE_DIR = '.';
-const gitInternalDirName = 'git';
 export const GIT_INSOMNIA_DIR_NAME = '.insomnium';
-export const GIT_INTERNAL_DIR = path.join(GIT_CLONE_DIR, gitInternalDirName);
+// Absolute, so no work-tree path (always relative to GIT_CLONE_DIR) can name
+// it: a repository file at git/config must not land in the real git config.
+// fsClient joins it under the repo folder, the same place on disk as before.
+export const GIT_INTERNAL_DIR = '/git';
 export const GIT_INSOMNIA_DIR = path.join(GIT_CLONE_DIR, GIT_INSOMNIA_DIR_NAME);
 
 interface BaseOpts {
@@ -124,6 +127,15 @@ export class GitVCS {
 
     if (await this.repoExists()) {
       console.log(`[git] Opened repo for ${gitDirectory}`);
+      // keep only the config Insomnium writes (see sanitize-git-config.ts)
+      const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+      const configPath = `${gitDirectory}/config`;
+      const config = (await fs.readFile(configPath, 'utf8').catch(() => '')).toString();
+      const sanitized = sanitizeGitConfig(config);
+      if (config && sanitized !== config) {
+        console.warn('[git] Removing settings Insomnium does not write from the repository config');
+        await fs.writeFile(configPath, sanitized);
+      }
     } else {
       console.log(`[git] Initialized repo in ${gitDirectory}`);
       let defaultBranch = 'main';

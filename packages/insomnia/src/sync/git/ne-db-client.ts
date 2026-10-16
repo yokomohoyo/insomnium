@@ -16,8 +16,15 @@ import { SystemError } from './system-error';
 // whatever else it contains.
 export const isGitSyncedType = (type: string | null) => !!type && models.getModel(type)?.canSync === true;
 
+// Every type shares one _id keyspace (rows are replaced by _id), so a synced doc
+// whose _id carries another model's prefix could replace, say, a Settings row.
+// Unprefixed legacy ids are fine.
+const carriesOtherPrefix = (doc: BaseModel) =>
+  typeof doc._id !== 'string' || models.all().some(model => model.type !== doc.type && doc._id.startsWith(`${model.prefix}_`));
+
 // The documents a cloned repository may add, held to the same rules as
-// NeDBClient.writeFile: a synced type, in its type's folder, named by its _id.
+// NeDBClient.writeFile: a synced type, in its type's folder, named by its _id,
+// which does not carry another type's prefix.
 export async function readClonedDocs(fsClient: PromiseFsClient) {
   const docs: BaseModel[] = [];
   for (const type of await fsClient.promises.readdir(GIT_INSOMNIA_DIR)) {
@@ -28,7 +35,7 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
     const typeDir = path.join(GIT_INSOMNIA_DIR, type);
     for (const fileName of await fsClient.promises.readdir(typeDir)) {
       const doc: BaseModel | null = YAML.parse((await fsClient.promises.readFile(path.join(typeDir, fileName))).toString());
-      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName) {
+      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName || carriesOtherPrefix(doc)) {
         console.log(`[git] Ignoring ${type}/${fileName} in the cloned repository`);
         continue;
       }
@@ -40,7 +47,10 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
 
 // Writes a cloned repository into the project: its one Workspace and the other
 // synced documents. Nothing is written if that workspace is missing, ambiguous
-// or already in the app.
+// or already in the app. The workspace is new, so a doc whose _id is already
+// in the app, or whose parents lead outside the repository, is someone else's.
+// (The full clone when the workspace is first opened writes through
+// NeDBClient.writeFile, which does not check ownership yet.)
 export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string): Promise<
   { error: string } | { existingWorkspace: Workspace } | { workspace: Workspace }
 > {
@@ -54,9 +64,27 @@ export async function importClonedDocs(fsClient: PromiseFsClient, projectId: str
   if (existingWorkspace) {
     return { existingWorkspace };
   }
+  const byId = new Map(docs.map(doc => [doc._id, doc]));
+  const inRepository = (doc: BaseModel) => {
+    const seen = new Set<string>();
+    for (let current: BaseModel | undefined = doc; current; current = byId.get(current.parentId)) {
+      if (current._id === workspace._id) {
+        return true;
+      }
+      if (seen.has(current._id)) {
+        return false;
+      }
+      seen.add(current._id);
+    }
+    return false;
+  };
   workspace.parentId = projectId;
   workspace.scope = workspace.scope === WorkspaceScopeKeys.collection ? WorkspaceScopeKeys.collection : WorkspaceScopeKeys.design;
   for (const doc of docs) {
+    if (!inRepository(doc) || await db.get(doc.type, doc._id)) {
+      console.log(`[git] Ignoring ${doc.type} ${doc._id} in the cloned repository: it belongs elsewhere`);
+      continue;
+    }
     await db.upsert(doc);
   }
   return { workspace };
@@ -152,6 +180,11 @@ export class NeDBClient {
       throw new Error(`Doc type does not match file path [${doc.type} != ${type || 'null'}]`);
     }
 
+    if (carriesOtherPrefix(doc)) {
+      console.log(`[git] Ignoring ${filePath}: its _id belongs to another type`);
+      return;
+    }
+
     if (isWorkspace(doc)) {
       console.log('[git] setting workspace parent to be that of the active project', { original: doc.parentId, new: this._projectId });
       // Whenever we write a workspace into nedb we should set the parentId to be that of the current project
@@ -169,6 +202,12 @@ export class NeDBClient {
 
     if (!id || !type) {
       throw new Error(`Cannot unlink file ${filePath}`);
+    }
+
+    // Git Sync never wrote anything else, so it never deletes anything else
+    if (!isGitSyncedType(type)) {
+      console.log(`[git] Ignoring removal of ${filePath}: not a synced type`);
+      return;
     }
 
     const doc = await db.get(type, id);
