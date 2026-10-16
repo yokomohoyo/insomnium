@@ -60,9 +60,7 @@ describe('<Toast />', () => {
     const { findByText, queryByText } = render(<Toast checkForNewReleases />);
     await findByText(notice.message);
     window.localStorage.setItem(SEEN, JSON.stringify({ [notice.key]: true }));
-    act(() => {
-      window.dispatchEvent(new StorageEvent('storage', { key: SEEN }));
-    });
+    fireEvent(window, Object.assign(new Event('storage'), { key: SEEN }));
     expect(queryByText(notice.message)).toBeNull();
   });
 });
