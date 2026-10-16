@@ -5,12 +5,62 @@ import YAML from 'yaml';
 import { database as db } from '../../common/database';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
-import { isWorkspace } from '../../models/workspace';
+import { isWorkspace, Workspace, WorkspaceScopeKeys } from '../../models/workspace';
 import { resetKeys } from '../ignore-keys';
-import { GIT_INSOMNIA_DIR_NAME } from './git-vcs';
+import { GIT_INSOMNIA_DIR, GIT_INSOMNIA_DIR_NAME } from './git-vcs';
 import parseGitPath from './parse-git-path';
 import Stat from './stat';
 import { SystemError } from './system-error';
+
+// A repository only ever gets to write the types Git Sync writes out (canSync),
+// whatever else it contains.
+export const isGitSyncedType = (type: string | null) => !!type && models.getModel(type)?.canSync === true;
+
+// The documents a cloned repository may add, held to the same rules as
+// NeDBClient.writeFile: a synced type, in its type's folder, named by its _id.
+export async function readClonedDocs(fsClient: PromiseFsClient) {
+  const docs: BaseModel[] = [];
+  for (const type of await fsClient.promises.readdir(GIT_INSOMNIA_DIR)) {
+    if (!isGitSyncedType(type)) {
+      console.log(`[git] Ignoring ${type} in the cloned repository`);
+      continue;
+    }
+    const typeDir = path.join(GIT_INSOMNIA_DIR, type);
+    for (const fileName of await fsClient.promises.readdir(typeDir)) {
+      const doc: BaseModel | null = YAML.parse((await fsClient.promises.readFile(path.join(typeDir, fileName))).toString());
+      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName) {
+        console.log(`[git] Ignoring ${type}/${fileName} in the cloned repository`);
+        continue;
+      }
+      docs.push(doc);
+    }
+  }
+  return docs;
+}
+
+// Writes a cloned repository into the project: its one Workspace and the other
+// synced documents. Nothing is written if that workspace is missing, ambiguous
+// or already in the app.
+export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string): Promise<
+  { error: string } | { existingWorkspace: Workspace } | { workspace: Workspace }
+> {
+  const docs = await readClonedDocs(fsClient);
+  const workspaces = docs.filter(isWorkspace);
+  if (workspaces.length !== 1) {
+    return { error: workspaces.length ? 'Multiple workspaces found in repository. Expected one.' : 'No workspaces found in repository' };
+  }
+  const [workspace] = workspaces;
+  const existingWorkspace = await models.workspace.getById(workspace._id);
+  if (existingWorkspace) {
+    return { existingWorkspace };
+  }
+  workspace.parentId = projectId;
+  workspace.scope = workspace.scope === WorkspaceScopeKeys.collection ? WorkspaceScopeKeys.collection : WorkspaceScopeKeys.design;
+  for (const doc of docs) {
+    await db.upsert(doc);
+  }
+  return { workspace };
+}
 
 export class NeDBClient {
   _workspaceId: string;
@@ -84,6 +134,11 @@ export class NeDBClient {
 
     if (root !== GIT_INSOMNIA_DIR_NAME) {
       console.log(`[git] Ignoring external file ${filePath}`);
+      return;
+    }
+
+    if (!isGitSyncedType(type)) {
+      console.log(`[git] Ignoring ${filePath}: not a synced type`);
       return;
     }
 

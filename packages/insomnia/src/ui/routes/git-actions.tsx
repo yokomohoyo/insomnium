@@ -13,7 +13,6 @@ import { createGitRepository } from '../../models/helpers/git-repository-operati
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
 import {
-  isWorkspace,
   Workspace,
   WorkspaceScopeKeys,
 } from '../../models/workspace';
@@ -27,7 +26,7 @@ import GitVCS, {
   GitLogEntry,
 } from '../../sync/git/git-vcs';
 import { MemClient } from '../../sync/git/mem-client';
-import { NeDBClient } from '../../sync/git/ne-db-client';
+import { importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
 import parseGitPath from '../../sync/git/parse-git-path';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
 import { shallowClone } from '../../sync/git/shallow-clone';
@@ -469,57 +468,21 @@ export const cloneGitRepoAction: ActionFunction = async ({
     await createGitRepository(workspace._id, repoSettingsPatch);
   } else {
     // Clone all entities from the repository
-    const workspaceBase = path.join(GIT_INSOMNIA_DIR, models.workspace.type);
-    const workspaces = await fsClient.promises.readdir(workspaceBase);
-
-    if (workspaces.length === 0) {
-
+    const imported = await importClonedDocs(fsClient, project._id);
+    if ('error' in imported) {
       return {
-        errors: ['No workspaces found in repository'],
+        errors: [imported.error],
       };
     }
-
-    if (workspaces.length > 1) {
-
-      return {
-        errors: ['Multiple workspaces found in repository. Expected one.'],
-      };
-    }
-
-    // Only one workspace
-    const workspacePath = path.join(workspaceBase, workspaces[0]);
-    const workspaceJson = await fsClient.promises.readFile(workspacePath);
-    const workspace = YAML.parse(workspaceJson.toString());
-    scope = (workspace.scope === WorkspaceScopeKeys.collection) ? WorkspaceScopeKeys.collection : WorkspaceScopeKeys.design;
-    // Check if the workspace already exists
-    const existingWorkspace = await models.workspace.getById(workspace._id);
-
-    if (existingWorkspace) {
+    if ('existingWorkspace' in imported) {
+      const { existingWorkspace } = imported;
       return redirect(`/organization/${existingWorkspace.parentId || DEFAULT_ORGANIZATION_ID}/project/${existingWorkspace.parentId || DEFAULT_PROJECT_ID}/workspace/${existingWorkspace._id}/debug`);
     }
-
-    // Loop over all model folders in root
-    for (const modelType of await fsClient.promises.readdir(GIT_INSOMNIA_DIR)) {
-      const modelDir = path.join(GIT_INSOMNIA_DIR, modelType);
-
-      // Loop over all documents in model folder and save them
-      for (const docFileName of await fsClient.promises.readdir(modelDir)) {
-        const docPath = path.join(modelDir, docFileName);
-        const docYaml = await fsClient.promises.readFile(docPath);
-        const doc: models.BaseModel = YAML.parse(docYaml.toString());
-        if (isWorkspace(doc)) {
-          doc.parentId = project._id;
-          doc.scope = scope;
-          const workspace = await database.upsert(doc);
-          workspaceId = workspace._id;
-        } else {
-          await database.upsert(doc);
-        }
-      }
-    }
+    workspaceId = imported.workspace._id;
+    scope = imported.workspace.scope;
 
     // Store GitRepository settings and set it as active
-    await createGitRepository(workspace._id, repoSettingsPatch);
+    await createGitRepository(workspaceId, repoSettingsPatch);
   }
 
   // Flush DB changes
