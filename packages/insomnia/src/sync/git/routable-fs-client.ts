@@ -15,12 +15,13 @@ export function routableFSClient(
   otherFS: Record<string, git.PromiseFsClient>,
 ) {
   const route = (filePath: string): [git.PromiseFsClient, string] => {
-    filePath = path.normalize(filePath);
-    // isomorphic-git accepts a tree entry named '..', which would put a file
-    // outside the repository
-    if (filePath === '..' || filePath.startsWith(`..${path.sep}`)) {
-      throw new Error(`Refusing ${filePath}: outside the repository`);
+    // isomorphic-git never builds a '..' segment itself, but accepts one from a
+    // tree entry or a server's ref name. Checked before normalizing, which would
+    // turn git/refs/../../config into git/config
+    if (filePath.split(/[\\/]/).includes('..')) {
+      throw new Error(`Refusing ${filePath}: it goes through '..'`);
     }
+    filePath = path.normalize(filePath);
     for (const prefix of Object.keys(otherFS)) {
       // whole path segments only: '.insomnium-x' or 'gitfoo' are not under '.insomnium' or 'git'
       const dir = path.normalize(prefix);
@@ -51,8 +52,8 @@ export function routableFSClient(
   methods.rmdir = execMethod.bind(methods, 'rmdir');
   methods.stat = execMethod.bind(methods, 'stat');
   methods.lstat = execMethod.bind(methods, 'lstat');
-  // A symlink is stored as a file holding its target, as git does with
-  // core.symlinks=false: a real link could point anywhere on disk
+  // A symlink is stored as a plain file holding its target, since a real link
+  // could point anywhere on disk (isomorphic-git then indexes it as 100644)
   methods.symlink = (target: string, linkPath: string) => execMethod('writeFile', linkPath, target);
   methods.readlink = (linkPath: string) => execMethod('readFile', linkPath);
   return {

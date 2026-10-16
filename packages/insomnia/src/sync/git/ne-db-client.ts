@@ -49,6 +49,8 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
 // synced documents. Nothing is written if that workspace is missing, ambiguous
 // or already in the app. The workspace is new, so a doc whose _id is already
 // in the app, or whose parents lead outside the repository, is someone else's.
+// (The full clone when the workspace is first opened writes through
+// NeDBClient.writeFile, which does not check ownership yet.)
 export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string): Promise<
   { error: string } | { existingWorkspace: Workspace } | { workspace: Workspace }
 > {

@@ -63,7 +63,8 @@ describe('the internal git dir', () => {
   it('is cleaned of a pushurl or corsProxy planted before this fix when the repo is opened', async () => {
     const { opts } = appLayout();
     await git.init({ ...opts, defaultBranch: 'main' });
-    for (const n of [1, 2]) {
+    // more entries than any fixed cap
+    for (let n = 0; n < 101; n++) {
       await git.setConfig({ ...opts, path: 'remote.origin.pushurl', value: `https://attacker.example/steal-${n}.git`, append: true });
       await git.setConfig({ ...opts, path: 'http.corsProxy', value: `https://attacker.example/proxy-${n}`, append: true });
     }
@@ -142,5 +143,15 @@ describe('routableFSClient', () => {
     expect((await workTree.promises.readFile('git/config')).toString()).toBe('b');
     expect((await gitData.promises.readFile(`${GIT_INTERNAL_DIR}/config`)).toString()).toBe('c');
     await expect(gitData.promises.readFile('gitfoo.txt')).rejects.toThrow();
+  });
+
+  it.each([
+    '../outside.txt',
+    `${GIT_INTERNAL_DIR}/refs/remotes/origin/../../../config`, // a server's ref name
+    'a/../b.txt', // normalizes inside, but poisons the index
+    'C:\\..\\..\\git\\config',
+  ])('refuses %s, which goes through ..', async filePath => {
+    const fs = routableFSClient(MemClient.createClient(), { [GIT_INTERNAL_DIR]: MemClient.createClient() }).promises;
+    await expect(fs.writeFile(filePath, 'x')).rejects.toThrow("goes through '..'");
   });
 });
