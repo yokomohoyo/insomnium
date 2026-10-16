@@ -7,8 +7,10 @@ import { oas } from '@stoplight/spectral-rulesets';
 import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
+import { credentialStorageStatus } from '../../common/database';
 import type { ToastNotification } from '../../ui/components/toast';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
+import { credentialStorageNotices } from '../credential-keys';
 import { insomniaFetch } from '../insomniaFetch';
 import installPlugin from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
@@ -43,6 +45,7 @@ export interface MainBridgeAPI {
   webUtilsGetPathForFile: (file: File) => string;
   getMcpStatus: () => Promise<{ running: boolean; port: number | null }>;
   checkForNewRelease: () => Promise<ToastNotification | null>;
+  credentialStorageNotices: () => Promise<ToastNotification[]>;
 }
 export function registerMainHandlers() {
   ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
@@ -71,6 +74,7 @@ export function registerMainHandlers() {
   });
 
   ipcMain.handle('checkForNewRelease', () => checkForNewRelease());
+  ipcMain.handle('credentialStorageNotices', () => credentialStorageNotices(credentialStorageStatus()));
 
   ipcMain.handle('curlRequest', (_, options: Parameters<typeof curlRequest>[0]) => {
     return curlRequest(options);

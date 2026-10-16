@@ -10,6 +10,7 @@ import { getAppVersion, isDevelopment, isMac } from './common/constants';
 import { database } from './common/database';
 import log, { initializeLogging } from './common/log';
 import { backupDataIfVersionChanged } from './main/backup';
+import { announceCredentialStorage, safeStorageKeyWrapper } from './main/credential-keys';
 import { deepLinks, linksFromArgv } from './main/deep-link-buffer';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
@@ -155,7 +156,7 @@ app.on('ready', async () => {
 
   // Init some important things first
   await backupDataIfVersionChanged();
-  await database.init(models.types());
+  await database.init(models.types(), { credentialKeys: safeStorageKeyWrapper, onCredentialStorageChange: announceCredentialStorage });
   await _createModelInstances();
 
   windowUtils.init();

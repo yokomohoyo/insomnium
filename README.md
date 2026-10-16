@@ -92,6 +92,26 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.
 
 
+## Saved credentials
+
+Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials, client certificate passphrases, and the proto and MCP tokens in Settings. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
+
+What this does not cover:
+
+- values you type into requests, auth tabs and environments;
+- response history and timelines (the `responses` folder), which keep what was sent and received, OAuth 2 token responses and each request's `Authorization` header included;
+- the token from Git Sync's GitHub or GitLab sign-in, which is kept in the app's local storage;
+- `~/.insomnium/mcp.json`, which holds the MCP token while the MCP server runs, so tools can find it.
+
+How it behaves:
+
+- **Another computer or account.** Copying the data folder copies the encrypted values but not the key, which stays with your OS account. Saved credentials read as empty there and Insomnium tells you so. Enter them again and they're saved under a new key.
+- **Linux without a keyring.** When no keyring is reachable, Electron falls back to a built-in key, which only obfuscates. Insomnium still saves your credentials and tells you once. Run and unlock GNOME Keyring or KWallet for real protection; the next launch that finds it moves your credentials to a new key. The snap reaches the keyring only after `sudo snap connect insomnium:password-manager-service`.
+- **Locked or unavailable keychain.** If the keychain can't unlock the key, or keeps not answering for 30 seconds, credentials you enter still work for that session but are not written to disk, not even in plain text. Encrypted ones saved earlier read as empty until it can; ones an earlier version saved in plain text stay readable, and in plain text, until a launch with a working keychain. You'll see a notice when this happens.
+- **Copies from earlier versions.** Earlier versions stored these in plain text. On the first launch with a working keychain Insomnium encrypts them in `insomnia.sqlite` and compacts the file, but it leaves other copies alone: the copy of your data it takes in the `backups` folder on each upgrade (the newest three are kept), the `insomnia.*.db` files from versions that predate the SQLite store, any copies of the data folder you made, and the original Insomnia folder if you migrated from it. Delete those if that matters to you.
+- **Downgrading.** Older versions can't read the encrypted values, so re-enter saved credentials there.
+
+
 ## Backstory
 
 Insomnium is a fork of [Kong/insomnia at 2023.5.8](https://github.com/Kong/insomnia/tree/core@2023.5.8), the last commit before compulsory account login was introduced. In a sense, Insomnium is a community response to [the latest product update that forces account creation w/o warning](https://news.ycombinator.com/item?id=37680522).
