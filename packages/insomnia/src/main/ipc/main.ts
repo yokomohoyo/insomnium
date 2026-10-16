@@ -7,10 +7,12 @@ import { oas } from '@stoplight/spectral-rulesets';
 import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
+import type { ToastNotification } from '../../ui/components/toast';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { insomniaFetch } from '../insomniaFetch';
 import installPlugin from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
+import { checkForNewRelease } from '../release-check';
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
 import { WebSocketBridgeAPI } from '../network/websocket';
@@ -40,6 +42,7 @@ export interface MainBridgeAPI {
   showContextMenu: (options: { key: string }) => void;
   webUtilsGetPathForFile: (file: File) => string;
   getMcpStatus: () => Promise<{ running: boolean; port: number | null }>;
+  checkForNewRelease: () => Promise<ToastNotification | null>;
 }
 export function registerMainHandlers() {
   ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
@@ -66,6 +69,8 @@ export function registerMainHandlers() {
       throw new Error(err);
     }
   });
+
+  ipcMain.handle('checkForNewRelease', () => checkForNewRelease());
 
   ipcMain.handle('curlRequest', (_, options: Parameters<typeof curlRequest>[0]) => {
     return curlRequest(options);

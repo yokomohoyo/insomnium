@@ -49,7 +49,6 @@ export const getBrowserUserAgent = () => encodeURIComponent(
 // (9b81239), so it was removed. New versions ship as GitHub Releases
 // (https://github.com/yokomohoyo/insomnium/releases) and through the APT
 // repository and Homebrew.
-export const updatesSupported = () => false;
 
 export const getClientString = () => `${getAppEnvironment()}::${getAppPlatform()}::${getAppVersion()}`;
 // export const changelogUrl = () => appConfig.changelogUrl + '#' + version;

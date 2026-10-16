@@ -1,17 +1,11 @@
 import classnames from 'classnames';
 import type { IpcRendererEvent } from 'electron';
 import React, { FC, useEffect, useState } from 'react';
+import { useInterval } from 'react-use';
 import styled from 'styled-components';
 
-import {
-  getAppId,
-  getAppPlatform,
-  getAppVersion,
-  getProductName,
-  updatesSupported,
-} from '../../common/constants';
-import * as models from '../../models/index';
-import imgSrcCore from '../images/insomnia-logo.svg';
+import { getProductName } from '../../common/constants';
+import imgSrcCore from '../../icons/256x256.png';
 import { Link } from './base/link';
 
 const INSOMNIA_NOTIFICATIONS_SEEN = 'insomnia::notifications::seen';
@@ -50,27 +44,27 @@ const StyledFooter = styled.footer`
 
 type SeenNotifications = Record<string, boolean>;
 
-export const Toast: FC = () => {
+// Shared by every window (same origin), so one window's dismissal covers all
+const readSeen = (): SeenNotifications => {
+  try {
+    return JSON.parse(window.localStorage.getItem(INSOMNIA_NOTIFICATIONS_SEEN) || '{}') as SeenNotifications || {};
+  } catch (e) {
+    return {};
+  }
+};
+
+export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewReleases }) => {
   const [notification, setNotification] = useState<ToastNotification | null>(null);
   const [visible, setVisible] = useState(false);
   const handleNotification = (notification: ToastNotification | null | undefined) => {
     if (!notification) {
       return;
     }
-    let seenNotifications: SeenNotifications = {};
-    try {
-      const storedKeys = window.localStorage.getItem(INSOMNIA_NOTIFICATIONS_SEEN);
-      if (storedKeys) {
-        seenNotifications = JSON.parse(storedKeys) as SeenNotifications || {};
-      }
-    } catch (e) { }
     console.log(`[toast] Received notification ${notification.key}`);
-    if (seenNotifications[notification.key]) {
+    if (readSeen()[notification.key]) {
       console.log(`[toast] Not showing notification ${notification.key} because has already been seen`);
       return;
     }
-    seenNotifications[notification.key] = true;
-    window.localStorage.setItem(INSOMNIA_NOTIFICATIONS_SEEN, JSON.stringify(seenNotifications, null, 2));
     setNotification(notification);
     setVisible(false);
     // Fade the notification in
@@ -80,48 +74,47 @@ export const Toast: FC = () => {
   };
   const checkForNotifications = async () => {
     // If there is a notification open, skip check
-    if (notification) {
+    if (notification || !checkForNewReleases) {
       return;
     }
-    const stats = await models.stats.get();
-    const {
-      disableUpdateNotification,
-      updateAutomatically,
-      updateChannel,
-    } = await models.settings.getOrCreate();
-    const updatedNotification: ToastNotification | null = null;
-    // Try fetching user notification
-    try {
-      const data = {
-        app: getAppId(),
-        autoUpdatesDisabled: !updateAutomatically,
-        disableUpdateNotification,
-        firstLaunch: stats.created,
-        launches: stats.launches, // Used for account verification notifications
-        platform: getAppPlatform(), // Used for CTAs / Informational notifications
-        updateChannel,
-        updatesNotSupported: !updatesSupported(),
-        version: getAppVersion(),
-      };
-      // const notificationOrEmpty = await window.main.insomniaFetch<ToastNotification>({
-      //   method: 'POST',
-      //   path: '/notification',
-      //   data,
-      //   sessionId: session.getCurrentSessionId(),
-      // });
-      // if (notificationOrEmpty && typeof notificationOrEmpty !== 'string') {
-      //   updatedNotification = notificationOrEmpty;
-      // }
-    } catch (err) {
-      console.warn('[toast] Failed to fetch user notifications', err);
+    // null unless a newer release exists; main asks GitHub at most once a day
+    handleNotification(await window.main.checkForNewRelease().catch(() => null));
+  };
+  // Seen once the user acts on it, not when it arrives, so a notice in a window
+  // nobody looked at comes back
+  const close = () => {
+    if (!notification) {
+      return;
     }
-    handleNotification(updatedNotification);
+    window.localStorage.setItem(INSOMNIA_NOTIFICATIONS_SEEN, JSON.stringify({ ...readSeen(), [notification.key]: true }, null, 2));
+    // Hide the currently showing notification
+    setVisible(false);
+    // Give time for toast to fade out, then remove it
+    setTimeout(() => setNotification(null), 1000);
   };
 
   useEffect(() => {
     const unsubscribe = window.main.on('show-notification', (_: IpcRendererEvent, notification: ToastNotification) => handleNotification(notification));
     return () => unsubscribe();
   }, []);
+
+  // another window dismissed it
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === INSOMNIA_NOTIFICATIONS_SEEN && notification && readSeen()[notification.key]) {
+        setNotification(null);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [notification]);
+
+  // right away when turned on (and at startup), then hourly to catch a release while open
+  useEffect(() => {
+    checkForNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkForNewReleases]);
+  useInterval(checkForNotifications, 60 * 60 * 1000);
 
   const productName = getProductName();
   return notification ? (
@@ -138,17 +131,7 @@ export const Toast: FC = () => {
         <StyledFooter>
           <button
             className="btn btn--super-duper-compact btn--outlined"
-            onClick={() => {
-              if (notification) {
-                // Hide the currently showing notification
-                setVisible(false);
-                // Give time for toast to fade out, then remove it
-                setTimeout(() => {
-                  setNotification(null);
-                  checkForNotifications();
-                }, 1000);
-              }
-            }}
+            onClick={close}
           >
             Dismiss
           </button>
@@ -156,17 +139,7 @@ export const Toast: FC = () => {
           <Link
             button
             className="btn btn--super-duper-compact btn--outlined no-wrap"
-            onClick={() => {
-              if (notification) {
-                // Hide the currently showing notification
-                setVisible(false);
-                // Give time for toast to fade out, then remove it
-                setTimeout(() => {
-                  setNotification(null);
-                  checkForNotifications();
-                }, 1000);
-              }
-            }}
+            onClick={close}
             href={notification.url}
           >
             {notification.cta}

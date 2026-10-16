@@ -57,6 +57,7 @@ import {
   showSettingsModal,
   TAB_INDEX_PLUGINS,
   TAB_INDEX_THEMES } from '../components/modals/settings-modal';
+import { Toast } from '../components/toast';
 
 import { AppHooks } from '../containers/app-hooks';
 
@@ -449,7 +450,7 @@ const Root = () => {
           </div>
           {/* /**** ><> ↑ --------- Statusbar */}
 
-          {/* <Toast /> */}
+          <Toast checkForNewReleases={settings.checkForNewReleases} />
         </div>
     </NunjucksEnabledProvider>
   );

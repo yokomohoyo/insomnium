@@ -4,6 +4,7 @@ Insomnium is a 100% local and privacy-focused open-source API client for testing
 
 - ✅ works 100% offline, the way a local testing tool should behave <br>
 - ✅ no cloud services, no tracking/communication to external servers behind the scene <br>
+- ✅ an optional new-release check (Preferences → General → Updates) is off unless you turn it on <br>
 
 [![license](https://img.shields.io/github/license/yokomohoyo/insomnium.svg)](LICENSE)
 [![GitHub Discussions](https://img.shields.io/github/discussions/yokomohoyo/insomnium)](https://github.com/yokomohoyo/insomnium/discussions)

@@ -26,6 +26,8 @@ export interface BaseStats {
   createdRequests: number;
   deletedRequests: number;
   executedRequests: number;
+  /** The opt-in new-release check (main/release-check.ts): when it may ask GitHub next, and what it last saw. */
+  releaseCheck: { nextCheckAt: number; latest: { tag: string; url: string } | null } | null;
 }
 
 export type Stats = BaseModel & BaseStats;
@@ -44,6 +46,7 @@ export function init(): BaseStats {
     createdRequests: 0,
     deletedRequests: 0,
     executedRequests: 0,
+    releaseCheck: null,
   };
 }
 

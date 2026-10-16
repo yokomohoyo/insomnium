@@ -8,7 +8,6 @@ import {
   MAX_INTERFACE_FONT_SIZE,
   MIN_EDITOR_FONT_SIZE,
   MIN_INTERFACE_FONT_SIZE,
-  updatesSupported,
 } from '../../../common/constants';
 import { docsKeyMaps } from '../../../common/documentation';
 import { HttpVersion, HttpVersions } from '../../../common/settings';
@@ -313,14 +312,13 @@ export const General: FC = () => {
         />
       </div>
 
-      {/* {!updatesSupported() && (
-        <><hr className="pad-top" />
-          <h2>Notifications</h2>
-          <BooleanSetting
-            label="Do not notify of new releases"
-            setting="disableUpdateNotification"
-          /></>
-      )} */}
+      <hr className="pad-top" />
+      <h2>Updates</h2>
+      <BooleanSetting
+        label="Check for new releases"
+        setting="checkForNewReleases"
+        help="Off by default. At most once a day, asks api.github.com for the latest Insomnium release and shows a notice when it's newer. It's a plain request with no account, token or workspace data; like any web request, GitHub sees your IP address."
+      />
 
       <hr className="pad-top" />
 
