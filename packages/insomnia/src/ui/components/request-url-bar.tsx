@@ -7,9 +7,7 @@ import styled from 'styled-components';
 import { RENDER_PURPOSE_SEND } from '../../common/render';
 import * as models from '../../models';
 import { isEventStreamRequest } from '../../models/request';
-import { fetchRequestData, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../../network/network';
-import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../utils/try-interpolate';
-import { addSegValuesToUrl, buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
+import { fetchRequestData, renderEventStreamConnection, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../../network/network';
 
 import { useReadyState } from '../hooks/use-ready-state';
 import { useRequestSetter } from '../hooks/use-request';
@@ -17,13 +15,13 @@ import { useRequestMetaPatcher } from '../hooks/use-request';
 import { useTimeoutWhen } from '../hooks/useTimeoutWhen';
 import { ConnectActionParams, RequestLoaderData, SendActionParams } from '../routes/request';
 import { RootLoaderData } from '../routes/root';
-import { WorkspaceLoaderData } from '../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from './base/dropdown';
 import { OneLineEditor, OneLineEditorHandle } from './codemirror/one-line-editor';
 import { MethodDropdown } from './dropdowns/method-dropdown';
 import { createKeybindingsHandler, useDocBodyKeyboardShortcuts } from './keydown-binder';
 import { GenerateCodeModal } from './modals/generate-code-modal';
 import { showAlert, showModal, showPrompt } from './modals/index';
+import { RequestRenderErrorModal } from './modals/request-render-error-modal';
 
 const StyledDropdownButton = styled(DropdownButton)({
   '&:hover:not(:disabled)': {
@@ -53,10 +51,6 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
   setLoading,
   onPaste,
 }, ref) => {
-  const {
-    activeWorkspace,
-    activeEnvironment,
-  } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   const {
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
@@ -111,38 +105,13 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
     // reset timeout
     setCurrentTimeout(undefined);
 
-    if (isEventStreamRequest(activeRequest)) {
-      const startListening = async () => {
-        const environmentId = activeEnvironment._id;
-        const workspaceId = activeWorkspace._id;
-        // Render any nunjucks tags in the url/headers/authentication settings/cookies
-        const workspaceCookieJar = await models.cookieJar.getOrCreateForParentId(workspaceId);
-        const rendered = await tryToInterpolateRequestOrShowRenderErrorModal({
-          request: activeRequest,
-          environmentId,
-          payload: {
-            url: activeRequest.url,
-            headers: activeRequest.headers,
-            authentication: activeRequest.authentication,
-            parameters: activeRequest.parameters.filter(p => !p.disabled),
-            workspaceCookieJar,
-          },
-        });
-        rendered && connect({
-          url: addSegValuesToUrl(joinUrlAndQueryString(rendered.url, buildQueryStringFromParams(rendered.parameters)), rendered.segmentParams),
-          headers: rendered.headers,
-          authentication: rendered.authentication,
-          cookieJar: rendered.workspaceCookieJar,
-          suppressUserAgent: rendered.suppressUserAgent,
-        });
-      };
-      startListening();
-      return;
-    }
-
     try {
       const { request,
         environment } = await fetchRequestData(requestId);
+      if (isEventStreamRequest(request)) {
+        connect(await renderEventStreamConnection(request, environment._id));
+        return;
+      }
 
       const renderResult = await tryToInterpolateRequest(request, environment._id, RENDER_PURPOSE_SEND);
       // ARCHY NOTE: HERE IS SEND
@@ -152,6 +121,10 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
         shouldPromptForPathAfterResponse,
       });
     } catch (err) {
+      if (isEventStreamRequest(activeRequest) && err?.type === 'render') {
+        showModal(RequestRenderErrorModal, { request: activeRequest, error: err });
+        return;
+      }
       showAlert({
         title: 'Unexpected Request Failure',
         message: (

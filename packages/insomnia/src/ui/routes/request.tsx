@@ -10,6 +10,7 @@ import { ChangeBufferEvent, database } from '../../common/database';
 import { getContentDispositionHeader } from '../../common/misc';
 import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
 import { writeToFile } from '../../common/write-to-file';
+import type { EventStreamConnection } from '../../main/network/event-stream-request';
 import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
@@ -246,13 +247,14 @@ export const updateRequestMetaAction: ActionFunction = async ({ request, params 
   await models.requestMeta.updateOrCreateByParentId(requestId, patch);
   return null;
 };
-export interface ConnectActionParams {
+interface WebSocketConnectParams {
   url: string;
   headers: RequestHeader[];
   authentication: RequestAuthentication;
   cookieJar: CookieJar;
   suppressUserAgent: boolean;
 }
+export type ConnectActionParams = WebSocketConnectParams | EventStreamConnection;
 export const connectAction: ActionFunction = async ({ request, params }) => {
   const { requestId, workspaceId } = params;
   guard(typeof requestId === 'string', 'Request ID is required');
@@ -271,15 +273,8 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
     });
   }
   if (isEventStreamRequest(req)) {
-    window.main.curl.open({
-      requestId,
-      workspaceId,
-      url: rendered.url,
-      headers: rendered.headers,
-      authentication: rendered.authentication,
-      cookieJar: rendered.cookieJar,
-      suppressUserAgent: rendered.suppressUserAgent,
-    });
+    // the url bar sends a renderEventStreamConnection result for event streams
+    window.main.curl.open({ requestId, workspaceId, ...rendered as EventStreamConnection });
   }
   // HACK: even more elaborate hack to get the request to update
   return new Promise(resolve => {

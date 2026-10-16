@@ -133,15 +133,14 @@ const openWebSocketConnection = async (
   guard(environment, 'failed to find environment ' + activeEnvironmentId);
   const responseEnvironmentId = environment ? environment._id : null;
 
-  const caCert = await models.caCertificate.findByParentId(options.workspaceId);
-  const caCertficatePath = caCert?.path;
-  // attempt to read CA Certificate PEM from disk, fallback to root certificates
-  const caCertificate = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
-
   try {
     if (!options.url) {
       throw new Error('URL is required');
     }
+    const caCert = await models.caCertificate.findByParentId(options.workspaceId);
+    const caCertficatePath = caCert?.disabled === false ? caCert.path : null;
+    // attempt to read CA Certificate PEM from disk, fallback to root certificates
+    const caCertificate = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
     const readyStateChannel = `webSocket.${request._id}.readyState`;
 
     const reduceArrayToLowerCaseKeyedDictionary = (acc: { [key: string]: string }, { name, value }: BaseWebSocketRequest['headers'][0]) =>

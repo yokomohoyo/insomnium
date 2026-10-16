@@ -52,6 +52,15 @@ test('can send requests', async ({ app, page }) => {
   await expect(responseBody).toContainText('Connected to 127.0.0.1');
   await page.getByTestId('request-pane').getByRole('button', { name: 'Disconnect' }).click();
 
+  await page.getByLabel('Request Collection').getByRole('row', { name: 'connects to event stream with rendered headers and auth' }).click();
+  await page.getByTestId('request-pane').getByRole('button', { name: 'Connect' }).click();
+  await expect(statusTag).toContainText('200 OK');
+  await page.getByRole('tab', { name: 'Timeline' }).click();
+  await expect(responseBody).toContainText('Authorization: Bearer smoke-token');
+  await expect(responseBody).toContainText('X-Rendered: c21va2U=');
+  await expect(responseBody).not.toContainText('should-not-be-sent');
+  await page.getByTestId('request-pane').getByRole('button', { name: 'Disconnect' }).click();
+
   await page.getByLabel('Request Collection').getByRole('row', { name: 'sends dummy.csv request and shows rich response' }).click();
   await page.getByTestId('request-pane').getByRole('button', { name: 'Send' }).click();
   await expect(statusTag).toContainText('200 OK');
