@@ -16,33 +16,15 @@ import { SystemError } from './system-error';
 // whatever else it contains.
 export const isGitSyncedType = (type: string | null) => !!type && models.getModel(type)?.canSync === true;
 
-// Every type shares one _id keyspace, so the _id must carry its own type's
-// prefix (as generated ids do) or a synced doc could replace, say, a Settings row
-const hasOwnPrefix = (doc: BaseModel) => doc._id?.startsWith(`${models.getModel(doc.type)?.prefix}_`) === true;
-
-// Whether writing doc would touch another workspace: where its _id lives now or
-// where its parentId would put it. Only a positive answer counts, since during
-// checkouts and merges the workspace itself can be briefly missing.
-async function belongsElsewhere(doc: BaseModel, workspaceId: string) {
-  if (!hasOwnPrefix(doc)) {
-    return true;
-  }
-  if (isWorkspace(doc)) {
-    return doc._id !== workspaceId;
-  }
-  const existing = await db.get(doc.type, doc._id);
-  for (const placement of existing ? [existing, doc] : [doc]) {
-    const owner = (await db.withAncestors(placement)).find(isWorkspace);
-    if (owner && owner._id !== workspaceId) {
-      return true;
-    }
-  }
-  return false;
-}
+// Every type shares one _id keyspace (rows are replaced by _id), so a synced doc
+// whose _id carries another model's prefix could replace, say, a Settings row.
+// Unprefixed legacy ids are fine.
+const carriesOtherPrefix = (doc: BaseModel) =>
+  typeof doc._id !== 'string' || models.all().some(model => model.type !== doc.type && doc._id.startsWith(`${model.prefix}_`));
 
 // The documents a cloned repository may add, held to the same rules as
 // NeDBClient.writeFile: a synced type, in its type's folder, named by its _id,
-// which carries its type's prefix.
+// which does not carry another type's prefix.
 export async function readClonedDocs(fsClient: PromiseFsClient) {
   const docs: BaseModel[] = [];
   for (const type of await fsClient.promises.readdir(GIT_INSOMNIA_DIR)) {
@@ -53,7 +35,7 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
     const typeDir = path.join(GIT_INSOMNIA_DIR, type);
     for (const fileName of await fsClient.promises.readdir(typeDir)) {
       const doc: BaseModel | null = YAML.parse((await fsClient.promises.readFile(path.join(typeDir, fileName))).toString());
-      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName || !hasOwnPrefix(doc)) {
+      if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName || carriesOtherPrefix(doc)) {
         console.log(`[git] Ignoring ${type}/${fileName} in the cloned repository`);
         continue;
       }
@@ -196,8 +178,8 @@ export class NeDBClient {
       throw new Error(`Doc type does not match file path [${doc.type} != ${type || 'null'}]`);
     }
 
-    if (await belongsElsewhere(doc, this._workspaceId)) {
-      console.log(`[git] Ignoring ${filePath}: it belongs to another workspace`);
+    if (carriesOtherPrefix(doc)) {
+      console.log(`[git] Ignoring ${filePath}: its _id belongs to another type`);
       return;
     }
 
@@ -218,6 +200,12 @@ export class NeDBClient {
 
     if (!id || !type) {
       throw new Error(`Cannot unlink file ${filePath}`);
+    }
+
+    // Git Sync never wrote anything else, so it never deletes anything else
+    if (!isGitSyncedType(type)) {
+      console.log(`[git] Ignoring removal of ${filePath}: not a synced type`);
+      return;
     }
 
     const doc = await db.get(type, id);

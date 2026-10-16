@@ -129,7 +129,8 @@ export class GitVCS {
       // Insomnium never sets these. Before GIT_INTERNAL_DIR was absolute, a
       // pulled git/config could, sending pushes and fetches (and credentials) elsewhere.
       for (const key of ['remote.origin.pushurl', 'http.corsProxy']) {
-        if (await git.getConfig({ ...this._baseOpts, path: key }) !== undefined) {
+        // each setConfig removes one entry, and there may be several
+        for (let i = 0; i < 100 && await git.getConfig({ ...this._baseOpts, path: key }) !== undefined; i++) {
           console.warn(`[git] Removing ${key} from the repository config`);
           await git.setConfig({ ...this._baseOpts, path: key, value: undefined });
         }

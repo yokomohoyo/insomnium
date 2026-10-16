@@ -14,28 +14,31 @@ export function routableFSClient(
   defaultFS: git.PromiseFsClient,
   otherFS: Record<string, git.PromiseFsClient>,
 ) {
-  const execMethod = async (method: Methods, filePath: string, ...args: any[]) => {
+  const route = (filePath: string): [git.PromiseFsClient, string] => {
     filePath = path.normalize(filePath);
-
+    // isomorphic-git accepts a tree entry named '..', which would put a file
+    // outside the repository
+    if (filePath === '..' || filePath.startsWith(`..${path.sep}`)) {
+      throw new Error(`Refusing ${filePath}: outside the repository`);
+    }
     for (const prefix of Object.keys(otherFS)) {
       // whole path segments only: '.insomnium-x' or 'gitfoo' are not under '.insomnium' or 'git'
       const dir = path.normalize(prefix);
       if (filePath === dir || filePath.startsWith(dir + path.sep)) {
-        // TODO: remove non-null assertion
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        return otherFS[prefix].promises[method]!(filePath, ...args);
+        return [otherFS[prefix], filePath];
       }
     }
-
-    // Uncomment this to debug operations
-    // console.log('[routablefs] Executing', method, filePath, { args });
     // Fallback to default if no prefix matched
+    return [defaultFS, filePath];
+  };
+
+  const execMethod = async (method: Methods, filePath: string, ...args: any[]) => {
+    const [client, routedPath] = route(filePath);
+    // Uncomment this to debug operations
+    // console.log('[routablefs] Executing', method, routedPath, { args });
     // TODO: remove non-null assertion
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const result = await defaultFS.promises[method]!(filePath, ...args);
-    // Uncomment this to debug operations
-    // console.log('[routablefs] Executing', method, filePath, { args }, { result });
-    return result;
+    return client.promises[method]!(routedPath, ...args);
   };
 
   // @ts-expect-error -- TSCONVERSION declare and initialize together to avoid an error
@@ -48,8 +51,10 @@ export function routableFSClient(
   methods.rmdir = execMethod.bind(methods, 'rmdir');
   methods.stat = execMethod.bind(methods, 'stat');
   methods.lstat = execMethod.bind(methods, 'lstat');
-  methods.readlink = execMethod.bind(methods, 'readlink');
-  methods.symlink = execMethod.bind(methods, 'symlink');
+  // A symlink is stored as a file holding its target, as git does with
+  // core.symlinks=false: a real link could point anywhere on disk
+  methods.symlink = (target: string, linkPath: string) => execMethod('writeFile', linkPath, target);
+  methods.readlink = (linkPath: string) => execMethod('readFile', linkPath);
   return {
     promises: methods,
   };

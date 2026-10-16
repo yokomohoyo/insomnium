@@ -1,6 +1,11 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
 import { describe, expect, it } from '@jest/globals';
 import * as git from 'isomorphic-git';
 
+import { fsClient } from '../fs-client';
 import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR } from '../git-vcs';
 import { MemClient } from '../mem-client';
 import { routableFSClient } from '../routable-fs-client';
@@ -58,13 +63,68 @@ describe('the internal git dir', () => {
   it('is cleaned of a pushurl or corsProxy planted before this fix when the repo is opened', async () => {
     const { opts } = appLayout();
     await git.init({ ...opts, defaultBranch: 'main' });
-    await git.setConfig({ ...opts, path: 'remote.origin.pushurl', value: 'https://attacker.example/steal.git' });
-    await git.setConfig({ ...opts, path: 'http.corsProxy', value: 'https://attacker.example/proxy' });
+    for (const n of [1, 2]) {
+      await git.setConfig({ ...opts, path: 'remote.origin.pushurl', value: `https://attacker.example/steal-${n}.git`, append: true });
+      await git.setConfig({ ...opts, path: 'http.corsProxy', value: `https://attacker.example/proxy-${n}`, append: true });
+    }
 
     await GitVCS.init({ uri: '', repoId: '', directory: GIT_CLONE_DIR, fs: opts.fs, gitDirectory: GIT_INTERNAL_DIR });
 
     expect(await git.getConfig({ ...opts, path: 'remote.origin.pushurl' })).toBeUndefined();
     expect(await git.getConfig({ ...opts, path: 'http.corsProxy' })).toBeUndefined();
+  });
+});
+
+describe('a pulled commit on disk', () => {
+  // the real layout: fsClient folders under a repo dir, as git-actions.tsx sets up
+  const diskLayout = () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-git-'));
+    const baseDir = path.join(root, 'repo');
+    const routed = routableFSClient(fsClient(path.join(baseDir, 'other')), { [GIT_INSOMNIA_DIR]: MemClient.createClient(), [GIT_INTERNAL_DIR]: fsClient(baseDir) });
+    return { root, baseDir, opts: { fs: routed, dir: GIT_CLONE_DIR, gitdir: GIT_INTERNAL_DIR } };
+  };
+  const blob = (opts: any, text: string) => git.writeBlob({ ...opts, blob: Buffer.from(text) });
+  const pull = async (opts: any, entries: (prev: string) => Promise<any[]>) => {
+    await git.init({ ...opts, defaultBranch: 'main' });
+    const first = await git.commit({ ...opts, message: 'one', author, tree: await git.writeTree({ ...opts, tree: [] }) });
+    const tree = await git.writeTree({ ...opts, tree: await entries(first) });
+    const incoming = await git.writeCommit({ ...opts, commit: { message: 'incoming\n', tree, parent: [first], author, committer: author } });
+    await git.writeRef({ ...opts, ref: 'refs/heads/incoming', value: incoming });
+    await git.merge({ ...opts, ours: 'main', theirs: 'incoming', author });
+    await git.checkout({ ...opts, ref: 'main' }).catch(() => {});
+  };
+
+  it('cannot write outside the repository through a tree entry named ..', async () => {
+    const { root, opts } = diskLayout();
+    await pull(opts, async () => {
+      // ../git/config is the real git config; ../../escaped.txt is outside the repo folder
+      const config = await git.writeTree({ ...opts, tree: [{ mode: '100644', path: 'config', oid: await blob(opts, PLANTED_CONFIG), type: 'blob' }] });
+      const escape = await git.writeTree({ ...opts, tree: [{ mode: '100644', path: 'escaped.txt', oid: await blob(opts, 'pwned'), type: 'blob' }] });
+      const up = await git.writeTree({ ...opts, tree: [
+        { mode: '040000', path: '..', oid: escape, type: 'tree' },
+        { mode: '040000', path: 'git', oid: config, type: 'tree' },
+      ] });
+      return [{ mode: '040000', path: '..', oid: up, type: 'tree' }];
+    });
+    expect(await git.getConfig({ ...opts, path: 'remote.origin.pushurl' })).toBeUndefined();
+    expect(fs.existsSync(path.join(root, 'escaped.txt'))).toBe(false);
+  });
+
+  it('stores a symlink as a file holding its target, never as a link', async () => {
+    const { baseDir, opts } = diskLayout();
+    await pull(opts, async () => [{ mode: '120000', path: 'evil', oid: await blob(opts, '/git/config'), type: 'blob' }]);
+    const stored = path.join(baseDir, 'other', 'evil');
+    expect(fs.lstatSync(stored).isSymbolicLink()).toBe(false);
+    expect(fs.readFileSync(stored, 'utf8')).toBe('/git/config');
+  });
+});
+
+describe('fsClient', () => {
+  it('refuses paths outside its folder', async () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-fs-'));
+    const client = fsClient(path.join(base, 'inner')).promises;
+    await expect(client.writeFile('../outside.txt', 'x')).rejects.toThrow('outside');
+    expect(fs.existsSync(path.join(base, 'outside.txt'))).toBe(false);
   });
 });
 
