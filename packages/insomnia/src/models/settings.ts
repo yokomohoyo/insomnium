@@ -50,6 +50,7 @@ export function init(): BaseSettings {
     hotKeyRegistry: hotkeys.newDefaultRegistry(),
     httpProxy: '',
     httpsProxy: '',
+    legacyTls: false,
     lightTheme: getAppDefaultLightTheme(),
     maxHistoryResponses: 20,
     maxRedirects: 10,
