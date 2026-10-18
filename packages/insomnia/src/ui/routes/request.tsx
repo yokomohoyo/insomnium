@@ -312,6 +312,8 @@ export interface SendActionParams {
   shouldPromptForPathAfterResponse?: boolean;
   // what the pre-request script logged, kept with the response
   preRequestLogs?: ScriptLog[];
+  // the variables it set, for rendering the request again here
+  scriptVariables?: Record<string, unknown>;
 }
 export const sendAction: ActionFunction = async ({ request, params }) => {
   const { requestId, workspaceId } = params;
@@ -325,8 +327,9 @@ export const sendAction: ActionFunction = async ({ request, params }) => {
     clientCertificates,
     caCert,
     activeEnvironmentId } = await fetchRequestData(requestId);
-  const { renderedRequest, shouldPromptForPathAfterResponse, preRequestLogs } = await request.json() as SendActionParams;
-  const renderResult = await tryToInterpolateRequest(req, environment._id, RENDER_PURPOSE_SEND);
+  const { renderedRequest, shouldPromptForPathAfterResponse, preRequestLogs, scriptVariables } = await request.json() as SendActionParams;
+  // the context for the response hooks, rendered with the variables the send was
+  const renderResult = await tryToInterpolateRequest(req, environment._id, RENDER_PURPOSE_SEND, undefined, scriptVariables);
 
   const response = await sendCurlAndWriteTimeline(
     renderedRequest,

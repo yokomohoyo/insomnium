@@ -63,9 +63,8 @@ const describeError = (vm: QuickJSContext, handle: QuickJSHandle, timeoutMs: num
 };
 
 export async function runInSandbox<T>(code: string, input: object, { timeoutMs = TIMEOUT_MS } = {}): Promise<SandboxResult<T>> {
-  // In the app the main process runs scripts, as it runs Spectral, under Node
-  // as the tests do: in the window, which has Node and the DOM at once, a
-  // script never finished
+  // In the app the main process runs scripts, as it runs Spectral: the engine
+  // loads once there, under Node, as it does for the tests and the CLI
   if (process.type === 'renderer') {
     return window.main.runScript({ code, input, timeoutMs }) as Promise<SandboxResult<T>>;
   }

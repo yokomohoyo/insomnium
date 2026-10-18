@@ -123,6 +123,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
         renderedRequest,
         shouldPromptForPathAfterResponse,
         preRequestLogs: scripted.logs,
+        scriptVariables: scripted.variables,
       });
     } catch (err) {
       if (isEventStreamRequest(activeRequest) && err?.type === 'render') {
