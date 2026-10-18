@@ -175,4 +175,10 @@ export interface Settings {
   mcpEnabled: boolean;
   mcpPort: number;   // 0 = pick free
   mcpToken: string;
+
+  // The AI assistant (main/ai.ts): an OpenAI-compatible endpoint, its model,
+  // and a key for it if it needs one. Empty = off.
+  aiBaseUrl: string;
+  aiModel: string;
+  aiApiKey: string;
 }

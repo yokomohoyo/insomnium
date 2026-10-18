@@ -82,6 +82,9 @@ export function init(): BaseSettings {
     mcpEnabled: false,
     mcpPort: 0,
     mcpToken: '',
+    aiBaseUrl: '',
+    aiModel: '',
+    aiApiKey: '',
   };
 }
 

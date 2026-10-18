@@ -61,6 +61,29 @@ app.use(express.json()); // Used to parse JSON bodies
 
 app.use('/mcp', mcpRouter);
 
+// An OpenAI-compatible model for the AI assistant: it answers a request
+// description with a request, in a code fence as models often do, and
+// anything else with "ready". It wants the key the tests set.
+const FAKE_MODEL_KEY = 'Bearer e2e-key';
+app.get('/v1/models', (request, response) => {
+  if (request.headers.authorization !== FAKE_MODEL_KEY) {
+    response.status(401).json({ error: { message: 'Incorrect API key provided' } });
+    return;
+  }
+  response.json({ object: 'list', data: [{ id: 'fake-model', object: 'model' }, { id: 'another-model', object: 'model' }] });
+});
+app.post('/v1/chat/completions', (request, response) => {
+  if (request.headers.authorization !== FAKE_MODEL_KEY) {
+    response.status(401).json({ error: { message: 'Incorrect API key provided' } });
+    return;
+  }
+  const [first] = request.body.messages || [];
+  const content = String(first?.content).includes('description of an HTTP request')
+    ? '```json\n' + JSON.stringify({ name: 'Pet two', method: 'GET', url: '{{ base_url }}/pets/2', headers: [{ name: 'Accept', value: 'application/json' }] }) + '\n```'
+    : 'ready';
+  response.json({ id: 'chatcmpl-1', object: 'chat.completion', model: request.body.model, choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }] });
+});
+
 // SSE routes
 let subscribers: { id: string; response: express.Response }[] = [];
 app.get('/events', (request, response) => {

@@ -183,6 +183,8 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
     try {
       activeRequestId = (await models.request.create({
         parentId: parentId || workspaceId,
+        // from a description, the model names it
+        ...(req.name ? { name: req.name } : {}),
         url: req.url,
         method: req.method,
         headers: req.headers,

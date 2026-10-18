@@ -29,6 +29,7 @@ import {
 
 import { SORT_ORDERS, SortOrder, sortOrderName } from '../../common/constants';
 import { ChangeBufferEvent, database as db } from '../../common/database';
+import { variableNames } from '../../common/ai-prompts';
 import { generateId } from '../../common/misc';
 import { PlatformKeyCombinations } from '../../common/settings';
 import type { GrpcMethodInfo } from '../../main/ipc/grpc';
@@ -63,6 +64,7 @@ import { useDocBodyKeyboardShortcuts } from '../components/keydown-binder';
 import { showModal, showPrompt } from '../components/modals';
 import { AskModal } from '../components/modals/ask-modal';
 import { CookiesModal } from '../components/modals/cookies-modal';
+import { DescribeRequestModal } from '../components/modals/describe-request-modal';
 import { GenerateCodeModal } from '../components/modals/generate-code-modal';
 import { PasteCurlModal } from '../components/modals/paste-curl-modal';
 import { PromptModal } from '../components/modals/prompt-modal';
@@ -176,6 +178,7 @@ export const Debug: FC = () => {
   const requestFetcher = useFetcher();
 
   const [isPasteCurlModalOpen, setPasteCurlModalOpen] = useState(false);
+  const [isDescribeRequestModalOpen, setDescribeRequestModalOpen] = useState(false);
   const [pastedCurl, setPastedCurl] = useState('');
 
   const { organizationId, projectId, workspaceId, requestId } = useParams() as {
@@ -613,6 +616,13 @@ export const Debug: FC = () => {
         icon: 'terminal',
         action: () => setPasteCurlModalOpen(true),
       },
+      // with the AI assistant set up
+      ...(settings.aiBaseUrl && settings.aiModel ? [{
+        id: 'From a Description',
+        name: 'From a Description…',
+        icon: 'wand-magic-sparkles' as IconName,
+        action: () => setDescribeRequestModalOpen(true),
+      }] : []),
       {
         id: 'New Folder',
         name: 'New Folder',
@@ -1081,6 +1091,19 @@ export const Debug: FC = () => {
               }}
               defaultValue={pastedCurl}
               onHide={() => setPasteCurlModalOpen(false)}
+            />
+          )}
+          {isDescribeRequestModalOpen && (
+            <DescribeRequestModal
+              endpoint={settings.aiBaseUrl}
+              model={settings.aiModel}
+              variables={variableNames(activeGlobalEnvironment?.data, baseEnvironment.data, activeEnvironment.data)}
+              onCreate={described => createRequest({
+                requestType: 'From Curl',
+                parentId: workspaceId,
+                req: { ...described, body: described.body ?? {} },
+              })}
+              onHide={() => setDescribeRequestModalOpen(false)}
             />
           )}
         </div>

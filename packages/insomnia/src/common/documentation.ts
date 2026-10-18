@@ -15,6 +15,7 @@ export const docsWorkingWithDesignDocs = insomniumDocs('design-documents.md');
 export const docsUnitTesting = insomniumDocs('testing.md#unit-tests');
 export const docsRunInCI = insomniumDocs('testing.md#run-a-collection-in-ci');
 export const docsScripts = insomniumDocs('scripts.md');
+export const docsAiAssistant = insomniumDocs('ai-assistant.md');
 
 export const docsGitAccessToken = {
   github: 'https://docs.github.com/github/authenticating-to-github/creating-a-personal-access-token',
