@@ -1,5 +1,7 @@
 import electron from 'electron';
 import fs from 'fs';
+import { env as processEnv } from 'node:process';
+import os from 'os';
 import path from 'path';
 
 import { ParsedApiSpec } from '../common/api-specs';
@@ -191,13 +193,13 @@ export async function getPlugins(force = false): Promise<Plugin[]> {
       .filter(p => p)
       .map(p => {
         if (p.indexOf('~/') === 0) {
-          return path.join(process.env['HOME'] || '/', p.slice(1));
+          return path.join(os.homedir(), p.slice(1));
         } else {
           return p;
         }
       });
     // Make sure the default directories exist
-    const pluginPath = path.join(process.env['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
+    const pluginPath = path.join(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
     fs.mkdirSync(pluginPath, { recursive: true });
     // Also look in node_modules folder in each directory
     const basePaths = [pluginPath, ...extraPaths];

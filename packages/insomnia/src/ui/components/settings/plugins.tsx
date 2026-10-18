@@ -1,3 +1,4 @@
+import { env as processEnv } from 'node:process';
 import * as path from 'path';
 import React, { FC, useEffect, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
@@ -251,7 +252,7 @@ export const Plugins: FC = () => {
           style={{
             marginLeft: '0.3em',
           }}
-          onClick={() => window.shell.showItemInFolder(path.join(process.env['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'), 'plugins'))}
+          onClick={() => window.shell.showItemInFolder(path.join(processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'), 'plugins'))}
         >
           Reveal Plugins Folder
         </Button>

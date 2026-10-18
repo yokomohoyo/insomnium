@@ -1,6 +1,7 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
 import CodeMirror from 'codemirror';
 import { stat } from 'fs/promises';
+import { env as processEnv } from 'node:process';
 import path from 'path';
 import React, { createRef, FC, Fragment, useCallback, useEffect, useMemo } from 'react';
 import {
@@ -97,7 +98,7 @@ export const loader: LoaderFunction = async ({
 
   try {
     const spectralRulesetPath = path.join(
-      process.env['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
+      processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
       `version-control/git/${workspaceMeta?.gitRepositoryId}/other/.spectral.yaml`,
     );
 

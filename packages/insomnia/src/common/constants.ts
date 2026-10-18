@@ -1,8 +1,8 @@
+import { env } from 'node:process';
+
 import appConfig from '../../config/config.json';
 import { version } from '../../package.json';
 import { KeyCombination } from './settings';
-
-const env = process['env'];
 
 // App Stuff
 export const getAppVersion = () => version;

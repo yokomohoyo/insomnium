@@ -63,6 +63,33 @@ module.exports = {
         '@typescript-eslint/no-var-requires': OFF(UNKNOWN),
       },
     },
+    {
+      // Vite builds the renderer with process.env replaced by {}, except the
+      // keys in vite.config.ts's define. Excluded: tests and main-process files
+      // that aren't in the renderer bundle.
+      files: ['packages/insomnia/src/**/*.{ts,tsx}'],
+      excludedFiles: [
+        '**/__tests__/**',
+        'packages/insomnia/src/main.development.ts',
+        'packages/insomnia/src/main/backup.ts',
+        'packages/insomnia/src/main/credential-keys.ts',
+        'packages/insomnia/src/main/install-plugin.ts',
+        'packages/insomnia/src/main/mcp/discovery.ts',
+        'packages/insomnia/src/main/network/curl.ts',
+        'packages/insomnia/src/main/network/websocket.ts',
+        'packages/insomnia/src/main/window-utils.ts',
+        'packages/insomnia/src/server/**',
+      ],
+      rules: {
+        'no-restricted-syntax': [ERROR, ...[
+          "MemberExpression[object.name='process'][property.name='env'][computed=false]:not(MemberExpression[property.name=/^(NODE_ENV|INSOMNIA_ENV|BUILD_DATE)$/] > MemberExpression.object)",
+          "MemberExpression[object.name='process'][property.value='env']",
+        ].map(selector => ({
+          selector,
+          message: "process.env is {} in the renderer build. Use `import { env } from 'node:process'`, or os.homedir() for HOME.",
+        }))],
+      },
+    },
   ],
   rules: {
     'array-bracket-spacing': ERROR,

@@ -6,6 +6,7 @@ guard(process.type !== 'renderer', 'Native abstractions for Nodejs module unavai
 import { Curl, CurlAuth, CurlCode, CurlFeature, CurlHttpVersion, CurlInfoDebug, CurlNetrc } from '@getinsomnia/node-libcurl';
 import electron from 'electron';
 import fs from 'fs';
+import { env as processEnv } from 'node:process';
 import path from 'path';
 import { Readable, Writable } from 'stream';
 import { parse as urlParse } from 'url';
@@ -97,7 +98,7 @@ export interface ResponsePatch {
   url?: string;
   assertionResults?: AssertionResult[];
 }
-const getDataDirectory = () => process.env.INSOMNIA_DATA_PATH || electron.app.getPath('userData');
+const getDataDirectory = () => processEnv.INSOMNIA_DATA_PATH || electron.app.getPath('userData');
 
 // NOTE: this is a dictionary of functions to close open listeners
 const cancelCurlRequestHandlers: Record<string, () => void> = {};

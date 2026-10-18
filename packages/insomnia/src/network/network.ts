@@ -1,6 +1,7 @@
 import clone from 'clone';
 import electron from 'electron';
 import fs from 'fs';
+import { env as processEnv } from 'node:process';
 import { join as pathJoin } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -380,7 +381,7 @@ async function _applyResponsePluginHooks(
 export function storeTimeline(timeline: ResponseTimelineEntry[]): Promise<string> {
   const timelineStr = JSON.stringify(timeline, null, '\t');
   const timelineHash = uuidv4();
-  const responsesDir = pathJoin(process.env['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'responses');
+  const responsesDir = pathJoin(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'responses');
 
   fs.mkdirSync(responsesDir, { recursive: true });
 

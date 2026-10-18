@@ -13,10 +13,13 @@ export default defineConfig(({ mode }) => {
     mode,
     root: path.join(__dirname, 'src'),
     base: __DEV__ ? '/' : './',
+    // Vite replaces the rest of process.env with {} in the build, so runtime
+    // reads in the renderer go through node:process (see .eslintrc.js).
     define: {
       __DEV__: JSON.stringify(__DEV__),
       'process.env.NODE_ENV': JSON.stringify(mode),
       'process.env.INSOMNIA_ENV': JSON.stringify(mode),
+      'process.env.BUILD_DATE': JSON.stringify(new Date()),
     },
     server: {
       port: pkg.dev['dev-server-port'],

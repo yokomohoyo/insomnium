@@ -1,5 +1,6 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
 import { generate, runTests, type Test } from 'insomnia-testing';
+import { env as processEnv } from 'node:process';
 import path from 'path';
 import { ActionFunction, redirect } from 'react-router-dom';
 
@@ -483,7 +484,7 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
 
   const isLintError = (result: IRuleResult) => result.severity === 0;
   const rulesetPath = path.join(
-    process.env['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
+    processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
     `version-control/git/${workspaceMeta?.gitRepositoryId}/other/.spectral.yaml`,
   );
 
@@ -522,7 +523,7 @@ export const generateCollectionAndTestsAction: ActionFunction = async ({ params 
 
   const isLintError = (result: IRuleResult) => result.severity === 0;
   const rulesetPath = path.join(
-    process.env['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
+    processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
     `version-control/git/${workspaceMeta?.gitRepositoryId}/other/.spectral.yaml`,
   );
 
