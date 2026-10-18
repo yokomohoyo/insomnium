@@ -428,11 +428,18 @@ export class GitVCS {
 
     const after = new Set(await git.listFiles({ ...this._baseOpts }));
     const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const workspaceIds = new Set<string>();
     const dropped = new Map<string, BaseModel>();
     for (const filepath of before) {
       const [root, type, fileName, ...rest] = filepath.split('/');
-      if (after.has(filepath) || root !== GIT_INSOMNIA_DIR_NAME || !fileName || rest.length
-        || type === models.workspace.type || !models.getModel(type)?.canSync) {
+      if (root !== GIT_INSOMNIA_DIR_NAME || !fileName || rest.length) {
+        continue;
+      }
+      if (type === models.workspace.type) {
+        workspaceIds.add(fileName.replace(/\.yml$/, ''));
+        continue;
+      }
+      if (after.has(filepath) || !models.getModel(type)?.canSync) {
         continue;
       }
       const committed = await git.readBlob({ ...this._baseOpts, oid: head, filepath }).catch(() => null);
@@ -453,6 +460,10 @@ export class GitVCS {
       // already gone if it was under another dropped doc
       const doc = await db.get(type, _id);
       if (!doc) {
+        continue;
+      }
+      if (!(await db.withAncestors(doc)).some(d => d.type === models.workspace.type && workspaceIds.has(d._id))) {
+        console.log(`[git] Keeping ${type} ${_id}, removed upstream: it is not under this repository's workspace`);
         continue;
       }
       const kept = (await db.withDescendants(doc)).find(d => !dropped.has(d._id) && models.getModel(d.type)?.canSync);

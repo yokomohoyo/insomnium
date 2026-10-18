@@ -113,6 +113,17 @@ describe('docs removed upstream', () => {
     expect(await db.get(models.request.type, 'req_1')).toBeNull();
   });
 
+  it('stay when they are not under the repository\'s workspace', async () => {
+    await models.workspace.create({ _id: 'wrk_2', parentId: DEFAULT_PROJECT_ID });
+    await models.request.create({ _id: 'req_9', parentId: 'wrk_2' });
+    await GitVCS.add(file(models.request.type, 'req_9'));
+    await GitVCS.commit('two');
+
+    await pullDeleting(file(models.request.type, 'req_9'));
+
+    expect(await db.get(models.request.type, 'req_9')).not.toBeNull();
+  });
+
   it('never include the workspace', async () => {
     await pullDeleting(WORKSPACE);
 
