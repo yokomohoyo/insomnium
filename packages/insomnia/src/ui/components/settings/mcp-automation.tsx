@@ -63,7 +63,7 @@ export const McpAutomation: FC = () => {
       <BooleanSetting
         label="Enable MCP automation server"
         setting="mcpEnabled"
-        help="When on, Insomnium runs an HTTP+SSE server on 127.0.0.1 exposing the Phase 1 tool surface (workspaces, requests, environments, send_http_request)."
+        help="When on, Insomnium runs an HTTP+SSE server on 127.0.0.1 for MCP clients such as coding agents: they can list and send your requests, run collections, and add or change requests, folders and environments."
       />
 
       <NumberSetting

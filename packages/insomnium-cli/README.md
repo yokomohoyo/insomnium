@@ -29,6 +29,14 @@ insomnium call update_request --args '{"requestId":"req_123","name":"New"}'
 insomnium status                      # connection health
 ```
 
+### For coding agents
+
+```sh
+insomnium agent install
+```
+
+installs a skill for Claude Code (in `~/.claude/skills/insomnium`; `--dir` for another agent's skills folder) that tells an agent how to use your collections: find a saved request, check the environment, send it, read the response and its assertions, run a folder, and add or change requests. Connect the agent to the tools with `claude mcp add insomnium npx insomnium-mcp`, or let it use this CLI.
+
 ### Arguments
 
 - `--args '<json>'` — tool arguments as a JSON object.
