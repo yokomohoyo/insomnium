@@ -6,6 +6,7 @@ import { database as db } from '../../common/database';
 import * as models from '../../models';
 import type { BaseModel } from '../../models';
 import { httpClient } from './http-client';
+import { describeDoc, type DocConflict, type MergeChoice, mergeDoc } from './merge-docs';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
 import { sanitizeGitConfig } from './sanitize-git-config';
 import { gitCallbacks } from './utils';
@@ -127,6 +128,17 @@ interface BaseOpts {
   onAuth: git.AuthCallback;
   uri: string;
   repoId: string;
+}
+
+// the documents both sides of a merge changed, with the fields that clash
+export class GitConflictsError extends Error {
+  conflicts: DocConflict[];
+
+  constructor(conflicts: DocConflict[]) {
+    super(`Both sides changed ${conflicts.map(conflict => conflict.name || conflict.file).join(', ')}: choose which to keep.`);
+    this.name = 'GitConflictsError';
+    this.conflicts = conflicts;
+  }
 }
 
 export class GitVCS {
@@ -452,14 +464,67 @@ export class GitVCS {
     }
   }
 
-  async pull(gitCredentials?: GitCredentials | null) {
-    console.log('[git] Pull remote=origin', await this.getBranch());
-    return this._removingDroppedDocs(() => git.pull({
+  async pull(gitCredentials?: GitCredentials | null, choices: Record<string, MergeChoice> = {}) {
+    const branch = await this.getBranch();
+    console.log('[git] Pull remote=origin', branch);
+    try {
+      return await this._removingDroppedDocs(() => git.pull({
+        ...this._baseOpts,
+        ...gitCallbacks(gitCredentials),
+        remote: 'origin',
+        singleBranch: true,
+      }));
+    } catch (err) {
+      // a clash a merge of the files' lines can't settle: merge what was
+      // fetched a document's fields at a time
+      if (!(err instanceof git.Errors.MergeConflictError)) {
+        throw err;
+      }
+      return this.mergeByField(`refs/remotes/origin/${branch}`, choices);
+    }
+  }
+
+  /**
+   * Merges theirs into the current branch, a document's fields at a time
+   * (merge-docs.ts), then brings the work tree, and so the app, up to the merge.
+   * choices, by file name, decide the fields both sides changed; without one, a
+   * GitConflictsError lists them.
+   */
+  async mergeByField(theirs: string, choices: Record<string, MergeChoice> = {}) {
+    const ours = await this.getBranch();
+    console.log(`[git] Merge ${ours} <-- ${theirs}`);
+    const conflicts: DocConflict[] = [];
+    let result: git.MergeResult;
+    try {
+      result = await git.merge({
+        ...this._baseOpts,
+        ours,
+        theirs,
+        abortOnConflict: true,
+        mergeDriver: ({ contents: [base, mine, yours], path: file }) => {
+          const { merged, conflicts: fields } = mergeDoc(base, mine, yours, choices[file]);
+          if (merged === undefined) {
+            conflicts.push({ file, ...describeDoc(mine, yours), fields });
+            return { cleanMerge: false, mergedText: mine };
+          }
+          return { cleanMerge: true, mergedText: merged };
+        },
+      });
+    } catch (err) {
+      if (err instanceof git.Errors.MergeConflictError && conflicts.length) {
+        throw new GitConflictsError(conflicts);
+      }
+      if (err instanceof git.Errors.MergeNotSupportedError) {
+        throw new Error("Something was deleted on one side and changed on the other, which can't be merged yet. Undo the delete or the change on one side, commit, and merge again.");
+      }
+      throw err;
+    }
+    await this._removingDroppedDocs(() => git.checkout({
       ...this._baseOpts,
-      ...gitCallbacks(gitCredentials),
+      ref: ours,
       remote: 'origin',
-      singleBranch: true,
     }));
+    return result;
   }
 
   /**

@@ -34,6 +34,12 @@ The **Git Sync** menu, at the bottom of the sidebar, shows the branch and has:
 - **History**: the commits on this branch.
 - **Branches**: create, switch to, merge and delete branches, local and remote.
 
+### When both sides changed something
+
+A pull or merge combines the two sides a request (or folder, or environment) at a time, field by field. If you changed a request's method and someone else changed its URL, both changes are kept.
+
+When both sides changed the same field differently, **Changed on Both Sides** lists each request with those fields, yours and theirs. Choose **Keep yours** or **Take theirs** for each, then **Merge**. Your other changes, and theirs, are merged either way. A merge stays on your branch.
+
 ## What's in the repository
 
 The collection is stored as YAML, one file per item, in a `.insomnium/` folder at the repository's root:
@@ -61,4 +67,5 @@ Insomnia 12.6 and later can also keep a collection in a repository as Insomnia v
 ## Not yet
 
 - SSH keys, and signing in through GitHub or GitLab in the browser.
+- Merging a request deleted on one side and changed on the other. Undo one of the two, commit, and merge again.
 - Opening a folder that's already checked out on your computer.
