@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "types": "dist/send-request/index.d.ts",
   "dependencies": {
-    "@getinsomnia/node-libcurl": "https://github.com/yokomohoyo/node-libcurl/releases/download/v5.1.2-insomnium.2/node-libcurl-5.1.2-insomnium.2.tgz",
+    "@getinsomnia/node-libcurl": "https://github.com/yokomohoyo/node-libcurl/releases/download/v5.1.2-insomnium.3/node-libcurl-5.1.2-insomnium.3.tgz",
     "@stoplight/spectral-core": "^1.18.2",
     "@stoplight/spectral-formats": "^1.5.0",
     "@stoplight/spectral-rulesets": "^1.16.0",
