@@ -40,11 +40,12 @@ describe('collectionFiles()', () => {
   });
 
   it('keeps a long value on one line', () => {
-    const url = `https://shop.example.com/orders?${'filter=open&'.repeat(12)}`;
-    const files = collectionFiles([docs[0], { _id: 'req_9', type: 'Request', parentId: 'wrk_1', name: 'Long', url }]);
+    const description = 'Lists the orders placed in the last thirty days, newest first, with their items and totals';
+    const files = collectionFiles([docs[0], { _id: 'req_9', type: 'Request', parentId: 'wrk_1', name: 'Long', description }]);
 
-    expect(files.get('Long.yaml')).toContain(`url: ${url}\n`);
-    expect(YAML.stringify({ url })).not.toContain(`url: ${url}\n`);
+    expect(files.get('Long.yaml')).toContain(`description: ${description}\n`);
+    // and other YAML is written as before
+    expect(YAML.stringify({ description })).not.toContain(`description: ${description}\n`);
   });
 });
 
