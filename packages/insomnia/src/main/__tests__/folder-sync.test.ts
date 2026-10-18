@@ -45,6 +45,8 @@ describe('FolderSync', () => {
     expect(read('Orders/_folder.yaml')).toContain('name: Orders');
     expect(read('Orders/List orders.yaml')).toContain('url: https://shop.example.com/orders');
     expect(fs.existsSync(path.join(root, 'environments/_base.yaml'))).toBe(true);
+    // and the schema they name, for editors
+    expect(JSON.parse(read('.insomnium/folder.schema.json')).title).toContain('Insomnium collection');
   });
 
   it('takes in an edit made in the folder', async () => {

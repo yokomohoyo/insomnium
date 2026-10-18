@@ -12,6 +12,8 @@
 //   Orders/Create order.yaml    a request, with its examples
 import YAML from 'yaml';
 
+import { schemaComment } from './schema';
+
 export const COLLECTION_FILE = 'insomnium.yaml';
 export const FOLDER_FILE = '_folder.yaml';
 export const ENVIRONMENTS_DIR = 'environments';
@@ -116,6 +118,10 @@ export function collectionFiles(docs: SyncDoc[]): Map<string, string> {
     }
   };
   walk(workspace._id, '');
+  // each names the folder's schema, for editors (schema.ts)
+  for (const [path, content] of files) {
+    files.set(path, schemaComment(path) + content);
+  }
   return files;
 }
 

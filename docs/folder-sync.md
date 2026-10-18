@@ -10,6 +10,8 @@ While a collection is synced, the menu has **Show the Synced Folder** and **Stop
 
 Keep the collection in a folder of its own, such as `api/` in a repository: Insomnium reads every `.yaml` file under the folder you pick.
 
+Its files' JSON Schema goes in the folder too, as `.insomnium/folder.schema.json`, and each file names it on its first line, so an editor completes and checks them as you write: see [Your editor](editors.md).
+
 ## The files
 
 ```

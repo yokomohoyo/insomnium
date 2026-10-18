@@ -16,6 +16,9 @@ import * as models from '../models';
 import type { BaseModel } from '../models';
 import type { WorkspaceMeta } from '../models/workspace-meta';
 import { COLLECTION_FILE, collectionFiles, comparable, folderDocs, REQUEST_TYPES, type SyncDoc } from '../sync/folder/layout';
+import { folderSchema, SCHEMA_DIR, SCHEMA_FILE } from '../sync/folder/schema';
+
+const SCHEMA_TEXT = JSON.stringify(folderSchema, null, 2) + '\n';
 
 const SYNCED_TYPES = new Set(['Workspace', 'Environment', 'RequestGroup', ...REQUEST_TYPES, 'ResponseExample']);
 const SETTLE_MS = 300;
@@ -151,6 +154,12 @@ export class FolderSync {
   async writeOut() {
     const docs = await this.docs();
     const files = collectionFiles(docs);
+    // the schema the files name, kept up to date (a dot folder, so never read as the collection's)
+    const schemaPath = path.join(this.root, SCHEMA_DIR, SCHEMA_FILE);
+    if ((await fs.promises.readFile(schemaPath, 'utf8').catch(() => null)) !== SCHEMA_TEXT) {
+      await fs.promises.mkdir(path.dirname(schemaPath), { recursive: true });
+      await fs.promises.writeFile(schemaPath, SCHEMA_TEXT);
+    }
     for (const [rel, content] of files) {
       const file = path.join(this.root, ...rel.split('/'));
       const onDisk = await fs.promises.readFile(file, 'utf8').catch(() => null);
