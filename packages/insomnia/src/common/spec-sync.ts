@@ -55,9 +55,7 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
   const existingFolders = descendants.filter(isRequestGroup);
   const result: SpecSyncResult = { added: [], updated: [], unchanged: [], notInSpec: [] };
 
-  console.log('[spec-sync] start', descendants.length);
   const bufferId = await db.bufferChanges();
-  console.log('[spec-sync] buffered', bufferId);
   try {
     // a tag's folder: the workspace's top-level folder of that name, made only
     // when a new request goes in it
@@ -120,7 +118,6 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
         }
       }
     }
-    console.log('[spec-sync] requests', result.added.length, result.updated.length);
     result.notInSpec = existingRequests.filter(request => request.specRequestId && !specIds.has(request.specRequestId));
 
     // the spec's variables (base_url, a server's host and path) that aren't set yet
@@ -146,10 +143,8 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
         await models.environment.create({ ...fields, parentId: baseEnvironment._id });
       }
     }
-    console.log('[spec-sync] environments');
   } finally {
     await db.flushChanges(bufferId);
-    console.log('[spec-sync] flushed');
   }
   return result;
 }

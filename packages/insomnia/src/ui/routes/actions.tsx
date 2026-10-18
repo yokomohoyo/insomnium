@@ -24,7 +24,6 @@ import { getSendRequestCallback } from '../../network/unit-test-feature';
 import { initializeLocalBackendProjectAndMarkForSync } from '../../sync/vcs/initialize-backend-project';
 import { getVCS } from '../../sync/vcs/vcs';
 import { guard } from '../../utils/guard';
-import { showAlert } from '../components/modals';
 
 // Project
 export const createNewProjectAction: ActionFunction = async ({ request, params }) => {
@@ -495,7 +494,6 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
     throw new Error('Error Generating Configuration');
   }
 
-  console.log('[spec-sync] linted');
   const scanned = await scanResources({
     content: apiSpec.contents,
   });
@@ -503,15 +501,10 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
     throw new Error(scanned.errors[0] || 'No requests found in the spec');
   }
 
-  console.log('[spec-sync] scanned', scanned.errors, ResourceCache?.resources.length);
-  // updates the requests generated before instead of adding copies
-  const summary = specSyncSummary(await syncSpecToWorkspace({ workspaceId, resources: ResourceCache.resources }));
-  console.log('[spec-sync] synced', summary);
-  if (summary) {
-    showAlert({ title: 'Request Collection Updated', message: summary });
-  }
-
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_DEBUG}`);
+  // updates the requests generated before instead of adding copies. The Spec
+  // tab goes to the requests: a redirect from here is dropped when the
+  // changes revalidate the routes before the action returns
+  return { summary: specSyncSummary(await syncSpecToWorkspace({ workspaceId, resources: ResourceCache.resources })) };
 };
 
 export const generateCollectionAndTestsAction: ActionFunction = async ({ params }) => {
