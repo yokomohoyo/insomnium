@@ -1,15 +1,16 @@
 import classnames from 'classnames';
-import React, { FC, useEffect, useRef } from 'react';
+import React, { FC, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
 import { GitRepository } from '../../../models/git-repository';
-import { CreateNewGitBranchResult, GitBranchesLoaderData } from '../../routes/git-actions';
+import { CreateNewGitBranchResult, GitBranchesLoaderData, MergeGitBranchResult } from '../../routes/git-actions';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
+import { GitConflictsModal } from './git-conflicts-modal';
 import { showAlert } from '.';
 
 type Props = ModalProps & {
@@ -36,7 +37,23 @@ export const GitBranchesModal: FC<Props> = (({
 
   const branchesFetcher = useFetcher<GitBranchesLoaderData>();
   const checkoutBranchFetcher = useFetcher();
-  const mergeBranchFetcher = useFetcher();
+  const mergeBranchFetcher = useFetcher<MergeGitBranchResult>();
+  // the branch being merged in, and the documents both sides changed
+  const [merging, setMerging] = useState('');
+  const [conflictsOpen, setConflictsOpen] = useState(false);
+  const merge = (branch: string, choices?: object) => {
+    setMerging(branch);
+    mergeBranchFetcher.submit({ branch, ...(choices ? { choices: JSON.stringify(choices) } : {}) }, {
+      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/merge`,
+      method: 'post',
+    });
+  };
+  useEffect(() => {
+    if (mergeBranchFetcher.data?.errors?.length) {
+      showAlert({ title: 'Merge Failed', message: mergeBranchFetcher.data.errors.join('\n') });
+    }
+    setConflictsOpen(Boolean(mergeBranchFetcher.data?.conflicts?.length));
+  }, [mergeBranchFetcher.data]);
   const newBranchFetcher = useFetcher<CreateNewGitBranchResult>();
   const deleteBranchFetcher = useFetcher();
 
@@ -121,14 +138,7 @@ export const GitBranchesModal: FC<Props> = (({
                           <PromptButton
                             className="btn btn--micro btn--outlined space-left"
                             doneMessage="Merged"
-                            onClick={async () => {
-                              mergeBranchFetcher.submit({
-                                branch,
-                              }, {
-                                action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/merge`,
-                                method: 'post',
-                              });
-                            }}
+                            onClick={async () => merge(branch)}
                           >
                             Merge
                           </PromptButton>
@@ -221,6 +231,14 @@ export const GitBranchesModal: FC<Props> = (({
           </div>
         </ModalFooter>
       </Modal>
+      {conflictsOpen && mergeBranchFetcher.data?.conflicts && (
+        <GitConflictsModal
+          theirs={merging}
+          conflicts={mergeBranchFetcher.data.conflicts}
+          onResolve={choices => merge(merging, choices)}
+          onHide={() => setConflictsOpen(false)}
+        />
+      )}
     </OverlayContainer>
   );
 });

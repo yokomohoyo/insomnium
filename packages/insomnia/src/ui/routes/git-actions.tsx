@@ -23,8 +23,10 @@ import GitVCS, {
   GIT_CLONE_DIR,
   GIT_INSOMNIA_DIR_NAME,
   GIT_INTERNAL_DIR,
+  GitConflictsError,
   GitLogEntry,
 } from '../../sync/git/git-vcs';
+import type { DocConflict, MergeChoice } from '../../sync/git/merge-docs';
 import { MemClient } from '../../sync/git/mem-client';
 import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
 import parseGitPath from '../../sync/git/parse-git-path';
@@ -787,7 +789,20 @@ export const checkoutGitBranchAction: ActionFunction = async ({
 
 export interface MergeGitBranchResult {
   errors?: string[];
+  // documents both branches changed: choose, and merge again with the choices
+  conflicts?: DocConflict[];
 }
+
+// the choices for a merge's conflicts, by file name, sent as JSON
+const mergeChoicesFrom = (formData: FormData): Record<string, MergeChoice> => {
+  const choices = formData.get('choices');
+  if (typeof choices !== 'string' || !choices) {
+    return {};
+  }
+  const parsed = JSON.parse(choices);
+  return Object.fromEntries(Object.entries(parsed && typeof parsed === 'object' ? parsed : {})
+    .filter((entry): entry is [string, MergeChoice] => entry[1] === 'ours' || entry[1] === 'theirs'));
+};
 
 export const mergeGitBranchAction: ActionFunction = async ({
   request,
@@ -813,17 +828,14 @@ export const mergeGitBranchAction: ActionFunction = async ({
   const branch = formData.get('branch');
   guard(typeof branch === 'string', 'Branch name is required');
 
+  // the merge stays on the current branch, which the work tree follows
+  const bufferId = await database.bufferChanges();
   try {
-    const providerName = getOauth2FormatName(repo?.credentials);
-    await GitVCS.merge(branch);
-    // Apparently merge doesn't update the working dir so need to checkout too
-    const bufferId = await database.bufferChanges();
-
-    await GitVCS.checkout(branch);
-
-    await database.flushChanges(bufferId, true);
-
+    await GitVCS.mergeByField(branch, mergeChoicesFrom(formData));
   } catch (err) {
+    if (err instanceof GitConflictsError) {
+      return { conflicts: err.conflicts };
+    }
     if (err instanceof Errors.HttpError) {
       return {
         errors: [`${err.message}, ${err.data.response}`],
@@ -831,6 +843,8 @@ export const mergeGitBranchAction: ActionFunction = async ({
     }
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return { errors: [errorMessage] };
+  } finally {
+    await database.flushChanges(bufferId, true);
   }
 
   return {};
@@ -956,9 +970,11 @@ export const pushToGitRemoteAction: ActionFunction = async ({
 
 export interface PullFromGitRemoteResult {
   errors?: string[];
+  conflicts?: DocConflict[];
 }
 
 export const pullFromGitRemoteAction: ActionFunction = async ({
+  request,
   params,
 }): Promise<PullFromGitRemoteResult> => {
   const { workspaceId } = params;
@@ -993,9 +1009,12 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
 
 
   try {
-    await GitVCS.pull(gitRepository.credentials);
-
+    await GitVCS.pull(gitRepository.credentials, mergeChoicesFrom(await request.formData()));
   } catch (err: unknown) {
+    if (err instanceof GitConflictsError) {
+      await database.flushChanges(bufferId);
+      return { conflicts: err.conflicts };
+    }
     if (err instanceof Errors.HttpError) {
       return { errors: [`${err.message}, ${err.data.response}`] };
     }

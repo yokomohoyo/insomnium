@@ -26,6 +26,7 @@ import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';
 import { showAlert } from '../modals';
 import { GitBranchesModal } from '../modals/git-branches-modal';
+import { GitConflictsModal } from '../modals/git-conflicts-modal';
 import { GitLogModal } from '../modals/git-log-modal';
 import { GitRepositorySettingsModal } from '../modals/git-repository-settings-modal';
 import { GitStagingModal } from '../modals/git-staging-modal';
@@ -132,6 +133,12 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
       });
     }
   }, [gitPullFetcher.data?.errors]);
+
+  // what changed here and upstream, to choose between and pull again
+  const [pullConflictsOpen, setPullConflictsOpen] = useState(false);
+  useEffect(() => {
+    setPullConflictsOpen(Boolean(gitPullFetcher.data?.conflicts?.length));
+  }, [gitPullFetcher.data]);
 
   useEffect(() => {
     const errors = [...(gitCheckoutFetcher.data?.errors ?? [])];
@@ -555,6 +562,17 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
       )}
       {isGitStagingModalOpen && (
         <GitStagingModal onHide={() => setIsGitStagingModalOpen(false)} />
+      )}
+      {pullConflictsOpen && gitPullFetcher.data?.conflicts && (
+        <GitConflictsModal
+          theirs="the remote"
+          conflicts={gitPullFetcher.data.conflicts}
+          onResolve={choices => gitPullFetcher.submit({ choices: JSON.stringify(choices) }, {
+            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
+            method: 'post',
+          })}
+          onHide={() => setPullConflictsOpen(false)}
+        />
       )}
     </Fragment>
   );
