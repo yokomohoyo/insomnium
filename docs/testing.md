@@ -44,6 +44,21 @@ Responses are kept as the run goes, so cookies, [`{% response %}`](template-tags
 
 Afterwards, save the results as a JUnit XML or JSON report.
 
+## Load test
+
+In the runner, choose **Load test** to send the chosen requests under load: each virtual user sends them in order, again and again, until the time is up.
+
+- **Virtual users**, up to 100, send at the same time.
+- **Duration**: how long the test runs.
+- **Ramp-up** starts the users one after another over that time, rather than all at once.
+- **Think time** is how long each user waits after each request.
+
+While it runs, and when it's done, the runner shows how many requests were sent, how many a second, how many failed, and their latency (mean, 50th, 90th, 95th and 99th percentile, and the slowest) for each request and overall, with the status codes and the most common failures. A request fails when it can't be sent, answers 400 or above, or fails an assertion. **Save JSON** keeps the results.
+
+Every request is sent as Send sends it, with its scripts, plugins and assertions, but responses aren't kept, so a long test doesn't fill your history or your disk. Load test only APIs you're allowed to.
+
+To load test in CI, with thresholds that fail the build, use [`insomnium-server load`](../packages/insomnium-server/README.md#load-test-a-collection).
+
 ## Run a collection in CI
 
 `insomnium-server run` is the same runner, without the app. It exits 1 when a request can't be sent or a check fails, and writes JUnit or JSON reports for your CI:

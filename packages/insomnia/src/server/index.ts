@@ -6,9 +6,12 @@ import fs from 'node:fs';
 
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
+import { brokenThresholds } from '../network/load-stats';
+import { runLoadTest } from '../network/load-test';
 import { jsonReport, junitReport } from '../network/run-files';
 import { runRequests } from '../network/runner';
 import { parseConfig, ServerConfig, USAGE } from './config';
+import { formatLoadSummary, LOAD_USAGE, LoadConfig, parseLoadConfig } from './load';
 import { MOCK_USAGE, MockConfig, parseMockConfig } from './mock';
 import { formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
@@ -72,6 +75,66 @@ async function run(argv: string[]) {
     await fs.promises.writeFile(config.json, jsonReport(summary, name));
   }
   return summary.requests.failed ? 1 : 0;
+}
+
+// 0 when the thresholds held, 1 when one broke, 2 when the test couldn't start
+async function load(argv: string[]) {
+  if (argv.includes('--help')) {
+    console.log(LOAD_USAGE);
+    return 0;
+  }
+  let config: LoadConfig;
+  try {
+    config = parseLoadConfig(argv, process.env);
+  } catch (err) {
+    console.error(`${(err as Error).message}\n\n${LOAD_USAGE}`);
+    return 2;
+  }
+
+  console.log = console.info = console.debug = () => {};
+  let prepared;
+  try {
+    const workspaces = await loadWorkspaces(config);
+    const requests = await selectRequests(workspaces, config.folder);
+    if (!requests.length) {
+      throw new Error(`No HTTP requests to load test${config.folder ? ` in '${config.folder}'` : ''}`);
+    }
+    prepared = { requests, name: workspaces.map(workspace => workspace.name).join(', ') };
+  } catch (err) {
+    console.error(`[load] ${(err as Error).message}`);
+    return 2;
+  }
+
+  const { requests, name } = prepared;
+  print(`[load] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, ${config.virtualUsers} ${config.virtualUsers === 1 ? 'user' : 'users'} for ${config.durationMs / 1000} s`);
+  const controller = new AbortController();
+  const stop = () => controller.abort();
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+  let summary;
+  try {
+    summary = await runLoadTest(requests, {
+      virtualUsers: config.virtualUsers,
+      durationMs: config.durationMs,
+      rampUpMs: config.rampUpMs,
+      thinkTimeMs: config.thinkTimeMs,
+      signal: controller.signal,
+      onProgress: progress => process.stderr.write(`\r[load] ${progress.requests} sent · ${progress.throughput}/s · ${progress.failed} failed · p95 ${progress.latency.p95} ms   `),
+    });
+  } catch (err) {
+    console.error(`\n[load] ${(err as Error).message}`);
+    return 2;
+  }
+  process.stderr.write('\n');
+  print(`\n${formatLoadSummary(summary)}`);
+  const broken = brokenThresholds(summary, config.thresholds);
+  if (config.json) {
+    await fs.promises.writeFile(config.json, JSON.stringify({ name, ...summary, thresholds: config.thresholds, broken }, null, 2));
+  }
+  for (const reason of broken) {
+    print(`✗ ${reason}`);
+  }
+  return broken.length ? 1 : 0;
 }
 
 async function mock(argv: string[]) {
@@ -140,6 +203,9 @@ async function main() {
   }
   if (argv[0] === 'mock') {
     return mock(argv.slice(1));
+  }
+  if (argv[0] === 'load') {
+    process.exit(await load(argv.slice(1)));
   }
   await serve(argv);
 }

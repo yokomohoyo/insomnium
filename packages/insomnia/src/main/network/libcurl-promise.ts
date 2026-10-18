@@ -243,6 +243,8 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
       const elapsedTime = curl.getInfo(Curl.info.TOTAL_TIME) as number * 1000;
       curl.close();
       await waitForStreamToFinish(responseBodyWriteStream);
+      // a failed send has no body to keep
+      await fs.promises.rm(responseBodyPath, { force: true }).catch(() => undefined);
 
       let error = err + '';
       let statusMessage = 'Error';

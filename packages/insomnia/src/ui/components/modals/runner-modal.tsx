@@ -6,6 +6,7 @@ import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 import { jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
 import { listRunnableRequests, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
 import { WorkspaceLoaderData } from '../../routes/workspace';
+import { LoadTestPanel } from '../load-test-panel';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -39,6 +40,10 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
   const [results, setResults] = useState<RunResult[]>([]);
   const [summary, setSummary] = useState<RunSummary>();
   const [running, setRunning] = useState(false);
+  // run them once per iteration, or load test them
+  const [mode, setMode] = useState<'run' | 'load'>('run');
+  const [loadRunning, setLoadRunning] = useState(false);
+  const busy = running || loadRunning;
   const controller = useRef<AbortController>();
   // a stable dependency for the effect, though the array is new each render
   const folderKey = JSON.stringify(folders);
@@ -123,9 +128,19 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
     <Modal ref={modalRef} onHide={hide} wide tall>
       <ModalHeader>Run {name}</ModalHeader>
       <ModalBody className="pad">
+        <div role="radiogroup" aria-label="Runner mode" className="flex gap-4 margin-bottom-sm">
+          <label className="flex items-center gap-2">
+            <input type="radio" name="runner-mode" checked={mode === 'run'} disabled={busy} onChange={() => setMode('run')} />
+            Run
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="radio" name="runner-mode" checked={mode === 'load'} disabled={busy} onChange={() => setMode('load')} />
+            Load test
+          </label>
+        </div>
         <p className="faint txt-sm no-margin-top">
           Sends these requests in order, as Send does, with the <strong>{activeEnvironment.name}</strong> environment, and checks their assertions.
-          Cookies and response tags carry from one request to the next.
+          {mode === 'run' && ' Cookies and response tags carry from one request to the next.'}
         </p>
         {requests && !requests.length && <p>There are no HTTP requests in {name}.</p>}
         <ul aria-label="Requests to run" className="list-none m-0 p-0">
@@ -135,7 +150,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
                 <input
                   type="checkbox"
                   checked={!skipped.has(request._id)}
-                  disabled={running}
+                  disabled={busy}
                   onChange={event => {
                     const next = new Set(skipped);
                     event.currentTarget.checked ? next.delete(request._id) : next.add(request._id);
@@ -148,6 +163,8 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
             </li>
           ))}
         </ul>
+        {mode === 'load' && <LoadTestPanel requests={chosen} name={name} onRunningChange={setLoadRunning} />}
+        {mode === 'run' && (<>
         <div className="form-row margin-top">
           <div className="form-control form-control--outlined">
             <label>
@@ -211,6 +228,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
             </ul>
           </section>
         )}
+        </>)}
       </ModalBody>
       <ModalFooter>
         <div className="margin-left flex gap-2">
@@ -221,9 +239,9 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
             </>
           )}
         </div>
-        {running
+        {mode === 'run' && (running
           ? <button className="btn" onClick={() => controller.current?.abort()}>Stop</button>
-          : <button className="btn" disabled={!chosen.length} onClick={run}>Run {chosen.length} {chosen.length === 1 ? 'request' : 'requests'}</button>}
+          : <button className="btn" disabled={!chosen.length} onClick={run}>Run {chosen.length} {chosen.length === 1 ? 'request' : 'requests'}</button>)}
       </ModalFooter>
     </Modal>
   );
