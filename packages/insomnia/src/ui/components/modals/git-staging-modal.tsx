@@ -1,12 +1,14 @@
 import classnames from 'classnames';
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
-import { useFetcher, useParams } from 'react-router-dom';
+import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
+import { cleanCommitMessage, commitPrompt } from '../../../common/ai-prompts';
 import { strings } from '../../../common/strings';
 import * as models from '../../../models';
 import type { DocDiff } from '../../../sync/git/doc-diff';
 import { CommitToGitRepoResult, GitChangesLoaderData, GitRollbackChangesResult } from '../../routes/git-actions';
+import type { RootLoaderData } from '../../routes/root';
 import { IndeterminateCheckbox } from '../base/indeterminate-checkbox';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -81,6 +83,28 @@ export const GitStagingModal: FC<ModalProps> = ({
 
   const [hasDone, setHasDone] = useState(false);
 
+  // a message suggested by the AI assistant, from the changes being committed
+  const { settings } = useRouteLoaderData('root') as RootLoaderData;
+  const canSuggest = Boolean(settings.aiBaseUrl && settings.aiModel);
+  const [message, setMessage] = useState('');
+  const [isSuggesting, setSuggesting] = useState(false);
+  const suggestMessage = async () => {
+    const chosen = new Set((formRef.current ? new FormData(formRef.current).getAll('paths') : []).map(String));
+    const committed = changes.filter(change => chosen.has(change.path)
+      || (checkAllModified && !change.status.includes('added'))
+      || (checkAllUnversioned && change.status.includes('added')));
+    setSuggesting(true);
+    try {
+      const reply = await window.main.ai.chat({
+        messages: commitPrompt((committed.length ? committed : changes).map(change => ({ ...change, name: statusNames?.[change.path] || change.path }))),
+      });
+      setMessage(cleanCommitMessage(reply));
+    } catch (err) {
+      showAlert({ title: 'Suggest a Message', message: (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') });
+    }
+    setSuggesting(false);
+  };
+
   return (
     <OverlayContainer>
       <Modal onHide={onHide} ref={modalRef}>
@@ -113,8 +137,24 @@ export const GitStagingModal: FC<ModalProps> = ({
                     required
                     placeholder="A descriptive message to describe changes made"
                     name="message"
+                    value={message}
+                    onChange={event => setMessage(event.currentTarget.value)}
                   />
                 </div>
+                {canSuggest && (
+                  <div className="txt-sm">
+                    <button
+                      type="button"
+                      className="btn btn--micro btn--outlined"
+                      disabled={isSuggesting}
+                      title="Sends the names of the changed items and their changed fields, not their values"
+                      onClick={suggestMessage}
+                    >
+                      <i className={`fa ${isSuggesting ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'} space-right`} />
+                      Suggest a Message
+                    </button>
+                  </div>
+                )}
                 {modifiedChanges.length > 0 && (
                   <div className="pad-top">
                     <strong>Modified Objects</strong>

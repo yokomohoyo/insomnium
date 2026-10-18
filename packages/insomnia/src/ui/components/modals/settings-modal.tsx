@@ -6,6 +6,7 @@ import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 
+import { AiAssistant } from '../settings/ai-assistant';
 import { General } from '../settings/general';
 import { ImportExport } from '../settings/import-export';
 
@@ -87,6 +88,11 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
           <TabItem key="mcp" title="Automation (MCP)">
             <PanelContainer className="pad">
               <McpAutomation />
+            </PanelContainer>
+          </TabItem>
+          <TabItem key={TAB_INDEX_AI} title="AI">
+            <PanelContainer className="pad">
+              <AiAssistant />
             </PanelContainer>
           </TabItem>
 

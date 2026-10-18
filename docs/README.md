@@ -12,6 +12,7 @@ Insomnium is a local API client for HTTP, GraphQL, gRPC, WebSocket and Server-Se
 - [Import and export](import-export.md): bring collections from Postman, Insomnia, Bruno and others, and export your own.
 - [Design documents](design-documents.md): edit and lint OpenAPI specs, and generate requests from them.
 - [Plugins](plugins.md): add template tags, request hooks, actions and themes.
+- [AI assistant](ai-assistant.md): write a request from a description, or a commit message, with a model you choose, on your computer or with your own key.
 - [Keyboard shortcuts](keyboard-shortcuts.md).
 
 Also:

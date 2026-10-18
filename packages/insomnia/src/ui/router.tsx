@@ -34,8 +34,6 @@ const UnitTest = lazy(() => import('./routes/unit-test'));
 const Debug = lazy(() => import('./routes/debug'));
 const Design = lazy(() => import('./routes/design'));
 
-const LLMRoute = lazy(() => import('./routes/llm'));
-
 initializeLogging();
 // Handy little helper
 document.body.setAttribute('data-platform', process.platform);
@@ -84,15 +82,6 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
             path: 'settings/update',
             action: async (...args) =>
               (await import('./routes/actions')).updateSettingsAction(...args),
-          },
-          {
-            id: '/llm',
-            path: 'llm',
-            element: (
-              <Suspense >
-                <LLMRoute />
-              </Suspense>
-            ),
           },
           {
             path: 'organization',
@@ -560,39 +549,6 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
                                         ],
                                       },
                                     ],
-                                  },
-                                ],
-                              },
-                              {
-                                path: 'ai',
-                                children: [
-                                  {
-                                    path: 'generate',
-                                    children: [
-                                      {
-                                        path: 'collection-and-tests',
-                                        action: async (...args) =>
-                                          (
-                                            await import('./routes/actions')
-                                          ).generateCollectionAndTestsAction(
-                                            ...args,
-                                          ),
-                                      },
-                                      {
-                                        path: 'tests',
-                                        action: async (...args) =>
-                                          (
-                                            await import('./routes/actions')
-                                          ).generateTestsAction(...args),
-                                      },
-                                    ],
-                                  },
-                                  {
-                                    path: 'access',
-                                    action: async (...args) =>
-                                      (
-                                        await import('./routes/actions')
-                                      ).accessAIApiAction(...args),
                                   },
                                 ],
                               },

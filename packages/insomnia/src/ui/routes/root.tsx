@@ -24,7 +24,6 @@ import {
   useParams,
   useRouteLoaderData,
 } from 'react-router-dom';
-import llama from "../../../src/ui/components/assets/llama.jpg";
 
 /**** ><> ↑ --------- Imports */
 
@@ -391,29 +390,6 @@ const Root = () => {
                     </Tooltip>
                   </TooltipTrigger>
 
-              {/* <TooltipTrigger>
-                <Link>
-                  <NavLink
-                    className={({ isActive }) =>
-                      `select-none text-[--color-font-surprise] flex-shrink-0 hover:no-underline transition-all duration-150 bg-gradient-to-br box-border from-[#4000BF] to-[#154B62]  font-bold  rounded-md w-[28px] h-[28px] flex items-center justify-center active:outline overflow-hidden outline-offset-[3px] outline ${isActive
-                        ? 'outline-[--color-font]'
-                        : 'outline-transparent focus:outline-[--hl-md] hover:outline-[--hl-md]'
-                      }`
-                    }
-                    to={`/llm`}
-                  >
-
-                    <img src={llama} />
-                  </NavLink>
-                </Link>
-                <Tooltip
-                  placement="right"
-                  offset={8}
-                  className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
-                >
-                  <span>Large Language Models</span>
-                </Tooltip>
-              </TooltipTrigger> */}
               </nav>
             </div>
             {/* /**** ><> ↑ --------- Navbar */}
