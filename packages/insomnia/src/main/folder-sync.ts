@@ -21,12 +21,14 @@ import { generateId } from '../common/misc';
 import * as models from '../models';
 import type { BaseModel } from '../models';
 import type { WorkspaceMeta } from '../models/workspace-meta';
-import { COLLECTION_FILE, collectionFiles, comparable, folderDocs, type FolderDocs, REQUEST_TYPES, type SyncDoc } from '../sync/folder/layout';
+import { COLLECTION_FILE, collectionFiles, comparable, FOLDER_FILE, folderDocs, type FolderDocs, REQUEST_TYPES, type SyncDoc } from '../sync/folder/layout';
 import { folderSchema, SCHEMA_DIR, SCHEMA_FILE } from '../sync/folder/schema';
 
 const SCHEMA_TEXT = JSON.stringify(folderSchema, null, 2) + '\n';
 
 const SYNCED_TYPES = new Set(['Workspace', 'Environment', 'RequestGroup', ...REQUEST_TYPES, 'ResponseExample']);
+// what the sync holds for a file of its own it couldn't read: never the file's text
+const UNREAD = '\u0000';
 const SETTLE_MS = 300;
 
 const newId = (type: string) => generateId(models.getModel(type)?.prefix || 'doc');
@@ -102,6 +104,15 @@ export class FolderSync {
       // file couldn't be read, when what it held isn't known
       if (taken && !parsed.failed.size) {
         await this.removeMissing(new Set(meta.folderSyncIds || []), parsed);
+      }
+      // the collection's files it couldn't read (and those in a folder whose
+      // own file it couldn't): the sync's, left alone until they read
+      const folders = [...files.keys()].filter(rel => rel.endsWith(`/${FOLDER_FILE}`)).map(rel => rel.slice(0, rel.lastIndexOf('/')));
+      for (const rel of files.keys()) {
+        const dir = rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '';
+        if (!this.written.has(rel) && (parsed.failed.has(rel) || folders.some(folder => dir === folder || dir.startsWith(`${folder}/`)))) {
+          this.written.set(rel, UNREAD);
+        }
       }
     }
     await this.writeOut();
@@ -291,8 +302,9 @@ export class FolderSync {
     // what's in the folder and isn't the sync's: never written over
     const reserved = new Set([...blocked, ...[...onDisk.keys()].filter(rel => !this.written.has(rel)).map(rel => rel.toLowerCase())]);
     const files = collectionFiles(docs, reserved);
-    // a file of the sync's that can't be read is the user's edit in progress: left as it is
-    const unreadable = folderDocs(onDisk, newId).failed;
+    // a file of the sync's that changed and wasn't taken in (it doesn't read,
+    // or its folder's file doesn't) is an edit in progress: left as it is
+    const pending = (rel: string) => this.written.has(rel) && onDisk.has(rel) && onDisk.get(rel) !== this.written.get(rel);
 
     // the schema the files name, kept up to date (a dot folder, so never read as the collection's)
     const schemaPath = path.join(this.root, SCHEMA_DIR, SCHEMA_FILE);
@@ -303,10 +315,8 @@ export class FolderSync {
 
     const written = new Map<string, string>();
     for (const [rel, content] of files) {
-      if (unreadable.has(rel)) {
-        if (this.written.has(rel)) {
-          written.set(rel, this.written.get(rel)!);
-        }
+      if (pending(rel)) {
+        written.set(rel, this.written.get(rel)!);
         continue;
       }
       try {
@@ -324,7 +334,7 @@ export class FolderSync {
       if (files.has(rel) || !onDisk.has(rel)) {
         continue;
       }
-      if (unreadable.has(rel)) {
+      if (pending(rel)) {
         written.set(rel, this.written.get(rel)!);
         continue;
       }
