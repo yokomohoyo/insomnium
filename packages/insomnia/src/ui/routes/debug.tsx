@@ -63,6 +63,7 @@ import { GenerateCodeModal } from '../components/modals/generate-code-modal';
 import { PasteCurlModal } from '../components/modals/paste-curl-modal';
 import { PromptModal } from '../components/modals/prompt-modal';
 import { RequestSettingsModal } from '../components/modals/request-settings-modal';
+import { RequestSwitcherModal } from '../components/modals/request-switcher-modal';
 import { WorkspaceEnvironmentsEditModal } from '../components/modals/workspace-environments-edit-modal';
 import { GrpcRequestPane } from '../components/panes/grpc-request-pane';
 import { GrpcResponsePane } from '../components/panes/grpc-response-pane';
@@ -181,6 +182,7 @@ export const Debug: FC = () => {
     })),
   );
   const [isCookieModalOpen, setIsCookieModalOpen] = useState(false);
+  const [requestSwitcher, setRequestSwitcher] = useState<'all' | 'recent' | null>(null);
   const [isRequestSettingsModalOpen, setIsRequestSettingsModalOpen] =
     useState(false);
   const [isEnvironmentModalOpen, setEnvironmentModalOpen] = useState(false);
@@ -371,9 +373,9 @@ export const Debug: FC = () => {
           ),
       });
     },
-    // TODO: fix these
-    request_showRecent: () => { },
-    request_quickSwitch: () => { },
+    request_showRecent: () => setRequestSwitcher('recent'),
+    request_showRecentPrevious: () => setRequestSwitcher('recent'),
+    request_quickSwitch: () => setRequestSwitcher('all'),
     environment_showEditor: () => setEnvironmentModalOpen(true),
     showCookiesEditor: () => setIsCookieModalOpen(true),
     request_showGenerateCodeEditor: () => {
@@ -1011,6 +1013,9 @@ export const Debug: FC = () => {
             <WorkspaceEnvironmentsEditModal
               onHide={() => setEnvironmentModalOpen(false)}
             />
+          )}
+          {requestSwitcher && (
+            <RequestSwitcherModal mode={requestSwitcher} onHide={() => setRequestSwitcher(null)} />
           )}
           {isCookieModalOpen && (
             <CookiesModal onHide={() => setIsCookieModalOpen(false)} />
