@@ -141,23 +141,26 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
                 </>
               )}
             </div>
-            <p className="faint txt-sm pad-left pad-right">
-              {selected === base
-                ? `Variables for every collection in ${projectName}. A collection's own environments override them.`
-                : 'Over the global base environment, for the collections that use it.'}
-              {activeId && selected === base && (
-                <button className="btn btn--super-compact space-left" onClick={() => use(null)}>Use No Global Sub Environment</button>
-              )}
-            </p>
-            <div className="env-modal__editor">
-              {selected && (
-                <EnvironmentEditor
-                  ref={editorRef}
-                  key={selected._id}
-                  environmentInfo={{ object: selected.data, propertyOrder: selected.dataPropertyOrder }}
-                  onBlur={save}
-                />
-              )}
+            {/* the main grid's second row: the note, then the editor filling the rest */}
+            <div className="flex flex-col min-h-0 h-full">
+              <p className="faint txt-sm pad-left pad-right">
+                {selected === base
+                  ? `Variables for every collection in ${projectName}. A collection's own environments override them.`
+                  : 'Over the global base environment, for the collections that use it.'}
+                {activeId && selected === base && (
+                  <button className="btn btn--super-compact space-left" onClick={() => use(null)}>Use No Global Sub Environment</button>
+                )}
+              </p>
+              <div className="env-modal__editor flex-1 min-h-0" style={{ height: 'auto' }}>
+                {selected && (
+                  <EnvironmentEditor
+                    ref={editorRef}
+                    key={selected._id}
+                    environmentInfo={{ object: selected.data, propertyOrder: selected.dataPropertyOrder }}
+                    onBlur={save}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </ModalBody>
