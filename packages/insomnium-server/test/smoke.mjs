@@ -187,7 +187,7 @@ try {
   const report = fs.existsSync(path.join(out, 'report.xml')) ? fs.readFileSync(path.join(out, 'report.xml'), 'utf8') : '';
   check(failing.status === 1 && /<failure message="Status code equals 201: got &quot;200&quot;"\/>/.test(report), `run exits 1 when one fails, and writes JUnit (${failing.status}: ${failing.stdout}${failing.stderr})`);
   const viaProxy = await run(data => ['--env', 'ci', '--folder', 'passing', '--data', path.join(data, 'rows.csv')], { HTTP_PROXY: `http://127.0.0.1:${forwardProxy.address().port}`, NO_PROXY: '' });
-  check(viaProxy.status === 0 && proxied.some(url => url.endsWith('/run/one')), `run sends through HTTP_PROXY (${viaProxy.status}: ${proxied.join(', ')} ${viaProxy.stdout}${viaProxy.stderr})`);
+  check(viaProxy.status === 0 && proxied.some(url => url.endsWith('/run/one')), `run sends through HTTP_PROXY (${viaProxy.status}, ${proxied.length} through it: ${viaProxy.stdout}${viaProxy.stderr})`);
 } catch (err) {
   check(false, `ran without errors: ${err.stack}`);
 } finally {
