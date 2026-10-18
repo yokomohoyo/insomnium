@@ -41,6 +41,12 @@ describe('collectionFiles()', () => {
     expect(JSON.stringify([...files.values()])).not.toContain('secret');
   });
 
+  it("keeps clear of names Windows keeps, and of other files", () => {
+    const files = collectionFiles([docs[0], { _id: 'req_c', type: 'Request', parentId: 'wrk_1', name: 'CON' }, { _id: 'fld_a', type: 'RequestGroup', parentId: 'wrk_1', name: 'aux.v2' }, { _id: 'req_r', type: 'Request', parentId: 'wrk_1', name: 'Readme' }], new Set(['readme.yaml']));
+
+    expect([...files.keys()].sort()).toEqual(['Readme (2).yaml', 'aux.v2_/_folder.yaml', 'CON_.yaml', 'insomnium.yaml'].sort());
+  });
+
   it('keeps a long value on one line', () => {
     const description = 'Lists the orders placed in the last thirty days, newest first, with their items and totals';
     const files = collectionFiles([docs[0], { _id: 'req_9', type: 'Request', parentId: 'wrk_1', name: 'Long', description }]);

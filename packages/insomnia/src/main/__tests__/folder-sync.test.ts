@@ -123,4 +123,114 @@ describe('FolderSync', () => {
     expect((await models.request.getById(requestId))?.name).toBe('Orders, all');
     expect(fs.existsSync(path.join(root, 'Orders/Orders, all.yaml'))).toBe(true);
   });
+
+  it("keeps an edit made in the app when the folder has other YAML", async () => {
+    write('docker-compose.yaml', 'services: {}\n');
+    await sync.reconcile();
+    const request = await models.request.getById(requestId);
+    await models.request.update(request!, { url: 'https://shop.example.com/v2/orders' });
+
+    await sync.reconcile();
+    await sync.reconcile();
+
+    expect((await models.request.getById(requestId))?.url).toBe('https://shop.example.com/v2/orders');
+    expect(read('Orders/List orders.yaml')).toContain('/v2/orders');
+  });
+
+  it("leaves a file it can't read, and what it held, until it reads again", async () => {
+    write('Orders/List orders.yaml', '<<<<<<< HEAD\nurl: one\n=======\nurl: [two\n');
+    write('Orders/_folder.yaml', 'type: RequestGroup\nname: [Orders\n');
+
+    await sync.reconcile();
+    await sync.reconcile();
+
+    expect(await models.request.getById(requestId)).toBeTruthy();
+    expect(await models.requestGroup.getById(folderId)).toBeTruthy();
+    expect(read('Orders/List orders.yaml')).toContain('<<<<<<< HEAD');
+    expect(read('Orders/_folder.yaml')).toContain('name: [Orders');
+    expect(sync.problems.join('\n')).toContain('Orders/_folder.yaml');
+
+    // fixed, it comes in
+    write('Orders/_folder.yaml', `_id: ${folderId}\ntype: RequestGroup\nname: Orders\n`);
+    write('Orders/List orders.yaml', `_id: ${requestId}\ntype: Request\nname: List orders\nmethod: GET\nurl: https://shop.example.com/fixed\n`);
+    await sync.reconcile();
+    expect((await models.request.getById(requestId))?.url).toBe('https://shop.example.com/fixed');
+  });
+
+  it("leaves a file broken while the app was closed, and writes no copy of it", async () => {
+    const broken = 'type: Request\nname: [broken\n';
+    write('Orders/List orders.yaml', broken);
+
+    const reopened = new FolderSync(workspaceId, root);
+    await reopened.start();
+    reopened.stop();
+
+    expect(await models.request.getById(requestId)).toBeTruthy();
+    expect(read('Orders/List orders.yaml')).toBe(broken);
+    expect(fs.readdirSync(path.join(root, 'Orders')).sort()).toEqual(['List orders.yaml', '_folder.yaml']);
+  });
+
+  it('takes in a file without an _id once, under its own name', async () => {
+    write('Orders/scratch.yaml', 'type: Request\nname: Refund\nurl: https://shop.example.com/refunds\n');
+
+    await sync.reconcile();
+    await sync.reconcile();
+    await sync.reconcile();
+
+    const refunds = (await models.request.findByParentId(folderId)).filter(request => request.name === 'Refund');
+    expect(refunds).toHaveLength(1);
+    expect(fs.existsSync(path.join(root, 'Orders/scratch.yaml'))).toBe(false);
+    expect(read('Orders/Refund.yaml')).toContain(`_id: ${refunds[0]._id}`);
+  });
+
+  it("makes a copy of a copied file, and of another collection's document", async () => {
+    write('Orders/Copy.yaml', read('Orders/List orders.yaml').replace('name: List orders', 'name: Copy').replace('/orders', '/copy'));
+    const other = (await models.workspace.create({ name: 'Other', parentId: 'proj_1' }))._id;
+    const theirs = (await models.request.create({ name: 'Theirs', parentId: other, url: 'https://other.example.com' }))._id;
+    write('Theirs.yaml', `_id: ${theirs}\ntype: Request\nname: Theirs here\nurl: https://shop.example.com/theirs\n`);
+
+    await sync.reconcile();
+
+    expect((await models.request.getById(requestId))).toMatchObject({ name: 'List orders', url: 'https://shop.example.com/orders' });
+    const [copy] = (await models.request.findByParentId(folderId)).filter(request => request.name === 'Copy');
+    expect(copy._id).not.toBe(requestId);
+    expect(copy.url).toBe('https://shop.example.com/copy');
+    expect(await models.request.getById(theirs)).toMatchObject({ parentId: other, name: 'Theirs', url: 'https://other.example.com' });
+    const [here] = (await models.request.findByParentId(workspaceId)).filter(request => request.name === 'Theirs here');
+    expect(here._id).not.toBe(theirs);
+  });
+
+  it("takes nothing in from another collection's insomnium.yaml", async () => {
+    const other = (await models.workspace.create({ name: 'Other', parentId: 'proj_1' }))._id;
+    write('insomnium.yaml', `_id: ${other}\ntype: Workspace\nname: Other\n`);
+
+    await sync.reconcile();
+
+    expect((await models.request.getById(requestId))?.parentId).toBe(folderId);
+    expect((await models.requestGroup.getById(folderId))?.parentId).toBe(workspaceId);
+    expect(sync.problems.join('\n')).toContain("is another collection's");
+  });
+
+  it('keeps the examples of a private request, which stay out of the folder', async () => {
+    const secret = (await models.request.create({ name: 'Secret', parentId: workspaceId, isPrivate: true }))._id;
+    const example = (await models.responseExample.create({ name: 'Ok', parentId: secret }))._id;
+    await sync.reconcile();
+
+    const reopened = new FolderSync(workspaceId, root);
+    await reopened.start();
+    reopened.stop();
+
+    expect(await models.responseExample.getById(example)).toBeTruthy();
+  });
+
+  it("names its files around ones that aren't the collection's", async () => {
+    write('Status.yaml', 'services: {}\n');
+    await sync.reconcile();
+    await models.request.create({ name: 'Status', parentId: workspaceId, url: 'https://shop.example.com/status' });
+
+    await sync.reconcile();
+
+    expect(read('Status.yaml')).toBe('services: {}\n');
+    expect(read('Status (2).yaml')).toContain('url: https://shop.example.com/status');
+  });
 });

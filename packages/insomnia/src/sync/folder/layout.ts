@@ -35,8 +35,14 @@ export interface SyncDoc {
 // left out of the files: kept by the app, or derived from where a file is
 const LEFT_OUT = new Set(['_id', 'type', 'parentId', 'modified', 'created', 'metaSortKey']);
 
+// names Windows keeps for devices, with any extension
+const RESERVED_ON_WINDOWS = /^(con|prn|aux|nul|com[0-9\u00b9\u00b2\u00b3]|lpt[0-9\u00b9\u00b2\u00b3])(\..*)?$/i;
+
 const fileName = (name: string | undefined) => {
   const cleaned = (name || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/^[\s.]+|[\s.]+$/g, '').slice(0, 80);
+  if (RESERVED_ON_WINDOWS.test(cleaned)) {
+    return `${cleaned}_`;
+  }
   return cleaned || 'untitled';
 };
 
@@ -66,11 +72,15 @@ const yaml = (value: unknown) => {
 
 const byOrder = (a: SyncDoc, b: SyncDoc) => (a.metaSortKey ?? 0) - (b.metaSortKey ?? 0) || a._id.localeCompare(b._id);
 
-// a name not already taken in a directory: "Name", then "Name (2)"
-const unique = (taken: Set<string>, base: string, suffix: string) => {
+// a name not already taken in a directory: "Name", then "Name (2)". A path in
+// reserved (lowercase, from the folder's root) is someone else's file.
+const unique = (taken: Set<string>, base: string, suffix: string, dir = '', reserved: Set<string> = new Set()) => {
   for (let count = 1; ; count++) {
     const candidate = `${count === 1 ? base : `${base} (${count})`}${suffix}`;
-    if (!taken.has(candidate.toLowerCase())) {
+    const path = `${dir}${candidate}`.toLowerCase();
+    // a directory is taken when its folder file is someone else's
+    const asFile = suffix ? path : `${path}/${FOLDER_FILE}`;
+    if (!taken.has(candidate.toLowerCase()) && !reserved.has(asFile) && !reserved.has(path)) {
       taken.add(candidate.toLowerCase());
       return candidate;
     }
@@ -78,8 +88,10 @@ const unique = (taken: Set<string>, base: string, suffix: string) => {
 };
 
 // The files for a collection's documents (a workspace and what's under it).
-// Private environments and requests stay out, as they do from Git Sync.
-export function collectionFiles(docs: SyncDoc[]): Map<string, string> {
+// Private environments and requests stay out, as they do from Git Sync. Paths
+// in reserved (lowercase) are files in the folder that aren't the
+// collection's, so its files are named around them.
+export function collectionFiles(docs: SyncDoc[], reserved: Set<string> = new Set()): Map<string, string> {
   const files = new Map<string, string>();
   const workspace = docs.find(doc => doc.type === 'Workspace');
   if (!workspace) {
@@ -100,7 +112,7 @@ export function collectionFiles(docs: SyncDoc[]): Map<string, string> {
     files.set(`${ENVIRONMENTS_DIR}/${BASE_ENVIRONMENT_FILE}`, yaml(readable(base)));
     const taken = new Set([BASE_ENVIRONMENT_FILE.toLowerCase()]);
     for (const sub of (children.get(base._id) || []).filter(doc => doc.type === 'Environment').sort(byOrder)) {
-      files.set(`${ENVIRONMENTS_DIR}/${unique(taken, fileName(sub.name), '.yaml')}`, yaml(readable(sub)));
+      files.set(`${ENVIRONMENTS_DIR}/${unique(taken, fileName(sub.name), '.yaml', `${ENVIRONMENTS_DIR}/`, reserved)}`, yaml(readable(sub)));
     }
   }
 
@@ -108,12 +120,12 @@ export function collectionFiles(docs: SyncDoc[]): Map<string, string> {
     const taken = new Set([COLLECTION_FILE, FOLDER_FILE, ENVIRONMENTS_DIR].map(name => name.toLowerCase()));
     for (const doc of (children.get(parentId) || []).sort(byOrder)) {
       if (doc.type === 'RequestGroup') {
-        const name = unique(taken, fileName(doc.name), '');
+        const name = unique(taken, fileName(doc.name), '', dir, reserved);
         files.set(`${dir}${name}/${FOLDER_FILE}`, yaml(readable(doc)));
         walk(doc._id, `${dir}${name}/`);
       } else if (REQUEST_TYPES.includes(doc.type)) {
         const examples = (children.get(doc._id) || []).filter(child => child.type === EXAMPLE_TYPE).sort(byOrder).map(example => readable(example));
-        files.set(`${dir}${unique(taken, fileName(doc.name), '.yaml')}`, yaml(readable(doc, examples.length ? { examples } : {})));
+        files.set(`${dir}${unique(taken, fileName(doc.name), '.yaml', dir, reserved)}`, yaml(readable(doc, examples.length ? { examples } : {})));
       }
     }
   };
@@ -129,6 +141,10 @@ export interface FolderDocs {
   docs: SyncDoc[];
   // files that couldn't be read
   problems: string[];
+  // the file each document came from, at the same index
+  paths: string[];
+  // the files that couldn't be read
+  failed: Set<string>;
 }
 
 const dirOf = (path: string) => path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
@@ -137,9 +153,16 @@ const dirOf = (path: string) => path.includes('/') ? path.slice(0, path.lastInde
 // A file is the collection's only when it says its type (as the app writes
 // it), so other YAML in the folder is left alone. One without an _id is a new
 // document (newId gives it one); one that isn't YAML is listed in problems.
-export function folderDocs(files: Map<string, string>, newId: (type: string) => string): FolderDocs {
+// resolveId can give a file's _id another (a copy's own): children then take that one as their parent
+export function folderDocs(files: Map<string, string>, newId: (type: string) => string, resolveId?: (id: string, type: string, path: string) => string | undefined): FolderDocs {
   const docs: SyncDoc[] = [];
   const problems: string[] = [];
+  const docPaths: string[] = [];
+  const failed = new Set<string>();
+  const add = (doc: SyncDoc, path: string) => {
+    docs.push(doc);
+    docPaths.push(path);
+  };
   const parse = (path: string) => {
     try {
       const value = YAML.parse(files.get(path) || '');
@@ -149,14 +172,16 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
       return value as Record<string, any>;
     } catch (err) {
       problems.push(`${path}: ${err instanceof Error ? err.message : err}`);
+      failed.add(path);
       return null;
     }
   };
-  const asDoc = (value: Record<string, any>, type: string, parentId: string | null): SyncDoc => {
+  const asDoc = (value: Record<string, any>, type: string, parentId: string | null, path: string): SyncDoc => {
     const { _id, type: _type, order, examples: _examples, ...fields } = value;
+    const fileId = typeof _id === 'string' ? _id : '';
     return {
       ...fields,
-      _id: typeof _id === 'string' && _id ? _id : newId(type),
+      _id: (fileId && resolveId?.(fileId, type, path)) || fileId || newId(type),
       type,
       parentId,
       ...(typeof order === 'number' ? { metaSortKey: order } : {}),
@@ -166,15 +191,15 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
   const collection = files.has(COLLECTION_FILE) ? parse(COLLECTION_FILE) : null;
   if (!collection || typeof collection._id !== 'string') {
     problems.push(`${COLLECTION_FILE}: missing, or without the collection's _id`);
-    return { docs, problems };
+    return { docs, problems, paths: docPaths, failed };
   }
-  const workspace = asDoc(collection, 'Workspace', null);
-  docs.push(workspace);
+  const workspace = asDoc(collection, 'Workspace', null, COLLECTION_FILE);
+  add(workspace, COLLECTION_FILE);
 
   const baseValue = files.has(`${ENVIRONMENTS_DIR}/${BASE_ENVIRONMENT_FILE}`) ? parse(`${ENVIRONMENTS_DIR}/${BASE_ENVIRONMENT_FILE}`) : null;
-  const base = baseValue ? asDoc(baseValue, 'Environment', workspace._id) : null;
+  const base = baseValue ? asDoc(baseValue, 'Environment', workspace._id, `${ENVIRONMENTS_DIR}/${BASE_ENVIRONMENT_FILE}`) : null;
   if (base) {
-    docs.push(base);
+    add(base, `${ENVIRONMENTS_DIR}/${BASE_ENVIRONMENT_FILE}`);
   }
 
   // each directory's folder, from its _folder.yaml, parents first
@@ -187,9 +212,9 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
     if (!value || !parentId || value.type !== 'RequestGroup') {
       continue;
     }
-    const folder = asDoc(value, 'RequestGroup', parentId);
+    const folder = asDoc(value, 'RequestGroup', parentId, path);
     folderIds.set(dir, folder._id);
-    docs.push(folder);
+    add(folder, path);
   }
 
   for (const path of paths) {
@@ -200,7 +225,7 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
       if (path !== `${ENVIRONMENTS_DIR}/${BASE_ENVIRONMENT_FILE}` && base && dirOf(path) === ENVIRONMENTS_DIR) {
         const value = parse(path);
         if (value?.type === 'Environment') {
-          docs.push(asDoc(value, 'Environment', base._id));
+          add(asDoc(value, 'Environment', base._id, path), path);
         }
       }
       continue;
@@ -210,15 +235,15 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
     if (!value || !parentId || !REQUEST_TYPES.includes(value.type)) {
       continue;
     }
-    const request = asDoc(value, value.type, parentId);
-    docs.push(request);
+    const request = asDoc(value, value.type, parentId, path);
+    add(request, path);
     for (const example of Array.isArray(value.examples) ? value.examples : []) {
       if (example && typeof example === 'object') {
-        docs.push(asDoc(example, EXAMPLE_TYPE, request._id));
+        add(asDoc(example, EXAMPLE_TYPE, request._id, path), path);
       }
     }
   }
-  return { docs, problems };
+  return { docs, problems, paths: docPaths, failed };
 }
 
 // the fields a file holds for a document, to compare a file's with the app's

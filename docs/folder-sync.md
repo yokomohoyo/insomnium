@@ -43,3 +43,7 @@ Requests, folders, environments and response examples are synced. Private enviro
 ## When both sides change
 
 The latest change wins. If a file and its request are both changed before Insomnium sees either, the file's version is kept. To combine changes from other people, use your version control's merge on the files, and the collection takes in the result.
+
+Only a file that changed is taken in, so the rest of the folder can't undo what you change in the app. A file that doesn't read (half saved, or with merge conflict markers) is left as it is, and so is what it holds in the collection, until it reads again. A request goes from the collection only when its file is deleted.
+
+A file copied from another (with the same `_id`), or holding another collection's `_id`, becomes a new request, and the original is left as it was. Insomnium never writes over a file that isn't the collection's: a request named like one gets a name of its own, such as `Status (2).yaml`.
