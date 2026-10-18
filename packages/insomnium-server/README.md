@@ -49,6 +49,7 @@ claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Au
 | `INSOMNIUM_ALLOWED_HOSTS` | **Required**. Comma-separated hosts requests may go to: `api.example.com`, `*.example.com` (subdomains), `10.0.0.5`, or `*` for any. |
 | `INSOMNIUM_VAR_<name>` | Sets `<name>` in the chosen environment (or the base one), so secrets come from the deployment rather than the collection file. |
 | `INSOMNIUM_VALIDATE_SSL` | `false` to skip certificate validation. |
+| `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` | The proxy to send through, read as curl reads them. gRPC can only use an `http://` proxy. |
 | `INSOMNIUM_ALLOWED_ENV` | Comma-separated environment variables that collections may read with `{% env 'NAME' %}`: names, or prefixes ending in `*`. None by default, so a collection can't read the container's environment unless you allow it. |
 
 `GET /health` answers without a token, for health checks.
@@ -101,7 +102,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 | `--junit <file>` | Write a JUnit XML report: a suite per request, a case per assertion. |
 | `--json <file>` | Write the results as JSON. |
 
-`INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL` and `INSOMNIUM_ALLOWED_ENV` work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
+`INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL`, `INSOMNIUM_ALLOWED_ENV` and the proxy variables work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 
 ## Not yet
 

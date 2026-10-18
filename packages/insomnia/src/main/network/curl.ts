@@ -17,6 +17,7 @@ import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getCaBundle } from './ca-bundle';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
+import { proxyFor } from './proxy';
 
 export interface CurlConnection extends Curl {
   _id: string;
@@ -126,6 +127,7 @@ const openCurlConnection = async (
 
     const settings = await models.settings.getOrCreate();
     const caCertificate = await getCaBundle(caCertficatePath, settings.useSystemCertificates);
+    const systemProxy = !settings.proxyEnabled && settings.useSystemProxy ? await proxyFor(options.url, settings) : null;
     const start = performance.now();
     const clientCertificates = await models.clientCertificate.findByParentId(options.workspaceId);
     const filteredClientCertificates = clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), options.url));
@@ -137,6 +139,7 @@ const openCurlConnection = async (
       caCert: caCertificate,
       certificates: filteredClientCertificates,
       socketPath: options.socketPath,
+      systemProxy,
     });
     setCurlMethod(curl, req.method);
     if (requestBody !== undefined) {

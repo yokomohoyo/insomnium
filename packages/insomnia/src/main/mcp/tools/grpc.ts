@@ -10,6 +10,7 @@ import { parseGrpcUrl } from '../../../network/grpc/parse-grpc-url';
 import { checkRequestPolicy } from '../../../network/request-policy';
 import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../../network/grpc-credentials';
+import { makeGrpcClient } from '../../network/proxy';
 import { assertSafeHeaders, findWorkspaceForRequest } from './util';
 
 export function registerGrpcTools(server: McpServer) {
@@ -185,7 +186,8 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
 
   // @ts-expect-error second arg empty per existing pattern
   const Client = makeGenericClientConstructor({});
-  const client = new Client(url, await getGrpcCredentials(url, enableTls, req.parentId));
+  const credentials = await getGrpcCredentials(url, enableTls, req.parentId);
+  const client = await makeGrpcClient(url, enableTls, await models.settings.getOrCreate(), options => new Client(url, credentials, options));
   const started = Date.now();
 
   let result: GrpcResult;

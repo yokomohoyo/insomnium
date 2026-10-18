@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
@@ -12,6 +14,7 @@ interface AxiosRequestMockUserSettings {
   httpsProxy: string;
   noProxy: string;
   validateSSL: boolean;
+  useSystemProxy?: boolean;
 }
 
 jest.mock('axios');
@@ -38,83 +41,62 @@ describe('axiosRequest used for git-sync', () => {
       jest.resetAllMocks();
     });
 
-    it('should set axios proxy key to false.', async () => {
-      const mockInsomniaConfigPanelUserSettings: AxiosRequestMockUserSettings = {
+    // the config axios was called with (axiosRequest returns a trimmed copy)
+    const send = async (url: string, settings: AxiosRequestMockUserSettings) => {
+      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => settings);
+      await axiosRequest({ url });
+      const { calls } = (axios as unknown as jest.Mock).mock;
+      return calls[calls.length - 1][0] as AxiosRequestConfig;
+    };
+    // the proxy an agent goes through
+    const proxyOf = (agent: unknown) => agent instanceof HttpsProxyAgent ? agent.proxy.href : null;
+
+    it("never uses axios's own proxy support, and goes direct with the proxy off", async () => {
+      const config = await send('https://git.acme.com/username/repo-name.git/git-upload-pack', {
         proxyEnabled: false,
         httpsProxy: 'https://some.proxy.com:8080',
         httpProxy: 'https://some.proxy.com:8080',
         noProxy: '',
         validateSSL: false,
-      };
-      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => mockInsomniaConfigPanelUserSettings);
-      const response = await axiosRequest({ url: 'https://git.acme.com/username/repo-name.git/git-upload-pack' });
-      expect(response.config.proxy).toBe(false);
+      });
+      expect(config.proxy).toBe(false);
+      expect(proxyOf(config.httpsAgent)).toBeNull();
     });
 
-    it('should set axios proxy key if the user has the insomnia proxy enabled, proxy http url filled in, and there is not a match in the no proxy settings', async () => {
-      const mockInsomniaConfigPanelUserSettings: AxiosRequestMockUserSettings = {
-        proxyEnabled: true,
-        httpsProxy: '',
-        httpProxy: 'https://some.proxy.com:8080',
-        noProxy: 'localhost,127.0.0.1',
-        validateSSL: false,
-      };
-      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => mockInsomniaConfigPanelUserSettings);
-      const response = await axiosRequest({ url: 'http://git.acme.com/username/repo-name.git/git-upload-pack' });
-      expect(response.config.proxy).toEqual({ host: 'some.proxy.com', port: 8080 });
+    it('tunnels through the proxy for the scheme, falling back to the HTTP one for https', async () => {
+      const settings = { proxyEnabled: true, httpsProxy: '', httpProxy: 'https://some.proxy.com:8080', noProxy: 'localhost,127.0.0.1', validateSSL: false };
+      expect(proxyOf((await send('http://git.acme.com/repo.git/git-upload-pack', settings)).httpAgent)).toBe('https://some.proxy.com:8080/');
+      expect(proxyOf((await send('https://git.acme.com/repo.git/git-upload-pack', settings)).httpsAgent)).toBe('https://some.proxy.com:8080/');
+
+      const both = { ...settings, httpsProxy: 'https://secure.proxy.com:8443' };
+      expect(proxyOf((await send('https://git.acme.com/repo.git/git-upload-pack', both)).httpsAgent)).toBe('https://secure.proxy.com:8443/');
+      expect(proxyOf((await send('http://git.acme.com/repo.git/git-upload-pack', both)).httpAgent)).toBe('https://some.proxy.com:8080/');
     });
 
-    it('should set axios proxy key to false if the user has the insomnia proxy enabled, and the proxy http url empty, and there is not a match in the no proxy settings', async () => {
-      const mockInsomniaConfigPanelUserSettings: AxiosRequestMockUserSettings = {
-        proxyEnabled: true,
-        httpsProxy: 'https://some.proxy.com:8080',
-        httpProxy: '',
-        noProxy: 'localhost,127.0.0.1',
-        validateSSL: false,
-      };
-      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => mockInsomniaConfigPanelUserSettings);
-      const response = await axiosRequest({ url: 'http://git.acme.com/username/repo-name.git/git-upload-pack' });
-      expect(response.config.proxy).toBe(false);
+    it('goes direct for the hosts the no-proxy list names, or with no proxy for the scheme', async () => {
+      const settings = { proxyEnabled: true, httpsProxy: 'https://some.proxy.com:8080', httpProxy: '', noProxy: 'localhost,127.0.0.1', validateSSL: false };
+      expect(proxyOf((await send('http://git.acme.com/repo.git/git-upload-pack', settings)).httpAgent)).toBeNull();
+      expect(proxyOf((await send('https://localhost/repo.git/git-upload-pack', settings)).httpsAgent)).toBeNull();
     });
 
-    it('should set axios proxy key if the user has the insomnia proxy enabled, only proxy http url filled in, and there is not a match in the no proxy settings', async () => {
-      const mockInsomniaConfigPanelUserSettings: AxiosRequestMockUserSettings = {
-        proxyEnabled: true,
-        httpsProxy: '',
-        httpProxy: 'https://some.proxy.com:8080',
-        noProxy: 'localhost,127.0.0.1',
-        validateSSL: false,
-      };
-      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => mockInsomniaConfigPanelUserSettings);
-      const response = await axiosRequest({ url: 'https://git.acme.com/username/repo-name.git/git-upload-pack' });
-      expect(response.config.proxy).toEqual({ host: 'some.proxy.com', port: 8080 });
+    it('uses a SOCKS agent for a SOCKS proxy', async () => {
+      const config = await send('https://git.acme.com/repo.git/git-upload-pack', { proxyEnabled: true, httpsProxy: 'socks5://socks.acme.com:1080', httpProxy: '', noProxy: '', validateSSL: true });
+      expect(config.httpsAgent).toBeInstanceOf(SocksProxyAgent);
     });
 
-    it('should set axios proxy key to prefer https if the user has the insomnia proxy enabled, both proxy urls populated, and there is not a match in the no proxy settings', async () => {
-      const mockInsomniaConfigPanelUserSettings: AxiosRequestMockUserSettings = {
-        proxyEnabled: true,
-        httpsProxy: 'https://some.proxy.com:8080',
-        httpProxy: 'https://some.proxy.com:8081',
-        noProxy: 'localhost,127.0.0.1',
-        validateSSL: false,
-      };
-      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => mockInsomniaConfigPanelUserSettings);
-      const response = await axiosRequest({ url: 'http://git.acme.com/username/repo-name.git/git-upload-pack' });
-      expect(response.config.proxy).toEqual({ host: 'some.proxy.com', port: 8081 });
+    it("uses the environment's proxy when the system proxy is on (no Electron here)", async () => {
+      const previous = process.env.HTTPS_PROXY;
+      process.env.HTTPS_PROXY = 'http://env.proxy.com:3128';
+      try {
+        const config = await send('https://git.acme.com/repo.git/git-upload-pack', { proxyEnabled: false, httpsProxy: '', httpProxy: '', noProxy: '', validateSSL: true, useSystemProxy: true });
+        expect(proxyOf(config.httpsAgent)).toBe('http://env.proxy.com:3128/');
+      } finally {
+        if (previous === undefined) {
+          delete process.env.HTTPS_PROXY;
+        } else {
+          process.env.HTTPS_PROXY = previous;
+        }
+      }
     });
-
-    it('should set axios proxy key if the user has the insomnia proxy enabled, only proxy https url filled in, and there is not a match in the no proxy settings', async () => {
-      const mockInsomniaConfigPanelUserSettings: AxiosRequestMockUserSettings = {
-        proxyEnabled: true,
-        httpsProxy: 'https://some.proxy.com:8080',
-        httpProxy: '',
-        noProxy: 'localhost,127.0.0.1',
-        validateSSL: false,
-      };
-      (models.settings.getOrCreate as unknown as jest.Mock).mockImplementation(() => mockInsomniaConfigPanelUserSettings);
-      const response = await axiosRequest({ url: 'https://git.acme.com/username/repo-name.git/git-upload-pack' });
-      expect(response.config.proxy).toEqual({ host: 'some.proxy.com', port: 8080 });
-    });
-
   });
 });

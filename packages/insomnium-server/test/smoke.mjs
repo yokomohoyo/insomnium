@@ -34,6 +34,20 @@ const echo = http.createServer((req, res) => {
 });
 await new Promise(resolve => echo.listen(0, '127.0.0.1', resolve));
 
+// a forward proxy, for checking the runner sends through HTTP_PROXY
+const proxied = [];
+const forwardProxy = http.createServer((req, res) => {
+  proxied.push(req.url);
+  const target = new URL(req.url);
+  const upstream = http.request({ host: target.hostname, port: target.port, path: `${target.pathname}${target.search}`, method: req.method, headers: req.headers }, answer => {
+    res.writeHead(answer.statusCode, answer.headers);
+    answer.pipe(res);
+  });
+  upstream.on('error', () => res.destroy());
+  req.pipe(upstream);
+});
+await new Promise(resolve => forwardProxy.listen(0, '127.0.0.1', resolve));
+
 const port = await freePort();
 const token = randomBytes(24).toString('base64url');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-server-smoke-'));
@@ -97,6 +111,7 @@ const stop = () => {
     server.kill();
   }
   echo.close();
+  forwardProxy.close();
 };
 // a command's exit code and output, without blocking: the echo server it
 // sends to is in this process
@@ -158,8 +173,8 @@ try {
   check(blocked.isError && /not in INSOMNIUM_ALLOWED_HOSTS/.test(blocked.data.error), 'refuses a host that is not allowed');
 
   // the runner: the same bundle or image, as a command
-  const run = runArgs => {
-    const runEnv = { INSOMNIUM_ALLOWED_HOSTS: '127.0.0.1', INSOMNIUM_VAR_base: env.INSOMNIUM_VAR_base };
+  const run = (runArgs, extraEnv = {}) => {
+    const runEnv = { INSOMNIUM_ALLOWED_HOSTS: '127.0.0.1', INSOMNIUM_VAR_base: env.INSOMNIUM_VAR_base, ...extraEnv };
     if (mode === '--bundle') {
       return command(process.execPath, [target, 'run', '--collection', path.join(dir, 'collection.yaml'), ...runArgs(dir, out)], { ...process.env, ...runEnv });
     }
@@ -171,6 +186,8 @@ try {
   const failing = await run((_data, reports) => ['--env', 'ci', '--folder', 'failing', '--junit', path.join(reports, 'report.xml')]);
   const report = fs.existsSync(path.join(out, 'report.xml')) ? fs.readFileSync(path.join(out, 'report.xml'), 'utf8') : '';
   check(failing.status === 1 && /<failure message="Status code equals 201: got &quot;200&quot;"\/>/.test(report), `run exits 1 when one fails, and writes JUnit (${failing.status}: ${failing.stdout}${failing.stderr})`);
+  const viaProxy = await run(data => ['--env', 'ci', '--folder', 'passing', '--data', path.join(data, 'rows.csv')], { HTTP_PROXY: `http://127.0.0.1:${forwardProxy.address().port}`, NO_PROXY: '' });
+  check(viaProxy.status === 0 && proxied.some(url => url.endsWith('/run/one')), `run sends through HTTP_PROXY (${viaProxy.status}: ${proxied.join(', ')} ${viaProxy.stdout}${viaProxy.stderr})`);
 } catch (err) {
   check(false, `ran without errors: ${err.stack}`);
 } finally {

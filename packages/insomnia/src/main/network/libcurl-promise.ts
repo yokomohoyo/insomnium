@@ -22,6 +22,7 @@ import type { AssertionResult } from '../../network/assertions';
 import { getCaBundle } from './ca-bundle';
 import { buildMultipart } from './multipart';
 import { parseHeaderStrings } from './parse-header-strings';
+import { describeProxy, proxyFor } from './proxy';
 import { parseRequestBody } from './request-body';
 export interface CurlRequestOptions {
   requestId: string; // for cancellation
@@ -62,6 +63,7 @@ interface SettingsUsedHere {
   httpProxy: string;
   httpsProxy: string;
   noProxy: string;
+  useSystemProxy?: boolean;
 }
 
 export interface ResponseTimelineEntry {
@@ -112,6 +114,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
 
     const { requestId, req, finalUrl, settings, certificates, caCertficatePath, socketPath } = options;
     const caCert = await getCaBundle(caCertficatePath, settings.useSystemCertificates);
+    const systemProxy = !settings.proxyEnabled && settings.useSystemProxy ? await proxyFor(finalUrl, settings) : null;
 
     const { curl, debugTimeline } = createConfiguredCurlInstance({
       req,
@@ -120,6 +123,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
       caCert,
       certificates,
       socketPath,
+      systemProxy,
     });
     const { method, body } = req;
     setCurlMethod(curl, method);
@@ -255,6 +259,7 @@ export const createConfiguredCurlInstance = ({
   caCert,
   certificates,
   socketPath,
+  systemProxy,
 }: {
   req: RequestUsedHere;
   finalUrl: string;
@@ -262,6 +267,8 @@ export const createConfiguredCurlInstance = ({
   certificates: ClientCertificate[];
   caCert: string;
   socketPath?: string;
+  // the system's proxy, resolved by the caller when that setting's on
+  systemProxy?: string | null;
 }) => {
   const debugTimeline: ResponseTimelineEntry[] = [];
   const curl = new Curl();
@@ -314,7 +321,12 @@ export const createConfiguredCurlInstance = ({
   }
 
   if (!settings.proxyEnabled) {
-    curl.setOpt(Curl.option.PROXY, '');
+    // the system's, when asked for; otherwise none, not even the environment's
+    curl.setOpt(Curl.option.PROXY, systemProxy || '');
+    if (systemProxy) {
+      debugTimeline.push({ value: `Using the system proxy ${describeProxy(systemProxy)}`, name: 'Text', timestamp: Date.now() });
+      curl.setOpt(Curl.option.PROXYAUTH, CurlAuth.Any);
+    }
   } else {
     const { protocol } = urlParse(req.url);
     const { httpProxy, httpsProxy, noProxy } = settings;

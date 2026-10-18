@@ -313,7 +313,13 @@ export const General: FC = () => {
       <BooleanSetting
         label="Enable proxy"
         setting="proxyEnabled"
-        help="If checked, enables a global network proxy on all requests sent through Insomnium. This proxy supports Basic Auth, digest, and NTLM authentication."
+        help="If checked, enables a global network proxy on all requests sent through Insomnium, including WebSocket and gRPC connections. This proxy supports Basic Auth, digest, and NTLM authentication."
+      />
+      <BooleanSetting
+        label="Otherwise, use the system proxy"
+        setting="useSystemProxy"
+        help="With the proxy above off, go through the system's: the OS proxy settings (and PAC file), or the HTTP_PROXY, HTTPS_PROXY and NO_PROXY environment variables. Off by default, so requests go direct."
+        disabled={settings.proxyEnabled}
       />
 
       <div className="form-row pad-top-sm">
