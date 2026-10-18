@@ -16,6 +16,7 @@ import {
 } from '../common/constants';
 import { database as db } from '../common/database';
 import type { HttpVersion } from '../common/settings';
+import type { RequestAssertion } from '../network/assertions';
 import { SIGNATURE_METHOD_HMAC_SHA1 } from '../network/o-auth-1/constants';
 import { GRANT_TYPE_AUTHORIZATION_CODE } from '../network/o-auth-2/constants';
 import { deconstructQueryStringToParams } from '../utils/url/querystring';
@@ -31,7 +32,7 @@ export const canDuplicate = true;
 
 export const canSync = true;
 // kept by initModel when set, without a default (see BaseRequest)
-export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion'];
+export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion', 'assertions'];
 
 // A single auth strategy (e.g. one Bearer, one GCP ID Token). Optional
 // `headerName` overrides where the resulting credential is written.
@@ -178,6 +179,8 @@ export interface BaseRequest {
   settingValidateSSL?: 'global' | 'on' | 'off';
   settingHttpVersion?: 'global' | HttpVersion;
   segmentParams: RequestSegment[];
+  // checked after each send; optional, so requests without any stay as they were
+  assertions?: RequestAssertion[];
 }
 
 export type Request = BaseModel & BaseRequest;

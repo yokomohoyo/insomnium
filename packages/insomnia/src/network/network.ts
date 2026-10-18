@@ -34,6 +34,7 @@ import {
   joinUrlAndQueryString,
   smartEncodeUrl,
 } from '../utils/url/querystring';
+import { evaluateAssertions } from './assertions';
 import { getAuthHeaders, getAuthQueryParamsList } from './authentication';
 import { cancellableCurlRequest } from './cancellation';
 import { assertSafeHeaders } from './header-injection';
@@ -213,14 +214,32 @@ export const responseTransform = async (patch: ResponsePatch, environmentId: str
 
   if (response.error) {
     console.log(`[network] Response failed req=${patch.parentId} err=${response.error || 'n/a'}`);
-    return response;
+    return withAssertionResults(renderedRequest, response);
   }
   console.log(`[network] Response succeeded req=${patch.parentId} status=${response.statusCode || '?'}`,);
-  return await _applyResponsePluginHooks(
+  return withAssertionResults(renderedRequest, await _applyResponsePluginHooks(
     response,
     renderedRequest,
     context,
-  );
+  ));
+};
+
+// The response with the request's assertions checked against it (the final
+// response, after plugin hooks). A failed send fails them rather than skipping.
+export const withAssertionResults = (renderedRequest: Pick<RenderedRequest, 'assertions'>, response: ResponsePatch): ResponsePatch => {
+  if (!renderedRequest.assertions?.some(assertion => !assertion.disabled)) {
+    return response;
+  }
+  const body = models.response.getBodyBuffer(response, '')?.toString() || '';
+  return {
+    ...response,
+    assertionResults: evaluateAssertions(renderedRequest.assertions, {
+      statusCode: response.statusCode,
+      headers: response.headers,
+      elapsedTime: response.elapsedTime,
+      body,
+    }),
+  };
 };
 // ARCHY NOTE: HERE IS THE ACTUAL CALL
 export const transformUrl = (url: string, params: RequestParameter[], segs: RequestSegment[], authentication: RequestAuthentication, shouldEncode: boolean) => {

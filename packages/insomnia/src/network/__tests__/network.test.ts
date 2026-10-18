@@ -814,6 +814,34 @@ describe('sendCurlAndWriteTimeline()', () => {
     const global = await send({}, { timeout: 2500, validateSSL: false, preferredHttpVersion: HttpVersions.V2_0 });
     expect(global).toMatchObject({ TIMEOUT_MS: 2500, SSL_VERIFYPEER: 0, HTTP_VERSION: 'V2_0' });
   });
+
+  it('checks the request\'s assertions against the response it keeps', async () => {
+    const workspace = await models.workspace.create();
+    const settings = await models.settings.getOrCreate();
+    const request = Object.assign(models.request.init(), {
+      _id: 'req_123',
+      parentId: workspace._id,
+      url: 'http://localhost/',
+      assertions: [
+        { id: 'a1', source: 'status', operator: 'equals', value: '200' },
+        { id: 'a2', source: 'jsonpath', property: '$.options.URL', operator: 'equals', value: 'http://localhost/' },
+        { id: 'a3', source: 'status', operator: 'equals', value: '404' },
+        { id: 'a4', source: 'status', operator: 'equals', value: '404', disabled: true },
+      ],
+    });
+    const renderedRequest = await getRenderedRequest({ request });
+    const response = await networkUtils.sendCurlAndWriteTimeline(renderedRequest, [], null, settings);
+    const patch = await networkUtils.responseTransform(response, null, renderedRequest, {});
+
+    expect(patch.assertionResults?.map(({ id, passed }) => ({ id, passed }))).toEqual([
+      { id: 'a1', passed: true },
+      { id: 'a2', passed: true },
+      { id: 'a3', passed: false },
+    ]);
+    // a send that failed fails its assertions rather than skipping them
+    const failed = await networkUtils.responseTransform({ elapsedTime: 0, error: 'Could not resolve host' }, null, renderedRequest, {});
+    expect(failed.assertionResults?.every(({ passed }) => !passed)).toBe(true);
+  });
 });
 
 describe('_getAwsAuthHeaders', () => {

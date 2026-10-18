@@ -19,9 +19,17 @@ const collection = `_type: export
 __export_format: 4
 resources:
   - { _id: wrk_1, _type: workspace, parentId: null, name: Test API, scope: collection }
-  - { _id: env_base, _type: environment, parentId: wrk_1, name: Base Environment, data: { host: 'api.example.com' } }
+  - { _id: env_base, _type: environment, parentId: wrk_1, name: Base Environment, data: { host: 'api.example.com', expected: '200' } }
   - { _id: env_staging, _type: environment, parentId: env_base, name: staging, data: {} }
-  - { _id: req_ok, _type: request, parentId: wrk_1, name: allowed, method: GET, url: 'https://{{ host }}/{{ path }}' }
+  - _id: req_ok
+    _type: request
+    parentId: wrk_1
+    name: allowed
+    method: GET
+    url: 'https://{{ host }}/{{ path }}'
+    assertions:
+      - { id: asrt_1, source: status, operator: equals, value: '{{ expected }}' }
+      - { id: asrt_2, source: header, property: X-Nope, operator: exists }
   - { _id: req_no, _type: request, parentId: wrk_1, name: elsewhere, method: GET, url: 'https://example.org/' }
 `;
 
@@ -90,6 +98,15 @@ describe('insomnium-server', () => {
     const sent = await call('send_http_request', { requestId: await requestId('allowed') });
     expect(sent.isError).toBe(false);
     expect(sent.data.url).toBe('https://api.example.com/v1');
+    // the expected value is rendered too
+    expect(sent.data.assertions).toEqual({
+      passed: 1,
+      failed: 1,
+      results: [
+        { passed: true, message: 'Status code equals 200' },
+        { passed: false, message: 'Header X-Nope exists: got nothing' },
+      ],
+    });
   });
 
   it('refuses a host that is not allowed', async () => {

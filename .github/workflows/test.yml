@@ -124,12 +124,12 @@ jobs:
 
       - name: Playwright
         working-directory: packages/insomnia-smoke-test
-        run: npx playwright test --project=Smoke tests/smoke/event-stream.test.ts tests/smoke/quick-switcher.test.ts
+        run: npx playwright test --project=Smoke tests/smoke/event-stream.test.ts tests/smoke/quick-switcher.test.ts tests/smoke/assertions.test.ts
         env:
           BUNDLE: build
 
-      - name: Upload traces
-        if: failure()
+      - name: Upload traces and screenshots
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-traces-${{ github.run_number }}

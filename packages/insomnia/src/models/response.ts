@@ -5,6 +5,7 @@ import zlib from 'zlib';
 import { database as db, Query } from '../common/database';
 import type { ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import * as requestOperations from '../models/helpers/request-operations';
+import type { AssertionResult } from '../network/assertions';
 import type { BaseModel } from './index';
 import * as models from './index';
 
@@ -17,6 +18,8 @@ export const prefix = 'res';
 export const canDuplicate = false;
 
 export const canSync = false;
+// kept by initModel when set (see BaseResponse)
+export const optionalKeys = ['assertionResults'];
 
 export interface ResponseHeader {
   name: string;
@@ -46,6 +49,8 @@ export interface BaseResponse {
   // Things from the request
   settingStoreCookies: boolean | null;
   settingSendCookies: boolean | null;
+  // the request's assertions, checked when it was sent
+  assertionResults?: AssertionResult[];
 }
 
 export type Response = BaseModel & BaseResponse;
