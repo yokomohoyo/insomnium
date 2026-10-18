@@ -8,6 +8,7 @@ import { RENDER_PURPOSE_SEND } from '../../common/render';
 import * as models from '../../models';
 import { isEventStreamRequest } from '../../models/request';
 import { fetchRequestData, renderEventStreamConnection, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../../network/network';
+import { runPreRequestScript } from '../../scripting/request-scripts';
 
 import { useReadyState } from '../hooks/use-ready-state';
 import { useRequestSetter } from '../hooks/use-request';
@@ -113,12 +114,16 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
         return;
       }
 
-      const renderResult = await tryToInterpolateRequest(request, environment._id, RENDER_PURPOSE_SEND);
+      // the pre-request script can change the request and set variables for its render
+      const scripted = await runPreRequestScript(request, { environmentId: environment._id });
+      const renderResult = await tryToInterpolateRequest(scripted.request, environment._id, RENDER_PURPOSE_SEND, undefined, scripted.variables);
       // ARCHY NOTE: HERE IS SEND
       const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
       renderedRequest && send({
         renderedRequest,
         shouldPromptForPathAfterResponse,
+        preRequestLogs: scripted.logs,
+        scriptVariables: scripted.variables,
       });
     } catch (err) {
       if (isEventStreamRequest(activeRequest) && err?.type === 'render') {

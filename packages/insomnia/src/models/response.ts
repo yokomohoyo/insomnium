@@ -19,7 +19,7 @@ export const canDuplicate = false;
 
 export const canSync = false;
 // kept by initModel when set (see BaseResponse)
-export const optionalKeys = ['assertionResults'];
+export const optionalKeys = ['assertionResults', 'scriptLogs'];
 
 export interface ResponseHeader {
   name: string;
@@ -51,6 +51,8 @@ export interface BaseResponse {
   settingSendCookies: boolean | null;
   // the request's assertions, checked when it was sent
   assertionResults?: AssertionResult[];
+  // what the request's scripts logged with console
+  scriptLogs?: { level: string; message: string }[];
 }
 
 export type Response = BaseModel & BaseResponse;

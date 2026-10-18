@@ -27,6 +27,8 @@ import type { Settings } from '../models/settings';
 import { isWorkspace } from '../models/workspace';
 import * as pluginContexts from '../plugins/context/index';
 import * as plugins from '../plugins/index';
+import { runAfterResponseScript } from '../scripting/request-scripts';
+import type { ScriptLog } from '../scripting/sandbox';
 import { guard } from '../utils/guard';
 import { setDefaultProtocol } from '../utils/url/protocol';
 import {
@@ -204,7 +206,12 @@ export async function renderEventStreamConnection(request: Request, environmentI
     settingRebuildPath: renderedRequest.settingRebuildPath,
   };
 }
-export const responseTransform = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>) => {
+export interface AfterResponseContext {
+  preRequestLogs?: ScriptLog[];
+  iterationData?: Record<string, unknown>;
+  iteration?: number;
+}
+export const responseTransform = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>, scriptContext: AfterResponseContext = {}) => {
   const response: ResponsePatch = {
     ...patch,
     // important for filter by responses
@@ -216,14 +223,32 @@ export const responseTransform = async (patch: ResponsePatch, environmentId: str
 
   if (response.error) {
     console.log(`[network] Response failed req=${patch.parentId} err=${response.error || 'n/a'}`);
-    return withAssertionResults(renderedRequest, response);
+    return withAfterResponseScript(renderedRequest, withAssertionResults(renderedRequest, response), environmentId, scriptContext);
   }
   console.log(`[network] Response succeeded req=${patch.parentId} status=${response.statusCode || '?'}`,);
-  return withAssertionResults(renderedRequest, await _applyResponsePluginHooks(
+  const checked = withAssertionResults(renderedRequest, await _applyResponsePluginHooks(
     response,
     renderedRequest,
     context,
   ));
+  return withAfterResponseScript(renderedRequest, checked, environmentId, scriptContext);
+};
+
+// The after-response script's tests join the assertions' results, and what
+// the scripts logged (the pre-request one's too) is kept with the response
+export const withAfterResponseScript = async (
+  renderedRequest: RenderedRequest,
+  response: ResponsePatch,
+  environmentId: string | null,
+  { preRequestLogs = [], iterationData, iteration }: AfterResponseContext = {},
+): Promise<ResponsePatch> => {
+  const { results, logs } = await runAfterResponseScript(renderedRequest, response, { environmentId, iterationData, iteration });
+  const scriptLogs = [...preRequestLogs, ...logs];
+  return {
+    ...response,
+    ...(results.length ? { assertionResults: [...(response.assertionResults || []), ...results] } : {}),
+    ...(scriptLogs.length ? { scriptLogs } : {}),
+  };
 };
 
 // The response with the request's assertions checked against it (the final

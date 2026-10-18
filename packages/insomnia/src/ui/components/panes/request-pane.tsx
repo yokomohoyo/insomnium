@@ -24,6 +24,7 @@ import {
   QueryEditorPreview,
 } from '../editors/query-editor';
 import { RequestHeadersEditor } from '../editors/request-headers-editor';
+import { RequestScriptsEditor } from '../editors/request-scripts-editor';
 import { RequestParametersEditor } from '../editors/request-parameters-editor';
 import { ErrorBoundary } from '../error-boundary';
 import { MarkdownPreview } from '../markdown-preview';
@@ -148,6 +149,7 @@ export const RequestPane: FC<Props> = ({
   const folderHeaders = inheritance.headers
     .filter(header => !activeRequest.headers.some(own => !own.disabled && own.name.trim().toLowerCase() === header.name.trim().toLowerCase()));
   const numAssertions = (activeRequest.assertions || []).filter(a => !a.disabled).length;
+  const numScripts = [activeRequest.preRequestScript, activeRequest.afterResponseScript].filter(script => script?.trim()).length;
   const urlHasQueryParameters = activeRequest.url.indexOf('?') >= 0;
   const contentType =
     getContentTypeFromHeaders(activeRequest.headers) ||
@@ -306,6 +308,21 @@ export const RequestPane: FC<Props> = ({
               <AssertionsEditor />
             </ErrorBoundary>
           </PanelContainer>
+        </TabItem>
+        <TabItem
+          key="scripts"
+          title={
+            <>
+              Scripts{' '}
+              {numScripts > 0 && (
+                <span className="bubble space-left">{numScripts}</span>
+              )}
+            </>
+          }
+        >
+          <ErrorBoundary key={uniqueKey} errorClassName="font-error pad text-center">
+            <RequestScriptsEditor />
+          </ErrorBoundary>
         </TabItem>
         <TabItem
           key="docs"

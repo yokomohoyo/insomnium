@@ -53,6 +53,7 @@ const main: Window['main'] = {
   showSnapshotsFolder: () => ipcRenderer.invoke('showSnapshotsFolder'),
   authorizeUserInWindow: options => ipcRenderer.invoke('authorizeUserInWindow', options),
   spectralRun: options => ipcRenderer.invoke('spectralRun', options),
+  runScript: options => ipcRenderer.invoke('runScript', options),
   setMenuBarVisibility: options => ipcRenderer.send('setMenuBarVisibility', options),
   installPlugin: options => ipcRenderer.invoke('installPlugin', options),
   curlRequest: options => ipcRenderer.invoke('curlRequest', options),

@@ -32,7 +32,7 @@ export const canDuplicate = true;
 
 export const canSync = true;
 // kept by initModel when set, without a default (see BaseRequest)
-export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion', 'assertions'];
+export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion', 'assertions', 'preRequestScript', 'afterResponseScript'];
 
 // A single auth strategy (e.g. one Bearer, one GCP ID Token). Optional
 // `headerName` overrides where the resulting credential is written.
@@ -181,6 +181,10 @@ export interface BaseRequest {
   segmentParams: RequestSegment[];
   // checked after each send; optional, so requests without any stay as they were
   assertions?: RequestAssertion[];
+  // JavaScript run in a sandbox before the request is rendered, and on its
+  // response (scripting/request-scripts.ts); the names Kong Insomnia uses
+  preRequestScript?: string;
+  afterResponseScript?: string;
 }
 
 export type Request = BaseModel & BaseRequest;

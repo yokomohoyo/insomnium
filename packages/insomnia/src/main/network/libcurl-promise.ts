@@ -99,6 +99,7 @@ export interface ResponsePatch {
   timelinePath?: string;
   url?: string;
   assertionResults?: AssertionResult[];
+  scriptLogs?: { level: string; message: string }[];
 }
 const getDataDirectory = () => processEnv.INSOMNIA_DATA_PATH || electron.app.getPath('userData');
 

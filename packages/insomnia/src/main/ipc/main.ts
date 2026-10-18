@@ -8,6 +8,7 @@ import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { credentialStorageStatus } from '../../common/database';
+import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
 import type { ToastNotification } from '../../ui/components/toast';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { credentialStorageNotices } from '../credential-keys';
@@ -28,6 +29,8 @@ export interface MainBridgeAPI {
   restart: () => void;
   halfSecondAfterAppStart: () => void;
   spectralRun: (options: { contents: string; rulesetPath: string }) => Promise<ISpectralDiagnostic[]>;
+  // scripting/sandbox.ts
+  runScript: (options: { code: string; input: object; timeoutMs: number }) => Promise<SandboxResult<unknown>>;
   authorizeUserInWindow: typeof authorizeUserInWindow;
   setMenuBarVisibility: (visible: boolean) => void;
   installPlugin: typeof installPlugin;
@@ -79,6 +82,7 @@ export function registerMainHandlers() {
     }
   });
 
+  ipcMain.handle('runScript', (_, { code, input, timeoutMs }: { code: string; input: object; timeoutMs: number }) => runInSandbox(code, input, { timeoutMs }));
   ipcMain.handle('checkForNewRelease', () => checkForNewRelease());
   ipcMain.handle('credentialStorageNotices', () => credentialStorageNotices(credentialStorageStatus()));
   ipcMain.handle('listSnapshots', () => listSnapshots());

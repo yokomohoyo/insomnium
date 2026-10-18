@@ -2,6 +2,7 @@ import { RENDER_PURPOSE_SEND } from '../common/render';
 import { metaSortKeySort } from '../common/sorting';
 import * as models from '../models';
 import type { Request } from '../models/request';
+import { runPreRequestScript } from '../scripting/request-scripts';
 import type { AssertionResult } from './assertions';
 import {
   fetchRequestData,
@@ -83,13 +84,14 @@ export async function listRunnableRequests(parentId: string, folders: string[] =
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function sendForRun(request: Request, { environmentId, iterationData }: { environmentId?: string; iterationData?: Record<string, unknown> }) {
+export async function sendForRun(request: Request, { environmentId, iterationData, iteration }: { environmentId?: string; iterationData?: Record<string, unknown>; iteration?: number }) {
   const { environment, settings, clientCertificates, caCert } = await fetchRequestData(request._id);
   const envId = environmentId ?? environment._id;
-  const renderResult = await tryToInterpolateRequest(request, envId, RENDER_PURPOSE_SEND, undefined, iterationData);
+  const scripted = await runPreRequestScript(request, { environmentId: envId, iterationData, iteration });
+  const renderResult = await tryToInterpolateRequest(scripted.request, envId, RENDER_PURPOSE_SEND, undefined, { ...iterationData, ...scripted.variables });
   const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
   const response = await sendCurlAndWriteTimeline(renderedRequest, clientCertificates, caCert, settings);
-  const patch = await responseTransform(response, envId, renderedRequest, renderResult.context);
+  const patch = await responseTransform(response, envId, renderedRequest, renderResult.context, { preRequestLogs: scripted.logs, iterationData, iteration });
   const stored = await models.response.create(patch, settings.maxHistoryResponses);
   await models.requestMeta.updateOrCreateByParentId(request._id, { activeResponseId: stored._id });
   return { stored, url: renderedRequest.url };
@@ -114,7 +116,7 @@ export async function runRequests(requests: RunnableRequest[], options: RunOptio
       const base = { iteration, requestId: request._id, name: request.name, folders, method: request.method };
       let result: RunResult;
       try {
-        const { stored, url } = await sendForRun(request, { environmentId, iterationData });
+        const { stored, url } = await sendForRun(request, { environmentId, iterationData, iteration });
         const assertions = stored.assertionResults || [];
         result = {
           ...base,

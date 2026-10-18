@@ -25,6 +25,7 @@ import { Response } from '../../models/response';
 import { isWebSocketRequestId, WebSocketRequest } from '../../models/websocket-request';
 import { WebSocketResponse } from '../../models/websocket-response';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest } from '../../network/network';
+import type { ScriptLog } from '../../scripting/sandbox';
 import { guard } from '../../utils/guard';
 
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
@@ -309,6 +310,10 @@ const writeToDownloadPath = async (downloadPathAndName: string, responsePatch: R
 export interface SendActionParams {
   renderedRequest: RenderedRequest;
   shouldPromptForPathAfterResponse?: boolean;
+  // what the pre-request script logged, kept with the response
+  preRequestLogs?: ScriptLog[];
+  // the variables it set, for rendering the request again here
+  scriptVariables?: Record<string, unknown>;
 }
 export const sendAction: ActionFunction = async ({ request, params }) => {
   const { requestId, workspaceId } = params;
@@ -322,8 +327,9 @@ export const sendAction: ActionFunction = async ({ request, params }) => {
     clientCertificates,
     caCert,
     activeEnvironmentId } = await fetchRequestData(requestId);
-  const { renderedRequest, shouldPromptForPathAfterResponse } = await request.json() as SendActionParams;
-  const renderResult = await tryToInterpolateRequest(req, environment._id, RENDER_PURPOSE_SEND);
+  const { renderedRequest, shouldPromptForPathAfterResponse, preRequestLogs, scriptVariables } = await request.json() as SendActionParams;
+  // the context for the response hooks, rendered with the variables the send was
+  const renderResult = await tryToInterpolateRequest(req, environment._id, RENDER_PURPOSE_SEND, undefined, scriptVariables);
 
   const response = await sendCurlAndWriteTimeline(
     renderedRequest,
@@ -333,7 +339,7 @@ export const sendAction: ActionFunction = async ({ request, params }) => {
   );
   const requestMeta = await models.requestMeta.getByParentId(requestId);
   guard(requestMeta, 'RequestMeta not found');
-  const responsePatch = await responseTransform(response, activeEnvironmentId, renderedRequest, renderResult.context);
+  const responsePatch = await responseTransform(response, activeEnvironmentId, renderedRequest, renderResult.context, { preRequestLogs });
   const is2XXWithBodyPath = responsePatch.statusCode && responsePatch.statusCode >= 200 && responsePatch.statusCode < 300 && responsePatch.bodyPath;
   const shouldWriteToFile = shouldPromptForPathAfterResponse && is2XXWithBodyPath;
   const header = getContentDispositionHeader(responsePatch.headers || []);
