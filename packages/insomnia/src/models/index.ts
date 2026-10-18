@@ -7,6 +7,7 @@ import {
   EXPORT_TYPE_PROTO_FILE,
   EXPORT_TYPE_REQUEST,
   EXPORT_TYPE_REQUEST_GROUP,
+  EXPORT_TYPE_RESPONSE_EXAMPLE,
   EXPORT_TYPE_UNIT_TEST,
   EXPORT_TYPE_UNIT_TEST_SUITE,
   EXPORT_TYPE_WEBSOCKET_PAYLOAD,
@@ -33,6 +34,7 @@ import * as _requestGroupMeta from './request-group-meta';
 import * as _requestMeta from './request-meta';
 import * as _requestVersion from './request-version';
 import * as _response from './response';
+import * as _responseExample from './response-example';
 import * as _settings from './settings';
 import * as _stats from './stats';
 import * as _unitTest from './unit-test';
@@ -83,6 +85,7 @@ export const protoDirectory = _protoDirectory;
 export const grpcRequest = _grpcRequest;
 export const grpcRequestMeta = _grpcRequestMeta;
 export const webSocketPayload = _webSocketPayload;
+export const responseExample = _responseExample;
 export const webSocketRequest = _webSocketRequest;
 export const webSocketResponse = _webSocketResponse;
 export const workspace = _workspace;
@@ -123,6 +126,7 @@ export function all() {
     webSocketPayload,
     webSocketRequest,
     webSocketResponse,
+    responseExample,
   ] as const;
 }
 
@@ -214,6 +218,7 @@ export async function initModel<T extends BaseModel>(type: string, ...sources: R
 export const MODELS_BY_EXPORT_TYPE: Record<string, any> = {
   [EXPORT_TYPE_REQUEST]: request,
   [EXPORT_TYPE_WEBSOCKET_PAYLOAD]: webSocketPayload,
+  [EXPORT_TYPE_RESPONSE_EXAMPLE]: responseExample,
   [EXPORT_TYPE_WEBSOCKET_REQUEST]: webSocketRequest,
   [EXPORT_TYPE_GRPC_REQUEST]: grpcRequest,
   [EXPORT_TYPE_REQUEST_GROUP]: requestGroup,

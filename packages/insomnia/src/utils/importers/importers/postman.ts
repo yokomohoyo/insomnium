@@ -73,6 +73,15 @@ const codeOf = ({ script }: Event) => {
 
 let requestCount = 1;
 let requestGroupCount = 1;
+let exampleCount = 1;
+
+interface SavedResponse {
+  name?: string;
+  code?: number;
+  status?: string;
+  header?: unknown;
+  body?: string | null;
+}
 
 const POSTMAN_SCHEMA_V2_0 =
   'https://schema.getpostman.com/json/collection/v2.0.0/collection.json';
@@ -125,7 +134,8 @@ export class ImportPostman {
     // @ts-expect-error this is because there are devergent behaviors for how the function treats this collection.  This is handled appropriately in the function itself in different branches.
     return items.reduce((accumulator: ImportRequest[], item: Item | Folder) => {
       if (Object.prototype.hasOwnProperty.call(item, 'request')) {
-        return [...accumulator, this.importRequestItem(item as Item, parentId, inheritedAuth, inheritedScripts)];
+        const request = this.importRequestItem(item as Item, parentId, inheritedAuth, inheritedScripts);
+        return [...accumulator, request, ...this.importExamples((item as { response?: SavedResponse[] }).response, request._id)];
       }
 
       const requestGroup = this.importFolderItem(item as Folder, parentId);
@@ -140,6 +150,25 @@ export class ImportPostman {
         ),
       ];
     }, []);
+  };
+
+  // A request's saved responses become its examples (models/response-example.ts)
+  importExamples = (responses: SavedResponse[] | undefined, requestId?: string): ImportRequest[] => {
+    if (!requestId || !Array.isArray(responses)) {
+      return [];
+    }
+    return responses.map(({ name, code, status, header, body }) => ({
+      _id: `__EX_${exampleCount++}__`,
+      _type: 'response_example',
+      parentId: requestId,
+      name: name || `${code || ''} ${status || ''}`.trim() || 'Example',
+      statusCode: code || 200,
+      statusMessage: status || '',
+      headers: (Array.isArray(header) ? header : [])
+        .filter((entry): entry is { key: string; value?: string } => !!entry && typeof entry === 'object' && typeof entry.key === 'string')
+        .map(({ key, value }) => ({ name: key, value: value ?? '' })),
+      body: body || '',
+    }) as unknown as ImportRequest);
   };
 
   // the code of the enabled scripts that listen for an event
@@ -863,6 +892,7 @@ export class ImportPostman {
 export const convert: Converter = rawData => {
   requestCount = 1;
   requestGroupCount = 1;
+  exampleCount = 1;
 
   try {
     const collection = JSON.parse(rawData) as PostmanCollection;

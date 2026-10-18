@@ -22,6 +22,7 @@ import { isEventStreamRequest, isRequest, Request, RequestAuthentication, Reques
 import { isRequestMeta, RequestMeta } from '../../models/request-meta';
 import { RequestVersion } from '../../models/request-version';
 import { Response } from '../../models/response';
+import type { ResponseExample } from '../../models/response-example';
 import { isWebSocketRequestId, WebSocketRequest } from '../../models/websocket-request';
 import { WebSocketResponse } from '../../models/websocket-response';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest } from '../../network/network';
@@ -51,6 +52,8 @@ export interface RequestLoaderData {
   activeResponse: Response | null;
   responses: Response[];
   requestVersions: RequestVersion[];
+  // saved responses, for the Examples tab and the mock server
+  examples?: ResponseExample[];
 }
 
 export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData> => {
@@ -94,6 +97,7 @@ export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderD
     activeResponse,
     responses,
     requestVersions: await models.requestVersion.findByParentId(requestId),
+    ...(responseModelName === 'response' ? { examples: await models.responseExample.findByParentId(requestId) } : {}),
   } as RequestLoaderData | WebSocketRequestLoaderData;
 };
 

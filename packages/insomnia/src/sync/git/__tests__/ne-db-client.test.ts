@@ -56,6 +56,7 @@ describe('NeDBClient', () => {
         models.protoFile.type,
         models.request.type,
         models.requestGroup.type,
+        models.responseExample.type,
         models.unitTest.type,
         models.unitTestSuite.type,
         models.webSocketPayload.type,

@@ -562,6 +562,7 @@ export const EXPORT_TYPE_REQUEST = 'request';
 export const EXPORT_TYPE_GRPC_REQUEST = 'grpc_request';
 export const EXPORT_TYPE_WEBSOCKET_REQUEST = 'websocket_request';
 export const EXPORT_TYPE_WEBSOCKET_PAYLOAD = 'websocket_payload';
+export const EXPORT_TYPE_RESPONSE_EXAMPLE = 'response_example';
 export const EXPORT_TYPE_REQUEST_GROUP = 'request_group';
 export const EXPORT_TYPE_UNIT_TEST_SUITE = 'unit_test_suite';
 export const EXPORT_TYPE_UNIT_TEST = 'unit_test';

@@ -20,7 +20,6 @@ import {
 import type { EventStreamConnection } from '../main/network/event-stream-request';
 import type { HeaderResult, ResponsePatch, ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import * as models from '../models';
-import type { BaseModel } from '../models';
 import { CaCertificate } from '../models/ca-certificate';
 import { ClientCertificate } from '../models/client-certificate';
 import type { Request, RequestAuthentication, RequestParameter, RequestSegment } from '../models/request';
@@ -224,10 +223,10 @@ export const responseTransform = async (patch: ResponsePatch, environmentId: str
 
   if (response.error) {
     console.log(`[network] Response failed req=${patch.parentId} err=${response.error || 'n/a'}`);
-    return withAfterResponseScript(renderedRequest, await withAssertionResults(renderedRequest, response), environmentId, scriptContext);
+    return withAfterResponseScript(renderedRequest, withAssertionResults(renderedRequest, response), environmentId, scriptContext);
   }
   console.log(`[network] Response succeeded req=${patch.parentId} status=${response.statusCode || '?'}`,);
-  const checked = await withAssertionResults(renderedRequest, await _applyResponsePluginHooks(
+  const checked = withAssertionResults(renderedRequest, await _applyResponsePluginHooks(
     response,
     renderedRequest,
     context,
@@ -254,20 +253,11 @@ export const withAfterResponseScript = async (
 
 // The response with the request's assertions checked against it (the final
 // response, after plugin hooks). A failed send fails them rather than skipping.
-// The API spec of the request's workspace, for assertions that check against it
-const specFor = async (requestId: string) => {
-  const request = await models.request.getById(requestId);
-  const ancestors: BaseModel[] = request ? await db.withAncestors<BaseModel>(request, [models.requestGroup.type, models.workspace.type]) : [];
-  const workspace = ancestors.find(isWorkspace);
-  return workspace ? (await models.apiSpec.getByParentId(workspace._id))?.contents || '' : '';
-};
-
-export const withAssertionResults = async (renderedRequest: Pick<RenderedRequest, '_id' | 'method' | 'assertions'>, response: ResponsePatch): Promise<ResponsePatch> => {
+export const withAssertionResults = (renderedRequest: Pick<RenderedRequest, 'assertions'>, response: ResponsePatch): ResponsePatch => {
   if (!renderedRequest.assertions?.some(assertion => !assertion.disabled)) {
     return response;
   }
   const body = models.response.getBodyBuffer(response, '')?.toString() || '';
-  const usesSpec = renderedRequest.assertions.some(assertion => !assertion.disabled && assertion.operator === 'matchesSpec');
   return {
     ...response,
     assertionResults: evaluateAssertions(renderedRequest.assertions, {
@@ -275,9 +265,6 @@ export const withAssertionResults = async (renderedRequest: Pick<RenderedRequest
       headers: response.headers,
       elapsedTime: response.elapsedTime,
       body,
-      method: renderedRequest.method,
-      url: response.url,
-      spec: usesSpec ? await specFor(renderedRequest._id) : undefined,
     }),
   };
 };
