@@ -34,6 +34,8 @@ paths:
 
 test('generating a collection again updates it instead of adding copies @ci', async ({ app, page }) => {
   await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), spec);
+  // from the collection the app opens in, to the project
+  await page.getByTestId('project').click();
   await page.getByRole('button', { name: 'Create in project' }).click();
   await page.getByRole('menuitemradio', { name: 'Import' }).click();
   await page.getByText('Clipboard').click();
