@@ -1,4 +1,4 @@
-import { credentials, makeGenericClientConstructor, Metadata } from '@grpc/grpc-js';
+import { makeGenericClientConstructor, Metadata } from '@grpc/grpc-js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
@@ -8,6 +8,7 @@ import { isGrpcRequest } from '../../../models/grpc-request';
 import { getAuthHeaders } from '../../../network/authentication';
 import { parseGrpcUrl } from '../../../network/grpc/parse-grpc-url';
 import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
+import { assertGrpcAuthSupported, getGrpcCredentials } from '../../network/grpc-credentials';
 import { assertSafeHeaders, findWorkspaceForRequest } from './util';
 
 export function registerGrpcTools(server: McpServer) {
@@ -142,6 +143,11 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
     return { content: [{ type: 'text', text: JSON.stringify({ error: 'URL not specified' }) }], isError: true };
   }
 
+  try {
+    assertGrpcAuthSupported((rendered as any).authentication);
+  } catch (err) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+  }
   // gRPC has no HTTP method/body: only header-emitting strategies work here;
   // signature-based ones (Hawk, OAuth 1) would sign garbage.
   const authHeaders = await getAuthHeaders(
@@ -176,7 +182,7 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
 
   // @ts-expect-error second arg empty per existing pattern
   const Client = makeGenericClientConstructor({});
-  const client = new Client(url, enableTls ? credentials.createSsl() : credentials.createInsecure());
+  const client = new Client(url, await getGrpcCredentials(url, enableTls, req.parentId));
   const started = Date.now();
 
   let result: GrpcResult;
