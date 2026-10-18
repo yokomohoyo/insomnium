@@ -46,6 +46,7 @@ import {
   getAppVersion,
 } from './constants';
 import { database, database as db } from './database';
+import { toPostmanCollection } from './export-postman';
 import * as har from './har';
 import { strings } from './strings';
 
@@ -293,12 +294,17 @@ export async function exportRequestsData(
 const VALUE_JSON = 'json';
 const VALUE_YAML = 'yaml';
 const VALUE_HAR = 'har';
+const VALUE_POSTMAN = 'postman';
 
 export type SelectedFormat =
   | typeof VALUE_HAR
   | typeof VALUE_JSON
   | typeof VALUE_YAML
+  | typeof VALUE_POSTMAN
   ;
+
+// Insomnium's export, as a Postman collection (export-postman.ts)
+const asPostman = (insomniumJson: string, name: string) => JSON.stringify(toPostmanCollection(JSON.parse(insomniumJson).resources, name), null, 2);
 
 const showSelectExportTypeModal = ({ onDone }: {
   onDone: (selectedFormat: SelectedFormat) => Promise<void>;
@@ -315,6 +321,10 @@ const showSelectExportTypeModal = ({ onDone }: {
     {
       name: 'HAR – HTTP Archive Format',
       value: VALUE_HAR,
+    },
+    {
+      name: 'Postman Collection v2.1',
+      value: VALUE_POSTMAN,
     },
   ];
 
@@ -365,7 +375,7 @@ const showSaveExportedFileDialog = async ({
   const options = {
     title: 'Export Insomnium Data',
     buttonLabel: 'Export',
-    defaultPath: `${path.join(dir, `${name}_${date}`)}.${selectedFormat}`,
+    defaultPath: `${path.join(dir, `${name}_${date}`)}.${selectedFormat === VALUE_POSTMAN ? 'postman_collection.json' : selectedFormat}`,
   };
   const { filePath } = await window.dialog.showSaveDialog(options);
   return filePath || null;
@@ -412,6 +422,10 @@ export const exportAllToFile = (activeProjectName: string, workspacesForActivePr
 
           case VALUE_JSON:
             stringifiedExport = await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json');
+            break;
+
+          case VALUE_POSTMAN:
+            stringifiedExport = asPostman(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
             break;
 
           default:
@@ -484,6 +498,10 @@ export const exportRequestsToFile = (requestIds: string[]) => {
 
           case VALUE_JSON:
             stringifiedExport = await exportRequestsData(requests, exportPrivateEnvironments, 'json');
+            break;
+
+          case VALUE_POSTMAN:
+            stringifiedExport = asPostman(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
             break;
 
           default:

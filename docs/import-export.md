@@ -45,6 +45,7 @@ Export a collection or document from its menu, or everything in a project from *
 
 - **Insomnium v4**, as JSON or YAML: everything, for import into Insomnium or Insomnia, or for [insomnium-server](../packages/insomnium-server/README.md).
 - **HAR**: the requests only.
+- **Postman Collection v2.1**, for Postman or any tool that imports it: folders, requests (query, path variables, headers, bodies), auth (Basic, Bearer, API key, Digest, NTLM, OAuth 1 and 2, AWS and Hawk; an empty one inherits, as in Insomnium), scripts as Postman's pre-request and test scripts, examples as saved responses, and the base environment as collection variables. `{{ _.name }}` becomes `{{name}}`, and Faker tags become Postman's `{{$randomEmail}}` variables. Other tags have no Postman form and stay as written. gRPC and WebSocket requests, and sub environments, aren't part of a Postman collection, so they're left out.
 
 Insomnium asks whether to include private environments.
 
