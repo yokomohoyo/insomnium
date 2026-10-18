@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
-import { request, requestGroup, workspace } from '../../models';
+import { environment, request, requestGroup, workspace } from '../../models';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
 import * as importUtil from '../import';
 import * as importResourcesToProject from '../importResourcesToProject';
@@ -204,4 +204,31 @@ describe('fetchImportContentFromURI()', () => {
       ).rejects.toThrow(/Unsupported import URI scheme/);
     },
   );
+});
+
+describe('importing into an existing collection', () => {
+  beforeEach(globalBeforeEach);
+
+  // an Insomnium export, whose variables are its base environment's
+  const exported = `_type: export
+__export_format: 4
+resources:
+  - { _id: wrk_1, _type: workspace, parentId: null, name: Shop, scope: collection }
+  - { _id: env_1, _type: environment, parentId: wrk_1, name: Base Environment, data: { base_url: 'https://shop.example.com', token: abc } }
+  - { _id: req_1, _type: request, parentId: wrk_1, name: orders, method: GET, url: '{{ base_url }}/orders' }
+`;
+
+  it("adds the collection's variables it doesn't have, and keeps the ones it does", async () => {
+    const existing = await workspace.create({ name: 'Mine', parentId: DEFAULT_PROJECT_ID });
+    const base = await environment.getOrCreateForParentId(existing._id);
+    await environment.update(base, { data: { token: 'mine' }, dataPropertyOrder: { '&': ['token'] } });
+
+    await importUtil.scanResources({ content: exported });
+    await importUtil.importResourcesToWorkspace({ workspaceId: existing._id });
+
+    const after = await environment.getOrCreateForParentId(existing._id);
+    expect(after.data).toEqual({ token: 'mine', base_url: 'https://shop.example.com' });
+    expect(after.dataPropertyOrder).toEqual({ '&': ['token', 'base_url'] });
+    expect((await request.findByParentId(existing._id)).map(({ url }) => url)).toEqual(['{{ base_url }}/orders']);
+  });
 });

@@ -3,6 +3,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { GrpcRequest } from '../../models/grpc-request';
 import { GrpcRequestMeta } from '../../models/grpc-request-meta';
+import type { McpRequest } from '../../models/mcp-request';
 import { Request } from '../../models/request';
 import { RequestGroup } from '../../models/request-group';
 import { RequestGroupMeta } from '../../models/request-group-meta';
@@ -14,7 +15,7 @@ import { WorkspaceMeta } from '../../models/workspace-meta';
 export const useRequestSetter = () => {
   const { organizationId, projectId, workspaceId } = useParams<{ organizationId: string; projectId: string; workspaceId: string }>();
   const fetcher = useFetcher();
-  return (requestId: string, patch: Partial<GrpcRequest> | Partial<Request> | Partial<WebSocketRequest>) => {
+  return (requestId: string, patch: Partial<GrpcRequest> | Partial<Request> | Partial<WebSocketRequest> | Partial<McpRequest>) => {
     // const s = JSON.stringify(patch)
     // console.log("XX", s);
 
@@ -85,4 +86,4 @@ export const useWorkspaceMetaPatcher = () => {
   };
 };
 
-export type CreateRequestType = 'HTTP' | 'gRPC' | 'GraphQL' | 'WebSocket' | 'Event Stream' | 'From Curl';
+export type CreateRequestType = 'HTTP' | 'gRPC' | 'GraphQL' | 'WebSocket' | 'MCP' | 'Event Stream' | 'From Curl';

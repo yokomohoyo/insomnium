@@ -4,6 +4,8 @@
 
 Import from a collection's menu (the collection's name, top left), or from **Preferences → Data**. Choose a file, a URL or the clipboard, then **Scan**: Insomnium works out the format, and shows what it found before you **Import**.
 
+Imported into a collection you already have, the requests and folders are added to it, and so are the imported collection's variables (its base environment) that yours doesn't have; a variable you've already set keeps its value.
+
 | Format | Notes |
 |---|---|
 | **Postman** collections, v2.0 and v2.1 | Folders, auth (including auth inherited from a folder or the collection), path variables, bodies and collection variables. Saved responses become [examples](getting-started.md#requests). Scripts become [request scripts](scripts.md): see below. `{{$randomEmail}}`-style dynamic variables become [Faker tags](template-tags.md). |

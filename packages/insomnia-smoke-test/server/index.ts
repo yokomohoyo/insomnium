@@ -11,6 +11,7 @@ import githubApi from './github-api';
 import gitlabApi from './gitlab-api';
 import { schema } from './graphql';
 import { startGRPCServer } from './grpc';
+import { mcpRouter } from './mcp';
 import { oauthRoutes } from './oauth';
 import { startWebSocketServer } from './websocket';
 
@@ -57,6 +58,8 @@ app.get('/', (_req, res) => {
 app.all('/graphql', createHandler({ schema }));
 
 app.use(express.json()); // Used to parse JSON bodies
+
+app.use('/mcp', mcpRouter);
 
 // SSE routes
 let subscribers: { id: string; response: express.Response }[] = [];

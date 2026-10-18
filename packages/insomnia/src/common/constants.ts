@@ -561,6 +561,7 @@ export const BASE_ENVIRONMENT_ID_KEY = '__BASE_ENVIRONMENT_ID__';
 export const EXPORT_TYPE_REQUEST = 'request';
 export const EXPORT_TYPE_GRPC_REQUEST = 'grpc_request';
 export const EXPORT_TYPE_WEBSOCKET_REQUEST = 'websocket_request';
+export const EXPORT_TYPE_MCP_REQUEST = 'mcp_request';
 export const EXPORT_TYPE_WEBSOCKET_PAYLOAD = 'websocket_payload';
 export const EXPORT_TYPE_RESPONSE_EXAMPLE = 'response_example';
 export const EXPORT_TYPE_REQUEST_GROUP = 'request_group';

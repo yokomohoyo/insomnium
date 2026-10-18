@@ -118,7 +118,7 @@ export const WebSocketActionBar: FC<ActionBarProps> = ({ request, environmentId,
         socketIo = { namespace: rendered.socketIo.namespace?.trim() || '/', ...(auth ? { auth } : {}) };
       }
     } catch (err) {
-      showAlert({ title: socketIo || rendered?.socketIo?.enabled ? 'Socket.IO' : 'GraphQL Subscription', message: err instanceof Error ? err.message : String(err) });
+      showAlert({ title: rendered?.socketIo?.enabled ? 'Socket.IO' : 'GraphQL Subscription', message: err instanceof Error ? err.message : String(err) });
       return;
     }
     rendered && connect({
