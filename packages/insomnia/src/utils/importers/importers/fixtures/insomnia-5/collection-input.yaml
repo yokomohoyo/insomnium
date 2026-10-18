@@ -1,0 +1,166 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Store API
+meta:
+  id: wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f
+  created: 1760400000000
+  modified: 1760400000000
+  description: The store's public API
+collection:
+  - name: Orders
+    meta:
+      id: fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9
+      sortKey: -1760400000100
+      description: Order endpoints
+    environment:
+      orderPath: /orders
+    headers:
+      - name: X-Tenant
+        value: "{{ _.tenant }}"
+      - name: X-Debug
+        value: "1"
+        disabled: true
+    authentication:
+      type: bearer
+      token: "{{ _.token }}"
+    scripts:
+      preRequest: insomnia.environment.set('ts', Date.now());
+    children:
+      - url: "{{ _.base }}/orders/:orderId/items/:itemId"
+        name: Get order item
+        meta:
+          id: req_1a2b3c4d5e6f70819203a4b5c6d7e8f9
+          sortKey: -1760400000200
+          isPrivate: false
+          description: One item
+        method: GET
+        headers:
+          - name: x-tenant
+            value: override
+          - name: Accept
+            value: application/json
+        authentication: {}
+        pathParameters:
+          - name: itemId
+            value: "3"
+          - name: orderId
+            value: "17"
+        scripts:
+          afterResponse: |-
+            insomnia.test('ok', () => {
+              insomnia.expect(insomnia.response.code).to.eql(200);
+            });
+        settings:
+          renderRequestBody: false
+          encodeUrl: false
+          followRedirects: "off"
+          cookies:
+            send: true
+            store: false
+          rebuildPath: true
+      - url: "{{ _.base }}/orders"
+        name: Create order
+        meta:
+          id: req_2b3c4d5e6f708192a3b4c5d6e7f80910
+          sortKey: -1760400000300
+        method: POST
+        body:
+          mimeType: application/json
+          text: '{"sku": "a-1"}'
+        authentication:
+          type: basic
+          username: admin
+          password: "{{ _.password }}"
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.base }}/health"
+        name: Health
+        meta:
+          id: req_3c4d5e6f708192a3b4c5d6e7f8091011
+        method: GET
+        authentication:
+          type: none
+      - name: Archive
+        meta:
+          id: fld_1b2c3d4e5f60718293a4b5c6d7e8f901
+        children:
+          - url: "{{ _.base }}/orders/archive"
+            name: List archived
+            meta:
+              id: req_4d5e6f708192a3b4c5d6e7f809101112
+            method: GET
+  - url: grpcb.in:9000
+    name: Say hello
+    meta:
+      id: greq_5e6f708192a3b4c5d6e7f80910111213
+    body:
+      text: '{"greeting": "hi"}'
+    metadata:
+      - name: x-trace
+        value: "1"
+    protoFileId: pf_6f708192a3b4c5d6e7f8091011121314
+    protoMethodName: /hello.HelloService/SayHello
+    reflectionApi:
+      enabled: false
+      url: https://buf.build
+      module: buf.build/connectrpc/eliza
+  - url: wss://echo.example.com/ws/:room
+    name: Echo
+    meta:
+      id: ws-req_708192a3b4c5d6e7f809101112131415
+    settings:
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      useProxy: false
+    authentication: {}
+    headers: []
+    pathParameters:
+      - name: room
+        value: lobby
+  - url: https://socket.example.com
+    name: Socket.IO chat
+    meta:
+      id: socketio-req_8192a3b4c5d6e7f80910111213141516
+    eventListeners:
+      - eventName: message
+        isOpen: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_92a3b4c5d6e7f8091011121314151617
+  cookies:
+    - key: session
+      value: abc
+      domain: example.com
+      path: /
+environments:
+  name: Base Environment
+  meta:
+    id: env_a3b4c5d6e7f809101112131415161718
+  data:
+    base: https://store.example.com
+    tenant: acme
+  subEnvironments:
+    - name: Staging
+      meta:
+        id: env_b4c5d6e7f80910111213141516171819
+        sortKey: 1
+      data:
+        base: https://staging.store.example.com
+      color: "#7d69cb"
+    - name: Local
+      meta:
+        id: env_c5d6e7f8091011121314151617181920
+        isPrivate: true
+        sortKey: 2
+      data:
+        token: local-token
