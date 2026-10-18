@@ -16,7 +16,7 @@ import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
-import { createConfiguredCurlInstance } from './libcurl-promise';
+import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
 
 export interface CurlConnection extends Curl {
   _id: string;
@@ -130,7 +130,7 @@ const openCurlConnection = async (
     const start = performance.now();
     const clientCertificates = await models.clientCertificate.findByParentId(options.workspaceId);
     const filteredClientCertificates = clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), options.url));
-    const { req, headerStrings } = buildEventStreamCurlRequest(options);
+    const { req, requestBody, headerStrings } = buildEventStreamCurlRequest(options);
     const { curl, debugTimeline } = createConfiguredCurlInstance({
       req,
       finalUrl: options.url,
@@ -139,6 +139,10 @@ const openCurlConnection = async (
       certificates: filteredClientCertificates,
       socketPath: options.socketPath,
     });
+    setCurlMethod(curl, req.method);
+    if (requestBody !== undefined) {
+      curl.setOpt(Curl.option.POSTFIELDS, requestBody);
+    }
     debugTimeline.forEach(entry => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(entry) + '\n'));
     CurlConnections.set(options.requestId, curl);
     CurlConnections.get(options.requestId)?.enable(CurlFeature.StreamResponse);

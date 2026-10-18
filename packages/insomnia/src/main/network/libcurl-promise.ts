@@ -13,13 +13,14 @@ import { parse as urlParse } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
 import { version } from '../../../package.json';
-import { AUTH_AWS_IAM, AUTH_DIGEST, AUTH_NETRC, AUTH_NTLM, CONTENT_TYPE_FORM_DATA, CONTENT_TYPE_FORM_URLENCODED } from '../../common/constants';
+import { AUTH_AWS_IAM, AUTH_DIGEST, AUTH_NETRC, AUTH_NTLM, CONTENT_TYPE_FORM_DATA } from '../../common/constants';
 import { describeByteSize, hasAuthHeader } from '../../common/misc';
 import { ClientCertificate } from '../../models/client-certificate';
 import { getAuthStrategies, RequestHeader } from '../../models/request';
 import { ResponseHeader } from '../../models/response';
 import { buildMultipart } from './multipart';
 import { parseHeaderStrings } from './parse-header-strings';
+import { parseRequestBody } from './request-body';
 export interface CurlRequestOptions {
   requestId: string; // for cancellation
   req: RequestUsedHere;
@@ -113,16 +114,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
       socketPath,
     });
     const { method, body } = req;
-    // Only set CURLOPT_CUSTOMREQUEST if not HEAD or GET.
-    // See https://curl.haxx.se/libcurl/c/CURLOPT_CUSTOMREQUEST.html
-    // This is how you tell Curl to send a HEAD request
-    if (method.toUpperCase() === 'HEAD') {
-      curl.setOpt(Curl.option.NOBODY, 1);
-    } else if (method.toUpperCase() === 'POST') { // This is how you tell Curl to send a POST request
-      curl.setOpt(Curl.option.POST, 1);
-    } else { // IMPORTANT: Only use CUSTOMREQUEST for all but HEAD and POST
-      curl.setOpt(Curl.option.CUSTOMREQUEST, method);
-    }
+    setCurlMethod(curl, method);
 
     const requestBodyPath = await parseRequestBodyPath(body);
     const requestBody = parseRequestBody({ body, method });
@@ -461,21 +453,19 @@ async function waitForStreamToFinish(stream: Readable | Writable) {
     });
   });
 }
-const parseRequestBody = ({ body, method }: { body: any; method: string }) => {
-  const isUrlEncodedForm = body.mimeType === CONTENT_TYPE_FORM_URLENCODED;
-  const expectsBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase());
-  const hasMimetypeAndUpdateMethod = typeof body.mimeType === 'string' || expectsBody;
-  if (isUrlEncodedForm) {
-    const urlSearchParams = new URLSearchParams();
-    (body.params || []).map((p: { name: string; value: any }) => urlSearchParams.append(p.name, p?.value || ''));
-    return urlSearchParams.toString();
+// Only set CURLOPT_CUSTOMREQUEST if not HEAD or POST.
+// See https://curl.haxx.se/libcurl/c/CURLOPT_CUSTOMREQUEST.html
+export const setCurlMethod = (curl: Curl, method: string) => {
+  if (method.toUpperCase() === 'HEAD') {
+    // This is how you tell Curl to send a HEAD request
+    curl.setOpt(Curl.option.NOBODY, 1);
+  } else if (method.toUpperCase() === 'POST') {
+    // This is how you tell Curl to send a POST request
+    curl.setOpt(Curl.option.POST, 1);
+  } else {
+    // IMPORTANT: Only use CUSTOMREQUEST for all but HEAD and POST
+    curl.setOpt(Curl.option.CUSTOMREQUEST, method);
   }
-
-  if (hasMimetypeAndUpdateMethod) {
-    return body.text || '';
-  }
-
-  return undefined;
 };
 const parseRequestBodyPath = async (body: any) => {
   const isMultipartForm = body.mimeType === CONTENT_TYPE_FORM_DATA;
