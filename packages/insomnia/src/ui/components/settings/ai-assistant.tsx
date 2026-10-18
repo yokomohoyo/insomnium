@@ -21,7 +21,8 @@ export const AiAssistant: FC = () => {
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [isChecking, setChecking] = useState(false);
   // the endpoint is asked with the saved settings, so wait for a change to save
-  const isSaving = useFetchers().some(fetcher => fetcher.formAction === '/settings/update' && fetcher.state !== 'idle');
+  // (useFetchers lists only the busy ones)
+  const isSaving = useFetchers().some(fetcher => fetcher.formAction === '/settings/update');
 
   const chooseModel = (value: string) => {
     setModel(value);
