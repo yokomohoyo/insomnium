@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { neighborOf, withoutTab, withTab } from '../../common/open-tabs';
@@ -40,9 +40,21 @@ export const RequestTabs: FC = () => {
       current = false;
     };
   }, [workspaceId]);
+  // a request gets its tab as it opens (or once the list has loaded), not again
+  // as the list changes: one just closed is still open until the navigation lands
+  const added = useRef<string>();
   useEffect(() => {
-    if (open && requestId && !open.includes(requestId)) {
-      setLoaded(current => current && { ...current, ids: withTab(current.ids, requestId) });
+    if (!requestId) {
+      added.current = undefined;
+    } else if (open && added.current !== requestId) {
+      added.current = requestId;
+      setLoaded(current => {
+        if (!current) {
+          return current;
+        }
+        const ids = withTab(current.ids, requestId);
+        return ids === current.ids ? current : { ...current, ids };
+      });
     }
   }, [open, requestId]);
   useEffect(() => {
