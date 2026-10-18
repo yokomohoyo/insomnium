@@ -61,11 +61,14 @@ export async function buildRenderContext(
     rootEnvironment,
     subEnvironment,
     baseContext = {},
+    iterationData,
   }: {
     ancestors?: RenderContextAncestor[];
     rootEnvironment?: Environment;
     subEnvironment?: Environment;
     baseContext?: Record<string, any>;
+    // a runner iteration's data row, over everything else
+    iterationData?: Record<string, unknown>;
   },
 ) {
   const envObjects: Record<string, any>[] = [];
@@ -103,6 +106,10 @@ export async function buildRenderContext(
       );
       envObjects.push(ordered);
     }
+  }
+
+  if (iterationData) {
+    envObjects.push(iterationData);
   }
 
   // At this point, environments is a list of environments ordered
@@ -300,6 +307,7 @@ interface BaseRenderContextOptions {
   environmentId?: string;
   purpose?: RenderPurpose;
   extraInfo?: ExtraRenderInfo;
+  iterationData?: Record<string, unknown>;
 }
 
 interface RenderContextOptions extends BaseRenderContextOptions, Partial<RenderRequest<Request | GrpcRequest | WebSocketRequest>> {
@@ -312,6 +320,7 @@ export async function getRenderContext(
     ancestors: _ancestors,
     purpose,
     extraInfo,
+    iterationData,
   }: RenderContextOptions,
 ): Promise<Record<string, any>> {
   const ancestors = _ancestors || await getRenderContextAncestors(request);
@@ -401,7 +410,7 @@ export async function getRenderContext(
   };
 
   // Generate the context we need to render
-  return buildRenderContext({ ancestors, rootEnvironment, subEnvironment: subEnvironment || undefined, baseContext });
+  return buildRenderContext({ ancestors, rootEnvironment, subEnvironment: subEnvironment || undefined, baseContext, iterationData });
 }
 interface BaseRenderContext {
   getMeta: () => {};
@@ -464,6 +473,7 @@ export async function getRenderedRequestAndContext(
     request,
     environmentId,
     extraInfo,
+    iterationData,
     purpose,
   }: RenderRequestOptions,
 ): Promise<RequestAndContext> {
@@ -471,7 +481,7 @@ export async function getRenderedRequestAndContext(
   const workspace = ancestors.find(isWorkspace);
   const parentId = workspace ? workspace._id : 'n/a';
   const cookieJar = await models.cookieJar.getOrCreateForParentId(parentId);
-  const renderContext = await getRenderContext({ request, environmentId, ancestors, purpose, extraInfo });
+  const renderContext = await getRenderContext({ request, environmentId, ancestors, purpose, extraInfo, iterationData });
 
   // HACK: Switch '#}' to '# }' to prevent Nunjucks from barfing
   // https://github.com/Kong/insomnia/issues/895

@@ -3,6 +3,7 @@
 // --bundle <file>, or an image with --image <tag>), and drives it over MCP.
 //   node test/smoke.mjs --bundle dist/index.js
 //   node test/smoke.mjs --image insomnium-server:ci
+// Then it runs the collection runner, `run`, the same way.
 import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
@@ -50,9 +51,25 @@ resources:
     url: '{{ base }}/echo'
     headers: [{ name: X-Secret, value: '{{ secret }}' }, { name: X-Trace, value: "{% faker 'guid' %}" }]
   - { _id: req_blocked, _type: request, parentId: wrk_smoke, name: blocked, method: GET, url: 'http://example.com/' }
+  - { _id: fld_pass, _type: request_group, parentId: wrk_smoke, name: passing }
+  - _id: req_pass
+    _type: request
+    parentId: fld_pass
+    name: passes
+    method: GET
+    url: '{{ base }}/run/{{ row }}'
+    assertions:
+      - { id: a1, source: status, operator: equals, value: '200' }
+      - { id: a2, source: body, operator: contains, value: echoed }
+  - { _id: fld_fail, _type: request_group, parentId: wrk_smoke, name: failing }
+  - { _id: req_fail, _type: request, parentId: fld_fail, name: fails, method: GET, url: '{{ base }}/run', assertions: [{ id: a1, source: status, operator: equals, value: '201' }] }
 `);
+fs.writeFileSync(path.join(dir, 'rows.csv'), 'row\none\ntwo\n');
 // the image runs as node (uid 1000), not as whoever made the 0700 temp dir
 fs.chmodSync(dir, 0o755);
+// where the runner writes its reports, writable by it too
+const out = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-run-out-'));
+fs.chmodSync(out, 0o777);
 
 const env = {
   INSOMNIUM_MCP_TOKEN: token,
@@ -81,6 +98,16 @@ const stop = () => {
   }
   echo.close();
 };
+// a command's exit code and output, without blocking: the echo server it
+// sends to is in this process
+const command = (file, commandArgs, commandEnv) => new Promise(resolve => {
+  const child = spawn(file, commandArgs, { env: commandEnv, stdio: ['ignore', 'pipe', 'pipe'] });
+  let stdout = '';
+  let stderr = '';
+  child.stdout.on('data', data => { stdout += data; });
+  child.stderr.on('data', data => { stderr += data; });
+  child.on('close', status => resolve({ status, stdout, stderr }));
+});
 const check = (ok, what) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${what}`);
   failed ||= !ok;
@@ -129,6 +156,21 @@ try {
 
   const blocked = await call('send_http_request', { requestId: byName('blocked') });
   check(blocked.isError && /not in INSOMNIUM_ALLOWED_HOSTS/.test(blocked.data.error), 'refuses a host that is not allowed');
+
+  // the runner: the same bundle or image, as a command
+  const run = runArgs => {
+    const runEnv = { INSOMNIUM_ALLOWED_HOSTS: '127.0.0.1', INSOMNIUM_VAR_base: env.INSOMNIUM_VAR_base };
+    if (mode === '--bundle') {
+      return command(process.execPath, [target, 'run', '--collection', path.join(dir, 'collection.yaml'), ...runArgs(dir, out)], { ...process.env, ...runEnv });
+    }
+    const envArgs = Object.entries(runEnv).flatMap(([name, value]) => ['-e', `${name}=${value}`]);
+    return command('docker', ['run', '--rm', '--network', 'host', '-v', `${dir}:/data:ro`, '-v', `${out}:/out`, ...envArgs, target, 'run', '--collection', '/data/collection.yaml', ...runArgs('/data', '/out')], process.env);
+  };
+  const passing = await run(data => ['--env', 'ci', '--folder', 'passing', '--data', path.join(data, 'rows.csv')]);
+  check(passing.status === 0 && /passing \/ passes/.test(passing.stdout) && seen.some(({ url }) => url === '/run/two'), `run exits 0 when its assertions pass, once per data row (${passing.status}: ${passing.stdout}${passing.stderr})`);
+  const failing = await run((_data, reports) => ['--env', 'ci', '--folder', 'failing', '--junit', path.join(reports, 'report.xml')]);
+  const report = fs.existsSync(path.join(out, 'report.xml')) ? fs.readFileSync(path.join(out, 'report.xml'), 'utf8') : '';
+  check(failing.status === 1 && /<failure message="Status code equals 201: got &quot;200&quot;"\/>/.test(report), `run exits 1 when one fails, and writes JUnit (${failing.status}: ${failing.stdout}${failing.stderr})`);
 } catch (err) {
   check(false, `ran without errors: ${err.stack}`);
 } finally {

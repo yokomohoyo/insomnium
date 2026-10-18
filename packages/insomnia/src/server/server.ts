@@ -33,7 +33,8 @@ export const SERVER_TOOLS = new Set([
   'send_grpc_request',
 ]);
 
-export async function startServer(config: ServerConfig) {
+// The in-memory database with the collections loaded, for serving or a run
+export async function loadWorkspaces(config: Pick<ServerConfig, 'collections' | 'environment' | 'variables' | 'validateSSL' | 'allowedHosts' | 'allowedEnvironmentVariables'>) {
   await database.init(models.types(), { inMemoryOnly: true }, true, () => {});
   await models.project.all();
   await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables });
@@ -46,7 +47,11 @@ export async function startServer(config: ServerConfig) {
     workspaces.push(...await loadCollection(collection));
   }
   await applyEnvironment(workspaces, config.environment, config.variables);
+  return workspaces;
+}
 
+export async function startServer(config: ServerConfig) {
+  const workspaces = await loadWorkspaces(config);
   const http = await startHttpServer({
     host: config.host,
     port: config.port,

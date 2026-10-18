@@ -1,6 +1,6 @@
 # insomnium-server
 
-Insomnium's MCP tools without the app. It loads a collection and lets AI clients (Claude Code and other MCP clients) list its requests and send them, over MCP's Streamable HTTP transport. Run it in a container next to the APIs an agent should test: inside a cluster, a VPC, or a staging network the agent can't reach directly.
+Insomnium's MCP tools without the app. It loads a collection and lets AI clients (Claude Code and other MCP clients) list its requests and send them, over MCP's Streamable HTTP transport. Run it in a container next to the APIs an agent should test: inside a cluster, a VPC, or a staging network the agent can't reach directly. It also runs a collection's requests and their assertions in CI: see [Run a collection in CI](#run-a-collection-in-ci).
 
 It reads and sends; it can't change the collection, its environments or auth.
 
@@ -65,6 +65,43 @@ The server can reach whatever its network can, so it only sends where you say:
 - Only the tools that read and send are offered: listing and reading workspaces, requests, responses, environments and auth, choosing the active environment, and sending HTTP and gRPC requests.
 
 Keep the token secret and serve it over TLS (a reverse proxy or ingress) when it leaves a private network.
+
+## Run a collection in CI
+
+`run` is the collection runner. It sends a collection's HTTP requests in order, as Send does in the app, and checks each request's assertions (the Assertions tab). It exits 1 when a request can't be sent or an assertion fails, and 2 when the run can't start. Responses are kept while it runs, so cookies and `{% response %}` tags chain from one request to the next.
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
+  -e INSOMNIUM_VAR_apiKey="$API_KEY" \
+  ghcr.io/yokomohoyo/insomnium-server run --collection api.yaml --env staging --junit report.xml
+```
+
+```
+[run] Pet Store: 3 requests
+  ✓ Pets / List pets  GET 200 OK  41 ms
+      ✓ Status code equals 200
+  ✗ Pets / Get pet  GET 200 OK  12 ms
+      ✗ JSON path $.name equals Tom: got "Tim"
+  ✓ Health  GET 204 No Content  3 ms
+
+3 requests, 1 failed · 2 assertions, 1 failed · 0.1 s
+```
+
+`--user` lets the container write the report into your directory; without a report it can be left out.
+
+| | |
+|---|---|
+| `--collection <file>` | A collection to run, in any format Import takes; repeat for more. |
+| `--folder <name>` | Only that folder's requests: its name, or its path (`Users/Admin`) when the name isn't unique. |
+| `--env <name>` | The sub environment to send with. |
+| `--data <file>` | A CSV file with a header row, or a JSON array of objects: one row of variables per iteration, over the environment's. |
+| `--iterations <n>` | How many times to run the requests. Defaults to 1, or once per data row; rows repeat when there are fewer. |
+| `--delay <ms>` | Wait between requests. |
+| `--bail` | Stop at the first request that fails. |
+| `--junit <file>` | Write a JUnit XML report: a suite per request, a case per assertion. |
+| `--json <file>` | Write the results as JSON. |
+
+`INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL` and `INSOMNIUM_ALLOWED_ENV` work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 
 ## Not yet
 
