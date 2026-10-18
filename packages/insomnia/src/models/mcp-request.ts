@@ -31,7 +31,7 @@ export interface BaseMcpRequest {
   command: string;
   args: string;
   metaSortKey: number;
-  // the arguments last used for each tool, as JSON text
+  // the arguments last used for each tool and prompt ("tool:name"), as JSON text
   toolArguments?: Record<string, string>;
 }
 

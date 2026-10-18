@@ -16,6 +16,7 @@ import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
+import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
 import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
 import { checkIfRestartNeeded } from './main/squirrel-startup';
@@ -129,6 +130,7 @@ app.on('ready', async () => {
   registerMainHandlers();
   registergRPCHandlers();
   registerWebSocketHandlers();
+  registerMcpClientHandlers();
   registerCurlHandlers();
 
   /**

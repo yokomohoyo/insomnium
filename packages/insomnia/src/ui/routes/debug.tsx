@@ -37,6 +37,7 @@ import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { getByParentId as getGrpcRequestMetaByParentId } from '../../models/grpc-request-meta';
+import { isMcpRequest, isMcpRequestId } from '../../models/mcp-request';
 import {
   isEventStreamRequest,
   isRequest,
@@ -52,6 +53,8 @@ import {
 } from '../../models/websocket-request';
 import { guard } from '../../utils/guard';
 import { RequestActionsDropdown } from '../components/dropdowns/request-actions-dropdown';
+import { McpRequestPane } from '../components/mcp/mcp-request-pane';
+import { McpResponsePane } from '../components/mcp/mcp-response-pane';
 import { RequestGroupActionsDropdown } from '../components/dropdowns/request-group-actions-dropdown';
 
 import { ErrorBoundary } from '../components/error-boundary';
@@ -1096,6 +1099,9 @@ export const Debug: FC = () => {
             {isWebSocketRequestId(requestId) && (
               <WebSocketRequestPane environment={activeEnvironment} />
             )}
+            {isMcpRequestId(requestId) && (
+              <McpRequestPane key={requestId} environmentId={activeEnvironment ? activeEnvironment._id : ''} />
+            )}
             {isRequestId(requestId) && (
               <RequestPane
                 environmentId={activeEnvironment ? activeEnvironment._id : ''}
@@ -1127,6 +1133,9 @@ export const Debug: FC = () => {
           )}
           {activeRequest && isRequest(activeRequest) && !isRealtimeRequest && (
             <ResponsePane runningRequests={runningRequests} />
+          )}
+          {activeRequest && isMcpRequest(activeRequest) && (
+            <McpResponsePane key={activeRequest._id} environmentId={activeEnvironment ? activeEnvironment._id : ''} />
           )}
         </ErrorBoundary>
       }

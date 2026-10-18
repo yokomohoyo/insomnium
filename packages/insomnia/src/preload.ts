@@ -2,7 +2,15 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
 import { gRPCBridgeAPI } from './main/ipc/grpc';
 import { CurlBridgeAPI } from './main/network/curl';
+import type { McpClientBridgeAPI } from './main/network/mcp-client';
 import type { WebSocketBridgeAPI } from './main/network/websocket';
+
+const mcpClient: McpClientBridgeAPI = {
+  connect: options => ipcRenderer.invoke('mcpClient.connect', options),
+  call: options => ipcRenderer.invoke('mcpClient.call', options),
+  disconnect: options => ipcRenderer.invoke('mcpClient.disconnect', options),
+  isConnected: options => ipcRenderer.invoke('mcpClient.isConnected', options),
+};
 
 const webSocket: WebSocketBridgeAPI = {
   open: options => ipcRenderer.invoke('webSocket.open', options),
@@ -70,6 +78,7 @@ const main: Window['main'] = {
     return () => ipcRenderer.removeListener(channel, listener);
   },
   webSocket,
+  mcpClient,
   grpc,
   curl,
   trackSegmentEvent: options => ipcRenderer.send('trackSegmentEvent', options),

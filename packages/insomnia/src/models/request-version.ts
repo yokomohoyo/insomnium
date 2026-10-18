@@ -5,6 +5,7 @@ import { compressObject, decompressObject } from '../common/misc';
 import * as requestOperations from '../models/helpers/request-operations';
 import { GrpcRequest } from './grpc-request';
 import type { BaseModel } from './index';
+import type { McpRequest } from './mcp-request';
 import { isRequest, Request } from './request';
 import { isWebSocketRequest, WebSocketRequest } from './websocket-request';
 
@@ -57,7 +58,8 @@ export function findByParentId(parentId: string) {
   return db.find<RequestVersion>(type, { parentId });
 }
 
-export async function create(request: Request | WebSocketRequest | GrpcRequest) {
+// an MCP request has no versions: its results aren't kept as responses
+export async function create(request: Request | WebSocketRequest | GrpcRequest | McpRequest) {
   if (!isRequest(request) && !isWebSocketRequest(request)) {
     throw new Error(`New ${type} was not given a valid ${request.type} instance`);
   }
