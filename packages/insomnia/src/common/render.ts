@@ -16,6 +16,7 @@ import { setDefaultProtocol } from '../utils/url/protocol';
 import { CONTENT_TYPE_GRAPHQL, JSON_ORDER_SEPARATOR } from './constants';
 import { database as db } from './database';
 import { withFolderSettings } from './folder-inheritance';
+import { getGlobalEnvironments } from './global-environments';
 
 export const KEEP_ON_ERROR = 'keep';
 export const THROW_ON_ERROR = 'throw';
@@ -61,18 +62,26 @@ export async function buildRenderContext(
     ancestors,
     rootEnvironment,
     subEnvironment,
+    globalEnvironments = [],
     baseContext = {},
     iterationData,
   }: {
     ancestors?: RenderContextAncestor[];
     rootEnvironment?: Environment;
     subEnvironment?: Environment;
+    // the project's global base environment and the global one in use, under
+    // everything else (common/global-environments.ts)
+    globalEnvironments?: Environment[];
     baseContext?: Record<string, any>;
     // a runner iteration's data row, over everything else
     iterationData?: Record<string, unknown>;
   },
 ) {
   const envObjects: Record<string, any>[] = [];
+
+  for (const environment of globalEnvironments) {
+    envObjects.push(orderedJSON.order(environment.data, environment.dataPropertyOrder, JSON_ORDER_SEPARATOR));
+  }
 
   // Get root environment keys in correct order
   // Then get sub environment keys in correct order
@@ -336,6 +345,8 @@ export async function getRenderContext(
     workspace ? workspace._id : 'n/a',
   );
   const subEnvironment = await models.environment.getById(environmentId || 'n/a');
+  const globals = await getGlobalEnvironments(project?._id, workspace._id);
+  const globalEnvironments = [globals.base, globals.active].filter((environment): environment is Environment => !!environment);
   const keySource: Record<string, string> = {};
 
   // Function that gets Keys and stores their Source location
@@ -362,6 +373,9 @@ export async function getRenderContext(
   }
 
   const inKey = templating.NUNJUCKS_TEMPLATE_GLOBAL_PROPERTY_NAME;
+  for (const environment of globalEnvironments) {
+    getKeySource(environment.data || {}, inKey, environment === globals.base ? 'global' : `global: ${environment.name}`);
+  }
   // Get Keys from root environment
   getKeySource((rootEnvironment || {}).data, inKey, 'root');
 
@@ -411,7 +425,7 @@ export async function getRenderContext(
   };
 
   // Generate the context we need to render
-  return buildRenderContext({ ancestors, rootEnvironment, subEnvironment: subEnvironment || undefined, baseContext, iterationData });
+  return buildRenderContext({ ancestors, rootEnvironment, subEnvironment: subEnvironment || undefined, globalEnvironments, baseContext, iterationData });
 }
 interface BaseRenderContext {
   getMeta: () => {};

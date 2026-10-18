@@ -1,6 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- this is a temporary hold-me-over while we get the types into better condition
 export type UNKNOWN = any;
 
+// an imported environment for the project's global base environment, such as
+// Postman's globals (common/global-environments.ts)
+export const GLOBAL_ENVIRONMENT_IMPORT_ID = '__GLOBAL_ENVIRONMENT_ID__';
+
 export interface UNKNOWN_OBJ {
   [key: string]: UNKNOWN;
 }

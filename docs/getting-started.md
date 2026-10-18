@@ -43,6 +43,14 @@ Use a variable anywhere in a request as `{{ name }}`; with nested values, `{{ ap
 
 See [Template tags](template-tags.md) for values that are computed when a request is sent.
 
+### Global environments
+
+**Globals**, in the sidebar, edits the project's global environments: variables for every collection in the project, such as a shared token or a region. A collection's own environments override them.
+
+Like a collection's, they have a base environment and sub environments. Each collection chooses which global sub environment it uses, if any, with **Use in This Collection**. Global environments aren't part of a collection, so its exports and Git Sync leave them out. Postman's globals are imported into them.
+
+From the lowest to the highest, a request's variables come from: the global base environment, the global sub environment in use, the collection's base environment, its sub environment, its folders, and then the [runner](testing.md)'s data row and the variables its [pre-request script](scripts.md) set.
+
 ## Cookies
 
 Each collection has a cookie jar. Responses' `Set-Cookie` headers go into it, and matching cookies are sent with later requests. **Cookies** in the sidebar edits it, and a request's settings can turn sending or storing them off.

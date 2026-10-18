@@ -3,15 +3,22 @@ import { isWorkspace } from '../models/workspace';
 import { guard } from '../utils/guard';
 import { database as db } from './database';
 import { DEFAULT_PROJECT_ID } from '../models/project';
+import { importGlobalEnvironments } from './global-environments';
 import { importResourcesToNewWorkspace } from './importResourcesToNewWorkspace';
 import { ResourceCache } from './import';
 
 export async function importResourcesToProject({ projectId = DEFAULT_PROJECT_ID, _resources }: { projectId?: string; _resources?: BaseModel[] }) {
 
-  const resources = _resources || ResourceCache!.resources;
-  guard(resources, 'No resources to import');
+  const scanned = _resources || ResourceCache!.resources;
+  guard(scanned, 'No resources to import');
 
   const bufferId = await db.bufferChanges();
+  // globals (Postman's) go to the project, not a new collection
+  const resources = await importGlobalEnvironments(projectId, scanned);
+  if (!resources.length) {
+    await db.flushChanges(bufferId);
+    return { resources: scanned };
+  }
   if (!resources.find(isWorkspace)) {
     await importResourcesToNewWorkspace(projectId, resources);
     return { resources };
