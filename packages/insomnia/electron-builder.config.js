@@ -219,28 +219,6 @@ const config = {
   },
 };
 
-// Windows: signed with Azure Artifact Signing when the release workflow passes
-// the account (the windows-signing environment). electron-builder runs
-// Microsoft's TrustedSigning module for every .exe it builds, Squirrel's
-// Update.exe and Setup.exe included; the Azure login is the workflow's. A build
-// so configured must come out signed.
-const {
-  AZURE_SIGNING_ENDPOINT,
-  AZURE_SIGNING_ACCOUNT,
-  AZURE_SIGNING_PROFILE,
-  AZURE_SIGNING_PUBLISHER,
-} = process.env;
-if (AZURE_SIGNING_ENDPOINT && AZURE_SIGNING_ACCOUNT && AZURE_SIGNING_PROFILE && AZURE_SIGNING_PUBLISHER) {
-  config.win.azureSignOptions = {
-    // the certificate's subject CN, exactly
-    publisherName: AZURE_SIGNING_PUBLISHER,
-    endpoint: AZURE_SIGNING_ENDPOINT,
-    codeSigningAccountName: AZURE_SIGNING_ACCOUNT,
-    certificateProfileName: AZURE_SIGNING_PROFILE,
-  };
-  config.forceCodeSigning = true;
-}
-
 const {
   env: { BUILD_TARGETS },
   platform,

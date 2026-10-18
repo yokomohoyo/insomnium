@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration, slug "installers".
+  Signs the Squirrel installer and the portable exe, which release-on-publish.yml
+  builds from the already-signed app. Both names carry the version, hence the
+  wildcard; exactly two must match.
+  This copy is the reference; paste it into the SignPath project to change it.
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="Insomnium.Core-*.exe" min-matches="2" max-matches="2">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
