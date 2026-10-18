@@ -69,4 +69,4 @@ Insomnia 12.6 and later can also keep a collection in a repository as Insomnia v
 
 - SSH keys, and signing in through GitHub or GitLab in the browser.
 - Merging a request deleted on one side and changed on the other. Undo one of the two, commit, and merge again.
-- Opening a folder that's already checked out on your computer.
+- Opening a folder that's already checked out on your computer. [Folder Sync](folder-sync.md) can keep a collection in one, as readable files.
