@@ -11,6 +11,7 @@ import {
   AUTH_GCP_ID_TOKEN,
   AUTH_HAWK,
   AUTH_NETRC,
+  AUTH_NONE,
   AUTH_NTLM,
   AUTH_OAUTH_1,
   AUTH_OAUTH_2,
@@ -20,8 +21,11 @@ import {
   getAuthStrategies,
   patchAuthStrategy,
   removeAuthStrategy,
+  RequestAuthentication,
   RequestAuthenticationStrategy,
 } from '../../../../models/request';
+import type { RequestGroup } from '../../../../models/request-group';
+import { useFolderInheritance } from '../../../hooks/use-folder-inheritance';
 import { useRequestSetter } from '../../../hooks/use-request';
 import { RequestLoaderData } from '../../../routes/request';
 import { ApiKeyAuth } from './api-key-auth';
@@ -52,6 +56,8 @@ function renderEditor(type: string, disabled: boolean): ReactNode {
     case AUTH_NETRC: return <NetrcAuth />;
     case AUTH_ASAP: return <AsapAuth />;
     case AUTH_GCP_ID_TOKEN: return <GcpIdTokenAuth disabled={disabled} />;
+    case AUTH_NONE:
+      return <div className="pad super-faint text-sm">Sends no auth, and doesn't use its folder's.</div>;
     default:
       return (
         <div className="pad super-faint text-sm">
@@ -61,37 +67,39 @@ function renderEditor(type: string, disabled: boolean): ReactNode {
   }
 }
 
-const EmptyState: FC = () => (
+const EmptyState: FC<{ inheritedFrom?: RequestGroup }> = ({ inheritedFrom }) => (
   <div className="vertically-center text-center">
     <p className="pad super-faint text-sm text-center">
       <i className="fa fa-unlock-alt" style={{ fontSize: '8rem', opacity: 0.3 }} />
       <br /><br />
-      No auth strategies. Use the Auth dropdown above to add one.
+      {inheritedFrom ? (
+        <>
+          Uses the auth of the folder <strong>{inheritedFrom.name}</strong>
+          {' '}({getAuthStrategies(inheritedFrom.authentication).map(({ type }) => getAuthTypeName(type as any, true) || type).join(', ')}).
+          <br />
+          Add a strategy to use this request&apos;s own instead.
+        </>
+      ) : 'No auth strategies. Use the Auth dropdown above to add one.'}
     </p>
   </div>
 );
 
-export const AuthWrapper: FC<{ disabled?: boolean }> = ({ disabled = false }) => {
-  const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
-  const { requestId } = useParams() as { requestId: string };
-  const patchRequest = useRequestSetter();
-  const strategies = getAuthStrategies(activeRequest.authentication);
-  console.log('[AuthWrapper]', { requestId, authentication: activeRequest.authentication, strategies, count: strategies.length });
+interface StrategiesEditorProps {
+  authentication: RequestAuthentication | undefined | null;
+  onChange: (authentication: RequestAuthenticationStrategy[]) => void;
+  disabled?: boolean;
+  // the types that can be edited here; others are shown, not opened
+  editableTypes?: string[];
+  // the folder whose auth applies while there's none here
+  inheritedFrom?: RequestGroup;
+}
 
-  const patchStrategy = useCallback(
-    (index: number, patch: Partial<RequestAuthenticationStrategy>) =>
-      patchRequest(requestId, { authentication: patchAuthStrategy(activeRequest.authentication, index, patch) }),
-    [activeRequest.authentication, patchRequest, requestId],
-  );
-
-  const removeStrategy = useCallback(
-    (index: number) =>
-      patchRequest(requestId, { authentication: removeAuthStrategy(activeRequest.authentication, index) }),
-    [activeRequest.authentication, patchRequest, requestId],
-  );
+// The editors for a list of strategies: a request's, or a folder's
+export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication, onChange, disabled = false, editableTypes, inheritedFrom }) => {
+  const strategies = getAuthStrategies(authentication);
 
   if (strategies.length === 0) {
-    return <EmptyState />;
+    return <EmptyState inheritedFrom={inheritedFrom} />;
   }
 
   return (
@@ -101,34 +109,59 @@ export const AuthWrapper: FC<{ disabled?: boolean }> = ({ disabled = false }) =>
           key={`${strategy.type || 'none'}-${index}`}
           strategy={strategy}
           strategyIndex={index}
-          patch={p => patchStrategy(index, p)}
+          patch={p => onChange(patchAuthStrategy(authentication, index, p))}
         >
           <div className="border-bottom pad-bottom">
             <div className="flex flex--center pad-top pad-left pad-right">
               <strong className="txt-sm">
-                {getAuthTypeName(strategy.type as any, true) || 'Auth'}
+                {strategy.type === AUTH_NONE ? 'No auth' : getAuthTypeName(strategy.type as any, true) || 'Auth'}
               </strong>
-              <input
-                className="margin-left form-control form-control--small flex-1"
-                placeholder="Header name override (defaults to Authorization)"
-                value={strategy.headerName || ''}
-                onChange={e => patchStrategy(index, { headerName: e.target.value || undefined })}
-                disabled={disabled}
-                title="Override the destination header for this strategy (e.g., X-Goog-IAP-JWT-Assertion)"
-              />
+              {strategy.type === AUTH_NONE ? <span className="flex-1" /> : (
+                <input
+                  className="margin-left form-control form-control--small flex-1"
+                  placeholder="Header name override (defaults to Authorization)"
+                  value={strategy.headerName || ''}
+                  onChange={e => onChange(patchAuthStrategy(authentication, index, { headerName: e.target.value || undefined }))}
+                  disabled={disabled}
+                  title="Override the destination header for this strategy (e.g., X-Goog-IAP-JWT-Assertion)"
+                />
+              )}
               <button
                 className="btn btn--super-duper-compact btn--clicky margin-left-xs"
-                onClick={() => removeStrategy(index)}
+                onClick={() => onChange(removeAuthStrategy(authentication, index))}
                 disabled={disabled}
                 title="Remove this auth strategy"
               >
                 <i className="fa fa-trash-o" />
               </button>
             </div>
-            {renderEditor(strategy.type as string, disabled)}
+            {!editableTypes || editableTypes.includes(strategy.type as string)
+              ? renderEditor(strategy.type as string, disabled)
+              : <div className="pad super-faint text-sm">{getAuthTypeName(strategy.type as any, true) || strategy.type} can't be edited here yet; the requests still use it.</div>}
           </div>
         </AuthStrategyProvider>
       ))}
     </div>
+  );
+};
+
+export const AuthWrapper: FC<{ disabled?: boolean }> = ({ disabled = false }) => {
+  const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { requestId } = useParams() as { requestId: string };
+  const patchRequest = useRequestSetter();
+  const { authFolder } = useFolderInheritance(activeRequest);
+
+  const onChange = useCallback(
+    (authentication: RequestAuthenticationStrategy[]) => patchRequest(requestId, { authentication }),
+    [patchRequest, requestId],
+  );
+
+  return (
+    <AuthStrategiesEditor
+      authentication={activeRequest.authentication}
+      onChange={onChange}
+      disabled={disabled}
+      inheritedFrom={authFolder}
+    />
   );
 };

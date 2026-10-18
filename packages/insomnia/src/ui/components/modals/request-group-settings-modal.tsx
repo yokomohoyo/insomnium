@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
+import { getCommonHeaderNames, getCommonHeaderValues } from '../../../common/common-headers';
+import type { AuthType } from '../../../common/constants';
+import { getAuthStrategies, type RequestAuthenticationStrategy, type RequestHeader } from '../../../models/request';
 import type { RequestGroup } from '../../../models/request-group';
 import { guard } from '../../../utils/guard';
 import { useRequestGroupPatcher } from '../../hooks/use-request';
@@ -10,8 +13,14 @@ import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { CodeEditorHandle } from '../codemirror/code-editor';
+import { AuthStrategyDropdown } from '../dropdowns/auth-dropdown';
+import { AuthStrategiesEditor } from '../editors/auth/auth-wrapper';
 import { HelpTooltip } from '../help-tooltip';
+import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 import { MarkdownEditor } from '../markdown-editor';
+
+// OAuth 2 keeps its tokens per request, so a folder can't hold one yet
+const FOLDER_AUTH_TYPES: AuthType[] = ['apikey', 'basic', 'digest', 'oauth1', 'ntlm', 'iam', 'bearer', 'hawk', 'asap', 'gcp-id-token', 'netrc'];
 
 export interface RequestGroupSettingsModalOptions {
   requestGroup: RequestGroup;
@@ -40,10 +49,22 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
     defaultPreviewMode: !!requestGroup.description,
   });
   const patchRequestGroup = useRequestGroupPatcher();
+  // edited here, not read back from the folder: the modal keeps the folder it
+  // opened with
+  const [authentication, setAuthentication] = useState(() => getAuthStrategies(requestGroup.authentication));
+  const [headers, setHeaders] = useState<RequestHeader[]>(() => requestGroup.headers || []);
+  const saveAuthentication = (next: RequestAuthenticationStrategy[]) => {
+    setAuthentication(next);
+    patchRequestGroup(requestGroup._id, { authentication: next });
+  };
+  const saveHeaders = (next: RequestHeader[]) => {
+    setHeaders(next);
+    patchRequestGroup(requestGroup._id, { headers: next });
+  };
   const requestFetcher = useFetcher();
 
   const duplicateRequestGroup = (r: Partial<RequestGroup>) => {
-    requestFetcher.submit(r,
+    requestFetcher.submit(JSON.stringify(r),
       {
         action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/duplicate`,
         method: 'post',
@@ -109,6 +130,31 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
               patchRequestGroup(requestGroup._id, { description });
             }}
           />
+          <hr />
+          <section aria-label="Folder auth">
+            <div className="flex flex--center">
+              <strong className="flex-1">Auth</strong>
+              <AuthStrategyDropdown authentication={authentication} onChange={saveAuthentication} authTypes={FOLDER_AUTH_TYPES} />
+            </div>
+            <p className="faint txt-sm">
+              Requests in this folder, and in folders inside it, that have no auth of their own use this.
+            </p>
+            {authentication.length > 0 && <AuthStrategiesEditor authentication={authentication} onChange={saveAuthentication} editableTypes={FOLDER_AUTH_TYPES} />}
+          </section>
+          <section aria-label="Folder headers" className="margin-top">
+            <strong>Headers</strong>
+            <p className="faint txt-sm">
+              Sent with every request in this folder, unless the request sets the same header. A folder inside it can override them.
+            </p>
+            <KeyValueEditor
+              namePlaceholder="header"
+              valuePlaceholder="value"
+              pairs={headers}
+              handleGetAutocompleteNameConstants={getCommonHeaderNames}
+              handleGetAutocompleteValueConstants={getCommonHeaderValues}
+              onChange={saveHeaders}
+            />
+          </section>
           <hr />
           <div className="form-row">
             <div className="form-control form-control--outlined">

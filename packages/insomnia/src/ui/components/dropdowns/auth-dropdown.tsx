@@ -1,13 +1,15 @@
-import React, { FC, useCallback } from 'react';
+import React, { FC } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import {
+  AUTH_NONE,
   AuthType,
   getAuthTypeName,
   HAWK_ALGORITHM_SHA256,
 } from '../../../common/constants';
 import {
   addAuthStrategy,
+  RequestAuthentication,
   RequestAuthenticationStrategy,
 } from '../../../models/request';
 import { SIGNATURE_METHOD_HMAC_SHA1 } from '../../../network/o-auth-1/constants';
@@ -63,6 +65,51 @@ function newStrategy(type: string): RequestAuthenticationStrategy {
       return { type };
   }
 }
+interface StrategyDropdownProps {
+  authentication: RequestAuthentication | undefined | null;
+  onChange: (authentication: RequestAuthenticationStrategy[]) => void;
+  authTypes?: AuthType[];
+  disabled?: boolean;
+  // a request can opt out of its folder's auth
+  allowNone?: boolean;
+}
+
+// Adds a strategy to a list of them: a request's, or a folder's
+export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication, onChange, authTypes = defaultTypes, disabled = false, allowNone = false }) => (
+  <Dropdown
+    aria-label='Authentication Dropdown'
+    isDisabled={disabled}
+    triggerButton={
+      <DropdownButton className="tall">
+        + Add Auth
+        <i className="fa fa-caret-down space-left" />
+      </DropdownButton>
+    }
+  >
+    <DropdownSection aria-label='Auth types section' title="Add an Auth Strategy">
+      {authTypes.map(authType => (
+        <DropdownItem key={authType} aria-label={getAuthTypeName(authType, true)}>
+          <ItemContent
+            icon='empty'
+            label={getAuthTypeName(authType, true)}
+            onClick={() => onChange(addAuthStrategy(authentication, newStrategy(authType)))}
+          />
+        </DropdownItem>
+      ))}
+    </DropdownSection>
+    <DropdownSection aria-label='Folder auth section' items={allowNone ? [{ id: 'none' }] : []}>
+      {item => (
+        <DropdownItem key={item.id} aria-label="No auth, not the folder's">
+          <ItemContent
+            icon='ban'
+            label="No auth, not the folder's"
+            onClick={() => onChange([{ type: AUTH_NONE }])}
+          />
+        </DropdownItem>
+      )}
+    </DropdownSection>
+  </Dropdown>
+);
 
 interface Props {
   authTypes?: AuthType[];
@@ -74,43 +121,19 @@ export const AuthDropdown: FC<Props> = ({ authTypes = defaultTypes, disabled = f
   const { requestId } = useParams() as { organizationId: string; projectId: string; workspaceId: string; requestId: string };
   const patchRequest = useRequestSetter();
 
-  const addStrategy = useCallback((type: AuthType) => {
-    if (!activeRequest) {
-      return;
-    }
-    // `authentication` may be missing on requests that predate the field migration;
-    // addAuthStrategy() handles null/undefined/empty by returning a fresh array.
-    const current = (activeRequest as any).authentication;
-    const next = addAuthStrategy(current, newStrategy(type));
-    patchRequest(requestId, { authentication: next });
-  }, [activeRequest, patchRequest, requestId]);
-
   if (!activeRequest) {
     return null;
   }
 
   return (
-    <Dropdown
-      aria-label='Authentication Dropdown'
-      isDisabled={disabled}
-      triggerButton={
-        <DropdownButton className="tall">
-          + Add Auth
-          <i className="fa fa-caret-down space-left" />
-        </DropdownButton>
-      }
-    >
-      <DropdownSection aria-label='Auth types section' title="Add an Auth Strategy">
-        {authTypes.map(authType => (
-          <DropdownItem key={authType} aria-label={getAuthTypeName(authType, true)}>
-            <ItemContent
-              icon='empty'
-              label={getAuthTypeName(authType, true)}
-              onClick={() => addStrategy(authType)}
-            />
-          </DropdownItem>
-        ))}
-      </DropdownSection>
-    </Dropdown>
+    <AuthStrategyDropdown
+      // `authentication` may be missing on requests that predate the field
+      // migration; addAuthStrategy() starts a fresh list then
+      authentication={(activeRequest as any).authentication}
+      onChange={authentication => patchRequest(requestId, { authentication })}
+      authTypes={authTypes}
+      disabled={disabled}
+      allowNone
+    />
   );
 };

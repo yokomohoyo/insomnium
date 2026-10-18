@@ -124,7 +124,7 @@ jobs:
 
       - name: Playwright
         working-directory: packages/insomnia-smoke-test
-        run: npx playwright test --project=Smoke tests/smoke/event-stream.test.ts tests/smoke/quick-switcher.test.ts tests/smoke/assertions.test.ts tests/smoke/faker.test.ts tests/smoke/env-tag.test.ts tests/smoke/bruno-import.test.ts
+        run: npx playwright test --project=Smoke tests/smoke/event-stream.test.ts tests/smoke/quick-switcher.test.ts tests/smoke/assertions.test.ts tests/smoke/faker.test.ts tests/smoke/env-tag.test.ts tests/smoke/bruno-import.test.ts tests/smoke/folder-auth.test.ts
         env:
           BUNDLE: build
 
