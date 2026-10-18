@@ -55,6 +55,7 @@ jest.mock('../main/network/curl', () => ({ registerCurlHandlers: () => {} }));
 jest.mock('../main/network/websocket', () => ({ registerWebSocketHandlers: () => {} }));
 jest.mock('../main/network/mcp-client', () => ({ registerMcpClientHandlers: () => {} }));
 jest.mock('../main/folder-sync', () => ({ registerFolderSyncHandlers: () => {}, restoreFolderSyncs: async () => {} }));
+jest.mock('../network/o-auth-2/redact', () => ({ redactStoredTokenResponses: async () => {} }));
 jest.mock('../main/squirrel-startup', () => ({ checkIfRestartNeeded: () => false }));
 jest.mock('../main/web-hardening', () => ({ hardenWebContents: () => {}, lockDownSession: () => {} }));
 jest.mock('../main/mcp/server', () => ({ getRunningMcpServer: () => null }));

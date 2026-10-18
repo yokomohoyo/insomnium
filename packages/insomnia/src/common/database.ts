@@ -393,8 +393,7 @@ export const database = {
       ipcHandlerRegistered = true;
       electron.ipcMain.on('db.fn', async (e, fnName, replyChannel, ...args) => {
         try {
-          // @ts-expect-error -- mapping unsoundness
-          const result = await database[fnName](...args);
+          const result = await _callFromWindow(fnName, args);
           e.sender.send(replyChannel, null, result);
         } catch (err) {
           e.sender.send(replyChannel, {
@@ -631,6 +630,28 @@ export const database = {
   },
 };
 
+// What a window can have the main process's database do (db.fn): the
+// functions that forward there (_send), and nothing else of it, init above all
+const FORWARDED_NAMES = [
+  'all', 'batchModifyDocs', 'bufferChanges', 'bufferChangesIndefinitely', 'count', 'duplicate', 'find',
+  'findDescendants', 'findMostRecentlyModified', 'flushChanges', 'get', 'getMostRecentlyModified', 'getWhere',
+  'insert', 'remove', 'removeWhere', 'unsafeRemove', 'update', 'upsert', 'withAncestors', 'withDescendants',
+] as const;
+type Forwarded = typeof FORWARDED_NAMES[number];
+const FORWARDED = new Set<string>(FORWARDED_NAMES);
+
+// A window's call, refused unless it's one of those. Not an async function:
+// that would take the reply a few ticks longer, past the change broadcast
+// (notifyOfChange), whose revalidation drops an action's redirect in the
+// window (a new request wouldn't open)
+export const _callFromWindow = (fnName: string, args: unknown[]): Promise<unknown> => {
+  if (!FORWARDED.has(fnName)) {
+    return Promise.reject(new Error(`The database has no ${fnName} for the app's windows`));
+  }
+  // @ts-expect-error -- mapping unsoundness
+  return database[fnName](...args);
+};
+
 // Null until init(); the renderer never initializes and proxies over IPC.
 let store: SqliteStore | null = null;
 // Not on `database`: db.fn calls any property of it on behalf of the renderer.
@@ -757,7 +778,7 @@ type Patch<T> = Partial<T>;
 // ~~~~~~~ //
 // Helpers //
 // ~~~~~~~ //
-async function _send<T>(fnName: string, ...args: any[]) {
+async function _send<T>(fnName: Forwarded, ...args: any[]) {
   return new Promise<T>((resolve, reject) => {
     const replyChannel = `db.fn.reply:${uuidv4()}`;
     electron.ipcRenderer.send('db.fn', fnName, replyChannel, ...args);

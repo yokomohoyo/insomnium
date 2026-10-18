@@ -12,6 +12,7 @@ import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getBasicAuthHeader } from '../basic-auth/get-header';
 import { CLIENT_ASSERTION_TYPE, clientAssertion } from './client-assertion';
+import { redactTokenResponse } from './redact';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../network';
 import {
   AuthKeys,
@@ -173,10 +174,10 @@ export const getOAuth2Token = async (
   }
   const headers = authentication.origin ? [{ name: 'Origin', value: authentication.origin }] : [];
   const authenticated = withClientAuthentication(authentication, params, headers);
-  const response = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
+  const { response, body } = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
   const old = await models.oAuth2Token.getOrCreateByParentId(requestId);
   return models.oAuth2Token.update(old, transformNewAccessTokenToOauthModel(
-    oauthResponseToAccessToken(authentication.accessTokenUrl, response)
+    oauthResponseToAccessToken(authentication.accessTokenUrl, response, body)
   ));
 };
 // 1. get token from db and return if valid
@@ -209,10 +210,9 @@ async function getExistingAccessTokenAndRefreshIfExpired(
   // the client's credentials go with a refresh too (they used to be left out
   // when they were sent as a Basic header)
   const authenticated = withClientAuthentication(authentication, params, []);
-  const response = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
+  const { response, body: bodyBuffer } = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
 
   const statusCode = response.statusCode || 0;
-  const bodyBuffer = models.response.getBodyBuffer(response);
 
   if (statusCode === 401) {
     // If the refresh token was rejected due an unauthorized request, we will
@@ -252,8 +252,8 @@ async function getExistingAccessTokenAndRefreshIfExpired(
   }));
 }
 
-export const oauthResponseToAccessToken = (accessTokenUrl: string, response: Response) => {
-  const bodyBuffer = models.response.getBodyBuffer(response);
+// the body as it came (the response's file has the tokens replaced, redact.ts)
+export const oauthResponseToAccessToken = (accessTokenUrl: string, response: Response, bodyBuffer = models.response.getBodyBuffer(response)) => {
   if (!bodyBuffer) {
     return {
       xResponseId: response._id,
@@ -331,7 +331,11 @@ const sendAccessTokenRequest = async (requestId: string, authentication: AuthTyp
   );
   const responsePatch = await responseTransform(response, activeEnvironmentId, renderedRequest, renderResult.context);
 
-  return await models.response.create(responsePatch);
+  const created = await models.response.create(responsePatch);
+  // the tokens read, before its files are kept without them
+  const body = models.response.getBodyBuffer(created);
+  await redactTokenResponse(created);
+  return { response: created, body };
 };
 export const encodePKCE = (buffer: Buffer) => {
   return buffer.toString('base64')

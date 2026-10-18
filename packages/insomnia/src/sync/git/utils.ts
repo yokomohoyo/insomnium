@@ -2,8 +2,8 @@ import { AuthCallback, AuthFailureCallback, AuthSuccessCallback, GitAuth, Messag
 
 import { OauthProviderName } from '../../models/git-repository';
 import type { GitCredentials } from './git-vcs';
-import { getAccessToken as getGitHubAccessToken } from './github-oauth-provider';
-import { getAccessToken as getGitlabAccessToken, refreshToken as refreshGitlabToken } from './gitlab-oauth-provider';
+import { refreshToken as refreshGitlabToken } from './gitlab-oauth-provider';
+import { saveRefreshedGitLabSignIn } from './oauth-sign-ins';
 
 export const addDotGit = (url: string): string => (url.endsWith('.git') ? url : `${url}.git`);
 
@@ -23,19 +23,24 @@ const onAuthFailure =
       if (
         credentials &&
       'oauth2format' in credentials &&
-      credentials.oauth2format === 'gitlab'
+      credentials.oauth2format === 'gitlab' &&
+      credentials.refreshToken
       ) {
         console.log('[git-event] Attempting to refresh token');
         try {
-          const refreshToken = await refreshGitlabToken();
-          if (refreshToken) {
+          const old = credentials.token;
+          const refreshed = await refreshGitlabToken(credentials.refreshToken);
+          if (refreshed.token) {
             console.log('[git-event] Token refreshed');
+            // used from now on, and kept by the repositories of this sign-in
+            Object.assign(credentials, refreshed);
+            await saveRefreshedGitLabSignIn(old, refreshed.token, refreshed.refreshToken);
             return {
               ...auth,
-              password: refreshToken,
+              password: refreshed.token,
               headers: {
                 ...auth.headers,
-                Authorization: `Bearer ${refreshToken}`,
+                Authorization: `Bearer ${refreshed.token}`,
               },
             };
           }
@@ -64,9 +69,10 @@ const onAuth = (credentials?: GitCredentials): AuthCallback => (): GitAuth => {
   if ('oauth2format' in credentials) {
     console.log('[git-event] Using OAuth2 credentials');
 
+    // the repository's own token (stored encrypted)
     if (credentials.oauth2format === 'github') {
       return {
-        username: getGitHubAccessToken() || credentials.token,
+        username: credentials.token,
         password: 'x-oauth-basic',
       };
     }
@@ -74,7 +80,7 @@ const onAuth = (credentials?: GitCredentials): AuthCallback => (): GitAuth => {
     if (credentials.oauth2format === 'gitlab') {
       return {
         username: 'oauth2',
-        password: getGitlabAccessToken() ||  credentials.token,
+        password: credentials.token,
       };
     }
   }

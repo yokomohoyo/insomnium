@@ -99,13 +99,12 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 
 ## Saved credentials
 
-Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials, client certificate passphrases, and the proto and MCP tokens in Settings. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
+Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials (a GitHub or GitLab sign-in's tokens included), client certificate passphrases, and the proto and MCP tokens in Settings. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
 
 What this does not cover:
 
 - values you type into requests, auth tabs and environments;
-- response history and timelines (the `responses` folder), which keep what was sent and received, OAuth 2 token responses and each request's `Authorization` header included;
-- the token from Git Sync's GitHub or GitLab sign-in, which is kept in the app's local storage;
+- response history and timelines (the `responses` folder), which keep what was sent and received, each request's `Authorization` header included. The exception is OAuth 2 token requests: their responses and timelines are kept with the tokens, the client secret, the code and any password replaced by `••••••`;
 - `~/.insomnium/mcp.json`, which holds the MCP token while the MCP server runs, so tools can find it.
 
 How it behaves:
