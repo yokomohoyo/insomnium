@@ -43,13 +43,15 @@ test('generating a collection again updates it instead of adding copies @ci', as
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
   await page.getByLabel('Pet Sync 1.0.0').click();
 
+  const specTab = page.getByRole('link', { name: 'spec', exact: true });
   const generate = page.getByRole('button', { name: 'Generate Request Collection' });
+  await specTab.click();
   await generate.click();
   const collection = page.getByLabel('Request Collection');
   await expect(collection.getByRole('row', { name: 'List pets' })).toHaveCount(1);
   await expect(collection.getByRole('row', { name: 'Get a pet' })).toHaveCount(1);
 
-  await page.getByRole('link', { name: 'spec', exact: true }).click();
+  await specTab.click();
   await generate.click();
   const alert = page.getByRole('dialog');
   await expect(alert).toContainText('Request Collection Updated');
