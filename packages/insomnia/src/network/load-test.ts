@@ -61,7 +61,7 @@ async function loadSend(request: Request, data: RequestData, environmentId: stri
     const renderResult = await tryToInterpolateRequest(scripted.request, environmentId, RENDER_PURPOSE_SEND, undefined, scripted.variables);
     const rendered = await tryToTransformRequestWithPlugins(renderResult);
     const response = await sendCurlAndWriteTimeline(rendered, data.clientCertificates, data.caCert, data.settings);
-    files.push(response.timelinePath, response.bodyPath || '');
+    files.push(response.timelinePath, ('bodyPath' in response && response.bodyPath) || '');
     const checked = await transformedResponse(response, environmentId, rendered, renderResult.context, { preRequestLogs: scripted.logs, iteration });
     files.push(checked.bodyPath || '');
     const statusCode = checked.error ? undefined : checked.statusCode;
