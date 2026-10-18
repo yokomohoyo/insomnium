@@ -1,6 +1,6 @@
 import { differenceInHours, differenceInMinutes, isThisWeek, isToday } from 'date-fns';
 import React, { useCallback, useRef } from 'react';
-import { useFetcher, useRouteLoaderData } from 'react-router-dom';
+import { useFetcher, useRevalidator, useRouteLoaderData } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 
 import { decompressObject } from '../../../common/misc';
@@ -56,6 +56,23 @@ export const ResponseHistoryDropdown = ({
 
     await patchRequestMeta(requestId, { activeResponseId: activeResponse._id });
   }, [patchRequestMeta]);
+
+  // the response as one the request should answer (models/response-example.ts)
+  const { revalidate } = useRevalidator();
+  const handleSaveAsExample = useCallback(async () => {
+    if (isWebSocketResponse(activeResponse)) {
+      return;
+    }
+    await models.responseExample.create({
+      parentId: requestId,
+      name: `${activeResponse.statusCode} ${activeResponse.statusMessage}`.trim(),
+      statusCode: activeResponse.statusCode,
+      statusMessage: activeResponse.statusMessage,
+      headers: activeResponse.headers.map(({ name, value }) => ({ name, value })),
+      body: models.response.getBodyBuffer(activeResponse, '')?.toString() || '',
+    });
+    revalidate();
+  }, [activeResponse, requestId, revalidate]);
 
   const handleDeleteResponses = useCallback(async () => {
     if (isWebSocketResponse(activeResponse)) {
@@ -172,6 +189,13 @@ export const ResponseHistoryDropdown = ({
         aria-label={`${environmentName} Responses`}
         title={<span><strong>{environmentName}</strong> Responses</span>}
       >
+        <DropdownItem aria-label='Save as Example'>
+          <ItemContent
+            icon="fa-bookmark-o"
+            label="Save as Example"
+            onClick={handleSaveAsExample}
+          />
+        </DropdownItem>
         <DropdownItem aria-label='Delete Current Response'>
           <ItemContent
             icon="fa-trash-o"

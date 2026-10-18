@@ -14,17 +14,6 @@ A request's **Assertions** tab holds checks on its response, without writing cod
 
 Operators: equals, does not equal, contains, does not contain, is greater than, is less than, exists, does not exist. Expected values can use [variables and tags](template-tags.md).
 
-### Schemas
-
-Two more operators check the body, or what a JSON path finds in it, against a JSON Schema:
-
-- **matches JSON schema**: the expected value is the schema, such as `{"type": "object", "required": ["id"]}`.
-- **matches the API spec**: the schema is the one the workspace's [API spec](design-documents.md) gives for the response. It finds the operation by the request's method and the path it went to (under one of the spec's servers, or its `basePath`), then the response by its status code, `2XX`, or `default`. It works with OpenAPI 3 and Swagger 2, and follows `$ref`s within the spec.
-
-A failure lists what didn't match: `/id must be integer; the value must have required property 'name'`.
-
-A schema can come with someone else's collection, so its regular expressions (`pattern` and `patternProperties`) aren't checked: a crafted one could hang the app. Formats (`email`, `date-time`…) aren't checked either.
-
 Turn an assertion off with its checkbox to keep it without checking it.
 
 ## Script tests

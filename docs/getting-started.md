@@ -20,6 +20,7 @@ An HTTP request's tabs:
 - **Query** and **Headers**.
 - **Assertions**: checks on the response: see [Tests and the runner](testing.md).
 - **Scripts**: JavaScript run before the request and after its response: see [Scripts](scripts.md).
+- **Examples**: responses the request should give. Save one from a response with **Save as Example**, in the response's history menu (Ctrl+Shift+H), or write one. Unlike the response history, examples are part of the collection, so they're exported and synced with it.
 - **Docs**: a description, in Markdown.
 
 `:name` segments in a URL are path parameters, filled in below the query parameters. Request settings (the request's dropdown, then **Settings**) cover redirects, URL encoding, cookies, a timeout, certificate validation and the HTTP version for that request.
@@ -52,10 +53,6 @@ See [Template tags](template-tags.md) for values that are computed when a reques
 Like a collection's, they have a base environment and sub environments. Each collection chooses which global sub environment it uses, if any, with **Use in This Collection**. Global environments aren't part of a collection, so its exports and Git Sync leave them out. Postman's globals are imported into them.
 
 From the lowest to the highest, a request's variables come from: the global base environment, the global sub environment in use, the collection's base environment, its sub environment, its folders, and then the [runner](testing.md)'s data row and the variables its [pre-request script](scripts.md) set.
-
-## History
-
-**History**, in the sidebar, lists the latest responses from every collection, newest first. Filter them by request, URL, folder or collection, and open one to see it with its request. A request's own past responses are in the response pane's history menu.
 
 ## Cookies
 

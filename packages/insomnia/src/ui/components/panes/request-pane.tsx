@@ -25,6 +25,7 @@ import {
 } from '../editors/query-editor';
 import { RequestHeadersEditor } from '../editors/request-headers-editor';
 import { RequestScriptsEditor } from '../editors/request-scripts-editor';
+import { ResponseExamplesEditor } from '../editors/response-examples-editor';
 import { RequestParametersEditor } from '../editors/request-parameters-editor';
 import { ErrorBoundary } from '../error-boundary';
 import { MarkdownPreview } from '../markdown-preview';
@@ -75,7 +76,7 @@ export const RequestPane: FC<Props> = ({
   setLoading,
   onPaste,
 }) => {
-  const { activeRequest, activeRequestMeta } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { activeRequest, activeRequestMeta, examples = [] } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
   const { workspaceId, requestId } = useParams() as { organizationId: string; projectId: string; workspaceId: string; requestId: string };
   const patchSettings = useSettingsPatcher();
   const [isRequestSettingsModalOpen, setIsRequestSettingsModalOpen] =
@@ -322,6 +323,21 @@ export const RequestPane: FC<Props> = ({
         >
           <ErrorBoundary key={uniqueKey} errorClassName="font-error pad text-center">
             <RequestScriptsEditor />
+          </ErrorBoundary>
+        </TabItem>
+        <TabItem
+          key="examples"
+          title={
+            <>
+              Examples{' '}
+              {examples.length > 0 && (
+                <span className="bubble space-left">{examples.length}</span>
+              )}
+            </>
+          }
+        >
+          <ErrorBoundary key={uniqueKey} errorClassName="font-error pad text-center">
+            <ResponseExamplesEditor />
           </ErrorBoundary>
         </TabItem>
         <TabItem

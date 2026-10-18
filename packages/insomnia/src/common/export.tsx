@@ -16,6 +16,7 @@ import { isProtoDirectory } from '../models/proto-directory';
 import { isProtoFile } from '../models/proto-file';
 import { isRequest } from '../models/request';
 import { isRequestGroup } from '../models/request-group';
+import { isResponseExample } from '../models/response-example';
 import { isUnitTest } from '../models/unit-test';
 import { isUnitTestSuite } from '../models/unit-test-suite';
 import { isWebSocketPayload } from '../models/websocket-payload';
@@ -39,6 +40,7 @@ import {
   EXPORT_TYPE_UNIT_TEST,
   EXPORT_TYPE_UNIT_TEST_SUITE,
   EXPORT_TYPE_WEBSOCKET_PAYLOAD,
+  EXPORT_TYPE_RESPONSE_EXAMPLE,
   EXPORT_TYPE_WEBSOCKET_REQUEST,
   EXPORT_TYPE_WORKSPACE,
   getAppVersion,
@@ -93,6 +95,8 @@ export async function exportRequestsHAR(
 
   const mapWorkspaceIdToEnvironmentId: Record<string, any> = {};
 
+  const exportedRequestIds = new Set(requests.map(request => request._id));
+  const isExampleOfExported = (d: BaseModel) => isResponseExample(d) && exportedRequestIds.has(d.parentId);
   for (const workspace of workspaces) {
     const workspaceMeta = await models.workspaceMeta.getByParentId(workspace._id);
     let environmentId = workspaceMeta ? workspaceMeta.activeEnvironmentId : null;
@@ -176,6 +180,8 @@ export async function exportRequestsData(
     }
   }
 
+  const exportedRequestIds = new Set(requests.map(request => request._id));
+  const isExampleOfExported = (d: BaseModel) => isResponseExample(d) && exportedRequestIds.has(d.parentId);
   for (const workspace of workspaces) {
     const descendants = (await db.withDescendants(workspace)).filter(d => {
       // Only interested in these additional model types.
@@ -187,7 +193,9 @@ export async function exportRequestsData(
         isUnitTest(d) ||
         isProtoFile(d) ||
         isProtoDirectory(d) ||
-        isWebSocketPayload(d)
+        isWebSocketPayload(d) ||
+        // the examples of the requests exported
+        isExampleOfExported(d)
       );
     });
     docs.push(...descendants);
@@ -202,6 +210,7 @@ export async function exportRequestsData(
           isUnitTest(d) ||
           isRequest(d) ||
           isWebSocketPayload(d) ||
+          isResponseExample(d) ||
           isWebSocketRequest(d) ||
           isGrpcRequest(d) ||
           isRequestGroup(d) ||
@@ -249,6 +258,9 @@ export async function exportRequestsData(
       } else if (isWebSocketPayload(d)) {
         // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
         d._type = EXPORT_TYPE_WEBSOCKET_PAYLOAD;
+      } else if (isResponseExample(d)) {
+        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
+        d._type = EXPORT_TYPE_RESPONSE_EXAMPLE;
       } else if (isWebSocketRequest(d)) {
         // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
         d._type = EXPORT_TYPE_WEBSOCKET_REQUEST;
