@@ -75,7 +75,7 @@ export interface WorkspaceWithMetadata {
   lastCommitAuthor: string | null | undefined;
   lastActiveBranch: string | null | undefined;
   spec: Record<string, any> | null;
-  specFormat: 'openapi' | 'swagger' | null;
+  specFormat: ParsedApiSpec['format'];
   name: string;
   apiSpec: ApiSpec | null;
   specFormatVersion: string | null;
@@ -868,9 +868,7 @@ const ProjectRoute: FC = () => {
                           <div className="text-sm flex items-center gap-2">
                             <Icon icon="file-alt" />
                             <span>
-                              {item.specFormat === 'openapi'
-                                ? 'OpenAPI'
-                                : 'Swagger'}{' '}
+                              {{ openapi: 'OpenAPI', swagger: 'Swagger', asyncapi: 'AsyncAPI' }[item.specFormat]}{' '}
                               {item.specFormatVersion}
                             </span>
                           </div>
