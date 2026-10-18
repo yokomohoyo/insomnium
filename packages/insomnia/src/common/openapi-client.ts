@@ -179,7 +179,7 @@ export function typescriptClient(spec: Doc): string {
       const responses: Doc = isObject(operation.responses) ? operation.responses : {};
       const success: string | undefined = Object.keys(responses).filter(code => /^2(\d\d|XX)$/i.test(code)).sort()[0];
       const response: Doc | null = success ? resolve(responses[success]) : null;
-      const responseContent: Doc = isObject(response?.content) ? response.content : {};
+      const responseContent: Doc = response && isObject(response.content) ? response.content : {};
       const jsonType = Object.keys(responseContent).find(type => /json/i.test(type));
       const result = jsonType ? tsType(responseContent[jsonType]?.schema) : Object.keys(responseContent).length ? 'string' : 'void';
 
