@@ -89,7 +89,7 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Request introspection** — list HTTP/gRPC/WebSocket requests, read full request details, and read recent responses (including the last response body).
 - **Execution** — `send_http_request` and `send_grpc_request` (all four gRPC method types), with optional environment and timeout overrides.
 - **Mutation** — create, update, and delete requests; create folders.
-- **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium or Postman (`export_workspace`), and list cookies (values only on request).
+- **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium, Postman or OpenAPI (`export_workspace`), and list cookies (values only on request).
 - **Auth strategies** — list, add, update, and remove authentication on a request.
 - **Environments** — list environments, read the active one, and switch it.
 - **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.

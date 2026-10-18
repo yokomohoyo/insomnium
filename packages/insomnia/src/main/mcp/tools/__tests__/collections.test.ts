@@ -47,7 +47,7 @@ describe('the collection tools', () => {
     expect((await call('list_cookies', { workspaceId, showValues: true })).body[0].value).toBe('secret');
   });
 
-  it("import what the app imports, and export as Insomnium's format or Postman's", async () => {
+  it("import what the app imports, and export as Insomnium's format, Postman's or OpenAPI", async () => {
     const imported = await call('import_collection', { workspaceId, content: "curl -X POST https://shop.example.com/orders -H 'X-Trace: 1' -d '{\"item\":\"book\"}'" });
     expect(imported.body).toMatchObject({ ok: true, format: 'cURL', imported: { requests: 1 } });
     const [request] = await models.request.findByParentId(workspaceId);
@@ -58,6 +58,10 @@ describe('the collection tools', () => {
     const postman = (await call('export_workspace', { workspaceId, format: 'postman', includePrivate: false })).body;
     expect(postman.info).toMatchObject({ name: 'Shop', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' });
     expect(postman.item[0].request).toMatchObject({ method: 'POST', url: { raw: 'https://shop.example.com/orders' } });
+    const openapi = (await call('export_workspace', { workspaceId, format: 'openapi', includePrivate: false })).body;
+    expect(openapi).toContain('openapi: 3.0.3');
+    expect(openapi).toContain('  - url: https://shop.example.com');
+    expect(openapi).toContain('  /orders:\n    post:');
   });
 
   it('run a folder, with each result and a summary', async () => {
