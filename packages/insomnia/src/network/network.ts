@@ -173,10 +173,10 @@ export async function sendCurlAndWriteTimeline(
 }
 // Server-sent events stream from the main process, which uses the result as
 // given. Resolve it the way a send does (render, plugin hooks, final URL with
-// params/path segments/auth query params, auth headers), for the bodiless GET
-// the stream is actually sent as, so nothing unsent is rendered or signed.
+// params/path segments/auth query params, auth headers), method and body
+// included, so what's signed is what's sent.
 export async function renderEventStreamConnection(request: Request, environmentId: string): Promise<EventStreamConnection> {
-  const renderResult = await tryToInterpolateRequest({ ...request, method: 'GET', body: {} }, environmentId, RENDER_PURPOSE_SEND);
+  const renderResult = await tryToInterpolateRequest(request, environmentId, RENDER_PURPOSE_SEND);
   const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
   const { finalUrl, socketPath } = transformUrl(renderedRequest.url, renderedRequest.parameters, renderedRequest.segmentParams, renderedRequest.authentication, renderedRequest.settingEncodeUrl);
   const headers = [...renderedRequest.headers, ...await getAuthHeaders(renderedRequest, finalUrl)];
@@ -184,6 +184,8 @@ export async function renderEventStreamConnection(request: Request, environmentI
   return {
     url: finalUrl,
     socketPath,
+    method: renderedRequest.method,
+    body: renderedRequest.body,
     headers,
     authentication: renderedRequest.authentication,
     cookieJar: renderedRequest.cookieJar,

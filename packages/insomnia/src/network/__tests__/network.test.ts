@@ -1110,12 +1110,13 @@ describe('renderEventStreamConnection()', () => {
     expect(connection.url).toBe('http://events');
   });
 
-  it('does not render or keep a body, which a stream never sends', async () => {
+  it('renders and keeps the method and body, which the stream sends', async () => {
     const connection = await renderEventStream({
       method: 'POST',
-      body: { mimeType: 'application/json', text: '{ "a": "{{ notDefined }}" }' },
+      body: { mimeType: 'application/json', text: '{ "topic": "{{ topic }}" }' },
     });
-    expect(connection.url).toBe('http://localhost:4000/events/:topic');
+    expect(connection.method).toBe('POST');
+    expect(connection.body).toEqual({ mimeType: 'application/json', text: '{ "topic": "news" }' });
   });
 
   it('keeps the request\'s cookie and redirect settings', async () => {
