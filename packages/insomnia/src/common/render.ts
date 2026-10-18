@@ -481,6 +481,9 @@ export async function getRenderedRequestAndContext(
   const ancestors = await getRenderContextAncestors(request);
   // what the request's folders give it: their headers, and auth if it has none
   request = withFolderSettings(request, ancestors);
+  // scripts are code, not templates: their {{ }} mustn't be rendered
+  const { preRequestScript, afterResponseScript } = request;
+  request = { ...request, preRequestScript: undefined, afterResponseScript: undefined };
   const workspace = ancestors.find(isWorkspace);
   const parentId = workspace ? workspace._id : 'n/a';
   const cookieJar = await models.cookieJar.getOrCreateForParentId(parentId);
@@ -564,6 +567,9 @@ export async function getRenderedRequestAndContext(
       settingHttpVersion: renderedRequest.settingHttpVersion,
       segmentParams: renderedRequest.segmentParams,
       assertions: renderedRequest.assertions,
+      // as written: they weren't rendered
+      preRequestScript,
+      afterResponseScript,
       type: renderedRequest.type,
       url: renderedRequest.url,
     },

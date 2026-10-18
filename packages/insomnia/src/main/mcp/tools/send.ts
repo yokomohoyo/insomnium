@@ -5,12 +5,13 @@ import { getRenderedRequestAndContext } from '../../../common/render';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import * as networkUtils from '../../../network/network';
+import { runPreRequestScript } from '../../../scripting/request-scripts';
 import { assertSafeRequestUrl, findWorkspaceForRequest } from './util';
 
 export function registerSendTool(server: McpServer) {
   server.tool(
     'send_http_request',
-    'Send an HTTP request by id and store the response. Returns the new response id, status, elapsed time, and the results of its assertions when it has any. Call get_last_response (or get_response with the returned id) to retrieve the body.',
+    'Send an HTTP request by id and store the response, running its pre-request and after-response scripts. Returns the new response id, status, elapsed time, the results of its assertions and script tests when it has any, and what its scripts logged. Call get_last_response (or get_response with the returned id) to retrieve the body.',
     {
       requestId: z.string(),
       environmentId: z.string().nullable().optional().describe('Override the active environment for this call. Null = no environment overrides; omit = use workspace active environment.'),
@@ -27,9 +28,17 @@ export function registerSendTool(server: McpServer) {
         envId = meta.activeEnvironmentId;
       }
       const settings = await models.settings.getOrCreate();
-      const { request: rendered } = await getRenderedRequestAndContext({
-        request: req,
+      // the pre-request script first, as Send runs it; a failed one stops the send
+      let scripted;
+      try {
+        scripted = await runPreRequestScript(req, { environmentId: envId || null });
+      } catch (err) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+      }
+      const { request: rendered, context } = await getRenderedRequestAndContext({
+        request: scripted.request,
         environmentId: envId || '',
+        iterationData: scripted.variables,
       });
       // Validate the FINAL url (after params/segments/auth query params fold in)
       // so an LLM can't bypass the SSRF guard via a malicious segment/param.
@@ -53,9 +62,8 @@ export function registerSendTool(server: McpServer) {
         caCert,
         settings,
       );
-      // libcurl writes the body uncompressed (as responseTransform records for
-      // Send); left unset, migration would mark it zip and reading would fail
-      const checked = networkUtils.withAssertionResults(rendered, { ...response, bodyCompression: null });
+      // as Send keeps it: plugin hooks, assertions, the after-response script
+      const checked = await networkUtils.responseTransform(response, envId || null, rendered, context, { preRequestLogs: scripted.logs });
       const stored = await models.response.create(checked, settings.maxHistoryResponses);
       const results = checked.assertionResults;
       return {
@@ -75,6 +83,7 @@ export function registerSendTool(server: McpServer) {
                 results: results.map(({ passed, message }) => ({ passed, message })),
               },
             } : {}),
+            ...(checked.scriptLogs ? { scriptLogs: checked.scriptLogs } : {}),
           }, null, 2),
         }],
       };

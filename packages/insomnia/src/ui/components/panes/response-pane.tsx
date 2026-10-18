@@ -229,7 +229,7 @@ export const ResponsePane: FC<Props> = ({
         >
           <PanelContainer className="pad">
             <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
-              <AssertionResultsViewer results={assertionResults} />
+              <AssertionResultsViewer results={assertionResults} logs={activeResponse.scriptLogs} />
             </ErrorBoundary>
           </PanelContainer>
         </TabItem>
