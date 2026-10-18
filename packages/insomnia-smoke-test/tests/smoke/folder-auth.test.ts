@@ -11,7 +11,7 @@ resources:
   - { _id: req_1, _type: request, parentId: fld_1, name: basic in folder, method: GET, url: 'http://127.0.0.1:4010/auth/basic', authentication: [] }
 `;
 
-test("a request with no auth uses its folder's", async ({ app, page }) => {
+test("a request with no auth uses its folder's @ci", async ({ app, page }) => {
   const requestPane = page.getByTestId('request-pane');
   const responsePane = page.getByTestId('response-pane');
 

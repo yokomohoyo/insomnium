@@ -82,4 +82,13 @@ describe('runner', () => {
     expect(bailed.results.map(({ name }) => name)).toEqual(['broken']);
     expect(bailed.bailed).toBe(true);
   });
+
+  it('stops before the next request when its signal aborts', async () => {
+    await request('one', 1);
+    await request('two', 2);
+    const controller = new AbortController();
+    const summary = await runRequests(await listRunnableRequests(workspaceId), { onResult: () => controller.abort(), signal: controller.signal });
+    expect(summary.results.map(({ name }) => name)).toEqual(['one']);
+    expect(summary.stopped).toBe(true);
+  });
 });

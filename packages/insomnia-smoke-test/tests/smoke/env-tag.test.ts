@@ -10,7 +10,7 @@ const collection = JSON.stringify({
   item: [{ name: 'pet from env', request: { method: 'GET', url: "http://127.0.0.1:4010/pets/{% env 'INSOMNIUM_E2E_PET' %}" } }],
 });
 
-test('the env tag reads only the variables Preferences allow', async ({ app, page }) => {
+test('the env tag reads only the variables Preferences allow @ci', async ({ app, page }) => {
   const requestPane = page.getByTestId('request-pane');
   const responsePane = page.getByTestId('response-pane');
 

@@ -3,9 +3,10 @@
 // runner for CI. See packages/insomnium-server.
 import fs from 'node:fs';
 
+import { jsonReport, junitReport } from '../network/run-files';
 import { runRequests } from '../network/runner';
 import { parseConfig, ServerConfig, USAGE } from './config';
-import { formatResult, formatSummary, jsonReport, junitReport } from './report';
+import { formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
 import { loadWorkspaces, startServer } from './server';
 

@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 
-import Papa from 'papaparse';
-
 import * as models from '../models';
 import type { RequestGroup } from '../models/request-group';
 import type { Workspace } from '../models/workspace';
+import { parseDataFile } from '../network/run-files';
 import { listRunnableRequests, RunnableRequest } from '../network/runner';
 
 // `insomnium-server run`: the collection runner for CI. It sends the requests
@@ -121,26 +120,6 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
     config.allowedHosts = ['*'];
   }
   return config;
-};
-
-// A CSV file with a header row, or a JSON array of objects
-export const parseDataFile = (file: string, text: string): Record<string, unknown>[] => {
-  if (/\.json$/i.test(file)) {
-    const parsed = JSON.parse(text);
-    const rows = Array.isArray(parsed) ? parsed : [parsed];
-    if (!rows.every(row => row && typeof row === 'object' && !Array.isArray(row))) {
-      throw new Error(`${file} must hold an object, or an array of objects`);
-    }
-    return rows;
-  }
-  const { data, errors } = Papa.parse<Record<string, string>>(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text, { header: true, skipEmptyLines: true });
-  // a file with one column has no delimiter to find, and the default is right
-  const problems = errors.filter(error => error.code !== 'UndetectableDelimiter');
-  if (problems.length) {
-    const [error] = problems;
-    throw new Error(`${file}: ${error.message}${error.row === undefined ? '' : ` (row ${error.row + 1})`}`);
-  }
-  return data;
 };
 
 export const readDataFile = async (file: string) => parseDataFile(file, await fs.promises.readFile(file, 'utf8'));

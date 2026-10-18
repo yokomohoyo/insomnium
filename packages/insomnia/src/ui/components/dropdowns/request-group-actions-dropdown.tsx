@@ -21,6 +21,7 @@ import { showError, showModal, showPrompt } from '../modals';
 import { EnvironmentEditModal } from '../modals/environment-edit-modal';
 import { PasteCurlModal } from '../modals/paste-curl-modal';
 import { RequestGroupSettingsModal } from '../modals/request-group-settings-modal';
+import { RunnerModal } from '../modals/runner-modal';
 interface Props extends Partial<DropdownProps> {
   requestGroup: RequestGroup;
 }
@@ -127,6 +128,7 @@ export const RequestGroupActionsDropdown = ({
   };
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const [isPasteCurlModalOpen, setPasteCurlModalOpen] = useState(false);
 
   const requestGroupActionItems: ({
@@ -208,6 +210,12 @@ export const RequestGroupActionsDropdown = ({
           }),
       },
       {
+        id: 'Run',
+        name: 'Run Folder',
+        icon: 'play',
+        action: () => setIsRunnerOpen(true),
+      },
+      {
         id: 'Duplicate',
         name: 'Duplicate',
         icon: 'copy',
@@ -285,6 +293,14 @@ export const RequestGroupActionsDropdown = ({
         </Menu>
       </Popover>
     </MenuTrigger>
+    {isRunnerOpen && (
+      <RunnerModal
+        parentId={requestGroup._id}
+        name={requestGroup.name}
+        folders={[requestGroup.name]}
+        onHide={() => setIsRunnerOpen(false)}
+      />
+    )}
     {isSettingsModalOpen && (
       <RequestGroupSettingsModal
         requestGroup={requestGroup}

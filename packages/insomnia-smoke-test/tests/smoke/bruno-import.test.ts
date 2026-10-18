@@ -27,7 +27,7 @@ const collection = JSON.stringify({
   environments: [],
 });
 
-test('a Bruno collection imports with its assertions, which run on send', async ({ app, page }) => {
+test('a Bruno collection imports with its assertions, which run on send @ci', async ({ app, page }) => {
   const requestPane = page.getByTestId('request-pane');
   const responsePane = page.getByTestId('response-pane');
 
