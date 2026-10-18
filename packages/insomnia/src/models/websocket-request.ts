@@ -13,7 +13,7 @@ export const canDuplicate = true;
 export const canSync = true;
 
 // kept only when set, so requests without them sync as before
-export const optionalKeys = ['savedMessages', 'graphqlSubscription', 'socketIo'];
+export const optionalKeys = ['savedMessages', 'graphqlSubscription', 'socketIo', 'mqtt'];
 
 export interface WebSocketSavedMessage {
   name: string;
@@ -49,6 +49,20 @@ export interface BaseWebSocketRequest {
     namespace: string;
     auth: string;
     event: string;
+  };
+  // speak MQTT 3.1.1 over the connection (main/network/mqtt.ts): who to
+  // connect as, the topics to subscribe to (a line each, "topic qos"), and the
+  // topic the editor's message is published to
+  mqtt?: {
+    enabled: boolean;
+    clientId: string;
+    username: string;
+    password: string;
+    keepalive: number;
+    subscriptions: string;
+    topic: string;
+    qos: 0 | 1;
+    retain: boolean;
   };
 }
 
