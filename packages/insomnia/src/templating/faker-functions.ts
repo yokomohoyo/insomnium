@@ -1,13 +1,13 @@
 import type { Faker } from '@faker-js/faker';
 
-// Postman's dynamic variables ({{$randomFullName}}), by the names Kong
-// Insomnia's faker tag also takes ({% faker 'randomFullName' %}), so either
-// tool's collections render here. Each returns what Postman documents for it.
 // a picture in the category, from loremflickr.com, as faker's urlLoremFlickr
 // gave (deprecated in faker 10, which has no categories otherwise)
 const categoryImage = (category: string) => (faker: Faker) =>
   `https://loremflickr.com/640/480/${category}?lock=${faker.number.int({ min: 1, max: 1_000_000 })}`;
 
+// Postman's dynamic variables ({{$randomFullName}}), by the names Kong
+// Insomnia's faker tag also takes ({% faker 'randomFullName' %}), so either
+// tool's collections render here. Each returns what Postman documents for it.
 export const fakerFunctions: Record<string, (faker: Faker) => string> = {
   guid: faker => faker.string.uuid(),
   timestamp: () => String(Math.floor(Date.now() / 1000)),
