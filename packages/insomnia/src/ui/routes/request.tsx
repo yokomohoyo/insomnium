@@ -11,6 +11,7 @@ import { getContentDispositionHeader } from '../../common/misc';
 import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
 import { writeToFile } from '../../common/write-to-file';
 import type { EventStreamConnection } from '../../main/network/event-stream-request';
+import type { GraphqlSubscription } from '../../main/network/graphql-ws';
 import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
@@ -258,6 +259,7 @@ interface WebSocketConnectParams {
   authentication: RequestAuthentication;
   cookieJar: CookieJar;
   suppressUserAgent: boolean;
+  graphqlSubscription?: GraphqlSubscription;
 }
 export type ConnectActionParams = WebSocketConnectParams | EventStreamConnection;
 export const connectAction: ActionFunction = async ({ request, params }) => {
@@ -275,6 +277,7 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       headers: rendered.headers,
       authentication: rendered.authentication,
       cookieJar: rendered.cookieJar,
+      graphqlSubscription: 'graphqlSubscription' in rendered ? rendered.graphqlSubscription : undefined,
     });
   }
   if (isEventStreamRequest(req)) {

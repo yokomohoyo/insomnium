@@ -13,7 +13,7 @@ Create either from the dashboard, or bring one in with [Import](import-export.md
 
 ## Requests
 
-Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket or an Event Stream (Server-Sent Events). A gRPC response's **Metadata** tab shows the headers and trailers the server sent. A WebSocket request keeps messages to send again: **Save Message** saves the one in the editor with the request, and **Saved messages** puts one back.
+Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket or an Event Stream (Server-Sent Events). A gRPC response's **Metadata** tab shows the headers and trailers the server sent. A WebSocket request keeps messages to send again: **Save Message** saves the one in the editor with the request, and **Saved messages** puts one back. Its **GraphQL** tab runs a GraphQL subscription: turn on **Subscribe when connected**, write the subscription and its variables, and **Connect**. It speaks the graphql-transport-ws protocol (Apollo, Hasura, GraphQL Yoga and others), each event comes in as a message, and the connection closes when the subscription completes.
 
 Each request you open gets a tab above the request and response, to switch back to it; close one with its **×**, or with a middle click. The tabs stay open, on this computer, when you come back to the collection.
 

@@ -2,12 +2,14 @@ import React, { FC, useLayoutEffect, useRef } from 'react';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { subscriptionToSend } from '../../../main/network/graphql-ws';
 import * as models from '../../../models';
 import { WebSocketRequest } from '../../../models/websocket-request';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { addSegValuesToUrl, buildQueryStringFromParams, joinUrlAndQueryString } from '../../../utils/url/querystring';
 import { ConnectActionParams } from '../../routes/request';
 import { OneLineEditor, OneLineEditorHandle } from '../codemirror/one-line-editor';
+import { showAlert } from '../modals';
 import { createKeybindingsHandler, useDocBodyKeyboardShortcuts } from '../keydown-binder';
 import { DisconnectButton } from './disconnect-button';
 
@@ -99,14 +101,23 @@ export const WebSocketActionBar: FC<ActionBarProps> = ({ request, environmentId,
         authentication: request.authentication,
         parameters: request.parameters.filter(p => !p.disabled),
         workspaceCookieJar,
+        graphqlSubscription: request.graphqlSubscription,
       },
     });
+    let graphqlSubscription;
+    try {
+      graphqlSubscription = rendered && subscriptionToSend(rendered.graphqlSubscription);
+    } catch (err) {
+      showAlert({ title: 'GraphQL Subscription', message: err instanceof Error ? err.message : String(err) });
+      return;
+    }
     rendered && connect({
       url: addSegValuesToUrl(joinUrlAndQueryString(rendered.url, buildQueryStringFromParams(rendered.parameters)), rendered.segmentParams),
       headers: rendered.headers,
       authentication: rendered.authentication,
       cookieJar: rendered.workspaceCookieJar,
       suppressUserAgent: rendered.suppressUserAgent,
+      graphqlSubscription,
     });
 
   };

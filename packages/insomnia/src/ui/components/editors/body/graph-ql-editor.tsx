@@ -597,6 +597,12 @@ export const GraphQLEditor: FC<Props> = ({
           lintOptions={graphqlOptions?.lintOptions}
         />
       </div>
+      {state.documentAST?.definitions.filter(isOperationDefinition)
+        .find(def => (def.name?.value || '') === (state.body.operationName || def.name?.value || ''))?.operation === 'subscription' && (
+        <div className="notice info text-left pad-sm txt-sm">
+          A subscription runs over a WebSocket: make a WebSocket request to the server&apos;s ws:// or wss:// address, and put this in its GraphQL tab.
+        </div>
+      )}
       <div className="graphql-editor__schema-error">
         {!hideSchemaFetchErrors && schemaFetchError && (
           <div className="notice error margin no-margin-top margin-bottom-sm">

@@ -6,7 +6,7 @@ import { WebSocket, WebSocketServer } from 'ws';
  * Starts an echo WebSocket server that receives messages from a client and echoes them back.
  */
 export function startWebSocketServer(server: Server) {
-  const wsServer = new WebSocketServer({ noServer: true, handleProtocols: () => 'chat' });
+  const wsServer = new WebSocketServer({ noServer: true, handleProtocols: protocols => protocols.has('graphql-transport-ws') ? 'graphql-transport-ws' : 'chat' });
 
   server.on('upgrade', (request, socket, head) => {
     upgrade(wsServer, request, socket, head);
@@ -21,9 +21,30 @@ export function startWebSocketServer(server: Server) {
   });
 }
 
+// a GraphQL subscription over graphql-transport-ws: two pets, then complete
+const handleGraphqlConnection = (ws: WebSocket) => {
+  ws.on('message', message => {
+    const { type, id, payload } = JSON.parse(message.toString());
+    if (type === 'connection_init') {
+      ws.send(JSON.stringify({ type: 'connection_ack' }));
+    } else if (type === 'ping') {
+      ws.send(JSON.stringify({ type: 'pong' }));
+    } else if (type === 'subscribe') {
+      const species = payload.variables?.species || 'dog';
+      ws.send(JSON.stringify({ id, type: 'next', payload: { data: { petAdded: { name: 'Rex', species } } } }));
+      ws.send(JSON.stringify({ id, type: 'next', payload: { data: { petAdded: { name: 'Fido', species } } } }));
+      ws.send(JSON.stringify({ id, type: 'complete' }));
+    }
+  });
+};
+
 const handleConnection = (ws: WebSocket, req: IncomingMessage) => {
   console.log('WebSocket connection was opened');
   console.log('Upgrade headers:', req.headers);
+  if (ws.protocol === 'graphql-transport-ws') {
+    handleGraphqlConnection(ws);
+    return;
+  }
 
   ws.on('message', (message, isBinary) => {
     if (isBinary) {
