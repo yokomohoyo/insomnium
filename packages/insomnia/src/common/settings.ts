@@ -151,6 +151,10 @@ export interface Settings {
   useBulkParametersEditor: boolean;
   validateAuthSSL: boolean;
   validateSSL: boolean;
+  /** OS environment variables templates may read: names, or prefixes ending in * */
+  allowedEnvironmentVariables: string;
+  /** A .env file to read them from when the OS environment has no value */
+  dotenvFile: string;
   /** Also trust the OS certificate store, on top of the bundled roots */
   useSystemCertificates: boolean;
 

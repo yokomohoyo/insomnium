@@ -31,6 +31,8 @@ resources:
       - { id: asrt_1, source: status, operator: equals, value: '{{ expected }}' }
       - { id: asrt_2, source: header, property: X-Nope, operator: exists }
   - { _id: req_no, _type: request, parentId: wrk_1, name: elsewhere, method: GET, url: 'https://example.org/' }
+  - { _id: req_env, _type: request, parentId: wrk_1, name: from env, method: GET, url: "https://api.example.com/{% env 'INSOMNIUM_TEST_PATH' %}" }
+  - { _id: req_home, _type: request, parentId: wrk_1, name: not allowed, method: GET, url: "https://api.example.com/{% env 'HOME' %}" }
 `;
 
 describe('insomnium-server', () => {
@@ -38,6 +40,7 @@ describe('insomnium-server', () => {
   let base: string;
 
   beforeAll(async () => {
+    process.env.INSOMNIUM_TEST_PATH = 'from-env';
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-server-'));
     fs.writeFileSync(path.join(dir, 'collection.yaml'), collection);
     ({ http: server } = await startServer({
@@ -49,12 +52,14 @@ describe('insomnium-server', () => {
       allowedHosts: ['api.example.com'],
       variables: { path: 'v1' },
       validateSSL: true,
+      allowedEnvironmentVariables: 'INSOMNIUM_TEST_*',
     }));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
 
   afterAll(() => {
     setRequestPolicy(null);
+    delete process.env.INSOMNIUM_TEST_PATH;
     server.close();
   });
 
@@ -112,5 +117,15 @@ describe('insomnium-server', () => {
   it('refuses a host that is not allowed', async () => {
     const refused = await call('send_http_request', { requestId: await requestId('elsewhere') });
     expect(refused).toMatchObject({ isError: true, data: { error: expect.stringMatching(/not in INSOMNIUM_ALLOWED_HOSTS/) } });
+  });
+
+  it('reads the environment variables INSOMNIUM_ALLOWED_ENV allows, and no others', async () => {
+    const sent = await call('send_http_request', { requestId: await requestId('from env') });
+    expect(sent).toMatchObject({ isError: false, data: { url: 'https://api.example.com/from-env' } });
+
+    // a render error comes back as text
+    const { result } = await (await rpc('tools/call', { name: 'send_http_request', arguments: { requestId: await requestId('not allowed') } })).json() as any;
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/HOME isn't an allowed environment variable/);
   });
 });

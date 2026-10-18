@@ -36,7 +36,7 @@ export const SERVER_TOOLS = new Set([
 export async function startServer(config: ServerConfig) {
   await database.init(models.types(), { inMemoryOnly: true }, true, () => {});
   await models.project.all();
-  await models.settings.patch({ validateSSL: config.validateSSL });
+  await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables });
   // file would let a template read the container's files into a request
   disableTemplateTags(['file']);
   setRequestPolicy(makeHostPolicy(config.allowedHosts));

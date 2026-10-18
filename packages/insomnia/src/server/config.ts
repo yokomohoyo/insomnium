@@ -7,6 +7,7 @@ export interface ServerConfig {
   allowedHosts: string[];
   variables: Record<string, string>;
   validateSSL: boolean;
+  allowedEnvironmentVariables: string;
 }
 
 export const USAGE = `Usage: insomnium-server --collection <file> [--collection <file> ...] [--env <name>] [--host <address>] [--port <port>]
@@ -21,7 +22,9 @@ Environment:
   INSOMNIUM_ALLOWED_HOSTS  required, comma-separated hosts requests may go to:
                            api.example.com, *.internal.example.com, 10.0.0.5, or * for any
   INSOMNIUM_VAR_<name>     sets <name> in the environment, for secrets
-  INSOMNIUM_VALIDATE_SSL   false to skip certificate validation`;
+  INSOMNIUM_VALIDATE_SSL   false to skip certificate validation
+  INSOMNIUM_ALLOWED_ENV    comma-separated environment variables templates may read with
+                           {% env 'NAME' %}: names, or prefixes ending in *; none by default`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
 
@@ -76,5 +79,15 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
     .filter((entry): entry is [string, string] => entry[0].startsWith(VAR_PREFIX) && entry[0].length > VAR_PREFIX.length && entry[1] !== undefined)
     .map(([name, value]) => [name.slice(VAR_PREFIX.length), value]));
 
-  return { collections, environment, host, port, token, allowedHosts, variables, validateSSL: env.INSOMNIUM_VALIDATE_SSL !== 'false' };
+  return {
+    collections,
+    environment,
+    host,
+    port,
+    token,
+    allowedHosts,
+    variables,
+    validateSSL: env.INSOMNIUM_VALIDATE_SSL !== 'false',
+    allowedEnvironmentVariables: env.INSOMNIUM_ALLOWED_ENV || '',
+  };
 };
