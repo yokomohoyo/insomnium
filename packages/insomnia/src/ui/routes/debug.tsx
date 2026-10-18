@@ -1,5 +1,5 @@
 import { IconName } from '@fortawesome/fontawesome-svg-core';
-import { ServiceError, StatusObject } from '@grpc/grpc-js';
+import { ServiceError } from '@grpc/grpc-js';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import React, { FC, Fragment, useEffect, useRef, useState } from 'react';
 import {
@@ -32,6 +32,7 @@ import { ChangeBufferEvent, database as db } from '../../common/database';
 import { generateId } from '../../common/misc';
 import { PlatformKeyCombinations } from '../../common/settings';
 import type { GrpcMethodInfo } from '../../main/ipc/grpc';
+import type { GrpcMetadata, GrpcStatus } from '../../main/network/grpc-metadata';
 import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
@@ -106,7 +107,9 @@ export interface GrpcRequestState {
   running: boolean;
   requestMessages: GrpcMessage[];
   responseMessages: GrpcMessage[];
-  status?: StatusObject;
+  // the response's initial metadata; its trailers are in its status
+  headers?: GrpcMetadata;
+  status?: GrpcStatus;
   error?: ServiceError;
   method?: GrpcMethodInfo;
 }
@@ -277,6 +280,15 @@ export const Debug: FC = () => {
       window.main.on('grpc.error', (_, id, error) => {
         setGrpcStates(state =>
           state.map(s => (s.requestId === id ? { ...s, error } : s)),
+        );
+      }),
+    [],
+  );
+  useEffect(
+    () =>
+      window.main.on('grpc.metadata', (_, id, headers) => {
+        setGrpcStates(state =>
+          state.map(s => (s.requestId === id ? { ...s, headers } : s)),
         );
       }),
     [],

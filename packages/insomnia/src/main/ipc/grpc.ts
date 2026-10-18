@@ -15,7 +15,15 @@ import { guard } from '../../utils/guard';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../network/grpc-credentials';
 import { makeGrpcClient } from '../network/proxy';
 import { asServiceDefinition, grpcOptions, loadMethod, loadProto, validateProto } from '../proto-worker';
+import { type GrpcStatus, plainMetadata } from '../network/grpc-metadata';
 import { generateRequestTemplate, mockRequestMethods } from './automock';
+
+// What a response sends besides its messages: its headers (the initial
+// metadata), and its status with the trailers
+export const forwardStatusAndMetadata = (event: Pick<IpcMainEvent, 'reply'>, call: Pick<Call, 'on'>, requestId: string) => {
+  call.on('metadata', (metadata: Metadata) => event.reply('grpc.metadata', requestId, plainMetadata(metadata)));
+  call.on('status', (status: StatusObject) => event.reply('grpc.status', requestId, { ...status, metadata: plainMetadata(status.metadata) } satisfies GrpcStatus));
+};
 
 const grpcCalls = new Map<string, Call>();
 export interface GrpcIpcRequestParams {
@@ -199,7 +207,7 @@ export const start = (
             metadata,
             onUnaryResponse(event, request._id),
           );
-          unaryCall.on('status', (status: StatusObject) => event.reply('grpc.status', request._id, status));
+          forwardStatusAndMetadata(event, unaryCall, request._id);
           grpcCalls.set(request._id, unaryCall);
           break;
         case 'client':
@@ -209,7 +217,7 @@ export const start = (
             method.responseDeserialize,
             metadata,
             onUnaryResponse(event, request._id));
-          clientCall.on('status', (status: StatusObject) => event.reply('grpc.status', request._id, status));
+          forwardStatusAndMetadata(event, clientCall, request._id);
           grpcCalls.set(request._id, clientCall);
           break;
         case 'server':
@@ -285,7 +293,7 @@ export const commit = (requestId: string): void => grpcCalls.get(requestId)?.end
 export const cancel = (requestId: string): void => grpcCalls.get(requestId)?.cancel();
 
 const onStreamingResponse = (event: IpcMainEvent, call: ClientReadableStream<any> | ClientDuplexStream<any, any>, requestId: string) => {
-  call.on('status', (status: StatusObject) => event.reply('grpc.status', requestId, status));
+  forwardStatusAndMetadata(event, call, requestId);
   call.on('data', data => event.reply('grpc.data', requestId, data));
   call.on('error', (error: ServiceError) => {
     if (error && error.code !== status.CANCELLED) {

@@ -11,7 +11,7 @@ Create either from the dashboard, or bring one in with [Import](import-export.md
 
 ## Requests
 
-Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket or an Event Stream (Server-Sent Events).
+Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket or an Event Stream (Server-Sent Events). A gRPC response's **Metadata** tab shows the headers and trailers the server sent.
 
 An HTTP request's tabs:
 
