@@ -1,3 +1,4 @@
+import { translateDynamicVariables } from '../../../templating/faker-functions';
 import { Converter } from '../entities';
 
 export const id = 'postman-environment';
@@ -30,7 +31,7 @@ export const convert: Converter<Data> = rawData => {
       return null;
     }
 
-    return [
+    return translateDynamicVariables([
       {
         _id: '__ENV_1__',
         _type: 'environment',
@@ -45,7 +46,7 @@ export const convert: Converter<Data> = rawData => {
           };
         }, {}),
       },
-    ];
+    ]);
   } catch (error) {
     // Nothing
   }

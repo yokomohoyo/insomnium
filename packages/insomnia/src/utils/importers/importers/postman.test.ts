@@ -1,9 +1,42 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { ImportPostman } from './postman';
+import { convert, ImportPostman } from './postman';
 import { HttpsSchemaGetpostmanComJsonCollectionV210, Request1 } from './postman-2.1.types';
+import { convert as convertEnvironment } from './postman-env';
 
 describe('postman', () => {
+  describe('dynamic variables', () => {
+    it('become faker tags in requests and environments, scripts kept as written', async () => {
+      const resources = await convert(JSON.stringify({
+        info: { name: 'Dynamic', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+        item: [{
+          name: 'Create user',
+          event: [{ listen: 'prerequest', script: { exec: ["pm.variables.replaceIn('{{$guid}}')"] } }],
+          request: {
+            method: 'POST',
+            url: 'https://api.example.com/users?trace={{$guid}}',
+            header: [{ key: 'X-Request-Id', value: '{{$randomUUID}}' }],
+            body: { mode: 'raw', raw: '{"name":"{{$randomFullName}}","age":{{$randomInt}},"team":"{{team}}"}' },
+          },
+        }],
+      }));
+      const request = resources?.find(({ _type }) => _type === 'request');
+      expect(request).toMatchObject({
+        url: "https://api.example.com/users?trace={% faker 'guid' %}",
+        headers: [{ name: 'X-Request-Id', value: "{% faker 'randomUUID' %}" }],
+        body: { text: `{"name":"{% faker 'randomFullName' %}","age":{% faker 'randomInt' %},"team":"{{team}}"}` },
+      });
+      expect(request?.description).toContain("pm.variables.replaceIn('{{$guid}}')");
+
+      const environments = await convertEnvironment(JSON.stringify({
+        name: 'Staging',
+        _postman_variable_scope: 'environment',
+        values: [{ key: 'user', value: '{{$randomUserName}}', enabled: true }],
+      }));
+      expect(environments?.[0].data).toEqual({ user: "{% faker 'randomUserName' %}" });
+    });
+  });
+
   const postmanSchema = ({
     requests = [],
     version = 'v2.0.0',

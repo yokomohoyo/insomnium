@@ -12,6 +12,7 @@ import { Request, RequestParameter } from '../../../models/request';
 import { Response } from '../../../models/response';
 import { TemplateTag } from '../../../plugins';
 import { PluginTemplateTag } from '../../../templating/extensions';
+import { fakerFunctions, isFakerFunction } from '../../../templating/faker-functions';
 import { guard } from '../../../utils/guard';
 import { buildQueryStringFromParams, joinUrlAndQueryString, smartEncodeUrl } from '../../../utils/url/querystring';
 
@@ -413,6 +414,27 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           default:
             throw new Error(`Invalid random type "${type}"`);
         }
+      },
+    },
+  },
+  {
+    templateTag: {
+      name: 'faker',
+      displayName: 'Faker',
+      description: 'generate fake data, by Postman dynamic variable name',
+      args: [
+        {
+          displayName: 'Value',
+          type: 'enum',
+          defaultValue: 'randomFullName',
+          options: Object.keys(fakerFunctions).map(name => ({ displayName: name, value: name })),
+        },
+      ],
+      async run(_context, name = 'randomFullName') {
+        guard(isFakerFunction(name), `Unknown faker value "${name}"`);
+        // loaded on first use, English only: it's a lot of data
+        const { faker } = await import('@faker-js/faker/locale/en');
+        return fakerFunctions[name](faker);
       },
     },
   },
