@@ -202,6 +202,20 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
   const baseEnvironment = await models.environment.getOrCreateForParentId(workspaceId);
   guard(baseEnvironment, 'Could not create base environment');
 
+  // the imported collection's own variables (its base environment): those this
+  // workspace doesn't have yet, so an import adds them without changing a
+  // value set here
+  const importedBase = resources.filter(isEnvironment).find(environment => !isSubEnvironmentResource(environment));
+  const added = Object.keys(importedBase?.data || {}).filter(key => !(key in (baseEnvironment.data || {})));
+  if (importedBase && added.length) {
+    const order = baseEnvironment.dataPropertyOrder;
+    await models.environment.update(baseEnvironment, {
+      data: { ...importedBase.data, ...baseEnvironment.data },
+      // the editor's key order, when it keeps one, with the new keys after
+      ...(order?.['&'] ? { dataPropertyOrder: { ...order, '&': [...order['&'], ...added] } } : {}),
+    });
+  }
+
   const subEnvironments = resources.filter(isEnvironment).filter(isSubEnvironmentResource) || [];
 
   for (const environment of subEnvironments) {
