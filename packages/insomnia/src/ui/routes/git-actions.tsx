@@ -21,13 +21,12 @@ import { fsClient } from '../../sync/git/fs-client';
 import { gitRollback } from '../../sync/git/git-rollback';
 import GitVCS, {
   GIT_CLONE_DIR,
-  GIT_INSOMNIA_DIR,
   GIT_INSOMNIA_DIR_NAME,
   GIT_INTERNAL_DIR,
   GitLogEntry,
 } from '../../sync/git/git-vcs';
 import { MemClient } from '../../sync/git/mem-client';
-import { importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
+import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
 import parseGitPath from '../../sync/git/parse-git-path';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
 import { shallowClone } from '../../sync/git/shallow-clone';
@@ -85,8 +84,9 @@ export const gitRepoAction: ActionFunction = async ({
       `version-control/git/${gitRepository._id}`
     );
 
-    // All app data is stored within a namespaced GIT_INSOMNIA_DIR directory at the root of the repository and is read/written from the local NeDB database
-    const neDbClient = NeDBClient.createClient(workspaceId, projectId);
+    // All app data is stored within a namespaced directory at the root of the repository (.insomnium, or .insomnia for a repository from Insomnia) and is read/written from the local NeDB database
+    const dataDirName = gitRepository.dataDir || GIT_INSOMNIA_DIR_NAME;
+    const neDbClient = NeDBClient.createClient(workspaceId, projectId, dataDirName);
 
     // All git metadata in the GIT_INTERNAL_DIR directory is stored in a git/ directory on the filesystem
     const gitDataClient = fsClient(baseDir);
@@ -96,7 +96,7 @@ export const gitRepoAction: ActionFunction = async ({
 
     // The routable FS client directs isomorphic-git to read/write from the database or from the correct directory on the file system while performing git operations.
     const routableFS = routableFSClient(otherDatClient, {
-      [GIT_INSOMNIA_DIR]: neDbClient,
+      [path.join(GIT_CLONE_DIR, dataDirName)]: neDbClient,
       [GIT_INTERNAL_DIR]: gitDataClient,
     });
 
@@ -111,6 +111,7 @@ export const gitRepoAction: ActionFunction = async ({
         fs: routableFS,
         gitDirectory: GIT_INTERNAL_DIR,
         workspaceId,
+        dataDirName,
       });
 
       await models.gitRepository.update(gitRepository, {
@@ -124,6 +125,7 @@ export const gitRepoAction: ActionFunction = async ({
         fs: routableFS,
         gitDirectory: GIT_INTERNAL_DIR,
         gitCredentials: credentials,
+        dataDirName,
       });
     }
 
@@ -428,32 +430,18 @@ export const cloneGitRepoAction: ActionFunction = async ({
     };
   }
 
-  const containsInsomniaDir = async (
-    fsClient: Record<string, any>
-  ): Promise<boolean> => {
-    const rootDirs: string[] = await fsClient.promises.readdir(GIT_CLONE_DIR);
-    return rootDirs.includes(GIT_INSOMNIA_DIR_NAME);
-  };
-
-  const containsInsomniaWorkspaceDir = async (
-    fsClient: Record<string, any>
-  ): Promise<boolean> => {
-    if (!(await containsInsomniaDir(fsClient))) {
-      return false;
-    }
-
-    const rootDirs: string[] = await fsClient.promises.readdir(
-      GIT_INSOMNIA_DIR
-    );
-    return rootDirs.includes(models.workspace.type);
-  };
+  // a repository from Insomnia keeps its data in .insomnia, and keeps it there
+  const dataDirName = await clonedDataDir(fsClient);
+  if (dataDirName && dataDirName !== GIT_INSOMNIA_DIR_NAME) {
+    repoSettingsPatch.dataDir = dataDirName;
+  }
 
   // Stop the DB from pushing updates to the UI temporarily
   const bufferId = await database.bufferChanges();
   let workspaceId = '';
   let scope: 'design' | 'collection' = WorkspaceScopeKeys.design;
   // If no workspace exists we create a new one
-  if (!(await containsInsomniaWorkspaceDir(fsClient))) {
+  if (!dataDirName) {
     // Create a new workspace
 
     const workspace = await models.workspace.create({
@@ -470,7 +458,7 @@ export const cloneGitRepoAction: ActionFunction = async ({
     await createGitRepository(workspace._id, repoSettingsPatch);
   } else {
     // Clone all entities from the repository
-    const imported = await importClonedDocs(fsClient, project._id);
+    const imported = await importClonedDocs(fsClient, project._id, dataDirName);
     if ('error' in imported) {
       return {
         errors: [imported.error],
@@ -1041,12 +1029,13 @@ async function getGitVCSPaths(vcs: typeof GitVCS) {
   const fs = 'promises' in gitFS ? gitFS.promises : gitFS;
 
   const fsPaths: string[] = [];
-  for (const type of await fs.readdir(GIT_INSOMNIA_DIR)) {
-    const typeDir = path.join(GIT_INSOMNIA_DIR, type);
+  const dataDir = path.join(GIT_CLONE_DIR, vcs.dataDirName);
+  for (const type of await fs.readdir(dataDir)) {
+    const typeDir = path.join(dataDir, type);
     for (const name of await fs.readdir(typeDir)) {
       // NOTE: git paths don't start with '/' so we're omitting
       //  it here too.
-      const gitPath = path.join(GIT_INSOMNIA_DIR_NAME, type, name);
+      const gitPath = path.join(vcs.dataDirName, type, name);
       fsPaths.push(path.join(gitPath));
     }
   }
@@ -1065,9 +1054,9 @@ async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
   const statusNames: Record<string, string> = {};
   for (const doc of docs) {
     const name = (isApiSpec(doc) && doc.fileName) || doc.name || '';
-    statusNames[path.join(GIT_INSOMNIA_DIR_NAME, doc.type, `${doc._id}.json`)] =
+    statusNames[path.join(vcs.dataDirName, doc.type, `${doc._id}.json`)] =
       name;
-    statusNames[path.join(GIT_INSOMNIA_DIR_NAME, doc.type, `${doc._id}.yml`)] =
+    statusNames[path.join(vcs.dataDirName, doc.type, `${doc._id}.yml`)] =
       name;
   }
   // Create status items
