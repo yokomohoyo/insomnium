@@ -56,8 +56,8 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 Export the collection from Insomnium first (or use a Postman or Insomnia export). See [insomnium-server](../packages/insomnium-server/README.md#run-a-collection-in-ci) for every option.
 
-## Unit tests in design documents
+## Unit tests
 
-[Design documents](design-documents.md) also have a **Test** tab: suites of unit tests, written with Chai, that send the document's requests. Make a suite with **New Test Suite**, add tests with **New Test**, and run them with **Run Tests**. In a test, `insomnia.send()` sends the request chosen for it and returns its response.
+Collections and [design documents](design-documents.md) also have a **Test** tab: suites of unit tests, written with Chai, that send their requests. Make a suite with **New Test Suite**, add tests with **New Test**, and run them with **Run Tests**. In a test, `insomnia.send()` sends the request chosen for it and returns its response.
 
 For new tests, prefer assertions and script tests: they work in any collection, in the runner and in CI.

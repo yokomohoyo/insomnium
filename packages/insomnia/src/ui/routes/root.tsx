@@ -320,9 +320,9 @@ const Root = () => {
                         </Item>
                     )}
                     </Breadcrumbs>
-                    {isDesign(workspaceData?.activeWorkspace) && (
+                    {workspaceData?.activeWorkspace && (
                       <nav className="flex rounded-full justify-between content-evenly font-semibold bg-[--hl-xs] p-[--padding-xxs]">
-                        {['spec', 'debug', 'test'].map(item => (
+                        {(isDesign(workspaceData.activeWorkspace) ? ['spec', 'debug', 'test'] : ['debug', 'test']).map(item => (
                           <NavLink
                             key={item}
                             to={`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${item}`}

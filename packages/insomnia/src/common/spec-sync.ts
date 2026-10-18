@@ -13,7 +13,6 @@ import { getAuthStrategies, isRequest, type Request } from '../models/request';
 import { isRequestGroup } from '../models/request-group';
 import { guard } from '../utils/guard';
 import { database as db } from './database';
-import { generateId } from './misc';
 
 // the ids the importers give the workspace and its base environment
 const SPEC_WORKSPACE_ID = '__WORKSPACE_ID__';
