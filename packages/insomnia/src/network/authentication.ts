@@ -22,9 +22,9 @@ import {
 import { COOKIE, HEADER, QUERY_PARAMS } from './api-key/constants';
 import { getBasicAuthHeader } from './basic-auth/get-header';
 import { getBearerAuthHeader } from './bearer-auth/get-header';
-import { edgeGridHeader } from './edgegrid';
+import { EdgeGridAuth, edgeGridHeader } from './edgegrid';
 import { CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
-import { generateJwt } from './jwt-auth';
+import { generateJwt, JwtAuth } from './jwt-auth';
 import getOAuth1Token from './o-auth-1/get-token';
 import { getOAuth2Token } from './o-auth-2/get-token';
 
@@ -134,13 +134,13 @@ async function resolveAuthStrategy(
 
   // a query parameter is getAuthQueryParamsList's
   if (strategy.type === AUTH_JWT && strategy.addTo !== QUERY_PARAMS) {
-    return _buildBearerHeader(generateJwt(strategy), strategy.prefix ?? 'Bearer');
+    return _buildBearerHeader(generateJwt(strategy as JwtAuth), strategy.prefix ?? 'Bearer');
   }
 
   if (strategy.type === AUTH_EDGEGRID) {
     return {
       name: 'Authorization',
-      value: edgeGridHeader(strategy, {
+      value: edgeGridHeader(strategy as EdgeGridAuth, {
         method,
         url,
         headers: (renderedRequest.headers || []).filter(header => header.name && !header.disabled),
@@ -221,7 +221,7 @@ export function getAuthQueryParamsList(authentication: RequestAuthenticationStra
       out.push({ name: strategy.key, value: strategy.value } as RequestParameter);
     }
     if (strategy.type === AUTH_JWT && strategy.addTo === QUERY_PARAMS) {
-      out.push({ name: strategy.queryParamKey || 'token', value: generateJwt(strategy) } as RequestParameter);
+      out.push({ name: strategy.queryParamKey || 'token', value: generateJwt(strategy as JwtAuth) } as RequestParameter);
     }
   }
   return out;

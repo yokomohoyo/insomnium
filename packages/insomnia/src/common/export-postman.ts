@@ -76,6 +76,14 @@ export const toPostmanAuth = (authentication: unknown): Record<string, unknown> 
       return typed('awsv4', { accessKey: auth.accessKeyId || '', secretKey: auth.secretAccessKey || '', region: auth.region || '', service: auth.service || '', sessionToken: auth.sessionToken || '' });
     case 'hawk':
       return typed('hawk', { authId: auth.id || '', authKey: auth.key || '', algorithm: auth.algorithm || 'sha256' });
+    case 'jwt':
+      return typed('jwt', {
+        algorithm: auth.algorithm || 'HS256', secret: auth.secret || '', isSecretBase64Encoded: auth.secretBase64 ? 'true' : 'false', privateKey: auth.privateKey || '',
+        payload: auth.payload || '{}', header: auth.header || '{}', addTokenTo: auth.addTo === 'queryParams' ? 'queryParam' : 'header',
+        headerPrefix: auth.prefix ?? 'Bearer', queryParamKey: auth.queryParamKey || 'token',
+      });
+    case 'edgegrid':
+      return typed('edgegrid', { clientToken: auth.clientToken || '', clientSecret: auth.clientSecret || '', accessToken: auth.accessToken || '', headersToSign: auth.headersToSign || '', maxBody: auth.maxBody || '' });
     default:
       // ASAP, Netrc and GCP ID tokens have no Postman form
       return undefined;

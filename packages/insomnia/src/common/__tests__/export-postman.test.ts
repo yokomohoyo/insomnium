@@ -83,3 +83,25 @@ describe('toPostmanCollection()', () => {
     expect(collection.variable).toBeUndefined();
   });
 });
+
+describe('JWT and EdgeGrid auth in Postman', () => {
+  const withAuth = (authentication: Record<string, unknown>) => [
+    { _id: 'wrk_1', _type: 'workspace', parentId: null, name: 'Signed' },
+    { _id: 'req_1', _type: 'request', parentId: 'wrk_1', name: 'signed', method: 'GET', url: 'https://api.example.com', authentication },
+  ];
+
+  it('go out as Postman has them, and come back the same', async () => {
+    const jwt = {
+      type: 'jwt', disabled: false, algorithm: 'HS512', secret: '{{ secret }}', secretBase64: true, privateKey: '',
+      payload: '{"sub":"kim"}', header: '{"kid":"k1"}', expiresIn: '', addTo: 'queryParams', prefix: 'Bearer', queryParamKey: 'access_token',
+    };
+    const edgegrid = { type: 'edgegrid', disabled: false, clientToken: 'ct', clientSecret: 'cs', accessToken: 'at', headersToSign: 'X-A, X-B', maxBody: '2048' };
+    for (const authentication of [jwt, edgegrid]) {
+      const collection = toPostmanCollection(withAuth(authentication), 'Signed') as any;
+      expect(collection.item[0].request.auth.type).toBe(authentication.type);
+      const imported = await importPostman(JSON.stringify(collection)) || [];
+      const request = imported.find(({ name }) => name === 'signed');
+      expect(request?.authentication).toEqual(authentication.type === 'jwt' ? { ...jwt, secret: '{{secret}}' } : edgegrid);
+    }
+  });
+});
