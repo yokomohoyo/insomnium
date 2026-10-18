@@ -2144,8 +2144,16 @@ input.editable {
 }
 .environment-editor {
   display: grid;
-  grid-template-rows: 1fr auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   height: 100%;
+}
+.environment-editor__modes {
+  display: flex;
+  gap: var(--padding-xs);
+  padding: var(--padding-xs) var(--padding-sm);
+}
+.environment-editor__table {
+  padding: 0 var(--padding-sm);
 }
 .header-editor {
   display: grid;
