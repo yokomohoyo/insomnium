@@ -7,6 +7,7 @@ import * as models from '../../../models';
 import { isGrpcRequest } from '../../../models/grpc-request';
 import { getAuthHeaders } from '../../../network/authentication';
 import { parseGrpcUrl } from '../../../network/grpc/parse-grpc-url';
+import { checkRequestPolicy } from '../../../network/request-policy';
 import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../../network/grpc-credentials';
 import { assertSafeHeaders, findWorkspaceForRequest } from './util';
@@ -133,21 +134,23 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   if (protoMethodName) {
     (rendered as any).protoMethodName = protoMethodName;
   }
-  const method = await getSelectedMethod(rendered as any);
-  if (!method) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `method ${rendered.protoMethodName} not found - set protoFileId on the request, or ensure server reflection is enabled` }) }], isError: true };
-  }
-  const methodType = getMethodType(method);
   const { url, enableTls } = parseGrpcUrl(rendered.url);
   if (!url) {
     return { content: [{ type: 'text', text: JSON.stringify({ error: 'URL not specified' }) }], isError: true };
   }
 
+  // before the method lookup, which can connect for reflection
   try {
+    checkRequestPolicy(`${enableTls ? 'https' : 'http'}://${url}`);
     assertGrpcAuthSupported((rendered as any).authentication);
   } catch (err) {
     return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
   }
+  const method = await getSelectedMethod(rendered as any);
+  if (!method) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: `method ${rendered.protoMethodName} not found - set protoFileId on the request, or ensure server reflection is enabled` }) }], isError: true };
+  }
+  const methodType = getMethodType(method);
   // gRPC has no HTTP method/body: only header-emitting strategies work here;
   // signature-based ones (Hawk, OAuth 1) would sign garbage.
   const authHeaders = await getAuthHeaders(

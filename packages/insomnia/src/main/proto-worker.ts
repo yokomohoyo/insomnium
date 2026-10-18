@@ -173,8 +173,15 @@ interface WorkerLog {
 type Protobuf = typeof protobuf;
 // protobufjs as @grpc/proto-loader requires it. esbuild bundles a copy of
 // protobufjs into this file, and that copy's classes fail instanceof checks
-// on the roots proto-loader builds.
-const loaderProtobuf = (): Protobuf => createRequire(require.resolve('@grpc/proto-loader'))('protobufjs');
+// on the roots proto-loader builds. Where proto-loader is bundled too (the
+// headless server), there's nothing to resolve and both use this copy.
+const loaderProtobuf = (): Protobuf => {
+  try {
+    return createRequire(require.resolve('@grpc/proto-loader'))('protobufjs');
+  } catch {
+    return protobuf;
+  }
+};
 
 const isPackage = (pb: Protobuf, obj: protobuf.ReflectionObject | null): obj is protobuf.Namespace => {
   return obj instanceof pb.Namespace && !(obj instanceof pb.Type) && !(obj instanceof pb.Service);

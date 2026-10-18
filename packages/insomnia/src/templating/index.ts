@@ -112,6 +112,17 @@ export function reload() {
   nunjucksTagsOnly = null;
 }
 
+const disabledTags = new Set<string>();
+
+/**
+ * Leave these tags out of every environment (the headless server drops file,
+ * which could read the container's files into a request)
+ */
+export function disableTemplateTags(names: string[]) {
+  names.forEach(name => disabledTags.add(name));
+  reload();
+}
+
 /**
  * Get definitions of template tags
  */
@@ -183,7 +194,7 @@ async function getNunjucks(renderMode: string): Promise<NunjucksEnvironment> {
 
   const pluginTemplateTags = await plugins.getTemplateTags();
 
-  const allExtensions = [...pluginTemplateTags, ...localTemplateTags];
+  const allExtensions = [...pluginTemplateTags, ...localTemplateTags].filter(({ templateTag }) => !disabledTags.has(templateTag.name));
 
   for (const extension of allExtensions) {
     const { templateTag, plugin } = extension;

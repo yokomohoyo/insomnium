@@ -1,5 +1,6 @@
 import * as models from '../../../models';
 import type { Workspace } from '../../../models/workspace';
+import { checkRequestPolicy } from '../../../network/request-policy';
 
 // Re-exported from the network layer so gRPC metadata can reuse it.
 export { assertSafeHeaders } from '../../../network/header-injection';
@@ -50,6 +51,7 @@ export function assertSafeRequestUrl(rawUrl: string): void {
   if (BLOCKED_HOSTS.has(canonicalHost(parsed.hostname))) {
     throw new Error(`Refusing to send: '${parsed.hostname}' is a cloud-metadata endpoint and is blocked.`);
   }
+  checkRequestPolicy(rawUrl);
 }
 
 // Normalized field names masked anywhere they appear (lowercased, separators stripped).

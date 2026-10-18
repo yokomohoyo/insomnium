@@ -37,6 +37,7 @@ import {
 import { getAuthHeaders, getAuthQueryParamsList } from './authentication';
 import { cancellableCurlRequest } from './cancellation';
 import { assertSafeHeaders } from './header-injection';
+import { checkRequestPolicy, hasRequestPolicy } from './request-policy';
 import { addSetCookiesToToughCookieJar } from './set-cookie-util';
 import { urlMatchesCertHost } from './url-matches-cert-host';
 
@@ -101,6 +102,8 @@ export async function sendCurlAndWriteTimeline(
   const timeline: ResponseTimelineEntry[] = [];
 
   const { finalUrl, socketPath } = transformUrl(renderedRequest.url, renderedRequest.parameters, renderedRequest.segmentParams, renderedRequest.authentication, renderedRequest.settingEncodeUrl);
+  // here rather than in callers, so chained sends (the response tag) are checked too
+  checkRequestPolicy(socketPath ? `unix:${socketPath}` : finalUrl);
 
   timeline.push({ value: `Preparing request to ${finalUrl}`, name: 'Text', timestamp: Date.now() });
   timeline.push({ value: `Current time is ${new Date().toISOString()}`, name: 'Text', timestamp: Date.now() });
@@ -121,7 +124,8 @@ export async function sendCurlAndWriteTimeline(
   assertSafeHeaders(renderedRequest.headers);
   const requestOptions = {
     requestId,
-    req: renderedRequest,
+    // under a policy a redirect could leave what it allows, and it only sees this url
+    req: hasRequestPolicy() ? { ...renderedRequest, settingFollowRedirects: 'off' as const } : renderedRequest,
     finalUrl,
     socketPath,
     settings,
