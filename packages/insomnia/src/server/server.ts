@@ -31,6 +31,9 @@ export const SERVER_TOOLS = new Set([
   'get_proto_methods',
   'send_http_request',
   'send_grpc_request',
+  // sends and reads: the runner, and an export of what's loaded
+  'run_requests',
+  'export_workspace',
 ]);
 
 // The in-memory database with the collections loaded, for serving or a run
