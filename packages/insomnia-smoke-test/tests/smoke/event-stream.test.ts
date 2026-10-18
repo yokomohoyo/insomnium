@@ -22,7 +22,8 @@ test('event stream sends rendered headers and auth', async ({ app, page }) => {
   await page.getByTestId('request-pane').getByRole('button', { name: 'Connect' }).click();
   await expect(statusTag).toContainText('200 OK');
   await page.getByRole('tab', { name: 'Timeline' }).click();
-  await expect(responseBody).toContainText('Connected to 127.0.0.1');
+  // libcurl 8 says 'Established connection to', 7.x said 'Connected to'
+  await expect(responseBody).toContainText(/(Connected to|Established connection to) 127.0.0.1/);
   await expect(responseBody).toContainText('Authorization: Bearer smoke-token');
   await expect(responseBody).toContainText('X-Rendered: c21va2U=');
   await expect(responseBody).not.toContainText('should-not-be-sent');
