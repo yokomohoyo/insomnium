@@ -36,6 +36,8 @@ export interface BaseWorkspaceMeta {
   // local and never get exported with a shared workspace.
   bufToken: string;
   githubToken: string;
+  // the requests open as tabs, in order (common/open-tabs.ts)
+  openRequestIds: string[];
   // a Spectral ruleset file chosen for the document's spec, on this computer
   // (common/spectral-ruleset-path.ts); empty uses its git repository's or the
   // built-in rules
@@ -69,6 +71,7 @@ export function init(): BaseWorkspaceMeta {
     pushSnapshotOnInitialize: false,
     bufToken: '',
     githubToken: '',
+    openRequestIds: [],
     spectralRulesetPath: '',
   };
 }

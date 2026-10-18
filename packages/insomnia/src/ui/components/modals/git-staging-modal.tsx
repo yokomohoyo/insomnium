@@ -5,6 +5,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { strings } from '../../../common/strings';
 import * as models from '../../../models';
+import type { DocDiff } from '../../../sync/git/doc-diff';
 import { CommitToGitRepoResult, GitChangesLoaderData, GitRollbackChangesResult } from '../../routes/git-actions';
 import { IndeterminateCheckbox } from '../base/indeterminate-checkbox';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
@@ -176,6 +177,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                                 />{' '}
                                 {statusNames?.[item.path] || 'n/a'}
                               </label>
+                              <ChangedFields diff={item.diff} />
                             </td>
                             <td className="text-right">
                               {item.editable && (
@@ -363,6 +365,33 @@ export const GitStagingModal: FC<ModalProps> = ({
 };
 
 GitStagingModal.displayName = 'GitStagingModal';
+
+// which fields changed since the last commit, and from what to what
+const ChangedFields = ({ diff }: { diff?: DocDiff }) => {
+  if (!diff || (!diff.changes.length && !diff.noise)) {
+    return null;
+  }
+  if (!diff.changes.length) {
+    return <div className="txt-sm faint">Only its order or timestamps changed</div>;
+  }
+  return (
+    <details className="txt-sm" data-testid="changed-fields">
+      <summary className="faint">Changed: {diff.changes.map(change => change.field).join(', ')}</summary>
+      <ul className="no-margin">
+        {diff.changes.map(change => (
+          <li key={change.field} className="selectable">
+            <code>{change.field}</code>{' '}
+            {change.detail ?? (
+              <>
+                <span className="danger">{change.before ?? '(none)'}</span> → <span className="success">{change.after ?? '(none)'}</span>
+              </>
+            )}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+};
 
 const OperationTooltip = ({ item }: { item: Item }) => {
   const type =

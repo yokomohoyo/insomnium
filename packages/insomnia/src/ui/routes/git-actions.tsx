@@ -36,6 +36,7 @@ import {
   addDotGit,
   getOauth2FormatName,
 } from '../../sync/git/utils';
+import { type DocDiff, docDiff } from '../../sync/git/doc-diff';
 import { guard } from '../../utils/guard';
 import electron from 'electron';
 
@@ -134,7 +135,9 @@ export const gitRepoAction: ActionFunction = async ({
     // Configure basic info
     const { author, uri: gitUri } = gitRepository;
     await GitVCS.setAuthor(author.name, author.email);
-    await GitVCS.addRemote(gitUri);
+    if (gitUri) {
+      await GitVCS.addRemote(gitUri);
+    }
 
     return {
       branch: await GitVCS.getBranch(),
@@ -514,13 +517,17 @@ export const updateGitRepoAction: ActionFunction = async ({
   const repoSettingsPatch: Partial<GitRepository> = {};
   const formData = await request.formData();
 
-  // URI
+  // URI: none makes a repository on this computer only, to which a remote can
+  // be added later. The field is disabled once a repository has one, so none
+  // sent for an existing repository leaves its address as it is
   const uri = formData.get('uri');
   guard(typeof uri === 'string', 'URI is required');
-  try {
-    repoSettingsPatch.uri = parseGitToHttpsURL(uri);
-  } catch {
-    return { errors: [INVALID_URI] };
+  if (uri.trim()) {
+    try {
+      repoSettingsPatch.uri = parseGitToHttpsURL(uri.trim());
+    } catch {
+      return { errors: [INVALID_URI] };
+    }
   }
 
   // Author
@@ -568,8 +575,14 @@ export const updateGitRepoAction: ActionFunction = async ({
     guard(repo, 'GitRepository not found');
     await models.gitRepository.update(repo, repoSettingsPatch);
     gitRepositoryId = repo._id;
+    // a remote for a repository that had none, now rather than on the next start
+    if (repoSettingsPatch.uri && GitVCS.isInitializedForRepo(repo._id)) {
+      await GitVCS.addRemote(repoSettingsPatch.uri);
+    }
   } else {
-    repoSettingsPatch.needsFullClone = true;
+    // a remote is cloned from; a repository on this computer starts empty
+    repoSettingsPatch.uri = repoSettingsPatch.uri || '';
+    repoSettingsPatch.needsFullClone = Boolean(repoSettingsPatch.uri);
     const gitRepository = await models.gitRepository.create(repoSettingsPatch);
     gitRepositoryId = gitRepository._id;
   }
@@ -1050,6 +1063,8 @@ export interface GitChange {
   staged: boolean;
   added: boolean;
   editable: boolean;
+  // what changed since the last commit, by field (sync/git/doc-diff.ts)
+  diff?: DocDiff;
 }
 
 async function getGitVCSPaths(vcs: typeof GitVCS) {
@@ -1122,6 +1137,8 @@ async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
       editable = false;
       staged = true;
     }
+    const committed = log.length > 0 ? await vcs.readObjFromTree(log[0].commit.tree, gitPath) : null;
+    const current = status.includes('deleted') ? null : await vcs.readWorkingFile(gitPath);
     items[gitPath] = {
       type: type as any,
       staged,
@@ -1129,6 +1146,7 @@ async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
       status,
       added,
       path: gitPath,
+      diff: docDiff(committed ? committed.toString() : null, current),
     };
   }
 

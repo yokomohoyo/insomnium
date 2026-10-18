@@ -14,6 +14,10 @@ Git Sync talks HTTPS. An SSH address (`git@github.com:org/repo.git` or `ssh://â€
 
 A public repository can be cloned and pulled without signing in: leave the username and token empty. Pushing to it needs them.
 
+### Only on this computer
+
+Leave the URL empty, and enter only the name and email for your commits, for a repository kept on this computer. It has commits, branches, history and the commit dialog's list of changes, but no push, pull or fetch. To share it later, enter a URL in **Repository Settings**, then push.
+
 The token is saved encrypted with your operating system's keychain: see [Saved credentials](../README.md#saved-credentials).
 
 ## Clone a repository
@@ -24,7 +28,7 @@ The token is saved encrypted with your operating system's keychain: see [Saved c
 
 The **Git Sync** menu, at the bottom of the sidebar, shows the branch and has:
 
-- **Commit**: lists what changed since the last commit. Choose what to stage, write a message, and commit. Changes can also be rolled back from there.
+- **Commit**: lists what changed since the last commit. Under each change, **Changed** lists its fields, from what to what. For headers, parameters and form fields, it says which were added, removed or changed. A change to only the order or timestamps says so. Choose what to stage, write a message, and commit. Changes can also be rolled back from there.
 - **Push** and **Pull**. A pull applies changes made upstream, including requests that were deleted there. A request you changed and haven't committed is kept.
 - **Fetch**, to see whether the remote has new commits.
 - **History**: the commits on this branch.

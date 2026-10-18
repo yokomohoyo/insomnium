@@ -58,17 +58,16 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
         <label>
           Git URI
           <HelpTooltip className="space-left">
-            The repository's https:// address. An SSH address, such as git@github.com:org/repo.git, works too: Git Sync uses its https:// form.
+            The repository's https:// address. An SSH address, such as git@github.com:org/repo.git, works too: Git Sync uses its https:// form. Leave it empty for a repository on this computer only, with commits, branches and history; add an address here later to push it.
           </HelpTooltip>
           <input
             type="text"
-            required
             autoFocus
             name="uri"
             defaultValue={uri}
             disabled={Boolean(uri)}
             onChange={event => setTypedUri(event.currentTarget.value)}
-            placeholder="https://github.com/org/repo.git"
+            placeholder="https://github.com/org/repo.git, or empty for this computer only"
           />
         </label>
       </div>
