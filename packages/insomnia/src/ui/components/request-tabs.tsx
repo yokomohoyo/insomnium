@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useRouteLoaderData } from 'react-router-d
 import { neighborOf, withoutTab, withTab } from '../../common/open-tabs';
 import { isGrpcRequest } from '../../models/grpc-request';
 import * as models from '../../models/index';
+import { isMcpRequest } from '../../models/mcp-request';
 import { isRequest } from '../../models/request';
 import { isRequestGroup } from '../../models/request-group';
 import { isWebSocketRequest } from '../../models/websocket-request';
@@ -82,6 +83,7 @@ export const RequestTabs: FC = () => {
             <Link to={`${debug}/request/${id}`} title={name} className="flex items-center gap-2 min-w-0 no-underline text-inherit">
               {isRequest(doc) && <span className={`text-[0.65rem] http-method-${doc.method}`}>{getMethodShortHand(doc)}</span>}
               {isWebSocketRequest(doc) && <span className="text-[0.65rem] info">WS</span>}
+              {isMcpRequest(doc) && <span className="text-[0.65rem] success">MCP</span>}
               {isGrpcRequest(doc) && <span className="text-[0.65rem] method-grpc">gRPC</span>}
               <span className="truncate">{name}</span>
             </Link>

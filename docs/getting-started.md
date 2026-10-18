@@ -13,7 +13,7 @@ Create either from the dashboard, or bring one in with [Import](import-export.md
 
 ## Requests
 
-Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket or an Event Stream (Server-Sent Events). A gRPC response's **Metadata** tab shows the headers and trailers the server sent. A WebSocket request keeps messages to send again: **Save Message** saves the one in the editor with the request, and **Saved messages** puts one back. Its **GraphQL** tab runs a GraphQL subscription: turn on **Subscribe when connected**, write the subscription and its variables, and **Connect**. It speaks the graphql-transport-ws protocol (Apollo, Hasura, GraphQL Yoga and others), each event comes in as a message, and the connection closes when the subscription completes.
+Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket, an Event Stream (Server-Sent Events) or MCP. A gRPC response's **Metadata** tab shows the headers and trailers the server sent. A WebSocket request keeps messages to send again: **Save Message** saves the one in the editor with the request, and **Saved messages** puts one back. Its **GraphQL** tab runs a GraphQL subscription: turn on **Subscribe when connected**, write the subscription and its variables, and **Connect**. It speaks the graphql-transport-ws protocol (Apollo, Hasura, GraphQL Yoga and others), each event comes in as a message, and the connection closes when the subscription completes.
 
 Each request you open gets a tab above the request and response, to switch back to it; close one with its **×**, or with a middle click. The tabs stay open, on this computer, when you come back to the collection.
 
@@ -32,6 +32,16 @@ An HTTP request's tabs:
 Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows the body, headers, cookies, the timeline (the raw exchange), and **Tests**, which lists the results of the request's assertions and script tests, and what its scripts logged.
 
 Hover the response time to see how it was spent: the DNS lookup, connecting, the TLS handshake, waiting for the first byte, and the download.
+
+### MCP requests
+
+An **MCP Request** tries out an MCP (Model Context Protocol) server, as an agent would use it. Choose **HTTP** and enter the server's URL, with any headers it needs (such as an `Authorization` header), or **STDIO** and the command that starts the server, with its arguments one per line. Then **Connect**.
+
+- The response pane lists the server's **Tools**, **Prompts** and **Resources**, and its instructions.
+- Choose a tool, fill in its arguments as JSON (they start from the tool's input schema, and variables and tags work), and **Call** it. The same goes for a prompt (**Get**) and a resource (**Read**).
+- The arguments you last used for each tool and prompt are kept with the request.
+- Over HTTP, Insomnium tries streamable HTTP first, then the older SSE transport.
+- A STDIO command runs on your computer, so Insomnium shows it and asks before each run. It runs with your PATH and home folder, but not the app's other environment variables.
 
 ### OAuth 2.0
 

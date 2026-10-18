@@ -74,7 +74,7 @@ import { defaultOrganization } from '../../models/organization';
 // Loader-relevant doc types; Response/Stats/*Meta excluded to avoid Send-loop.
 const REVALIDATE_TYPES = new Set([
   'Workspace', 'Project', 'Request', 'RequestGroup', 'Environment',
-  'GrpcRequest', 'WebSocketRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
+  'GrpcRequest', 'WebSocketRequest', 'McpRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
 ]);
 
 export interface RootLoaderData {

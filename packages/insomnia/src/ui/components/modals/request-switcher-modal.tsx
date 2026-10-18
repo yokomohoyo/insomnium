@@ -6,6 +6,7 @@ import { database } from '../../../common/database';
 import { fuzzyMatchAll } from '../../../common/misc';
 import * as models from '../../../models';
 import { isGrpcRequest } from '../../../models/grpc-request';
+import { isMcpRequest } from '../../../models/mcp-request';
 import { isRequest } from '../../../models/request';
 import { isRequestGroup } from '../../../models/request-group';
 import { isWebSocketRequest } from '../../../models/websocket-request';
@@ -142,6 +143,11 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
                 {isWebSocketRequest(doc) && (
                   <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center info justify-center">
                     WS
+                  </span>
+                )}
+                {isMcpRequest(doc) && (
+                  <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
+                    MCP
                   </span>
                 )}
                 {isGrpcRequest(doc) && (
