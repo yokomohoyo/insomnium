@@ -17,8 +17,8 @@ const Explorer: FC<{ kind: Kind; server: McpServerSummary; environmentId: string
   const { activeRequest } = useRouteLoaderData('request/:requestId') as McpRequestLoaderData;
   const { requestId } = useParams() as { requestId: string };
   const patchRequest = useRequestSetter();
-  const items = kind === 'tool' ? server.tools : kind === 'prompt' ? server.prompts : server.resources;
-  const keyOf = (item: (typeof items)[number]) => ('uri' in item ? item.uri : item.name) as string;
+  const items: { name: string; uri?: string; description?: string }[] = kind === 'tool' ? server.tools : kind === 'prompt' ? server.prompts : server.resources;
+  const keyOf = (item: (typeof items)[number]) => item.uri || item.name;
   const [chosen, setChosen] = useState(items[0] ? keyOf(items[0]) : '');
   const item = items.find(other => keyOf(other) === chosen);
   const [result, setResult] = useState<{ text: string; isError: boolean }>();
@@ -31,9 +31,9 @@ const Explorer: FC<{ kind: Kind; server: McpServerSummary; environmentId: string
       return '';
     }
     if (kind === 'tool') {
-      return savedArgs(chosen) ?? argumentsSkeleton((item as McpServerSummary['tools'][number]).inputSchema as any);
+      return savedArgs(chosen) ?? argumentsSkeleton(server.tools.find(tool => tool.name === chosen)?.inputSchema as Parameters<typeof argumentsSkeleton>[0]);
     }
-    const promptArgs = (item as McpServerSummary['prompts'][number]).arguments || [];
+    const promptArgs = server.prompts.find(prompt => prompt.name === chosen)?.arguments || [];
     return savedArgs(chosen) ?? JSON.stringify(Object.fromEntries(promptArgs.map(arg => [arg.name, ''])), null, 2);
   };
   useEffect(() => {
@@ -72,12 +72,12 @@ const Explorer: FC<{ kind: Kind; server: McpServerSummary; environmentId: string
     }
   };
 
-  const description = item && 'description' in item ? item.description : '';
+  const description = item?.description || '';
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="flex items-center gap-2 pad-sm">
         <select aria-label={`MCP ${kind}`} value={chosen} onChange={event => setChosen(event.currentTarget.value)} className="flex-1 min-w-0">
-          {items.map(other => <option key={keyOf(other)} value={keyOf(other)}>{'name' in other && other.name ? `${other.name}${'uri' in other ? ` (${other.uri})` : ''}` : keyOf(other)}</option>)}
+          {items.map(other => <option key={keyOf(other)} value={keyOf(other)}>{other.uri ? `${other.name} (${other.uri})` : other.name}</option>)}
         </select>
         <button type="button" className="btn btn--clicky" disabled={calling || !item} onClick={call}>
           {calling ? 'Calling…' : kind === 'tool' ? 'Call' : kind === 'prompt' ? 'Get' : 'Read'}

@@ -126,6 +126,7 @@ export const workspaceLoader: LoaderFunction = async ({
     | ApiSpec
     | Request
     | WebSocketRequest
+    | McpRequest
     | GrpcRequest
     | RequestGroup
   )[] = [];

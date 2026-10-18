@@ -9,6 +9,7 @@ import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import { PlatformKeyCombinations } from '../../../common/settings';
 import type { Environment } from '../../../models/environment';
 import { GrpcRequest } from '../../../models/grpc-request';
+import type { McpRequest } from '../../../models/mcp-request';
 import { Project } from '../../../models/project';
 import { isRequest, Request } from '../../../models/request';
 import type { RequestGroup } from '../../../models/request-group';
@@ -31,7 +32,7 @@ interface Props extends Omit<DropdownProps, 'children'> {
   activeEnvironment: Environment;
   activeProject: Project;
   isPinned: Boolean;
-  request: Request | GrpcRequest | WebSocketRequest;
+  request: Request | GrpcRequest | WebSocketRequest | McpRequest;
   requestGroup?: RequestGroup;
 }
 
@@ -89,8 +90,9 @@ export const RequestActionsDropdown = ({
         ...(pluginContexts.store.init(plugin)),
         ...(pluginContexts.network.init()),
       };
+      // plugins take an MCP request as they take the others: a document
       await action(context, {
-        request,
+        request: request as Request | GrpcRequest | WebSocketRequest,
       });
     } catch (error) {
       showError({
@@ -260,7 +262,7 @@ export const RequestActionsDropdown = ({
     </MenuTrigger>
     {isSettingsModalOpen && (
       <RequestSettingsModal
-        request={request}
+        request={request as Request | GrpcRequest | WebSocketRequest}
         onHide={() => setIsSettingsModalOpen(false)}
       />
     )}

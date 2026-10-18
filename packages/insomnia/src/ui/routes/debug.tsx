@@ -37,7 +37,7 @@ import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { getByParentId as getGrpcRequestMetaByParentId } from '../../models/grpc-request-meta';
-import { isMcpRequest, isMcpRequestId } from '../../models/mcp-request';
+import { isMcpRequest, isMcpRequestId, McpRequest } from '../../models/mcp-request';
 import {
   isEventStreamRequest,
   isRequest,
@@ -102,7 +102,7 @@ export interface GrpcMessage {
   created: number;
 }
 
-const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | WebSocketRequest): string => {
+const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest): string => {
   return !isRequestGroup(doc) ? doc.name || doc.url || 'Untitled request' : doc.name || 'Untitled folder';
 };
 
