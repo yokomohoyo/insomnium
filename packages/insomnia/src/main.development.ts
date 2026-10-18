@@ -173,6 +173,9 @@ app.on('ready', async () => {
   // collections kept in step with folders, as when the app last closed
   const { restoreFolderSyncs } = await import('./main/folder-sync');
   restoreFolderSyncs();
+  // token responses kept from before they were redacted
+  const { redactStoredTokenResponses } = await import('./network/o-auth-2/redact');
+  redactStoredTokenResponses().catch(err => console.warn('[oauth2] Could not redact the token responses kept', err));
 
   // NOTE: could also try to initialize workspace here (?)
 

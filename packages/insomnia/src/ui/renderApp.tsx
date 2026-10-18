@@ -4,6 +4,7 @@ import { RouterProvider } from 'react-router-dom';
 import { database } from '../common/database';
 import * as models from '../models';
 import { initNewOAuthSession } from '../network/o-auth-2/get-token';
+import { moveSignInsFromLocalStorage } from '../sync/git/oauth-sign-ins';
 import { init as initPlugins } from '../plugins';
 import { applyColorScheme } from '../plugins/misc';
 import { guard } from '../utils/guard';
@@ -69,6 +70,9 @@ export async function renderApp() {
   await initPlugins();
 
   const settings = await models.settings.getOrCreate();
+
+  // git sign-in tokens localStorage still has, kept with their repositories
+  await moveSignInsFromLocalStorage().catch(err => console.warn('[git] Could not move sign-ins out of localStorage', err));
 
   if (settings.clearOAuth2SessionOnRestart) {
     initNewOAuthSession();

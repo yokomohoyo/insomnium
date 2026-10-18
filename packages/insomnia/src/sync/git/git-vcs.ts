@@ -37,6 +37,8 @@ interface GitCredentialsOAuth {
   oauth2format?: 'github' | 'gitlab';
   username: string;
   token: string;
+  // GitLab's, to get a new token when this one expires
+  refreshToken?: string;
 }
 
 export type GitCredentials = GitCredentialsBase | GitCredentialsOAuth;

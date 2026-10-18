@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
 import { data as fixtures } from '../__fixtures__/nestedfolders';
-import { _fixDBShape, database as db } from '../database';
+import { _callFromWindow, _fixDBShape, database as db } from '../database';
 
 function loadFixture() {
   const promises: Promise<models.BaseModel>[] = [];
@@ -743,5 +743,14 @@ describe('withAncestors()', () => {
     await expect(db.withAncestors(grpGrpcReq, [models.workspace.type])).resolves.toStrictEqual([
       grpGrpcReq,
     ]);
+  });
+});
+
+describe('the windows\' database (db.fn)', () => {
+  beforeEach(globalBeforeEach);
+
+  it('does what forwards to it, and refuses the rest of the database, init above all', async () => {
+    await expect(_callFromWindow('init', [models.types(), {}, true])).rejects.toThrow("The database has no init for the app's windows");
+    await expect(_callFromWindow('count', [models.request.type])).resolves.toBe(0);
   });
 });

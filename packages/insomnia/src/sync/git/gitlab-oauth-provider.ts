@@ -38,8 +38,13 @@ const getGitLabConfig = async () => {
 
 export const getGitLabOauthApiURL = () =>
   env.INSOMNIA_GITLAB_API_URL || 'https://gitlab.com';
-const GITLAB_TOKEN_STORAGE_KEY = 'gitlab-oauth-token';
-const GITLAB_REFRESH_TOKEN_STORAGE_KEY = 'gitlab-oauth-refresh-token';
+// where localStorage once kept a sign-in's tokens (oauth-sign-ins.ts moves them)
+export const GITLAB_TOKEN_STORAGE_KEY = 'gitlab-oauth-token';
+export const GITLAB_REFRESH_TOKEN_STORAGE_KEY = 'gitlab-oauth-refresh-token';
+
+// A sign-in's tokens, in memory until they're saved with the repository (whose
+// credentials are stored encrypted)
+let tokens: { token: string; refreshToken: string } | null = null;
 
 function base64URLEncode(buffer: Buffer) {
   return buffer
@@ -127,9 +132,8 @@ export async function exchangeCodeForGitLabToken(input: {
   });
 }
 
-export async function refreshToken() {
-  const refreshToken = localStorage.getItem(GITLAB_REFRESH_TOKEN_STORAGE_KEY);
-
+// New tokens for a refresh token: a repository's (onAuthFailure), or else the sign-in's
+export async function refreshToken(refreshToken = tokens?.refreshToken): Promise<{ token: string; refreshToken: string }> {
   if (!refreshToken) {
     throw new Error('No refresh token');
   }
@@ -149,26 +153,26 @@ export async function refreshToken() {
       'Content-Type': 'application/json',
     },
   }).then(result => {
-    setAccessToken(result.data.access_token, result.data.refresh_token);
-
-    return result.data.access_token;
+    const refreshed = { token: result.data.access_token, refreshToken: result.data.refresh_token };
+    if (refreshToken === tokens?.refreshToken) {
+      tokens = refreshed;
+    }
+    return refreshed;
   });
 }
 
 export function getAccessToken() {
-  return localStorage.getItem(GITLAB_TOKEN_STORAGE_KEY);
+  return tokens?.token ?? null;
 }
 
 export function getRefreshAccessToken() {
-  return localStorage.getItem(GITLAB_REFRESH_TOKEN_STORAGE_KEY);
+  return tokens?.refreshToken ?? null;
 }
 
 export function setAccessToken(token: string, refreshToken: string) {
-  localStorage.setItem(GITLAB_TOKEN_STORAGE_KEY, token);
-  localStorage.setItem(GITLAB_REFRESH_TOKEN_STORAGE_KEY, refreshToken);
+  tokens = { token, refreshToken };
 }
 
 export function signOut() {
-  localStorage.removeItem(GITLAB_TOKEN_STORAGE_KEY);
-  localStorage.removeItem(GITLAB_REFRESH_TOKEN_STORAGE_KEY);
+  tokens = null;
 }

@@ -9,6 +9,7 @@ import {
   exchangeCodeForToken,
   generateAuthorizationUrl,
   GITHUB_GRAPHQL_API_URL,
+  getAccessToken,
   signOut,
 } from '../../../../sync/git/github-oauth-provider';
 import { Button } from '../../themed-button';
@@ -23,12 +24,12 @@ export const GitHubRepositorySetupFormGroup = (props: Props) => {
   const { onSubmit, uri } = props;
 
   const [githubToken, setGitHubToken] = useState(
-    localStorage.getItem('github-oauth-token') || ''
+    getAccessToken() || ''
   );
 
   useInterval(
     () => {
-      const token = localStorage.getItem('github-oauth-token');
+      const token = getAccessToken();
 
       if (token) {
         setGitHubToken(token);

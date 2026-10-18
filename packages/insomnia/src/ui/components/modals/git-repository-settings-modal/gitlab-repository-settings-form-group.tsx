@@ -7,7 +7,9 @@ import { GitRepository } from '../../../../models/git-repository';
 import {
   exchangeCodeForGitLabToken,
   generateAuthorizationUrl,
+  getAccessToken,
   getGitLabOauthApiURL,
+  getRefreshAccessToken,
   refreshToken,
   signOut,
 } from '../../../../sync/git/gitlab-oauth-provider';
@@ -23,12 +25,12 @@ export const GitLabRepositorySetupFormGroup = (props: Props) => {
   const { onSubmit, uri } = props;
 
   const [gitlabToken, setGitLabToken] = useState(
-    localStorage.getItem('gitlab-oauth-token') || ''
+    getAccessToken() || ''
   );
 
   useInterval(
     () => {
-      const token = localStorage.getItem('gitlab-oauth-token');
+      const token = getAccessToken();
 
       if (token) {
         setGitLabToken(token);
@@ -196,6 +198,7 @@ const GitLabRepositoryForm = ({
             username: token ?? '',
             token: token ?? '',
             oauth2format: 'gitlab',
+            ...(getRefreshAccessToken() ? { refreshToken: getRefreshAccessToken()! } : {}),
           },
         });
       }

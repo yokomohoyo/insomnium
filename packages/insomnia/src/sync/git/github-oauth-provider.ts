@@ -58,14 +58,19 @@ export async function exchangeCodeForToken({
   });
 }
 
+// A sign-in's token, in memory until it's saved with the repository (whose
+// credentials are stored encrypted). It was kept under GITHUB_TOKEN_STORAGE_KEY
+// in localStorage once; oauth-sign-ins.ts moves what's left there.
+let accessToken: string | null = null;
+
 export function getAccessToken() {
-  return localStorage.getItem(GITHUB_TOKEN_STORAGE_KEY);
+  return accessToken;
 }
 
 export function setAccessToken(token: string) {
-  return localStorage.setItem(GITHUB_TOKEN_STORAGE_KEY, token);
+  accessToken = token;
 }
 
 export function signOut() {
-  localStorage.removeItem(GITHUB_TOKEN_STORAGE_KEY);
+  accessToken = null;
 }
