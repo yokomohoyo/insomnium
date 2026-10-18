@@ -148,6 +148,9 @@ const DYNAMIC_VARIABLE = /{{\s*\$(\w+)\s*}}/g;
 // Postman's dynamic variables in an imported value become faker tags, all the
 // way down; a name we don't know stays as it was. Descriptions are left alone:
 // they aren't rendered, and hold the Postman scripts, kept as written.
+// descriptions and scripts are kept as written: a script's {{ }} is code
+const KEPT_AS_WRITTEN = ['description', 'preRequestScript', 'afterResponseScript'];
+
 export const translateDynamicVariables = <T>(value: T): T => {
   if (typeof value === 'string') {
     return value.replace(DYNAMIC_VARIABLE, (match, name) => isFakerFunction(name) ? `{% faker '${name}' %}` : match) as T;
@@ -156,7 +159,7 @@ export const translateDynamicVariables = <T>(value: T): T => {
     return value.map(translateDynamicVariables) as T;
   }
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, key === 'description' ? item : translateDynamicVariables(item)])) as T;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, KEPT_AS_WRITTEN.includes(key) ? item : translateDynamicVariables(item)])) as T;
   }
   return value;
 };

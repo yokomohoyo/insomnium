@@ -72,7 +72,7 @@
       "environment": {
         "orderPath": "/orders"
       },
-      "description": "Order endpoints\n\n**Insomnia pre-request script**, not run by Insomnium:\n\n```js\ninsomnia.environment.set('ts', Date.now());\n```",
+      "description": "Order endpoints\n\n**Insomnia pre-request script**, copied into each request under this folder, which runs it:\n\n```js\ninsomnia.environment.set('ts', Date.now());\n```",
       "metaSortKey": -1760400000100,
       "isPrivate": false,
       "_id": "fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9",
@@ -101,11 +101,13 @@
           "token": "{{ _.token }}"
         }
       ],
-      "description": "One item\n\n**Insomnia after-response script**, not run by Insomnium:\n\n```js\ninsomnia.test('ok', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});\n```",
+      "description": "One item",
       "metaSortKey": -1760400000200,
       "isPrivate": false,
       "_id": "req_1a2b3c4d5e6f70819203a4b5c6d7e8f9",
       "_type": "request",
+      "preRequestScript": "// from Insomnia folder \"Orders\"\nawait (async () => {\ninsomnia.environment.set('ts', Date.now());\n})();",
+      "afterResponseScript": "insomnia.test('ok', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});",
       "method": "GET",
       "segmentParams": [
         {
@@ -155,6 +157,7 @@
       "isPrivate": false,
       "_id": "req_2b3c4d5e6f708192a3b4c5d6e7f80910",
       "_type": "request",
+      "preRequestScript": "// from Insomnia folder \"Orders\"\nawait (async () => {\ninsomnia.environment.set('ts', Date.now());\n})();",
       "method": "POST",
       "settingDisableRenderRequestBody": false,
       "settingEncodeUrl": true,
@@ -181,6 +184,7 @@
       "isPrivate": false,
       "_id": "req_3c4d5e6f708192a3b4c5d6e7f8091011",
       "_type": "request",
+      "preRequestScript": "// from Insomnia folder \"Orders\"\nawait (async () => {\ninsomnia.environment.set('ts', Date.now());\n})();",
       "method": "GET",
       "settingDisableRenderRequestBody": false,
       "settingEncodeUrl": true,
@@ -223,6 +227,7 @@
       "isPrivate": false,
       "_id": "req_4d5e6f708192a3b4c5d6e7f809101112",
       "_type": "request",
+      "preRequestScript": "// from Insomnia folder \"Orders\"\nawait (async () => {\ninsomnia.environment.set('ts', Date.now());\n})();",
       "method": "GET",
       "settingDisableRenderRequestBody": false,
       "settingEncodeUrl": true,

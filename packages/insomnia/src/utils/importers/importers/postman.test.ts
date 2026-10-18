@@ -26,7 +26,7 @@ describe('postman', () => {
         headers: [{ name: 'X-Request-Id', value: "{% faker 'randomUUID' %}" }],
         body: { text: `{"name":"{% faker 'randomFullName' %}","age":{% faker 'randomInt' %},"team":"{{team}}"}` },
       });
-      expect(request?.description).toContain("pm.variables.replaceIn('{{$guid}}')");
+      expect(request?.preRequestScript).toBe("pm.variables.replaceIn('{{$guid}}')");
 
       const environments = await convertEnvironment(JSON.stringify({
         name: 'Staging',
@@ -34,6 +34,63 @@ describe('postman', () => {
         values: [{ key: 'user', value: '{{$randomUserName}}', enabled: true }],
       }));
       expect(environments?.[0].data).toEqual({ user: "{% faker 'randomUserName' %}" });
+    });
+  });
+
+  describe('scripts', () => {
+    const script = (listen: string, code: string, disabled?: boolean) => ({ listen, script: { exec: code.split('\n') }, ...(disabled ? { disabled } : {}) });
+
+    it("become the request's scripts, after the collection's and folders' ones, each kept apart", async () => {
+      const resources = await convert(JSON.stringify({
+        info: { name: 'Shop', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+        event: [script('prerequest', "const token = 'a';\npm.environment.set('token', token);"), script('test', 'pm.test(\'is json\', () => pm.response.to.be.json);')],
+        item: [{
+          name: 'Orders',
+          event: [script('prerequest', "const token = 'b';\nif (!token) return;")],
+          item: [{
+            name: 'List orders',
+            event: [script('test', "pm.test('ok', () => pm.response.to.have.status(200));"), script('prerequest', "console.log('off')", true)],
+            request: { method: 'GET', url: 'https://shop.example.com/orders' },
+          }],
+        }, {
+          name: 'Health',
+          request: { method: 'GET', url: 'https://shop.example.com/health' },
+        }],
+      }));
+      const [collection, folder, orders, health] = resources || [];
+
+      expect(orders.preRequestScript).toBe([
+        '// from Postman collection "Shop"',
+        'await (async () => {',
+        "const token = 'a';",
+        "pm.environment.set('token', token);",
+        '})();',
+        '',
+        '// from Postman folder "Orders"',
+        'await (async () => {',
+        "const token = 'b';",
+        'if (!token) return;',
+        '})();',
+      ].join('\n'));
+      expect(orders.afterResponseScript).toBe([
+        '// from Postman collection "Shop"',
+        'await (async () => {',
+        "pm.test('is json', () => pm.response.to.be.json);",
+        '})();',
+        '',
+        '// from this request',
+        'await (async () => {',
+        "pm.test('ok', () => pm.response.to.have.status(200));",
+        '})();',
+      ].join('\n'));
+      // Postman doesn't run a disabled script either; it stays as text
+      expect(orders.description).toContain("**Postman pre-request script (disabled)**, not run by Insomnium:\n\n```js\nconsole.log('off')\n```");
+      expect(orders.description).not.toContain('status(200)');
+      expect(health.preRequestScript).toContain("pm.environment.set('token', token);");
+      expect(health.preRequestScript).not.toContain('Orders');
+      // the collection's and folder's are kept as text where they were written
+      expect(collection.description).toContain('**Postman test script**, copied into each request under this folder, which runs it:');
+      expect(folder.description).toContain("const token = 'b';");
     });
   });
 

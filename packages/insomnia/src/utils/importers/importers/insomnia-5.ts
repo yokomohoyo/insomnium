@@ -1,6 +1,7 @@
 import YAML from 'yaml';
 
 import { Converter, ImportRequest, UNKNOWN, UNKNOWN_OBJ } from '../entities';
+import { InheritedScript, scriptAsText, withInheritedScripts } from '../scripts';
 
 export const id = 'insomnia-5';
 export const name = 'Insomnia v5';
@@ -23,6 +24,12 @@ interface Meta {
 interface Scripts {
   preRequest?: string;
   afterResponse?: string;
+}
+
+// the folders' scripts, for the requests under them
+interface Inherited {
+  preRequest: InheritedScript[];
+  afterResponse: InheritedScript[];
 }
 
 interface Header {
@@ -51,17 +58,13 @@ const segmentParams = (url: string, pathParameters?: { name?: string; value?: st
     }));
 };
 
-// Insomnium can't run Insomnia's scripts, so they're kept as text in the
-// description rather than dropped
-const withScripts = (description = '', scripts?: Scripts) => {
+// A folder's scripts are kept as text in its description too, and so are a
+// gRPC or WebSocket request's, which Insomnium doesn't run
+const withScripts = (description = '', scripts: Scripts | undefined, note: string) => {
   const blocks = ([['pre-request script', scripts?.preRequest], ['after-response script', scripts?.afterResponse]] as const)
     .flatMap(([title, script]) => {
       const code = (script || '').trim();
-      if (!code) {
-        return [];
-      }
-      const fence = '`'.repeat(Math.max(3, ...(code.match(/`+/g) || []).map(run => run.length + 1)));
-      return [`**Insomnia ${title}**, not run by Insomnium:\n\n${fence}js\n${code}\n${fence}`];
+      return code ? [scriptAsText(`Insomnia ${title}`, note, code)] : [];
     });
   return [description, ...blocks].filter(Boolean).join('\n\n');
 };
@@ -127,13 +130,13 @@ export const convert: Converter = rawData => {
 
   // Insomnium has no folder auth or headers yet, so the nearest folder's are
   // copied onto the requests under it, as Insomnia would send them
-  const walk = (items: UNKNOWN[] = [], parentId: string, inheritedAuth: UNKNOWN_OBJ, inheritedHeaders: Header[]) => {
+  const walk = (items: UNKNOWN[] = [], parentId: string, inheritedAuth: UNKNOWN_OBJ, inheritedHeaders: Header[], inheritedScripts: Inherited) => {
     for (const item of items) {
       const meta: Meta = item.meta || {};
       const common = {
         parentId,
         name: item.name || '',
-        description: withScripts(meta.description, item.scripts),
+        description: withScripts(meta.description, item.scripts, 'not run by Insomnium'),
         metaSortKey: meta.sortKey ?? 0,
         isPrivate: !!meta.isPrivate,
       };
@@ -152,18 +155,28 @@ export const convert: Converter = rawData => {
           ...common,
           _id,
           _type: 'request_group',
+          description: withScripts(meta.description, item.scripts, 'copied into each request under this folder, which runs it'),
           environment: item.environment || {},
           environmentPropertyOrder: item.environmentPropertyOrder || null,
         });
-        walk(item.children, _id, auth, headers.filter(header => !header.disabled));
+        const from = `Insomnia folder "${item.name || ''}"`;
+        walk(item.children, _id, auth, headers.filter(header => !header.disabled), {
+          preRequest: [...inheritedScripts.preRequest, { from, code: item.scripts?.preRequest || '' }],
+          afterResponse: [...inheritedScripts.afterResponse, { from, code: item.scripts?.afterResponse || '' }],
+        });
       } else if (item.method) {
         const settings = item.settings || {};
         const url = item.url || '';
         const params = segmentParams(url, item.pathParameters);
+        const preRequestScript = withInheritedScripts(inheritedScripts.preRequest, item.scripts?.preRequest || '');
+        const afterResponseScript = withInheritedScripts(inheritedScripts.afterResponse, item.scripts?.afterResponse || '');
         resources.push({
           ...common,
           _id: idFor(meta, 'req'),
           _type: 'request',
+          description: meta.description || '',
+          ...(preRequestScript.trim() ? { preRequestScript } : {}),
+          ...(afterResponseScript.trim() ? { afterResponseScript } : {}),
           url,
           method: item.method,
           body: item.body || {},
@@ -211,7 +224,7 @@ export const convert: Converter = rawData => {
     }
   };
   if (file.type !== ENVIRONMENTS) {
-    walk(file.collection, workspaceId, {}, []);
+    walk(file.collection, workspaceId, {}, [], { preRequest: [], afterResponse: [] });
   }
 
   if (specContents) {
