@@ -14,6 +14,10 @@ Git Sync talks HTTPS. An SSH address (`git@github.com:org/repo.git` or `ssh://â€
 
 A public repository can be cloned and pulled without signing in: leave the username and token empty. Pushing to it needs them.
 
+### Only on this computer
+
+Leave the URL empty, and enter only the name and email for your commits, for a repository kept on this computer. It has commits, branches, history and the commit dialog's list of changes, but no push, pull or fetch. To share it later, enter a URL in **Repository Settings**, then push.
+
 The token is saved encrypted with your operating system's keychain: see [Saved credentials](../README.md#saved-credentials).
 
 ## Clone a repository

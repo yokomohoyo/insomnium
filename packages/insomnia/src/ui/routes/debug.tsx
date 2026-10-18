@@ -70,6 +70,7 @@ import { WorkspaceEnvironmentsEditModal } from '../components/modals/workspace-e
 import { GrpcRequestPane } from '../components/panes/grpc-request-pane';
 import { GrpcResponsePane } from '../components/panes/grpc-response-pane';
 import { PlaceholderRequestPane } from '../components/panes/placeholder-request-pane';
+import { RequestTabs } from '../components/request-tabs';
 import { RequestPane } from '../components/panes/request-pane';
 import { ResponsePane } from '../components/panes/response-pane';
 import { SidebarLayout } from '../components/sidebar-layout';
@@ -1061,6 +1062,7 @@ export const Debug: FC = () => {
           )}
         </div>
       }
+      renderPaneHeader={<RequestTabs key={workspaceId} />}
       renderPaneOne={
         workspaceId ? (
           <ErrorBoundary showAlert>

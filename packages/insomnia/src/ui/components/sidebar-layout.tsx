@@ -58,7 +58,72 @@ const verticalStyles = {
   },
 };
 
-const LayoutGrid = styled.div<{orientation: 'vertical' | 'horizontal'}>(props => ({
+// With a strip over both panes (debug.tsx's open requests): a first row for
+// it, and the panes and their dividers a row down
+const withPaneHeader = (vertical: boolean) => ({
+  '.pane-header': {
+    gridColumnStart: '4',
+    gridColumnEnd: 'span 3',
+    gridRowStart: '1',
+    gridRowEnd: 'span 1',
+    minWidth: '0',
+    borderLeft: '1px solid var(--hl-md)',
+  },
+  '.sidebar': {
+    gridColumnStart: '2',
+    gridRowStart: '1',
+    gridRowEnd: 'span 4',
+    minWidth: '0',
+  },
+  '.drag--sidebar': {
+    gridColumnStart: '3',
+    zIndex: '999',
+    gridColumnEnd: 'span 1',
+    gridRowStart: '1',
+    gridRowEnd: 'span 4',
+  },
+  ...(vertical ? {
+    '.pane-one': {
+      gridColumnStart: '4',
+      gridColumnEnd: 'span 3',
+      gridRowStart: '2',
+      gridRowEnd: 'span 2',
+    },
+    '.pane-one:has(~.pane-two)': {
+      gridRowEnd: 'span 1',
+    },
+    '.pane-two': {
+      gridColumnStart: '4',
+      gridColumnEnd: 'span 3',
+      gridRowStart: '4',
+      gridRowEnd: 'span 1',
+      borderTop: '1px solid var(--hl-md)',
+    },
+    '.drag--pane-vertical': {
+      ...verticalStyles['.drag--pane-vertical'],
+      gridRowStart: '3',
+    },
+  } : {
+    '.pane-one': {
+      gridColumnStart: '4',
+      gridRowStart: '2',
+      gridRowEnd: 'span 3',
+    },
+    '.pane-two': {
+      gridColumnStart: '6',
+      gridRowStart: '2',
+      gridRowEnd: 'span 3',
+    },
+    '.drag--pane-horizontal': {
+      gridColumnStart: '5',
+      gridColumnEnd: 'span 1',
+      gridRowStart: '2',
+      gridRowEnd: 'span 3',
+    },
+  }),
+});
+
+const LayoutGrid = styled.div<{orientation: 'vertical' | 'horizontal'; hasPaneHeader: boolean}>(props => ({
   gridArea: 'Content',
   backgroundColor: 'var(--color-bg)',
   boxSizing: 'border-box',
@@ -169,11 +234,14 @@ const LayoutGrid = styled.div<{orientation: 'vertical' | 'horizontal'}>(props =>
     gridColumnEnd: 'span 1',
   },
 
+  ...props.hasPaneHeader && withPaneHeader(false),
+
   '@media (max-width: 1200px)': {
     ...verticalStyles,
+    ...props.hasPaneHeader && withPaneHeader(true),
   },
 
-  ...props.orientation === 'vertical' && verticalStyles,
+  ...props.orientation === 'vertical' && { ...verticalStyles, ...props.hasPaneHeader && withPaneHeader(true) },
 }));
 
 const Pane = forwardRef<HTMLElement, { position: string; children: ReactNode }>(
@@ -192,12 +260,15 @@ export const SidebarFooter = styled.div({
 
 interface Props {
   renderPageSidebar?: ReactNode;
+  // a strip over both panes, such as the open requests' tabs
+  renderPaneHeader?: ReactNode;
   renderPaneOne?: ReactNode;
   renderPaneTwo?: ReactNode;
   className?: string;
 }
 
 export const SidebarLayout: FC<Props> = ({
+  renderPaneHeader,
   renderPaneOne,
   renderPaneTwo,
   renderPageSidebar,
@@ -360,9 +431,10 @@ export const SidebarLayout: FC<Props> = ({
   }, []);
 
   const realSidebarWidth = activeWorkspaceMeta?.sidebarHidden ? 0 : sidebarWidth;
-  const gridRows = renderPaneTwo
+  const paneRows = renderPaneTwo
     ? `minmax(0, ${paneHeight}fr) 0 minmax(0, ${1 - paneHeight}fr)`
     : '1fr';
+  const gridRows = renderPaneHeader ? `auto ${paneRows}` : paneRows;
   const gridColumns =
     `auto ${realSidebarWidth}rem 0 ` +
     `${renderPaneTwo ? `minmax(0, ${paneWidth}fr) 0 minmax(0, ${1 - paneWidth}fr)` : '1fr'}`;
@@ -373,6 +445,7 @@ export const SidebarLayout: FC<Props> = ({
       id="wrapper"
       className={className}
       orientation={forceVerticalLayout ? 'vertical' : 'horizontal'}
+      hasPaneHeader={Boolean(renderPaneHeader)}
       style={{
         gridTemplateColumns: gridColumns,
         gridTemplateRows: gridRows,
@@ -395,6 +468,11 @@ export const SidebarLayout: FC<Props> = ({
             />
           </div>
         </ErrorBoundary>
+      )}
+      {renderPaneHeader && (
+        <div className="pane-header">
+          {renderPaneHeader}
+        </div>
       )}
       {renderPaneOne && (
         <ErrorBoundary showAlert>
