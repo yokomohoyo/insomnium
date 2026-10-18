@@ -33,8 +33,20 @@ const loadEngine = () => {
       const { default: variant } = await import('@jitl/quickjs-singlefile-cjs-release-sync');
       return { module: await newQuickJSWASMModuleFromVariant(variant), shouldInterruptAfterDeadline };
     })();
+    // tried again next time
+    engine.catch(() => {
+      engine = null;
+    });
   }
   return engine;
+};
+
+// null if it isn't done in time
+const within = <T>(promise: Promise<T>, ms: number) => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([promise, new Promise<null>(resolve => {
+    timer = setTimeout(() => resolve(null), ms);
+  })]).finally(() => clearTimeout(timer));
 };
 
 // What a script threw, as one line
@@ -51,11 +63,21 @@ const describeError = (vm: QuickJSContext, handle: QuickJSHandle, timeoutMs: num
 };
 
 export async function runInSandbox<T>(code: string, input: object, { timeoutMs = TIMEOUT_MS } = {}): Promise<SandboxResult<T>> {
-  const { module, shouldInterruptAfterDeadline } = await loadEngine();
+  // In the app the main process runs scripts, as it runs Spectral, under Node
+  // as the tests do: in the window, which has Node and the DOM at once, a
+  // script never finished
+  if (process.type === 'renderer') {
+    return window.main.runScript({ code, input, timeoutMs }) as Promise<SandboxResult<T>>;
+  }
+  const deadline = Date.now() + timeoutMs;
+  const loaded = await within(loadEngine(), timeoutMs);
+  if (!loaded) {
+    return { logs: [], error: `The script engine didn't load within ${timeoutMs / 1000} seconds` };
+  }
+  const { module, shouldInterruptAfterDeadline } = loaded;
   const runtime = module.newRuntime();
   runtime.setMemoryLimit(MEMORY_BYTES);
   runtime.setMaxStackSize(1024 * 1024);
-  const deadline = Date.now() + timeoutMs;
   runtime.setInterruptHandler(shouldInterruptAfterDeadline(deadline));
   const vm = runtime.newContext();
   const logs: ScriptLog[] = [];
