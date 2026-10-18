@@ -2,6 +2,7 @@ import { parse } from 'dotenv';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { env as processEnv } from 'node:process';
 
 import type { Settings } from '../common/settings';
 import { guard } from '../utils/guard';
@@ -18,10 +19,12 @@ const expandHome = (file: string) => file === '~' || file.startsWith('~/') ? pat
 
 // The OS environment first, then the dotenv file, as dotenv does: so CI can
 // override what the file says. The file is read each time, to pick up edits.
+// The environment comes from node:process, not process.env: Vite builds the
+// renderer with process.env replaced by {}.
 export async function readEnvironmentVariable(
   name: string,
   { allowedEnvironmentVariables, dotenvFile }: Pick<Settings, 'allowedEnvironmentVariables' | 'dotenvFile'>,
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = processEnv,
 ) {
   guard(/^[A-Za-z_][A-Za-z0-9_.-]*$/.test(name), `"${name}" isn't an environment variable name`);
   guard(
