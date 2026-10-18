@@ -27,7 +27,7 @@ test('a repository on this computer commits, and says what changed in each reque
   await dialog.getByRole('button', { name: 'Close' }).click();
 
   // change the request, and see the change before committing it
-  await page.getByRole('button', { name: 'GET', exact: true }).click();
+  await page.getByTestId('request-pane').locator('.method-dropdown button').click();
   await page.getByRole('menuitem', { name: 'POST' }).click();
   await gitMenu.click();
   await page.getByRole('menuitem', { name: 'Commit' }).click();
