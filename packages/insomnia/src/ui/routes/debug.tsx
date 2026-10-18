@@ -71,6 +71,7 @@ import { PromptModal } from '../components/modals/prompt-modal';
 import { RequestSettingsModal } from '../components/modals/request-settings-modal';
 import { RequestSwitcherModal } from '../components/modals/request-switcher-modal';
 import { GlobalEnvironmentsModal } from '../components/modals/global-environments-modal';
+import { HistoryModal } from '../components/modals/history-modal';
 import { WorkspaceEnvironmentsEditModal } from '../components/modals/workspace-environments-edit-modal';
 import { GrpcRequestPane } from '../components/panes/grpc-request-pane';
 import { GrpcResponsePane } from '../components/panes/grpc-response-pane';
@@ -199,6 +200,7 @@ export const Debug: FC = () => {
     useState(false);
   const [isEnvironmentModalOpen, setEnvironmentModalOpen] = useState(false);
   const [isGlobalEnvironmentsModalOpen, setGlobalEnvironmentsModalOpen] = useState(false);
+  const [isHistoryModalOpen, setHistoryModalOpen] = useState(false);
 
   const patchRequestMeta = useRequestMetaPatcher();
   useEffect(() => {
@@ -795,6 +797,14 @@ export const Debug: FC = () => {
               <Icon icon="globe" />
               {activeGlobalEnvironment ? `Globals: ${activeGlobalEnvironment.name}` : 'Globals'}
             </Button>
+            <Button
+              aria-label="History"
+              onPress={() => setHistoryModalOpen(true)}
+              className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
+            >
+              <Icon icon="clock-rotate-left" />
+              History
+            </Button>
           </div>
 
           <div className="flex flex-col flex-1 overflow-hidden">
@@ -1076,6 +1086,7 @@ export const Debug: FC = () => {
           <WorkspaceSyncDropdown />
 
 
+          {isHistoryModalOpen && <HistoryModal onHide={() => setHistoryModalOpen(false)} />}
           {isGlobalEnvironmentsModalOpen && (
             <GlobalEnvironmentsModal projectName={activeProject.name} onHide={() => setGlobalEnvironmentsModalOpen(false)} />
           )}
