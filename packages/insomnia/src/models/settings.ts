@@ -61,6 +61,7 @@ export function init(): BaseSettings {
     pluginPath: '',
     preferredHttpVersion: HttpVersions.default,
     proxyEnabled: false,
+    useSystemProxy: false,
     showPasswords: false,
     theme: getAppDefaultTheme(),
     // milliseconds

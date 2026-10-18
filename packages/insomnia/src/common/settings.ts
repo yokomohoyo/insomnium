@@ -140,6 +140,8 @@ export interface Settings {
   pluginPath: string;
   preferredHttpVersion: HttpVersion;
   proxyEnabled: boolean;
+  /** With the proxy off, use the system's: OS settings, or HTTP(S)_PROXY */
+  useSystemProxy: boolean;
   showPasswords: boolean;
   theme: string;
   timeout: number;

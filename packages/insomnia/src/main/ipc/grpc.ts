@@ -13,6 +13,7 @@ import { writeProtoFile } from '../../network/grpc/write-proto-file';
 import { checkRequestPolicy } from '../../network/request-policy';
 import { guard } from '../../utils/guard';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../network/grpc-credentials';
+import { makeGrpcClient } from '../network/proxy';
 import { asServiceDefinition, grpcOptions, loadMethod, loadProto, validateProto } from '../proto-worker';
 import { generateRequestTemplate, mockRequestMethods } from './automock';
 
@@ -72,11 +73,9 @@ export interface MethodDefs {
 const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeader[], parentId?: string | null): Promise<MethodDefs[]> => {
   const { url, enableTls } = parseGrpcUrl(host);
   checkRequestPolicy(`${enableTls ? 'https' : 'http'}://${url}`);
-  const client = new grpcReflection.Client(url,
-    await getGrpcCredentials(url, enableTls, parentId),
-    grpcOptions,
-    filterDisabledMetaData(metadata)
-  );
+  const credentials = await getGrpcCredentials(url, enableTls, parentId);
+  const client = await makeGrpcClient(url, enableTls, await models.settings.getOrCreate(), options =>
+    new grpcReflection.Client(url, credentials, { ...grpcOptions, ...options }, filterDisabledMetaData(metadata)));
   try {
     const services = await client.listServices();
     const methodsPromises = services.map(async service => {
@@ -186,8 +185,8 @@ export const start = (
     // @ts-expect-error -- TSCONVERSION second argument should be provided, send an empty string? Needs testing
     const Client = makeGenericClientConstructor({});
 
-    Promise.all([getGrpcCredentials(url, enableTls, request.parentId), buildGrpcMetadata(request)]).then(([channelCredentials, metadata]) => {
-    const client = new Client(url, channelCredentials);
+    Promise.all([getGrpcCredentials(url, enableTls, request.parentId), buildGrpcMetadata(request), models.settings.getOrCreate()]).then(async ([channelCredentials, metadata, settings]) => {
+    const client = await makeGrpcClient(url, enableTls, settings, options => new Client(url, channelCredentials, options));
     try {
       const messageBody = JSON.parse(request.body.text || '');
       switch (methodType) {

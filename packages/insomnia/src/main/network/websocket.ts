@@ -1,7 +1,9 @@
 import electron, { BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
 import { IncomingMessage } from 'http';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import path from 'path';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { KeyObject, PxfObject } from 'tls';
 import { v4 as uuidV4 } from 'uuid';
 import {
@@ -30,6 +32,7 @@ import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
+import { describeProxy, proxyFor } from './proxy';
 
 export interface WebSocketConnection extends WebSocket {
   _id: string;
@@ -218,7 +221,15 @@ const openWebSocketConnection = async (
       'global': settings.followRedirects,
     }[request.settingFollowRedirects] ?? true;
     const protocols = lowerCasedEnabledHeaders['sec-websocket-protocol'];
+    // a CONNECT tunnel through an HTTP(S) proxy works for ws and wss alike; the
+    // TLS options above still apply, inside it
+    const proxy = await proxyFor(url, settings);
+    if (proxy) {
+      timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Using proxy ${describeProxy(proxy)}`, name: 'Text', timestamp: Date.now() }) + '\n');
+    }
+    const agent = proxy ? (proxy.startsWith('socks') ? new SocksProxyAgent(proxy) : new HttpsProxyAgent(proxy)) : undefined;
     const ws = new WebSocket(url, protocols, {
+      agent,
       headers: lowerCasedEnabledHeaders,
       ca: caCertificate,
       cert: pemCertificates,

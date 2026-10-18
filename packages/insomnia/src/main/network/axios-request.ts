@@ -1,28 +1,21 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as https from 'https';
-import { parse as urlParse } from 'url';
+import { HttpsProxyAgent } from 'https-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 
 import { isDevelopment } from '../../common/constants';
 import * as models from '../../models';
-import { isUrlMatchedInNoProxyRule } from '../../network/is-url-matched-in-no-proxy-rule';
-import { setDefaultProtocol } from '../../utils/url/protocol';
+import { proxyFor } from './proxy';
 export const axiosRequest = async (config: AxiosRequestConfig): Promise<AxiosResponse> => {
   const settings = await models.settings.getOrCreate();
-  const isHttps = config.url?.indexOf('https:') === 0;
-  let proxyUrl: string | null = null;
-
-  if (isHttps && settings.httpsProxy) {
-    proxyUrl = settings.httpsProxy;
-  } else if (settings.httpProxy) {
-    proxyUrl = settings.httpProxy;
-  }
 
   const finalConfig: AxiosRequestConfig = {
     ...config,
     httpsAgent: new https.Agent({
       rejectUnauthorized: settings.validateSSL,
     }),
-    // ignore HTTP_PROXY, HTTPS_PROXY, NO_PROXY environment variables
+    // axios's own proxy support reads HTTP_PROXY and friends, and doesn't
+    // tunnel to https; the agents below do both as the settings say
     proxy: false,
   };
   // hack for http-client
@@ -30,15 +23,11 @@ export const axiosRequest = async (config: AxiosRequestConfig): Promise<AxiosRes
   if (isArrayBuffer) {
     finalConfig.data = Buffer.concat(config.data);
   }
-  if (settings.proxyEnabled && proxyUrl && !isUrlMatchedInNoProxyRule(finalConfig.url, settings.noProxy)) {
-    const { hostname, port } = urlParse(setDefaultProtocol(proxyUrl));
-
-    if (hostname && port) {
-      finalConfig.proxy = {
-        host: hostname,
-        port: parseInt(port, 10),
-      };
-    }
+  const proxy = config.url ? await proxyFor(config.url, settings) : null;
+  if (proxy) {
+    const agent = proxy.startsWith('socks') ? new SocksProxyAgent(proxy) : new HttpsProxyAgent(proxy);
+    finalConfig.httpAgent = agent;
+    finalConfig.httpsAgent = agent;
   }
   // HACK: workaround for isomteric git needing 400 responses
   if (config.responseType === 'arraybuffer') {

@@ -37,7 +37,8 @@ export const SERVER_TOOLS = new Set([
 export async function loadWorkspaces(config: Pick<ServerConfig, 'collections' | 'environment' | 'variables' | 'validateSSL' | 'allowedHosts' | 'allowedEnvironmentVariables'>) {
   await database.init(models.types(), { inMemoryOnly: true }, true, () => {});
   await models.project.all();
-  await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables });
+  // the proxy a container or CI runner is given: HTTPS_PROXY, HTTP_PROXY, NO_PROXY
+  await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables, useSystemProxy: true });
   // file would let a template read the container's files into a request
   disableTemplateTags(['file']);
   setRequestPolicy(makeHostPolicy(config.allowedHosts));
