@@ -180,6 +180,17 @@ async function _traversePluginPath(
   }
 }
 
+// The other folders plugins are loaded from (Preferences → Plugins), one per
+// line or separated as in PATH (; on Windows, : elsewhere), so a Windows path
+// keeps its drive letter. ~ is the home folder.
+export const pluginFolders = (value: string, delimiter = path.delimiter, home = os.homedir()) =>
+  value
+    .split(/\r?\n/)
+    .flatMap(line => line.split(delimiter))
+    .map(folder => folder.trim())
+    .filter(Boolean)
+    .map(folder => (folder === '~' || /^~[\\/]/.test(folder) ? path.join(home, folder.slice(1)) : folder));
+
 export async function getPlugins(force = false): Promise<Plugin[]> {
   if (force) {
     plugins = null;
@@ -188,16 +199,7 @@ export async function getPlugins(force = false): Promise<Plugin[]> {
   if (!plugins) {
     const settings = await models.settings.getOrCreate();
     const allConfigs: PluginConfigMap = settings.pluginConfig;
-    const extraPaths = settings.pluginPath
-      .split(':')
-      .filter(p => p)
-      .map(p => {
-        if (p.indexOf('~/') === 0) {
-          return path.join(os.homedir(), p.slice(1));
-        } else {
-          return p;
-        }
-      });
+    const extraPaths = pluginFolders(settings.pluginPath || '');
     // Make sure the default directories exist
     const pluginPath = path.join(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
     fs.mkdirSync(pluginPath, { recursive: true });

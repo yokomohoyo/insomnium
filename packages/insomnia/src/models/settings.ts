@@ -59,6 +59,7 @@ export function init(): BaseSettings {
     nunjucksPowerUserMode: false,
     pluginConfig: {},
     pluginPath: '',
+    pluginRegistry: '',
     preferredHttpVersion: HttpVersions.default,
     proxyEnabled: false,
     useSystemProxy: false,

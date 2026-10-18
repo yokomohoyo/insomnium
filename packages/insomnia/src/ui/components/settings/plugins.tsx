@@ -5,9 +5,10 @@ import { useRouteLoaderData } from 'react-router-dom';
 
 import {
   NPM_PACKAGE_BASE,
-  PLUGIN_HUB_BASE,
+  PLUGIN_SEARCH_URL,
 } from '../../../common/constants';
 import { docsPlugins } from '../../../common/documentation';
+import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import { createPlugin } from '../../../plugins/create';
 import type { Plugin } from '../../../plugins/index';
 import { getPlugins } from '../../../plugins/index';
@@ -19,6 +20,7 @@ import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';
 import { showAlert, showPrompt } from '../modals';
 import { Button } from '../themed-button';
+import { TextSetting } from './text-setting';
 interface State {
   plugins: Plugin[];
   npmPluginValue: string;
@@ -65,8 +67,8 @@ export const Plugins: FC = () => {
   return (
     <div>
       <p className="notice info no-margin-top">
-        Plugins is still an experimental feature. See{' '}
-        <Link href={docsPlugins}>Documentation</Link> for more info.
+        A plugin runs with the same access as the app: it can read your files and reach the network. Install only plugins you trust. See the{' '}
+        <Link href={docsPlugins}>documentation</Link>.
       </p>
       {plugins.length === 0 ? (
         <div className="text-center faint italic pad">No Plugins Added</div>
@@ -82,7 +84,7 @@ export const Plugins: FC = () => {
           </thead>
           <tbody>
             {plugins.map(plugin => {
-              const link = path.join(/^insomnia-plugin-/.test(plugin.name) ? PLUGIN_HUB_BASE : NPM_PACKAGE_BASE, plugin.name);
+              const link = `${NPM_PACKAGE_BASE}/${plugin.name}`;
               return !plugin.directory ? null : (
                 <tr key={plugin.name}>
                   <td style={{ width: '4rem' }}>
@@ -149,8 +151,9 @@ export const Plugins: FC = () => {
           </button>
           <div className="selectable force-pre-wrap">
             <b>{installPluginErrMsg}</b>
-            {'\n\nThere may be an issue with the plugin itself, as a note you can discover and install plugins from the '}
-            <a href={PLUGIN_HUB_BASE}>Plugin Hub.</a>
+            {'\n\nThere may be an issue with the plugin itself. You can '}
+            <a href={PLUGIN_SEARCH_URL}>find plugins on npm</a>
+            {', or install one from a file.'}
             <details>
               <summary>Additional Information</summary>
               <pre className="pad-top-sm force-wrap selectable">
@@ -201,14 +204,53 @@ export const Plugins: FC = () => {
               Install Plugin
             </Button>
           </div>
+          <div className="form-control width-auto">
+            <Button
+              type="button"
+              variant="contained"
+              disabled={isInstallingFromNpm}
+              onClick={async () => {
+                const { canceled, filePath } = await selectFileOrFolder({ itemTypes: ['file'], extensions: ['tgz', 'gz'] });
+                if (canceled || !filePath) {
+                  return;
+                }
+                setState(state => ({ ...state, isInstallingFromNpm: true, error: null, installPluginErrMsg: '' }));
+                try {
+                  await window.main.installPluginFromFile(filePath);
+                  await refreshPlugins();
+                  setState(state => ({ ...state, isInstallingFromNpm: false }));
+                } catch (err) {
+                  setState(state => ({ ...state, isInstallingFromNpm: false, error: err, installPluginErrMsg: `Failed to install ${path.basename(filePath)}` }));
+                }
+              }}
+            >
+              Install from File…
+            </Button>
+          </div>
         </div>
       </form>
+      <div className="form-row">
+        <TextSetting
+          label="Registry"
+          setting="pluginRegistry"
+          placeholder="https://registry.npmjs.org"
+          help="Where Install Plugin gets packages from: a mirror, or your company's own registry. Installs go through the proxy set in General, as requests do."
+        />
+      </div>
+      <div className="form-row">
+        <TextSetting
+          label="Other plugin folders"
+          setting="pluginPath"
+          placeholder={path.delimiter === ';' ? 'C:\\plugins;D:\\more-plugins' : '~/plugins:/opt/more-plugins'}
+          help={`Folders to load plugins from as well as the plugins folder, separated by ${path.delimiter}. Reload Plugins after changing them.`}
+        />
+      </div>
       <hr />
       <div className="text-right">
         <Button
-          onClick={() => window.main.openInBrowser(PLUGIN_HUB_BASE)}
+          onClick={() => window.main.openInBrowser(PLUGIN_SEARCH_URL)}
         >
-          Browse Plugin Hub
+          Find Plugins on npm
         </Button>
         <Button
           style={{

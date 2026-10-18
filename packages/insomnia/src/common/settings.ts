@@ -138,6 +138,8 @@ export interface Settings {
   nunjucksPowerUserMode: boolean;
   pluginConfig: PluginConfigMap;
   pluginPath: string;
+  /** Where plugins are installed from, when not the npm registry */
+  pluginRegistry: string;
   preferredHttpVersion: HttpVersion;
   proxyEnabled: boolean;
   /** With the proxy off, use the system's: OS settings, or HTTP(S)_PROXY */

@@ -77,6 +77,7 @@ const main: Window['main'] = {
   runScript: options => ipcRenderer.invoke('runScript', options),
   setMenuBarVisibility: options => ipcRenderer.send('setMenuBarVisibility', options),
   installPlugin: options => ipcRenderer.invoke('installPlugin', options),
+  installPluginFromFile: file => ipcRenderer.invoke('installPluginFromFile', file),
   curlRequest: options => ipcRenderer.invoke('curlRequest', options),
   cancelCurlRequest: options => ipcRenderer.send('cancelCurlRequest', options),
   writeFile: options => ipcRenderer.invoke('writeFile', options),

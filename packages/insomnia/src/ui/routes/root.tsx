@@ -161,7 +161,7 @@ const Root = () => {
               title: 'Plugin Install',
               message: (
                 <>
-                  Do you want to install <code>{params.name}</code>?
+                  Do you want to install <code>{params.name}</code>? A plugin runs with the same access as the app: it can read your files and reach the network. Install only plugins you trust.
                 </>
               ),
               yesText: 'Install',

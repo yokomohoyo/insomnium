@@ -10,7 +10,8 @@ import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { credentialStorageNotices } from '../credential-keys';
 import { insomniaFetch } from '../insomniaFetch';
 import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopCollectionMock } from '../mock-servers';
-import installPlugin from '../install-plugin';
+import * as models from '../../models';
+import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
 import { checkForNewRelease } from '../release-check';
 import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
@@ -33,7 +34,9 @@ export interface MainBridgeAPI {
   authorizeUserInWindow: typeof authorizeUserInWindow;
   authorizeInSystemBrowser: (options: { url: string; redirectUrl: string }) => ReturnType<typeof authorizeInSystemBrowser>;
   setMenuBarVisibility: (visible: boolean) => void;
-  installPlugin: typeof installPlugin;
+  installPlugin: (lookupName: string) => Promise<void>;
+  // a package tarball's path; resolves with the plugin's name
+  installPluginFromFile: (file: string) => Promise<string>;
   writeFile: (options: { path: string; content: string }) => Promise<string>;
   cancelCurlRequest: typeof cancelCurlRequest;
   curlRequest: typeof curlRequest;
@@ -123,8 +126,12 @@ export function registerMainHandlers() {
     // removed tracking from insomnia
   });
 
-  ipcMain.handle('installPlugin', (_, lookupName: string) => {
-    return installPlugin(lookupName);
+  ipcMain.handle('installPlugin', async (_, lookupName: string) => {
+    return installPlugin(lookupName, await pluginInstallOptions(await models.settings.getOrCreate()));
+  });
+
+  ipcMain.handle('installPluginFromFile', async (_, file: string) => {
+    return installPluginFromFile(file, await pluginInstallOptions(await models.settings.getOrCreate()));
   });
 
   ipcMain.on('restart', () => {

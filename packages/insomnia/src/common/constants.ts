@@ -136,7 +136,8 @@ export const getLicenseURL = () => env.INSOMNIUM_LICENSE_URL || 'https://github.
 export const DEFAULT_BRANCH_NAME = 'master';
 
 // PLUGIN
-export const PLUGIN_HUB_BASE = 'https://insomnia.rest/plugins';
+// plugins are npm packages, usually named insomnia-plugin-…
+export const PLUGIN_SEARCH_URL = 'https://www.npmjs.com/search?q=insomnia-plugin';
 export const NPM_PACKAGE_BASE = 'https://www.npmjs.com/package';
 
 // UI Stuf
