@@ -38,9 +38,34 @@ const handleGraphqlConnection = (ws: WebSocket) => {
   });
 };
 
+// a Socket.IO server's side of the WebSocket transport: open, the namespace's
+// connect (with a welcome carrying the auth it got), a heartbeat, and each
+// event back
+const handleSocketIoConnection = (ws: WebSocket) => {
+  ws.send('0{"sid":"smoke","upgrades":[],"pingInterval":25000,"pingTimeout":20000,"maxPayload":1000000}');
+  ws.on('message', message => {
+    const text = message.toString();
+    const body = text.slice(2);
+    const prefix = body.startsWith('/') ? body.slice(0, body.indexOf(',') + 1) : '';
+    const data = body.slice(prefix.length);
+    if (text.startsWith('40')) {
+      ws.send(`40${prefix}{"sid":"smoke-socket"}`);
+      ws.send(`42${prefix}${JSON.stringify(['welcome', data ? JSON.parse(data) : null])}`);
+      ws.send('2');
+    } else if (text.startsWith('42')) {
+      const [event, ...args] = JSON.parse(data);
+      ws.send(`42${prefix}${JSON.stringify([`${event} back`, ...args])}`);
+    }
+  });
+};
+
 const handleConnection = (ws: WebSocket, req: IncomingMessage) => {
   console.log('WebSocket connection was opened');
   console.log('Upgrade headers:', req.headers);
+  if (req.url?.startsWith('/socket.io/')) {
+    handleSocketIoConnection(ws);
+    return;
+  }
   if (ws.protocol === 'graphql-transport-ws') {
     handleGraphqlConnection(ws);
     return;

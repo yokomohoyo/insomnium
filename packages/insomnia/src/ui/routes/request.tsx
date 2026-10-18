@@ -12,6 +12,7 @@ import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
 import { writeToFile } from '../../common/write-to-file';
 import type { EventStreamConnection } from '../../main/network/event-stream-request';
 import type { GraphqlSubscription } from '../../main/network/graphql-ws';
+import type { SocketIoOptions } from '../../main/network/socket-io';
 import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
@@ -279,6 +280,7 @@ interface WebSocketConnectParams {
   cookieJar: CookieJar;
   suppressUserAgent: boolean;
   graphqlSubscription?: GraphqlSubscription;
+  socketIo?: SocketIoOptions;
 }
 export type ConnectActionParams = WebSocketConnectParams | EventStreamConnection;
 export const connectAction: ActionFunction = async ({ request, params }) => {
@@ -297,6 +299,7 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       authentication: rendered.authentication,
       cookieJar: rendered.cookieJar,
       graphqlSubscription: 'graphqlSubscription' in rendered ? rendered.graphqlSubscription : undefined,
+      socketIo: 'socketIo' in rendered ? rendered.socketIo : undefined,
     });
   }
   if (isEventStreamRequest(req)) {
