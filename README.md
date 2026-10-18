@@ -24,7 +24,7 @@ I have removed user login, tracking, analytics, etc, from Insomnia so it is now 
 
 ## Download
 
-Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). How Windows builds are signed: [Code signing policy](#code-signing-policy). On Arch Linux, use the AppImage or `.tar.gz` from the releases page for now: the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
+Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). Windows code signing is provided by [SignPath Foundation](https://signpath.org) (see the [Code signing policy](#code-signing-policy)). On Arch Linux, use the AppImage or `.tar.gz` from the releases page for now: the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
 
 ### macOS (Homebrew)
 
