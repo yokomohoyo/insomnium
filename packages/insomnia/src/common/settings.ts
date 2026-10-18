@@ -151,6 +151,8 @@ export interface Settings {
   useBulkParametersEditor: boolean;
   validateAuthSSL: boolean;
   validateSSL: boolean;
+  /** Also trust the OS certificate store, on top of the bundled roots */
+  useSystemCertificates: boolean;
 
   // Tokens used when fetching .proto sources from private GitHub repos or
   // private BSR modules. Empty string = no auth (public sources only).

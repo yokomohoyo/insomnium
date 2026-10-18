@@ -2,7 +2,7 @@ import electron, { BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
 import { IncomingMessage } from 'http';
 import path from 'path';
-import tls, { KeyObject, PxfObject } from 'tls';
+import { KeyObject, PxfObject } from 'tls';
 import { v4 as uuidV4 } from 'uuid';
 import {
   CloseEvent,
@@ -29,6 +29,7 @@ import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
+import { getCaBundle } from './ca-bundle';
 
 export interface WebSocketConnection extends WebSocket {
   _id: string;
@@ -139,8 +140,7 @@ const openWebSocketConnection = async (
     }
     const caCert = await models.caCertificate.findByParentId(options.workspaceId);
     const caCertficatePath = caCert?.disabled === false ? caCert.path : null;
-    // attempt to read CA Certificate PEM from disk, fallback to root certificates
-    const caCertificate = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
+    const caCertificate = await getCaBundle(caCertficatePath, (await models.settings.getOrCreate()).useSystemCertificates);
     const readyStateChannel = `webSocket.${request._id}.readyState`;
 
     const reduceArrayToLowerCaseKeyedDictionary = (acc: { [key: string]: string }, { name, value }: BaseWebSocketRequest['headers'][0]) =>

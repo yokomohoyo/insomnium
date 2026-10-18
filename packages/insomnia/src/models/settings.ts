@@ -71,6 +71,7 @@ export function init(): BaseSettings {
     useBulkParametersEditor: false,
     validateAuthSSL: true,
     validateSSL: true,
+    useSystemCertificates: false,
     bufToken: '',
     githubToken: '',
     mcpEnabled: false,

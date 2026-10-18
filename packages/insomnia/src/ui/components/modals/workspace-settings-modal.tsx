@@ -320,7 +320,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                     <label>
                       CA Certificate
                       <HelpTooltip position="right" className="space-left">
-                        One or more PEM format certificates to trust when making requests.
+                        One or more PEM format certificates to trust when making requests, alongside the built-in roots.
                       </HelpTooltip>
                     </label>
                     <div className="row-spaced">
