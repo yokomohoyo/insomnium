@@ -42,7 +42,7 @@ Open them from the folder's dropdown, under **Settings**.
 
 An environment is a set of variables, as JSON. Every collection has a **base environment**. Its **sub environments** (Staging, Production…) add to it or override it, and you switch between them in the sidebar, above the requests.
 
-Use a variable anywhere in a request as `{{ name }}`; with nested values, `{{ api.host }}`. Mark a sub environment **private** to keep it out of exports and Git Sync, for example one holding your own tokens.
+The environment editor shows the variables as a **Table** (a row for each, with its name, value, and whether it is text or JSON) or as **JSON**, which can hold nested values. Use a variable anywhere in a request as `{{ name }}`; with nested values, `{{ api.host }}`. Mark a sub environment **private** to keep it out of exports and Git Sync, for example one holding your own tokens.
 
 See [Template tags](template-tags.md) for values that are computed when a request is sent.
 
