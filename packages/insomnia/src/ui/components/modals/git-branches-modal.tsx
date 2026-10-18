@@ -58,7 +58,9 @@ export const GitBranchesModal: FC<Props> = (({
   const deleteBranchFetcher = useFetcher();
 
   // const errors = branchesFetcher.data && 'errors' in branchesFetcher.data ? branchesFetcher.data.errors : [];
-  const { remoteBranches, branches: localBranches } = branchesFetcher.data && 'branches' in branchesFetcher.data ? branchesFetcher.data : { branches: [], remoteBranches: [] };
+  const { remoteBranches, branches: localBranches, branch: checkedOut } = branchesFetcher.data && 'branches' in branchesFetcher.data ? branchesFetcher.data : { branches: [], remoteBranches: [], branch: '' };
+  // as it is now: the menu's can be from before a checkout here (the loader runs again after each)
+  const currentBranch = checkedOut || activeBranch;
 
   const fetchedBranches = localBranches.length > 0 ? localBranches : branches;
   const remoteOnlyBranches = remoteBranches.filter(b => !fetchedBranches.includes(b));
@@ -123,17 +125,17 @@ export const GitBranchesModal: FC<Props> = (({
                     <td>
                       <span
                         className={classnames({
-                          bold: branch === activeBranch,
+                          bold: branch === currentBranch,
                         })}
                       >
                         {branch}
                       </span>
-                      {branch === activeBranch ? (
+                      {branch === currentBranch ? (
                         <span className="txt-sm space-left">(current)</span>
                       ) : null}
                     </td>
                     <td className="text-right">
-                      {branch !== activeBranch && (
+                      {branch !== currentBranch && (
                         <>
                           <PromptButton
                             className="btn btn--micro btn--outlined space-left"
@@ -222,7 +224,7 @@ export const GitBranchesModal: FC<Props> = (({
         </ModalBody>
         <ModalFooter>
           <div className="margin-left italic txt-sm">
-            <i className="fa fa-code-fork" /> {activeBranch}
+            <i className="fa fa-code-fork" /> {currentBranch}
           </div>
           <div>
             <button className="btn" onClick={() => modalRef.current?.hide()}>

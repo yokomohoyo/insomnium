@@ -158,6 +158,8 @@ export type GitBranchesLoaderData =
   | {
     branches: string[];
     remoteBranches: string[];
+    // the checked-out branch, as it is now
+    branch: string;
   }
   | {
     errors: string[];
@@ -192,6 +194,7 @@ export const gitBranchesLoader: LoaderFunction = async ({
   return {
     branches,
     remoteBranches,
+    branch: await GitVCS.getBranch(),
   };
 };
 
@@ -718,7 +721,6 @@ export const createNewGitBranchAction: ActionFunction = async ({
   guard(typeof branch === 'string', 'Branch name is required');
 
   try {
-    const providerName = getOauth2FormatName(repo?.credentials);
     await GitVCS.checkout(branch);
 
   } catch (err) {
@@ -734,6 +736,10 @@ export const createNewGitBranchAction: ActionFunction = async ({
     return {
       errors: [errorMessage],
     };
+  }
+  // the new branch is checked out, as after a checkout
+  if (workspaceMeta) {
+    await models.workspaceMeta.update(workspaceMeta, { cachedGitRepositoryBranch: branch });
   }
 
   return {};

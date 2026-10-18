@@ -88,6 +88,19 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
     workspaceId,
   ]);
 
+  // the branch, and the branches, again after something that changes them:
+  // a submitted fetcher's data isn't loaded again by itself
+  const refreshRepoData = () => gitRepoDataFetcher.submit({}, {
+    action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/repo`,
+    method: 'post',
+  });
+  useEffect(() => {
+    if (gitCheckoutFetcher.state === 'idle' && gitCheckoutFetcher.data) {
+      refreshRepoData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per checkout
+  }, [gitCheckoutFetcher.state, gitCheckoutFetcher.data]);
+
   // Only fetch the repo status if we have a repo and we don't have the status already
   const shouldFetchGitRepoStatus = Boolean(gitRepository?._id && gitStatusFetcher.state === 'idle' && !gitStatusFetcher.data && gitRepoDataFetcher.data);
 
@@ -557,7 +570,10 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
           branches={branches}
           gitRepository={gitRepository}
           activeBranch={currentBranch}
-          onHide={() => setIsGitBranchesModalOpen(false)}
+          onHide={() => {
+            setIsGitBranchesModalOpen(false);
+            refreshRepoData();
+          }}
         />
       )}
       {isGitLogModalOpen && (
