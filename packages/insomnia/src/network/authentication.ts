@@ -5,8 +5,10 @@ import {
   AUTH_ASAP,
   AUTH_BASIC,
   AUTH_BEARER,
+  AUTH_EDGEGRID,
   AUTH_GCP_ID_TOKEN,
   AUTH_HAWK,
+  AUTH_JWT,
   AUTH_OAUTH_1,
   AUTH_OAUTH_2,
 } from '../common/constants';
@@ -20,7 +22,9 @@ import {
 import { COOKIE, HEADER, QUERY_PARAMS } from './api-key/constants';
 import { getBasicAuthHeader } from './basic-auth/get-header';
 import { getBearerAuthHeader } from './bearer-auth/get-header';
+import { edgeGridHeader } from './edgegrid';
 import { CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
+import { generateJwt } from './jwt-auth';
 import getOAuth1Token from './o-auth-1/get-token';
 import { getOAuth2Token } from './o-auth-2/get-token';
 
@@ -128,6 +132,23 @@ async function resolveAuthStrategy(
     return { name: 'Authorization', value: header };
   }
 
+  // a query parameter is getAuthQueryParamsList's
+  if (strategy.type === AUTH_JWT && strategy.addTo !== QUERY_PARAMS) {
+    return _buildBearerHeader(generateJwt(strategy), strategy.prefix ?? 'Bearer');
+  }
+
+  if (strategy.type === AUTH_EDGEGRID) {
+    return {
+      name: 'Authorization',
+      value: edgeGridHeader(strategy, {
+        method,
+        url,
+        headers: (renderedRequest.headers || []).filter(header => header.name && !header.disabled),
+        body: body?.text,
+      }),
+    };
+  }
+
   if (strategy.type === AUTH_ASAP) {
     const { issuer, subject, audience, keyId, additionalClaims, privateKey } = strategy;
     let parsedAdditionalClaims;
@@ -198,6 +219,9 @@ export function getAuthQueryParamsList(authentication: RequestAuthenticationStra
     if (strategy.disabled) continue;
     if (strategy.type === AUTH_API_KEY && strategy.addTo === QUERY_PARAMS) {
       out.push({ name: strategy.key, value: strategy.value } as RequestParameter);
+    }
+    if (strategy.type === AUTH_JWT && strategy.addTo === QUERY_PARAMS) {
+      out.push({ name: strategy.queryParamKey || 'token', value: generateJwt(strategy) } as RequestParameter);
     }
   }
   return out;
