@@ -7,6 +7,7 @@ import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
 import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
+import { type CaptureBridgeAPI, registerCaptureHandlers } from '../capture-proxy';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { credentialStorageNotices } from '../credential-keys';
 import { insomniaFetch } from '../insomniaFetch';
@@ -44,6 +45,7 @@ export interface MainBridgeAPI {
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => () => void;
   webSocket: WebSocketBridgeAPI;
   ai: AiBridgeAPI;
+  capture: CaptureBridgeAPI;
   mcpClient: McpClientBridgeAPI;
   folderSync: FolderSyncBridgeAPI;
   grpc: gRPCBridgeAPI;
@@ -127,6 +129,8 @@ export function registerMainHandlers() {
   ipcMain.on('trackPageView', (_, options: { name: string }): void => {
     // removed tracking from insomnia
   });
+
+  registerCaptureHandlers();
 
   ipcMain.handle('ai.chat', (_, options: { messages: ChatMessage[] }) => aiChat(options));
   ipcMain.handle('ai.models', () => aiModels());
