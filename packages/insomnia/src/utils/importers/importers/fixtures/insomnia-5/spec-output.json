@@ -1,0 +1,61 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-18T01:42:57.134Z",
+  "__export_source": "insomnia.importers:v0.1.0",
+  "resources": [
+    {
+      "_id": "wrk_d6e7f809101112131415161718192021",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Petstore",
+      "description": "",
+      "scope": "design"
+    },
+    {
+      "parentId": "wrk_d6e7f809101112131415161718192021",
+      "name": "List pets",
+      "url": "https://petstore.example.com/pets",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": [],
+      "description": "",
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "_id": "req_f8091011121314151617181920212223",
+      "_type": "request",
+      "method": "GET",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "settingRebuildPath": true
+    },
+    {
+      "_id": "spc_e7f80910111213141516171819202122",
+      "_type": "api_spec",
+      "parentId": "wrk_d6e7f809101112131415161718192021",
+      "fileName": "Petstore",
+      "contentType": "yaml",
+      "contents": "openapi: 3.0.0\ninfo:\n  title: Petstore\n  version: 1.0.0\npaths:\n  /pets:\n    get:\n      summary: List pets\n"
+    },
+    {
+      "_id": "uts_09101112131415161718192021222324",
+      "_type": "unit_test_suite",
+      "parentId": "wrk_d6e7f809101112131415161718192021",
+      "name": "Pets",
+      "metaSortKey": 1
+    },
+    {
+      "_id": "ut_1011121314151617181920212223242",
+      "_type": "unit_test",
+      "parentId": "uts_09101112131415161718192021222324",
+      "name": "lists pets",
+      "code": "const response = await insomnia.send();\nexpect(response.status).to.equal(200);",
+      "requestId": "req_f8091011121314151617181920212223",
+      "metaSortKey": 0
+    }
+  ]
+}

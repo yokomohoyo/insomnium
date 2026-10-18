@@ -1,0 +1,281 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-18T01:42:57.109Z",
+  "__export_source": "insomnia.importers:v0.1.0",
+  "resources": [
+    {
+      "_id": "wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f",
+      "_type": "workspace",
+      "parentId": null,
+      "name": "Store API",
+      "description": "The store's public API",
+      "scope": "collection"
+    },
+    {
+      "parentId": "wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f",
+      "name": "Base Environment",
+      "data": {
+        "base": "https://store.example.com",
+        "tenant": "acme"
+      },
+      "_id": "env_a3b4c5d6e7f809101112131415161718",
+      "_type": "environment",
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 0
+    },
+    {
+      "parentId": "env_a3b4c5d6e7f809101112131415161718",
+      "name": "Staging",
+      "data": {
+        "base": "https://staging.store.example.com"
+      },
+      "_id": "env_b4c5d6e7f80910111213141516171819",
+      "_type": "environment",
+      "dataPropertyOrder": null,
+      "color": "#7d69cb",
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "parentId": "env_a3b4c5d6e7f809101112131415161718",
+      "name": "Local",
+      "data": {
+        "token": "local-token"
+      },
+      "_id": "env_c5d6e7f8091011121314151617181920",
+      "_type": "environment",
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": true,
+      "metaSortKey": 2
+    },
+    {
+      "_id": "jar_92a3b4c5d6e7f8091011121314151617",
+      "_type": "cookie_jar",
+      "parentId": "wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f",
+      "name": "Default Jar",
+      "cookies": [
+        {
+          "key": "session",
+          "value": "abc",
+          "domain": "example.com",
+          "path": "/"
+        }
+      ]
+    },
+    {
+      "parentId": "wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f",
+      "name": "Orders",
+      "environment": {
+        "orderPath": "/orders"
+      },
+      "description": "Order endpoints\n\n**Insomnia pre-request script**, not run by Insomnium:\n\n```js\ninsomnia.environment.set('ts', Date.now());\n```",
+      "metaSortKey": -1760400000100,
+      "isPrivate": false,
+      "_id": "fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "_type": "request_group",
+      "environmentPropertyOrder": null
+    },
+    {
+      "parentId": "fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "name": "Get order item",
+      "url": "{{ _.base }}/orders/:orderId/items/:itemId",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "x-tenant",
+          "value": "override"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "bearer",
+          "token": "{{ _.token }}"
+        }
+      ],
+      "description": "One item\n\n**Insomnia after-response script**, not run by Insomnium:\n\n```js\ninsomnia.test('ok', () => {\n  insomnia.expect(insomnia.response.code).to.eql(200);\n});\n```",
+      "metaSortKey": -1760400000200,
+      "isPrivate": false,
+      "_id": "req_1a2b3c4d5e6f70819203a4b5c6d7e8f9",
+      "_type": "request",
+      "method": "GET",
+      "segmentParams": [
+        {
+          "name": "orderId",
+          "value": "17",
+          "disabled": false,
+          "id": "pair_ending0"
+        },
+        {
+          "name": "itemId",
+          "value": "3",
+          "disabled": false,
+          "id": "pair_ending1"
+        }
+      ],
+      "settingDisableRenderRequestBody": true,
+      "settingEncodeUrl": false,
+      "settingFollowRedirects": "off",
+      "settingSendCookies": true,
+      "settingStoreCookies": false,
+      "settingRebuildPath": true
+    },
+    {
+      "parentId": "fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "name": "Create order",
+      "url": "{{ _.base }}/orders",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\"sku\": \"a-1\"}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Tenant",
+          "value": "{{ _.tenant }}"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "basic",
+          "username": "admin",
+          "password": "{{ _.password }}"
+        }
+      ],
+      "description": "",
+      "metaSortKey": -1760400000300,
+      "isPrivate": false,
+      "_id": "req_2b3c4d5e6f708192a3b4c5d6e7f80910",
+      "_type": "request",
+      "method": "POST",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "settingRebuildPath": true
+    },
+    {
+      "parentId": "fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "name": "Health",
+      "url": "{{ _.base }}/health",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Tenant",
+          "value": "{{ _.tenant }}"
+        }
+      ],
+      "authentication": [],
+      "description": "",
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "_id": "req_3c4d5e6f708192a3b4c5d6e7f8091011",
+      "_type": "request",
+      "method": "GET",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "settingRebuildPath": true
+    },
+    {
+      "parentId": "fld_0a1b2c3d4e5f60718293a4b5c6d7e8f9",
+      "name": "Archive",
+      "environment": {},
+      "description": "",
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "_id": "fld_1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "_type": "request_group",
+      "environmentPropertyOrder": null
+    },
+    {
+      "parentId": "fld_1b2c3d4e5f60718293a4b5c6d7e8f901",
+      "name": "List archived",
+      "url": "{{ _.base }}/orders/archive",
+      "body": {},
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Tenant",
+          "value": "{{ _.tenant }}"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "bearer",
+          "token": "{{ _.token }}"
+        }
+      ],
+      "description": "",
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "_id": "req_4d5e6f708192a3b4c5d6e7f809101112",
+      "_type": "request",
+      "method": "GET",
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingSendCookies": true,
+      "settingStoreCookies": true,
+      "settingRebuildPath": true
+    },
+    {
+      "parentId": "wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f",
+      "name": "Say hello",
+      "description": "",
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "_id": "greq_5e6f708192a3b4c5d6e7f80910111213",
+      "_type": "grpc_request",
+      "url": "grpcb.in:9000",
+      "protoFileId": "pf_6f708192a3b4c5d6e7f8091011121314",
+      "protoMethodName": "/hello.HelloService/SayHello",
+      "metadata": [
+        {
+          "name": "x-trace",
+          "value": "1"
+        }
+      ],
+      "body": {
+        "text": "{\"greeting\": \"hi\"}"
+      }
+    },
+    {
+      "parentId": "wrk_5f1b0c0e2a7f4a3e9d1f6e2b3c4d5e6f",
+      "name": "Echo",
+      "description": "",
+      "metaSortKey": 0,
+      "isPrivate": false,
+      "_id": "ws-req_708192a3b4c5d6e7f809101112131415",
+      "_type": "websocket_request",
+      "url": "wss://echo.example.com/ws/:room",
+      "headers": [],
+      "parameters": [],
+      "authentication": [],
+      "segmentParams": [
+        {
+          "name": "room",
+          "value": "lobby",
+          "disabled": false,
+          "id": "pair_ending0"
+        }
+      ],
+      "settingEncodeUrl": true,
+      "settingFollowRedirects": "global",
+      "settingSendCookies": true,
+      "settingStoreCookies": true
+    }
+  ]
+}

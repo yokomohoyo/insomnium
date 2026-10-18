@@ -6,6 +6,7 @@ import * as insomnia1 from './insomnia-1';
 import * as insomnia2 from './insomnia-2';
 import * as insomnia3 from './insomnia-3';
 import * as insomnia4 from './insomnia-4';
+import * as insomnia5 from './insomnia-5';
 import * as openapi3 from './openapi-3';
 import * as postman from './postman';
 import * as postmanenv from './postman-env';
@@ -18,6 +19,7 @@ export const importers: Importer[] = [
   insomnia2,
   insomnia3,
   insomnia4,
+  insomnia5,
   postman,
   postmanenv,
   har,

@@ -1,0 +1,35 @@
+type: spec.insomnia.rest/5.0
+name: Petstore
+meta:
+  id: wrk_d6e7f809101112131415161718192021
+spec:
+  contents:
+    openapi: 3.0.0
+    info:
+      title: Petstore
+      version: 1.0.0
+    paths:
+      /pets:
+        get:
+          summary: List pets
+  meta:
+    id: spc_e7f80910111213141516171819202122
+collection:
+  - url: https://petstore.example.com/pets
+    name: List pets
+    meta:
+      id: req_f8091011121314151617181920212223
+    method: GET
+testSuites:
+  - name: Pets
+    meta:
+      id: uts_09101112131415161718192021222324
+      sortKey: 1
+    tests:
+      - name: lists pets
+        meta:
+          id: ut_1011121314151617181920212223242
+        requestId: req_f8091011121314151617181920212223
+        code: |-
+          const response = await insomnia.send();
+          expect(response.status).to.equal(200);
