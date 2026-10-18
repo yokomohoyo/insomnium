@@ -91,6 +91,7 @@ export interface ImportRequest<T extends {} = {}> extends Comment {
   postData?: PostData;
   variable?: UNKNOWN;
   queryString?: QueryString[];
+  segmentParams?: Parameter[];
   url?: string;
 }
 

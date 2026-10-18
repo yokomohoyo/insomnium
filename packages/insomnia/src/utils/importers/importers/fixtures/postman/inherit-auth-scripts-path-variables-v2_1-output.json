@@ -1,0 +1,111 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-18T01:32:31.590Z",
+  "__export_source": "insomnia.importers:v0.1.0",
+  "resources": [
+    {
+      "parentId": "__WORKSPACE_ID__",
+      "name": "Inherited auth, scripts and path variables",
+      "environment": {},
+      "_id": "__GRP_1__",
+      "_type": "request_group",
+      "description": "Collection docs\n\n**Postman pre-request script**, not run by Insomnium:\n\n```js\npm.environment.set('ts', Date.now());\n```"
+    },
+    {
+      "parentId": "__GRP_1__",
+      "name": "Users",
+      "environment": {},
+      "_id": "__GRP_2__",
+      "_type": "request_group",
+      "description": ""
+    },
+    {
+      "parentId": "__GRP_2__",
+      "name": "Get user",
+      "url": "https://api.example.com:8443/users/:userId/posts/:postId",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": [
+        {
+          "type": "basic",
+          "disabled": false,
+          "username": "folder-user",
+          "password": "folder-pass"
+        }
+      ],
+      "_id": "__REQ_1__",
+      "_type": "request",
+      "description": "Get one user\n\n**Postman test script**, not run by Insomnium:\n\n````js\npm.test('ok', () => {\n  pm.response.to.have.status(200);\n});\n// a ``` fence inside\n````\n\n**Postman pre-request script (disabled)**, not run by Insomnium:\n\n```js\nconsole.log('off');\n```",
+      "segmentParams": [
+        {
+          "name": "userId",
+          "value": "42",
+          "disabled": false,
+          "id": "pair_ending0"
+        },
+        {
+          "name": "postId",
+          "value": "7",
+          "disabled": false,
+          "id": "pair_ending1"
+        }
+      ],
+      "method": "GET"
+    },
+    {
+      "parentId": "__GRP_2__",
+      "name": "No auth",
+      "url": "https://api.example.com/health",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": [],
+      "_id": "__REQ_2__",
+      "_type": "request",
+      "description": "",
+      "method": "GET"
+    },
+    {
+      "parentId": "__GRP_2__",
+      "name": "Own header",
+      "url": "https://api.example.com/me",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": [
+        {
+          "type": "bearer",
+          "disabled": false,
+          "token": "own-token",
+          "prefix": ""
+        }
+      ],
+      "_id": "__REQ_3__",
+      "_type": "request",
+      "description": "",
+      "method": "GET"
+    },
+    {
+      "parentId": "__GRP_1__",
+      "name": "Collection auth",
+      "url": "https://api.example.com/items",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": [
+        {
+          "type": "bearer",
+          "disabled": false,
+          "token": "{{collectionToken}}",
+          "prefix": ""
+        }
+      ],
+      "_id": "__REQ_4__",
+      "_type": "request",
+      "description": "",
+      "method": "GET"
+    }
+  ]
+}

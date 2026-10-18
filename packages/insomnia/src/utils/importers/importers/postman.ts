@@ -47,6 +47,17 @@ type Folder = V200Folder | V210Folder;
 
 type Header = V200Header | V210Header;
 
+interface Event {
+  listen: string;
+  script?: { exec?: string[] | string };
+  disabled?: boolean;
+}
+
+const SCRIPT_NAMES: Record<string, string> = {
+  prerequest: 'pre-request script',
+  test: 'test script',
+};
+
 let requestCount = 1;
 let requestGroupCount = 1;
 
@@ -90,14 +101,17 @@ export class ImportPostman {
     return variable;
   };
 
+  // Postman's "inherit auth from parent" is a missing auth, so folder and
+  // collection auth is passed down to the requests that don't set their own
   importItems = (
     items: PostmanCollection['item'],
     parentId = '__WORKSPACE_ID__',
+    inheritedAuth?: Authetication | null,
   ): ImportRequest[] => {
     // @ts-expect-error this is because there are devergent behaviors for how the function treats this collection.  This is handled appropriately in the function itself in different branches.
     return items.reduce((accumulator: ImportRequest[], item: Item | Folder) => {
       if (Object.prototype.hasOwnProperty.call(item, 'request')) {
-        return [...accumulator, this.importRequestItem(item as Item, parentId)];
+        return [...accumulator, this.importRequestItem(item as Item, parentId, inheritedAuth)];
       }
 
       const requestGroup = this.importFolderItem(item as Folder, parentId);
@@ -107,33 +121,41 @@ export class ImportPostman {
         ...this.importItems(
           item.item as PostmanCollection['item'],
           requestGroup._id,
+          (item as Folder).auth ?? inheritedAuth,
         ),
       ];
     }, []);
   };
 
   importRequestItem = (
-    { request, name = '' }: Item,
+    { request, name = '', event }: Item,
     parentId: string,
+    inheritedAuth?: Authetication | null,
   ): ImportRequest => {
     if (typeof request === 'string') {
       return {};
     }
 
-    const { authentication, headers } = this.importAuthentication(request.auth, request.header as Header[]);
+    const originalHeaders = Array.isArray(request.header) ? request.header as Header[] : [];
+    // an Authorization header of its own is turned into its auth, as before
+    const auth = request.auth ?? (originalHeaders.some(({ key }) => key === 'Authorization') ? null : inheritedAuth);
+    const { authentication, headers } = this.importAuthentication(auth, originalHeaders);
 
     let parameters = [] as Parameter[];
 
     if (typeof request.url === 'object' && request.url.query) {
       parameters = this.importParameters(request.url?.query);
     }
+    const url = this.importUrl(request.url);
+    const segmentParams = typeof request.url === 'object' ? this.importPathVariables(url, request.url.variable) : undefined;
     return {
       parentId,
       _id: `__REQ_${requestCount++}__`,
       _type: 'request',
       name,
-      description: (request.description as string) || '',
-      url: this.importUrl(request.url),
+      description: this.withScripts(request.description, event),
+      url,
+      ...(segmentParams ? { segmentParams } : {}),
       parameters: parameters,
       method: request.method || 'GET',
       headers: headers.map(({ key, value, disabled, description }) => ({
@@ -158,13 +180,50 @@ export class ImportPostman {
     }) as Parameter);
   };
 
-  importFolderItem = ({ name, description }: Folder, parentId: string) => {
+  // The editor pairs segment params with the URL's :name segments by position,
+  // through an id ending in `ending<index>` (request-segment-editor.tsx)
+  importPathVariables = (url: string, variables?: { key?: string | null; value?: unknown }[]) => {
+    if (!variables?.length) {
+      return undefined;
+    }
+    const names = [...url.matchAll(/\:([\w_-]*?)(?=($|[^[\w_-]))/g)]
+      .map(match => match[1])
+      .filter(name => name !== '' && Number.isNaN(parseInt(name)));
+    return names.map((name, index) => {
+      const value = variables.find(({ key }) => key === name)?.value;
+      return {
+        name,
+        value: value === undefined || value === null ? '' : String(value),
+        disabled: false,
+        id: `pair_ending${index}`,
+      };
+    });
+  };
+
+  // Insomnium can't run Postman scripts, so they're kept as text in the
+  // description rather than dropped. A description is a string or { content }.
+  withScripts = (description: unknown, events?: Event[]) => {
+    const content = typeof description === 'string' ? description : (description as { content?: unknown } | null)?.content;
+    const scripts = (events || []).flatMap(({ listen, script, disabled }) => {
+      const exec = script?.exec;
+      const code = (Array.isArray(exec) ? exec.join('\n') : exec || '').trim();
+      if (!code) {
+        return [];
+      }
+      const fence = '`'.repeat(Math.max(3, ...(code.match(/`+/g) || []).map(run => run.length + 1)));
+      const title = `Postman ${SCRIPT_NAMES[listen] || `${listen} script`}${disabled ? ' (disabled)' : ''}`;
+      return [`**${title}**, not run by Insomnium:\n\n${fence}js\n${code}\n${fence}`];
+    });
+    return [typeof content === 'string' ? content : '', ...scripts].filter(Boolean).join('\n\n');
+  };
+
+  importFolderItem = ({ name, description, event }: Folder, parentId: string) => {
     return {
       parentId,
       _id: `__GRP_${requestGroupCount++}__`,
       _type: 'request_group',
       name,
-      description: description || '',
+      description: this.withScripts(description, event),
     };
   };
 
@@ -173,6 +232,8 @@ export class ImportPostman {
       item,
       info: { name, description },
       variable,
+      auth,
+      event,
     } = this.collection;
 
     const postmanVariable = this.importVariable(variable || []);
@@ -181,14 +242,14 @@ export class ImportPostman {
       _id: `__GRP_${requestGroupCount++}__`,
       _type: 'request_group',
       name,
-      description: typeof description === 'string' ? description : '',
+      description: this.withScripts(description, event),
     };
 
     if (postmanVariable) {
       collectionFolder.variable = postmanVariable;
     }
 
-    return [collectionFolder, ...this.importItems(item, collectionFolder._id)];
+    return [collectionFolder, ...this.importItems(item, collectionFolder._id, auth)];
   };
 
   importUrl = (url?: Url | string) => {
