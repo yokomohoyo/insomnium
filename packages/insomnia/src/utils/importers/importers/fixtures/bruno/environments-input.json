@@ -1,0 +1,18 @@
+{
+  "info": { "type": "bruno-environment", "exportedAt": "2026-10-01T09:00:00.000Z", "exportedUsing": "Bruno/v2.14.0" },
+  "environments": [
+    {
+      "name": "Production",
+      "color": "#d33",
+      "variables": [
+        { "name": "host", "value": "https://api.example.com", "type": "text", "enabled": true, "secret": false },
+        { "name": "token", "value": "", "type": "text", "enabled": true, "secret": true },
+        { "name": "debug", "value": "true", "type": "text", "enabled": false, "secret": false }
+      ]
+    },
+    {
+      "name": "Local",
+      "variables": [{ "name": "host", "value": "http://localhost:3000", "type": "text", "enabled": true, "secret": false }]
+    }
+  ]
+}

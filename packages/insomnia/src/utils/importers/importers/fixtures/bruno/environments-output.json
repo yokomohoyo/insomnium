@@ -1,0 +1,28 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "",
+  "__export_source": "insomnia.importers:v0.1.0",
+  "resources": [
+    {
+      "parentId": "__BASE_ENVIRONMENT_ID__",
+      "name": "Production",
+      "data": {
+        "host": "https://api.example.com",
+        "token": ""
+      },
+      "_id": "__ENV_1__",
+      "_type": "environment",
+      "color": "#d33"
+    },
+    {
+      "parentId": "__BASE_ENVIRONMENT_ID__",
+      "name": "Local",
+      "data": {
+        "host": "http://localhost:3000"
+      },
+      "_id": "__ENV_2__",
+      "_type": "environment"
+    }
+  ]
+}

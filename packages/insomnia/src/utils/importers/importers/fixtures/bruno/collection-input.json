@@ -1,0 +1,230 @@
+{
+  "name": "Pet Store",
+  "version": "1",
+  "uid": "c0llect10n",
+  "exportedAt": "2026-10-01T09:00:00.000Z",
+  "exportedUsing": "Bruno/v2.14.0",
+  "activeEnvironmentUid": "envLocal",
+  "environments": [
+    {
+      "uid": "envLocal",
+      "name": "Local",
+      "variables": [
+        { "uid": "v1", "name": "host", "value": "http://localhost:3000", "type": "text", "enabled": true, "secret": false },
+        { "uid": "v2", "name": "apiKey", "value": "", "type": "text", "enabled": true, "secret": true },
+        { "uid": "v3", "name": "unused", "value": "x", "type": "text", "enabled": false, "secret": false }
+      ]
+    },
+    {
+      "uid": "envStaging",
+      "name": "Staging",
+      "variables": [
+        { "uid": "v4", "name": "host", "value": "https://staging.example.com", "type": "text", "enabled": true, "secret": false },
+        { "uid": "v5", "name": "version", "value": "v2", "type": "text", "enabled": true, "secret": false }
+      ]
+    }
+  ],
+  "root": {
+    "request": {
+      "auth": { "mode": "bearer", "bearer": { "token": "{{token}}" } },
+      "headers": [
+        { "uid": "h1", "name": "X-Client", "value": "bruno-import", "enabled": true },
+        { "uid": "h2", "name": "X-Off", "value": "no", "enabled": false }
+      ],
+      "script": { "req": "req.setHeader('X-Trace', bru.interpolate('{{$guid}}'));" },
+      "vars": {
+        "req": [
+          { "uid": "cv1", "name": "version", "value": "v1", "enabled": true, "local": false },
+          { "uid": "cv2", "name": "token", "value": "t0ken", "enabled": true, "local": false }
+        ]
+      }
+    },
+    "docs": "# Pet Store\n\nThe collection's docs."
+  },
+  "items": [
+    {
+      "uid": "f1",
+      "type": "folder",
+      "name": "Pets",
+      "seq": 1,
+      "root": {
+        "request": {
+          "auth": { "mode": "basic", "basic": { "username": "admin", "password": "{{password}}" } },
+          "headers": [{ "uid": "h3", "name": "X-Client", "value": "pets-folder", "enabled": true }],
+          "vars": { "req": [{ "uid": "fv1", "name": "species", "value": "cat", "enabled": true }] },
+          "tests": "test('folder', () => {});"
+        },
+        "docs": "Everything about pets.",
+        "meta": { "name": "Pets", "seq": 1 }
+      },
+      "items": [
+        {
+          "uid": "r2",
+          "type": "http-request",
+          "name": "Create pet",
+          "seq": 2,
+          "request": {
+            "url": "{{host}}/{{version}}/pets",
+            "method": "POST",
+            "headers": [{ "uid": "h6", "name": "X-Request-Id", "value": "{{$guid}}", "enabled": true }],
+            "params": [],
+            "body": {
+              "mode": "json",
+              "json": "{\n  \"name\": \"{{name}}\",\n  \"species\": \"{{species}}\"\n}",
+              "formUrlEncoded": [],
+              "multipartForm": [],
+              "file": []
+            },
+            "script": {},
+            "vars": { "req": [{ "uid": "rv1", "name": "name", "value": "Tom", "enabled": true }, { "uid": "rv2", "name": "off", "value": "x", "enabled": false }] },
+            "assertions": [],
+            "tests": "",
+            "docs": "",
+            "auth": { "mode": "inherit" }
+          }
+        },
+        {
+          "uid": "r1",
+          "type": "http-request",
+          "name": "Get pet",
+          "seq": 1,
+          "settings": { "encodeUrl": false, "timeout": 5000, "followRedirects": false },
+          "request": {
+            "url": "{{host}}/pets/:id?expand=owner&fields=name",
+            "method": "GET",
+            "headers": [
+              { "uid": "h4", "name": "X-Client", "value": "own", "enabled": true },
+              { "uid": "h5", "name": "Accept", "value": "application/json", "enabled": false }
+            ],
+            "params": [
+              { "uid": "p1", "name": "expand", "value": "owner", "type": "query", "enabled": true },
+              { "uid": "p2", "name": "fields", "value": "name", "type": "query", "enabled": true },
+              { "uid": "p3", "name": "debug", "value": "1", "type": "query", "enabled": false },
+              { "uid": "p4", "name": "id", "value": "42", "type": "path", "enabled": true }
+            ],
+            "body": { "mode": "none", "formUrlEncoded": [], "multipartForm": [], "file": [] },
+            "script": { "res": "bru.setVar('petId', res.body.id);" },
+            "vars": { "res": [{ "uid": "rv3", "name": "petName", "value": "res.body.name", "enabled": true }] },
+            "assertions": [
+              { "uid": "a1", "name": "res.status", "value": "eq 200", "enabled": true },
+              { "uid": "a2", "name": "res.status", "value": "200", "enabled": true },
+              { "uid": "a3", "name": "res.body.name", "value": "eq \"Tom\"", "enabled": true },
+              { "uid": "a4", "name": "res.body.tags[0]", "value": "isDefined", "enabled": false },
+              { "uid": "a5", "name": "res.headers['content-type']", "value": "contains json", "enabled": true },
+              { "uid": "a6", "name": "res.headers.etag", "value": "isUndefined", "enabled": true },
+              { "uid": "a7", "name": "res.responseTime", "value": "lt 500", "enabled": true },
+              { "uid": "a8", "name": "res.body", "value": "contains {{species}}", "enabled": true },
+              { "uid": "a9", "name": "res.body.age", "value": "gte 1", "enabled": true },
+              { "uid": "a10", "name": "res.body.name", "value": "matches ^T", "enabled": true },
+              { "uid": "a11", "name": "req.body.name", "value": "isString", "enabled": false }
+            ],
+            "tests": "test('is a pet', () => expect(res.body).to.have.property('id'));",
+            "docs": "Fetches one pet.",
+            "auth": { "mode": "none" }
+          }
+        },
+        {
+          "uid": "f2",
+          "type": "folder",
+          "name": "Photos",
+          "seq": 3,
+          "items": [
+            {
+              "uid": "r3",
+              "type": "http-request",
+              "name": "Upload photo",
+              "seq": 1,
+              "request": {
+                "url": "{{host}}/pets/42/photos",
+                "method": "post",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "multipartForm",
+                  "formUrlEncoded": [],
+                  "multipartForm": [
+                    { "uid": "m1", "type": "text", "name": "caption", "value": "On the sofa", "enabled": true },
+                    { "uid": "m2", "type": "file", "name": "photo", "value": ["/tmp/a.png", "/tmp/b.png"], "contentType": "image/png", "enabled": true },
+                    { "uid": "m3", "type": "text", "name": "draft", "value": "yes", "enabled": false }
+                  ],
+                  "file": []
+                },
+                "auth": { "mode": "inherit" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "uid": "r4",
+      "type": "graphql-request",
+      "name": "Pets by GraphQL",
+      "seq": 2,
+      "request": {
+        "url": "{{host}}/graphql",
+        "method": "POST",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "graphql",
+          "graphql": { "query": "query ($first: Int) { pets(first: $first) { name } }", "variables": "{\n  \"first\": 10\n}" },
+          "formUrlEncoded": [],
+          "multipartForm": [],
+          "file": []
+        },
+        "auth": { "mode": "apikey", "apikey": { "key": "X-Api-Key", "value": "{{process.env.API_KEY}}", "placement": "header" } }
+      }
+    },
+    {
+      "uid": "r5",
+      "type": "http",
+      "name": "Login (an older export)",
+      "seq": 3,
+      "request": {
+        "url": "{{host}}/login?next=home",
+        "method": "POST",
+        "headers": [{ "name": "Content-Type", "value": "application/x-www-form-urlencoded; charset=utf-8", "enabled": true }],
+        "query": [{ "name": "next", "value": "home", "enabled": true }],
+        "body": {
+          "mode": "formUrlEncoded",
+          "formUrlEncoded": [
+            { "name": "user", "value": "admin", "enabled": true },
+            { "name": "remember", "value": "1", "enabled": false }
+          ],
+          "multipartForm": []
+        },
+        "auth": { "mode": "oauth2", "oauth2": { "grantType": "client_credentials", "accessTokenUrl": "{{host}}/token", "clientId": "app", "clientSecret": "{{secret}}", "scope": "read", "credentialsPlacement": "basic_auth_header", "tokenHeaderPrefix": "Bearer" } }
+      }
+    },
+    {
+      "uid": "r7",
+      "type": "http-request",
+      "name": "Health",
+      "seq": 0,
+      "request": {
+        "url": "{{host}}/health",
+        "method": "PUT",
+        "headers": [],
+        "params": [],
+        "body": { "mode": "text", "text": "ping", "formUrlEncoded": [], "multipartForm": [], "file": [] },
+        "assertions": [{ "uid": "a12", "name": "res.getHeader('X-Up')", "value": "eq 'yes'", "enabled": true }],
+        "auth": { "mode": "inherit" }
+      }
+    },
+    {
+      "uid": "r6",
+      "type": "ws-request",
+      "name": "A WebSocket, left out",
+      "seq": 4,
+      "request": { "url": "ws://localhost:3000", "body": { "mode": "ws", "ws": [] } }
+    },
+    {
+      "uid": "j1",
+      "type": "js",
+      "name": "helpers.js",
+      "fileContent": "module.exports = {};"
+    }
+  ],
+  "brunoConfig": { "version": "1", "name": "Pet Store", "type": "collection", "ignore": ["node_modules", ".git"] }
+}
