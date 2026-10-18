@@ -461,6 +461,16 @@ describe('optional keys', () => {
     expect(await models.request.getById(request._id)).toMatchObject({ settingTimeout: 1500, settingValidateSSL: 'off', settingHttpVersion: 'V1_1' });
   });
 
+  it('keeps assertions on a request, and their results on its response', async () => {
+    const assertions = [{ id: 'asrt_1', source: 'status' as const, operator: 'equals' as const, value: '200' }];
+    const request = await models.request.create({ parentId: 'fld_1', assertions });
+    expect((await models.request.getById(request._id))?.assertions).toEqual(assertions);
+
+    const assertionResults = [{ id: 'asrt_1', passed: true, actual: '200', message: 'Status code equals 200' }];
+    const response = await models.response.create({ parentId: request._id, statusCode: 200, assertionResults });
+    expect((await models.response.getById(response._id))?.assertionResults).toEqual(assertionResults);
+  });
+
   it('still prunes keys the model does not know', async () => {
     const request = await models.request.create({ parentId: 'fld_1', notAField: true } as any);
     expect(await models.request.getById(request._id)).not.toHaveProperty('notAField');

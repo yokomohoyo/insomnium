@@ -22,6 +22,7 @@ import { ResponseTimer } from '../response-timer';
 import { SizeTag } from '../tags/size-tag';
 import { StatusTag } from '../tags/status-tag';
 import { TimeTag } from '../tags/time-tag';
+import { AssertionResultsViewer } from '../viewers/assertion-results-viewer';
 import { ResponseCookiesViewer } from '../viewers/response-cookies-viewer';
 import { ResponseHeadersViewer } from '../viewers/response-headers-viewer';
 import { ResponseTimelineViewer } from '../viewers/response-timeline-viewer';
@@ -130,6 +131,7 @@ export const ResponsePane: FC<Props> = ({
   }
   const timeline = models.response.getTimeline(activeResponse);
   const cookieHeaders = getSetCookieHeaders(activeResponse.headers);
+  const assertionResults = activeResponse.assertionResults || [];
   return (
     <Pane type="response">
       {!activeResponse ? null : (
@@ -209,6 +211,25 @@ export const ResponsePane: FC<Props> = ({
                 cookiesStored={activeResponse.settingStoreCookies}
                 headers={cookieHeaders}
               />
+            </ErrorBoundary>
+          </PanelContainer>
+        </TabItem>
+        <TabItem
+          key="tests"
+          title={
+            <>
+              Tests
+              {assertionResults.length > 0 && (
+                <span className={`bubble ${assertionResults.every(result => result.passed) ? 'success' : 'danger'}`}>
+                  {assertionResults.filter(result => result.passed).length}/{assertionResults.length}
+                </span>
+              )}
+            </>
+          }
+        >
+          <PanelContainer className="pad">
+            <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
+              <AssertionResultsViewer results={assertionResults} />
             </ErrorBoundary>
           </PanelContainer>
         </TabItem>

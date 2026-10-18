@@ -10,7 +10,7 @@ import { assertSafeRequestUrl, findWorkspaceForRequest } from './util';
 export function registerSendTool(server: McpServer) {
   server.tool(
     'send_http_request',
-    'Send an HTTP request by id and store the response. Returns the new response id, status, and elapsed time. Call get_last_response (or get_response with the returned id) to retrieve the body.',
+    'Send an HTTP request by id and store the response. Returns the new response id, status, elapsed time, and the results of its assertions when it has any. Call get_last_response (or get_response with the returned id) to retrieve the body.',
     {
       requestId: z.string(),
       environmentId: z.string().nullable().optional().describe('Override the active environment for this call. Null = no environment overrides; omit = use workspace active environment.'),
@@ -55,7 +55,9 @@ export function registerSendTool(server: McpServer) {
       );
       // libcurl writes the body uncompressed (as responseTransform records for
       // Send); left unset, migration would mark it zip and reading would fail
-      const stored = await models.response.create({ ...response, bodyCompression: null }, settings.maxHistoryResponses);
+      const checked = networkUtils.withAssertionResults(rendered, { ...response, bodyCompression: null });
+      const stored = await models.response.create(checked, settings.maxHistoryResponses);
+      const results = checked.assertionResults;
       return {
         content: [{
           type: 'text',
@@ -66,6 +68,13 @@ export function registerSendTool(server: McpServer) {
             elapsedTime: stored.elapsedTime,
             url: stored.url,
             error: stored.error,
+            ...(results ? {
+              assertions: {
+                passed: results.filter(result => result.passed).length,
+                failed: results.filter(result => !result.passed).length,
+                results: results.map(({ passed, message }) => ({ passed, message })),
+              },
+            } : {}),
           }, null, 2),
         }],
       };

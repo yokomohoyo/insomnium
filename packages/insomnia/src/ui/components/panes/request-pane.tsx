@@ -14,6 +14,7 @@ import { WorkspaceLoaderData } from '../../routes/workspace';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { AuthDropdown } from '../dropdowns/auth-dropdown';
 import { ContentTypeDropdown } from '../dropdowns/content-type-dropdown';
+import { AssertionsEditor } from '../editors/assertions-editor';
 import { AuthWrapper } from '../editors/auth/auth-wrapper';
 import { BodyEditor } from '../editors/body/body-editor';
 import {
@@ -141,6 +142,7 @@ export const RequestPane: FC<Props> = ({
     p => !p.disabled,
   ).length;
   const numHeaders = activeRequest.headers.filter(h => !h.disabled).length;
+  const numAssertions = (activeRequest.assertions || []).filter(a => !a.disabled).length;
   const urlHasQueryParameters = activeRequest.url.indexOf('?') >= 0;
   const contentType =
     getContentTypeFromHeaders(activeRequest.headers) ||
@@ -277,6 +279,23 @@ export const RequestPane: FC<Props> = ({
               </button>
             </TabPanelFooter>
           </HeaderContainer>
+        </TabItem>
+        <TabItem
+          key="assertions"
+          title={
+            <>
+              Assertions{' '}
+              {numAssertions > 0 && (
+                <span className="bubble space-left">{numAssertions}</span>
+              )}
+            </>
+          }
+        >
+          <PanelContainer>
+            <ErrorBoundary key={uniqueKey} errorClassName="font-error pad text-center">
+              <AssertionsEditor />
+            </ErrorBoundary>
+          </PanelContainer>
         </TabItem>
         <TabItem
           key="docs"

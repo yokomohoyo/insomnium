@@ -550,6 +550,7 @@ export async function getRenderedRequestAndContext(
       settingValidateSSL: renderedRequest.settingValidateSSL,
       settingHttpVersion: renderedRequest.settingHttpVersion,
       segmentParams: renderedRequest.segmentParams,
+      assertions: renderedRequest.assertions,
       type: renderedRequest.type,
       url: renderedRequest.url,
     },
