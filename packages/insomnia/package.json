@@ -143,6 +143,7 @@
     "@types/ws": "^8.5.4",
     "@types/xmldom": "0.1.30",
     "@vitejs/plugin-react": "^4.7.0",
+    "ajv": "^8.20.0",
     "autoprefixer": "^10.4.2",
     "buffer": "^6.0.3",
     "classnames": "^2.3.1",
