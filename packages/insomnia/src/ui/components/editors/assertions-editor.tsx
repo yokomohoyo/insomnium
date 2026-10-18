@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useRef, useState } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { generateId } from '../../../common/misc';
@@ -20,18 +20,25 @@ const PROPERTY_PLACEHOLDERS: Partial<Record<AssertionSource, string>> = {
   jsonpath: '$.data.id',
 };
 
-// The request's assertions, checked after each send. Text fields are
-// uncontrolled so typing isn't fighting the save of each keystroke.
+// The request's assertions, checked after each send. Edits build on a local
+// copy, not the loader data: that lags behind the saves, so a quick second
+// edit would otherwise write the list back without the first. The pane
+// remounts this when the request changes elsewhere.
 export const AssertionsEditor: FC = () => {
   const { requestId } = useParams() as { requestId: string };
   const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
   const patchRequest = useRequestSetter();
-  const assertions = (activeRequest as Request).assertions || [];
+  const [assertions, setAssertions] = useState<RequestAssertion[]>(() => (activeRequest as Request).assertions || []);
+  const latest = useRef(assertions);
 
-  const save = (next: RequestAssertion[]) => patchRequest(requestId, { assertions: next });
+  const save = (next: RequestAssertion[]) => {
+    latest.current = next;
+    setAssertions(next);
+    patchRequest(requestId, { assertions: next });
+  };
   const change = (id: string, patch: Partial<RequestAssertion>) =>
-    save(assertions.map(assertion => assertion.id === id ? { ...assertion, ...patch } : assertion));
-  const add = () => save([...assertions, { id: generateId('asrt'), source: 'status', operator: 'equals', value: '200' }]);
+    save(latest.current.map(assertion => assertion.id === id ? { ...assertion, ...patch } : assertion));
+  const add = () => save([...latest.current, { id: generateId('asrt'), source: 'status', operator: 'equals', value: '200' }]);
 
   return (
     <div className="pad">
@@ -57,7 +64,7 @@ export const AssertionsEditor: FC = () => {
                   type="text"
                   aria-label="Property"
                   placeholder={PROPERTY_PLACEHOLDERS[assertion.source]}
-                  defaultValue={assertion.property || ''}
+                  value={assertion.property || ''}
                   onChange={event => change(assertion.id, { property: event.currentTarget.value })}
                 />
               </div>
@@ -75,7 +82,7 @@ export const AssertionsEditor: FC = () => {
                   type="text"
                   aria-label="Expected"
                   placeholder="value or {{ variable }}"
-                  defaultValue={assertion.value || ''}
+                  value={assertion.value || ''}
                   onChange={event => change(assertion.id, { value: event.currentTarget.value })}
                 />
               </div>
@@ -84,7 +91,7 @@ export const AssertionsEditor: FC = () => {
               className="btn btn--super-compact"
               aria-label="Delete assertion"
               title="Delete assertion"
-              onClick={() => save(assertions.filter(({ id }) => id !== assertion.id))}
+              onClick={() => save(latest.current.filter(({ id }) => id !== assertion.id))}
             >
               <i className="fa fa-trash-o" />
             </button>
