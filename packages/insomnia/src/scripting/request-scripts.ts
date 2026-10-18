@@ -1,5 +1,6 @@
 import { database as db } from '../common/database';
 import { getGlobalEnvironments } from '../common/global-environments';
+import { MAX_VISUALIZATION_LENGTH, type Visualization } from '../common/visualizer';
 import type { ResponsePatch } from '../main/network/libcurl-promise';
 import * as models from '../models';
 import type { Environment } from '../models/environment';
@@ -31,6 +32,8 @@ interface ScriptOutput {
   globals: Record<string, unknown>;
   variables: Record<string, unknown>;
   tests: { name: string; passed: boolean; error?: string }[];
+  // set with visualizer.set
+  visualization?: Visualization | null;
 }
 
 export const hasScript = (script?: string) => !!script?.trim();
@@ -143,8 +146,15 @@ const asText = (response: ResponsePatch) => {
   return body ? body.toString() : '';
 };
 
-// The after-response script's tests, and its failure as a failed one
-export async function runAfterResponseScript(request: Request, response: ResponsePatch, context: ScriptContext = {}): Promise<{ results: AssertionResult[]; logs: ScriptLog[] }> {
+export interface AfterResponseResult {
+  results: AssertionResult[];
+  logs: ScriptLog[];
+  visualization?: Visualization;
+}
+
+// The after-response script's tests, and its failure as a failed one, and
+// what it set to visualize the response
+export async function runAfterResponseScript(request: Request, response: ResponsePatch, context: ScriptContext = {}): Promise<AfterResponseResult> {
   if (!hasScript(request.afterResponseScript) || response.error) {
     return { results: [], logs: [] };
   }
@@ -163,5 +173,10 @@ export async function runAfterResponseScript(request: Request, response: Respons
   if (result.error) {
     results.push({ id: 'script_error', passed: false, message: `The after-response script failed: ${result.error}` });
   }
-  return { results, logs: result.logs };
+  const visualization = result.output?.visualization;
+  if (visualization && JSON.stringify(visualization).length > MAX_VISUALIZATION_LENGTH) {
+    results.push({ id: 'script_visualization', passed: false, message: `The visualization is larger than ${MAX_VISUALIZATION_LENGTH / 1024 / 1024} MB: visualize less of the response` });
+    return { results, logs: result.logs };
+  }
+  return { results, logs: result.logs, ...(visualization ? { visualization } : {}) };
 }

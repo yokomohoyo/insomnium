@@ -252,12 +252,13 @@ export const withAfterResponseScript = async (
   environmentId: string | null,
   { preRequestLogs = [], iterationData, iteration }: AfterResponseContext = {},
 ): Promise<ResponsePatch> => {
-  const { results, logs } = await runAfterResponseScript(renderedRequest, response, { environmentId, iterationData, iteration });
+  const { results, logs, visualization } = await runAfterResponseScript(renderedRequest, response, { environmentId, iterationData, iteration });
   const scriptLogs = [...preRequestLogs, ...logs];
   return {
     ...response,
     ...(results.length ? { assertionResults: [...(response.assertionResults || []), ...results] } : {}),
     ...(scriptLogs.length ? { scriptLogs } : {}),
+    ...(visualization ? { visualization } : {}),
   };
 };
 

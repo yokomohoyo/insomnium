@@ -433,6 +433,18 @@ export const PRELUDE = String.raw`
   }
   test.skip = function () {};
 
+  // ~~ visualizer ~~
+  // a Handlebars template and its data, for the response's Visualize tab
+  var visualization = null;
+  var visualizer = {
+    set: function (template, data) {
+      visualization = { template: String(template), data: data === undefined ? null : data };
+    },
+    clear: function () {
+      visualization = null;
+    },
+  };
+
   // ~~ console ~~
   var log = function (level) {
     return function () {
@@ -455,12 +467,13 @@ export const PRELUDE = String.raw`
     info: { eventName: state.event, requestName: state.request.name, requestId: state.request.id, iteration: state.iteration || 0 },
     test: test,
     expect: expect,
+    visualizer: visualizer,
   };
   globalThis.insomnia = api;
   globalThis.pm = api;
   globalThis.__pending = function () { return Promise.all(pending); };
   globalThis.__output = function () {
-    return JSON.stringify({ request: state.request, environment: environment, baseEnvironment: baseEnvironment, globals: globals, variables: variables, tests: state.tests });
+    return JSON.stringify({ request: state.request, environment: environment, baseEnvironment: baseEnvironment, globals: globals, variables: variables, tests: state.tests, visualization: visualization });
   };
 })();
 `;

@@ -75,6 +75,20 @@ describe('request scripts', () => {
     expect(await runAfterResponseScript(request, { elapsedTime: 0, error: 'Could not resolve host' })).toEqual({ results: [], logs: [] });
   });
 
+  it('keeps what the after-response script set to visualize, within limits', async () => {
+    const response = { elapsedTime: 1, statusCode: 201, bodyPath: '', bytesContent: 0 } as any;
+    const visualized = await models.request.create({ parentId: workspaceId, afterResponseScript: "pm.visualizer.set('<b>{{code}}</b>', { code: pm.response.code });" });
+    expect(await runAfterResponseScript(visualized, response)).toEqual({ results: [], logs: [], visualization: { template: '<b>{{code}}</b>', data: { code: 201 } } });
+
+    const cleared = await models.request.create({ parentId: workspaceId, afterResponseScript: "insomnia.visualizer.set('<b>{{code}}</b>'); insomnia.visualizer.clear();" });
+    expect((await runAfterResponseScript(cleared, response)).visualization).toBeUndefined();
+
+    const tooLarge = await models.request.create({ parentId: workspaceId, afterResponseScript: "pm.visualizer.set('{{x}}', { x: 'x'.repeat(1100000) });" });
+    const { results, visualization } = await runAfterResponseScript(tooLarge, response);
+    expect(visualization).toBeUndefined();
+    expect(results).toEqual([{ id: 'script_visualization', passed: false, message: 'The visualization is larger than 1 MB: visualize less of the response' }]);
+  });
+
   it("doesn't render a script's {{ }}, which is code", async () => {
     const request = await models.request.create({ parentId: workspaceId, preRequestScript: "const t = '{{ host }}';", afterResponseScript: '// {{ nope }}' });
     const { request: rendered } = await getRenderedRequestAndContext({ request });

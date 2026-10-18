@@ -5,6 +5,7 @@ import zlib from 'zlib';
 import { database as db, Query } from '../common/database';
 import type { ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import * as requestOperations from '../models/helpers/request-operations';
+import type { Visualization } from '../common/visualizer';
 import type { AssertionResult } from '../network/assertions';
 import type { BaseModel } from './index';
 import * as models from './index';
@@ -19,7 +20,7 @@ export const canDuplicate = false;
 
 export const canSync = false;
 // kept by initModel when set (see BaseResponse)
-export const optionalKeys = ['assertionResults', 'scriptLogs', 'timings'];
+export const optionalKeys = ['assertionResults', 'scriptLogs', 'timings', 'visualization'];
 
 // When each part of the exchange was done, in milliseconds from the start, as
 // libcurl measures it: the name lookup, the connection, the TLS handshake (0
@@ -64,6 +65,8 @@ export interface BaseResponse {
   assertionResults?: AssertionResult[];
   // what the request's scripts logged with console
   scriptLogs?: { level: string; message: string }[];
+  // what the after-response script set with visualizer.set
+  visualization?: Visualization;
 }
 
 export type Response = BaseModel & BaseResponse;

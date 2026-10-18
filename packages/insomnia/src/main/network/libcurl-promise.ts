@@ -18,6 +18,7 @@ import { describeByteSize, hasAuthHeader } from '../../common/misc';
 import { ClientCertificate } from '../../models/client-certificate';
 import { getAuthStrategies, RequestHeader } from '../../models/request';
 import { ResponseHeader, ResponseTimings } from '../../models/response';
+import type { Visualization } from '../../common/visualizer';
 import type { AssertionResult } from '../../network/assertions';
 import { getCaBundle } from './ca-bundle';
 import { buildMultipart } from './multipart';
@@ -115,6 +116,7 @@ export interface ResponsePatch {
   url?: string;
   assertionResults?: AssertionResult[];
   scriptLogs?: { level: string; message: string }[];
+  visualization?: Visualization;
 }
 const getDataDirectory = () => processEnv.INSOMNIA_DATA_PATH || electron.app.getPath('userData');
 
