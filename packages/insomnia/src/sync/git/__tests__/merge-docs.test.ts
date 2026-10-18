@@ -4,7 +4,7 @@ import YAML from 'yaml';
 
 import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GitConflictsError } from '../git-vcs';
 import { MemClient } from '../mem-client';
-import { describeDoc, mergeDoc } from '../merge-docs';
+import { describeDoc, isSyncedDoc, mergeDoc } from '../merge-docs';
 import { setupDateMocks } from './util';
 
 const doc = (patch: Record<string, unknown> = {}) => YAML.stringify({
@@ -62,6 +62,19 @@ describe('mergeDoc()', () => {
     expect(mergeDoc('a', 'b: [', 'c', 'theirs')).toEqual({ merged: 'c', conflicts: [] });
   });
 
+  it('merges a long text both sides changed in different places, line by line', () => {
+    const body = (first: string, last: string) => doc({ body: { mimeType: 'application/json', text: `{\n  "name": "${first}",\n  "kind": "dog",\n  "age": ${last}\n}` } });
+    const { merged } = mergeDoc(body('Rex', '3'), body('Fido', '3'), body('Rex', '4'));
+
+    expect(parsed(merged).body.text).toBe('{\n  "name": "Fido",\n  "kind": "dog",\n  "age": 4\n}');
+  });
+
+  it('knows a synced document by its name and _id', () => {
+    expect(isSyncedDoc('req_1.yml', doc())).toBe(true);
+    expect(isSyncedDoc('package.json', '{"name": "app"}')).toBe(false);
+    expect(isSyncedDoc('other.yml', doc())).toBe(false);
+  });
+
   it('names a document for the list', () => {
     expect(describeDoc('x: [', doc())).toEqual({ name: 'List pets', type: 'Request' });
   });
@@ -96,6 +109,28 @@ describe('GitVCS.mergeByField()', () => {
     await GitVCS.mergeByField('theirs');
 
     expect(await GitVCS.getBranch()).toBe('main');
+    expect(await working()).toMatchObject({ method: 'POST', url: 'https://pets.example.com/animals' });
+  });
+
+  it("merges the repository's other files by line, as they are", async () => {
+    const pkg = path.join(GIT_CLONE_DIR, 'package.json');
+    const write = async (text: string, message: string) => {
+      await fsClient.promises.writeFile(pkg, text);
+      await GitVCS.add(pkg);
+      await GitVCS.commit(message);
+    };
+    await GitVCS.checkout('main');
+    await write('{\n  "name": "app",\n  "version": "1.0.0",\n  "private": true\n}\n', 'package');
+    await GitVCS.branch('packaged', true);
+    await commit(doc({ url: 'https://pets.example.com/animals' }), 'their url');
+    await write('{\n  "name": "app",\n  "version": "1.0.0",\n  "private": false\n}\n', 'their private');
+    await GitVCS.checkout('main');
+    await write('{\n  "name": "app-renamed",\n  "version": "1.0.0",\n  "private": true\n}\n', 'our name');
+    await commit(doc({ method: 'POST' }), 'our method');
+
+    await GitVCS.mergeByField('packaged');
+
+    expect((await fsClient.promises.readFile(pkg)).toString()).toBe('{\n  "name": "app-renamed",\n  "version": "1.0.0",\n  "private": false\n}\n');
     expect(await working()).toMatchObject({ method: 'POST', url: 'https://pets.example.com/animals' });
   });
 

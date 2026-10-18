@@ -6,7 +6,8 @@ import { database as db } from '../../common/database';
 import * as models from '../../models';
 import type { BaseModel } from '../../models';
 import { httpClient } from './http-client';
-import { describeDoc, type DocConflict, type MergeChoice, mergeDoc } from './merge-docs';
+import { describeDoc, type DocConflict, isSyncedDoc, type MergeChoice, mergeDoc } from './merge-docs';
+import { mergeLines } from './line-merge';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
 import { sanitizeGitConfig } from './sanitize-git-config';
 import { gitCallbacks } from './utils';
@@ -494,21 +495,42 @@ export class GitVCS {
     const ours = await this.getBranch();
     console.log(`[git] Merge ${ours} <-- ${theirs}`);
     const conflicts: DocConflict[] = [];
-    let result: git.MergeResult;
-    try {
-      result = await git.merge({
-        ...this._baseOpts,
-        ours,
-        theirs,
-        abortOnConflict: true,
-        mergeDriver: ({ contents: [base, mine, yours], path: file }) => {
-          const { merged, conflicts: fields } = mergeDoc(base, mine, yours, choices[file]);
-          if (merged === undefined) {
-            conflicts.push({ file, ...describeDoc(mine, yours), fields });
-            return { cleanMerge: false, mergedText: mine };
+    // the synced documents by field; the repository's other files by line, as git would
+    const merge = () => git.merge({
+      ...this._baseOpts,
+      ours,
+      theirs,
+      abortOnConflict: true,
+      mergeDriver: ({ contents: [base, mine, yours], path: file }) => {
+        if (!isSyncedDoc(file, mine, yours)) {
+          const lines = mergeLines(base, mine, yours, [ours, theirs]);
+          if (lines.cleanMerge) {
+            return lines;
           }
-          return { cleanMerge: true, mergedText: merged };
-        },
+          if (choices[file]) {
+            return { cleanMerge: true, mergedText: choices[file] === 'ours' ? mine : yours };
+          }
+          conflicts.push({ file, name: file, type: 'File', fields: [{ field: '(file)' }] });
+          return { cleanMerge: false, mergedText: mine };
+        }
+        const { merged, conflicts: fields } = mergeDoc(base, mine, yours, choices[file]);
+        if (merged === undefined) {
+          conflicts.push({ file, ...describeDoc(mine, yours), fields });
+          return { cleanMerge: false, mergedText: mine };
+        }
+        return { cleanMerge: true, mergedText: merged };
+      },
+    });
+    try {
+      // the merge moves the branch, so what it dropped is seen against where it was
+      return await this._removingDroppedDocs(async () => {
+        const result = await merge();
+        await git.checkout({
+          ...this._baseOpts,
+          ref: ours,
+          remote: 'origin',
+        });
+        return result;
       });
     } catch (err) {
       if (err instanceof git.Errors.MergeConflictError && conflicts.length) {
@@ -519,12 +541,6 @@ export class GitVCS {
       }
       throw err;
     }
-    await this._removingDroppedDocs(() => git.checkout({
-      ...this._baseOpts,
-      ref: ours,
-      remote: 'origin',
-    }));
-    return result;
   }
 
   /**

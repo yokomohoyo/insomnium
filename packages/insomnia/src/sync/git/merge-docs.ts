@@ -6,6 +6,8 @@
 // conflicting fields are reported, to be chosen in the app.
 import YAML from 'yaml';
 
+import { mergeLines } from './line-merge';
+
 export type MergeChoice = 'ours' | 'theirs';
 
 export interface FieldConflict {
@@ -36,6 +38,7 @@ const parse = (text: string) => {
 };
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 
 const shown = (value: unknown) => {
   if (value === undefined) {
@@ -55,9 +58,13 @@ export function mergeDoc(base: string, ours: string, theirs: string, choice?: Me
     return { conflicts: [{ field: '(file)' }] };
   }
 
-  const before = b || {};
-  const merged: Record<string, unknown> = {};
   const conflicts: FieldConflict[] = [];
+  const merged = mergeFields(b || {}, o, t, choice, conflicts);
+  return conflicts.length ? { conflicts } : { merged: YAML.stringify(merged), conflicts };
+}
+
+function mergeFields(before: Record<string, unknown>, o: Record<string, unknown>, t: Record<string, unknown>, choice: MergeChoice | undefined, conflicts: FieldConflict[], prefix = '') {
+  const merged: Record<string, unknown> = {};
   for (const field of [...new Set([...Object.keys(o), ...Object.keys(t), ...Object.keys(before)])]) {
     const [was, mine, yours] = [before[field], o[field], t[field]];
     let value: unknown;
@@ -65,21 +72,37 @@ export function mergeDoc(base: string, ours: string, theirs: string, choice?: Me
       value = mine;
     } else if (same(mine, was)) {
       value = yours;
-    } else if (field === 'modified') {
+    } else if (!prefix && field === 'modified') {
       value = Math.max(Number(mine) || 0, Number(yours) || 0);
-    } else if (NOISE.has(field)) {
+    } else if (!prefix && NOISE.has(field)) {
       value = mine;
+    } else if (isRecord(mine) && isRecord(yours) && (isRecord(was) || was === undefined)) {
+      // an object (a body, an authentication): by its own fields
+      value = mergeFields(was || {}, mine, yours, choice, conflicts, `${prefix}${field}.`);
+    } else if (typeof mine === 'string' && typeof yours === 'string' && (typeof was === 'string' || was === undefined) && (mine.includes('\n') || yours.includes('\n')) && mergeLines(String(was ?? ''), mine, yours).cleanMerge) {
+      // a long text (a spec, a body, a script) changed in different places
+      value = mergeLines(String(was ?? ''), mine, yours).mergedText;
     } else if (choice) {
       value = choice === 'ours' ? mine : yours;
     } else {
-      conflicts.push({ field, ours: shown(mine), theirs: shown(yours) });
+      conflicts.push({ field: `${prefix}${field}`, ours: shown(mine), theirs: shown(yours) });
       continue;
     }
     if (value !== undefined) {
       merged[field] = value;
     }
   }
-  return conflicts.length ? { conflicts } : { merged: YAML.stringify(merged), conflicts };
+  return merged;
+}
+
+// Is a file one of the synced documents? isomorphic-git gives a merge driver
+// only its name, and a document's file is named for its _id
+export function isSyncedDoc(file: string, ...texts: string[]) {
+  const id = file.replace(/\.yml$/, '');
+  return file.endsWith('.yml') && texts.some(text => {
+    const doc = parse(text);
+    return !!doc && doc._id === id && typeof doc.type === 'string';
+  });
 }
 
 // a document's name and type, for listing a conflict

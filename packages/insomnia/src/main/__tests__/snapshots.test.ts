@@ -6,10 +6,11 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import electron from 'electron';
 
 import { database } from '../../common/database';
 import * as models from '../../models';
-import { listSnapshots, restorePendingSnapshot, SNAPSHOTS_TO_KEEP, snapshotIfDue, takeSnapshot } from '../snapshots';
+import { listSnapshots, restorePendingSnapshot, restoreSnapshotOnRestart, SNAPSHOTS_TO_KEEP, snapshotIfDue, takeSnapshot } from '../snapshots';
 
 jest.mock('electron');
 
@@ -74,6 +75,31 @@ describe('snapshots', () => {
     expect(kept.map(({ name }) => name.slice(8, 10))).toEqual(['10', '09', '08', '07', '06', '05', '04']);
     expect(kept[0]).toMatchObject({ name: '2026-10-10T09-00-00Z.sqlite', created: day(10) });
     expect(fs.readdirSync(snapshotsPath()).filter(name => name.startsWith('.'))).toEqual([]);
+  });
+
+  it("keeps the snapshot being restored, and doesn't let ones taken by hand push out the daily ones", async () => {
+    const day = (n: number) => Date.parse(`2026-10-${String(n).padStart(2, '0')}T09:00:00Z`);
+    for (let n = 1; n <= SNAPSHOTS_TO_KEEP; n++) {
+      await snapshotIfDue(day(n));
+    }
+    for (let n = 0; n < SNAPSHOTS_TO_KEEP + 2; n++) {
+      await takeSnapshot('manual', new Date(day(20) + n * 1000));
+    }
+    const daily = (await listSnapshots()).filter(({ name }) => !name.includes('-manual'));
+    expect(daily).toHaveLength(SNAPSHOTS_TO_KEEP);
+
+    // the oldest daily one, restored: the snapshot before the restore mustn't prune it
+    const oldest = daily[daily.length - 1].name;
+    // @ts-expect-error -- not part of the electron mock
+    electron.app.relaunch = jest.fn();
+    await restoreSnapshotOnRestart(oldest);
+
+    const names = (await listSnapshots()).map(({ name }) => name);
+    expect(names).toContain(oldest);
+    expect(fs.readFileSync(path.join(dataPath, 'restore-snapshot'), 'utf8')).toBe(oldest);
+    // and it stays while the restore waits
+    await takeSnapshot('manual');
+    expect((await listSnapshots()).map(({ name }) => name)).toContain(oldest);
   });
 
   it('restores the snapshot a restart was asked for, before the database opens', async () => {

@@ -92,6 +92,19 @@ describe('docs removed upstream', () => {
     expect(await GitVCS.status(IN_FOLDER)).toBe('absent');
   });
 
+  it('are removed by a merge a document at a time too', async () => {
+    const head = await git.resolveRef({ ...opts(), ref: 'HEAD' });
+    const tree = await treeWithout(head, [REQUEST]);
+    const incoming = await git.writeCommit({ ...opts(), commit: { message: 'incoming\n', tree: tree!, parent: [head], author, committer: author } });
+    await git.writeRef({ ...opts(), ref: 'refs/heads/incoming', value: incoming });
+
+    await GitVCS.mergeByField('incoming');
+
+    expect(await db.get(models.request.type, 'req_2')).toBeNull();
+    expect(await db.get(models.request.type, 'req_3')).not.toBeNull();
+    expect(await GitVCS.status(REQUEST)).toBe('absent');
+  });
+
   it('stay when they have changes that were never committed, and so does their folder', async () => {
     const request = await models.request.getById('req_1');
     await models.request.update(request!, { name: 'changed here' });

@@ -172,18 +172,24 @@ export function toPostmanCollection(resources: Resource[], name: string) {
     children.set(resource.parentId, [...(children.get(resource.parentId) || []), resource]);
   }
   const sorted = (parentId: string) => [...(children.get(parentId) || [])].sort((a, b) => (a.metaSortKey ?? 0) - (b.metaSortKey ?? 0));
-  const items = (parentId: string): any[] => sorted(parentId).flatMap((resource): any[] => {
+  // Postman's folders have no headers, so a folder's go to each request under
+  // it, unless the request sets the same one
+  const items = (parentId: string, inherited: any[] = []): any[] => sorted(parentId).flatMap((resource): any[] => {
     if (resource._type === 'request_group') {
       const auth = toPostmanAuth(resource.authentication);
+      const own = (resource.headers || []).filter((header: any) => header.name && !header.disabled);
+      const headers = [...inherited.filter(header => !own.some((mine: any) => mine.name.toLowerCase() === header.name.toLowerCase())), ...own];
       return [{
         name: resource.name || 'Folder',
         ...(resource.description ? { description: resource.description } : {}),
-        item: items(resource._id),
+        item: items(resource._id, headers),
         ...(auth ? { auth } : {}),
       }];
     }
     if (resource._type === 'request') {
-      return [toPostmanRequest(resource, sorted(resource._id).filter(child => child._type === 'response_example'))];
+      const own = resource.headers || [];
+      const headers = [...inherited.filter(header => !own.some((mine: any) => mine.name?.toLowerCase() === header.name.toLowerCase())), ...own];
+      return [toPostmanRequest({ ...resource, headers }, sorted(resource._id).filter(child => child._type === 'response_example'))];
     }
     return [];
   });

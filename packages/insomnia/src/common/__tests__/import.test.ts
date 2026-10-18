@@ -206,6 +206,20 @@ describe('fetchImportContentFromURI()', () => {
   );
 });
 
+describe('importing as a new collection', () => {
+  beforeEach(globalBeforeEach);
+
+  it('gives environments made for the base one (as Bruno and Postman files have them) a base to be under', async () => {
+    await importUtil.scanResources({ content: JSON.stringify({ name: 'dev', _postman_variable_scope: 'environment', values: [{ key: 'base_url', value: 'https://dev.example.com', enabled: true }] }) });
+    await importResourcesToProject.importResourcesToProject({ projectId: DEFAULT_PROJECT_ID });
+
+    const [created] = await workspace.findByParentId(DEFAULT_PROJECT_ID);
+    const base = await environment.getOrCreateForParentId(created._id);
+    const subs = await environment.findByParentId(base._id);
+    expect(subs.map(({ name, data }) => ({ name, data }))).toEqual([{ name: 'dev', data: { base_url: 'https://dev.example.com' } }]);
+  });
+});
+
 describe('importing into an existing collection', () => {
   beforeEach(globalBeforeEach);
 
