@@ -15,6 +15,7 @@ import {
   PKCE_CHALLENGE_PLAIN,
   PKCE_CHALLENGE_S256,
 } from '../../../../network/o-auth-2/constants';
+import { CLIENT_ASSERTION_ALGORITHMS } from '../../../../network/o-auth-2/client-assertion';
 import { getOAuth2Token } from '../../../../network/o-auth-2/get-token';
 import { useAuthStrategy } from './auth-strategy-context';
 import { initNewOAuthSession } from '../../../../network/o-auth-2/get-token';
@@ -27,6 +28,7 @@ import { Button } from '../../themed-button';
 import { TimeFromNow } from '../../time-from-now';
 import { AuthAccordion } from './components/auth-accordion';
 import { AuthInputRow } from './components/auth-input-row';
+import { AuthPrivateKeyRow } from './components/auth-private-key-row';
 import { AuthSelectRow } from './components/auth-select-row';
 import { AuthTableBody } from './components/auth-table-body';
 import { AuthToggleRow } from './components/auth-toggle-row';
@@ -51,6 +53,8 @@ const grantTypeOptions = [
     value: GRANT_TYPE_CLIENT_CREDENTIALS,
   },
 ];
+
+const privateKeyAlgorithmOptions = CLIENT_ASSERTION_ALGORITHMS.map(algorithm => ({ name: algorithm, value: algorithm }));
 
 const pkceMethodOptions = [
   {
@@ -123,8 +127,30 @@ const getFields = (authentication: any) => {
     property='credentialsInBody'
     key='credentialsInBody'
     options={credentialsInBodyOptions}
+    disabled={Boolean(authentication.usePrivateKeyJwt)}
     help='Whether or not to send credentials as Basic Auth, or as plain text in the request body'
   />;
+  const useSystemBrowser = <AuthToggleRow
+    label='Use the System Browser'
+    property='useSystemBrowser'
+    key='useSystemBrowser'
+    onTitle='Sign in in a window of the app instead'
+    offTitle='Sign in with the system browser'
+    help='Sign in with your browser, for providers that block embedded windows, and for SSO and passkeys. The redirect URL has to be a loopback address the provider allows, such as http://127.0.0.1:8484/callback; without a port, any free one is used.'
+  />;
+  const usePrivateKeyJwt = <AuthToggleRow
+    label='Client Assertion (private_key_jwt)'
+    property='usePrivateKeyJwt'
+    key='usePrivateKeyJwt'
+    onTitle='Use the client secret instead'
+    offTitle='Sign a JWT with a private key instead of sending the secret'
+    help="Authenticate the client with a JWT signed with its private key, whose public key the provider has, instead of the client secret."
+  />;
+  const privateKeyFields = authentication.usePrivateKeyJwt ? [
+    <AuthPrivateKeyRow label='Private Key' property='privateKey' key='privateKey' help='The PEM private key to sign the client assertion with' />,
+    <AuthSelectRow label='Signing Algorithm' property='privateKeyAlgorithm' key='privateKeyAlgorithm' options={privateKeyAlgorithmOptions} />,
+    <AuthInputRow label='Key ID' property='privateKeyId' key='privateKeyId' help="The key's kid, if the provider needs one to find it" />,
+  ] : [];
 
   return {
     clientId,
@@ -144,6 +170,9 @@ const getFields = (authentication: any) => {
     resource,
     origin,
     credentialsInBody,
+    useSystemBrowser,
+    usePrivateKeyJwt,
+    privateKeyFields,
   };
 };
 
@@ -166,6 +195,9 @@ const getFieldsForGrantType = (authentication: any) => {
     resource,
     origin,
     credentialsInBody,
+    useSystemBrowser,
+    usePrivateKeyJwt,
+    privateKeyFields,
   } = getFields(authentication);
 
   const { grantType } = authentication;
@@ -182,12 +214,15 @@ const getFieldsForGrantType = (authentication: any) => {
       usePkce,
       pkceMethod,
       redirectUri,
+      useSystemBrowser,
     ];
 
     advanced = [
       scope,
       state,
       credentialsInBody,
+      usePrivateKeyJwt,
+      ...privateKeyFields,
       tokenPrefix,
       audience,
       resource,
@@ -203,6 +238,8 @@ const getFieldsForGrantType = (authentication: any) => {
     advanced = [
       scope,
       credentialsInBody,
+      usePrivateKeyJwt,
+      ...privateKeyFields,
       tokenPrefix,
       audience,
       resource,
@@ -219,6 +256,8 @@ const getFieldsForGrantType = (authentication: any) => {
     advanced = [
       scope,
       credentialsInBody,
+      usePrivateKeyJwt,
+      ...privateKeyFields,
       tokenPrefix,
       audience,
     ];

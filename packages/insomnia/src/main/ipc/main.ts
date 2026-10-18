@@ -5,6 +5,7 @@ import fs from 'fs';
 import { credentialStorageStatus } from '../../common/database';
 import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
 import type { ToastNotification } from '../../ui/components/toast';
+import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { credentialStorageNotices } from '../credential-keys';
 import { insomniaFetch } from '../insomniaFetch';
@@ -28,6 +29,7 @@ export interface MainBridgeAPI {
   // scripting/sandbox.ts
   runScript: (options: { code: string; input: object; timeoutMs: number }) => Promise<SandboxResult<unknown>>;
   authorizeUserInWindow: typeof authorizeUserInWindow;
+  authorizeInSystemBrowser: (options: { url: string; redirectUrl: string }) => ReturnType<typeof authorizeInSystemBrowser>;
   setMenuBarVisibility: (visible: boolean) => void;
   installPlugin: typeof installPlugin;
   writeFile: (options: { path: string; content: string }) => Promise<string>;
@@ -75,6 +77,9 @@ export function registerMainHandlers() {
     const { url, urlSuccessRegex, urlFailureRegex, sessionId } = options;
     return authorizeUserInWindow({ url, urlSuccessRegex, urlFailureRegex, sessionId });
   });
+
+  ipcMain.handle('authorizeInSystemBrowser', (_, { url, redirectUrl }: { url: string; redirectUrl: string }) =>
+    authorizeInSystemBrowser({ url, redirectUrl }));
 
   ipcMain.handle('writeFile', async (_, options: { path: string; content: string }) => {
     try {

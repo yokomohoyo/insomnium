@@ -57,6 +57,7 @@ const main: Window['main'] = {
     status: workspaceId => ipcRenderer.invoke('mockServer.status', workspaceId),
   },
   authorizeUserInWindow: options => ipcRenderer.invoke('authorizeUserInWindow', options),
+  authorizeInSystemBrowser: options => ipcRenderer.invoke('authorizeInSystemBrowser', options),
   spectralRun: options => ipcRenderer.invoke('spectralRun', options),
   runScript: options => ipcRenderer.invoke('runScript', options),
   setMenuBarVisibility: options => ipcRenderer.send('setMenuBarVisibility', options),
