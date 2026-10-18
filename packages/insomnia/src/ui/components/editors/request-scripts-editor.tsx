@@ -1,9 +1,11 @@
 import React, { FC } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
+import { docsScripts } from '../../../common/documentation';
 import type { Request } from '../../../models/request';
 import { useRequestSetter } from '../../hooks/use-request';
 import { RequestLoaderData } from '../../routes/request';
+import { Link } from '../base/link';
 import { CodeEditor } from '../codemirror/code-editor';
 
 const PRE_REQUEST_PLACEHOLDER = [
@@ -59,7 +61,7 @@ export const RequestScriptsEditor: FC = () => {
       </section>
       <p className="faint txt-sm pad-left pad-right no-margin">
         Scripts run in a sandbox, apart from the app, with insomnia.environment, .baseEnvironment, .variables, .request, .response, .test and .expect.
-        pm is the same, for scripts from Postman.
+        pm is the same, for scripts from Postman. <Link href={docsScripts}>Scripts reference</Link>
       </p>
     </div>
   );
