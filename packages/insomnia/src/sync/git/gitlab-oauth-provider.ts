@@ -1,9 +1,8 @@
 import { createHash, randomBytes } from 'crypto';
+import { env } from 'node:process';
 import { v4 as uuid } from 'uuid';
 
 import { getApiBaseURL } from '../../common/constants';
-
-const env = process['env'];
 
 // Warning: As this is a global fetch we need to handle errors, retries and caching
 // GitLab API config

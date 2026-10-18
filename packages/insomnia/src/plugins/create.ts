@@ -1,5 +1,6 @@
 import electron from 'electron';
 import fs from 'fs';
+import { env as processEnv } from 'node:process';
 import path from 'path';
 
 export async function createPlugin(
@@ -7,7 +8,7 @@ export async function createPlugin(
   version: string,
   mainJs: string,
 ) {
-  const pluginsRoot = path.join(process.env['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
+  const pluginsRoot = path.join(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
   const pluginDir = path.join(pluginsRoot, moduleName);
 
   // Defense in depth: callers are expected to validate moduleName, but assert

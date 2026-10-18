@@ -1,5 +1,6 @@
 /* eslint-disable prefer-rest-params -- don't want to change ...arguments usage for these sensitive functions without more testing */
 import electron from 'electron';
+import { env as processEnv } from 'node:process';
 import fsPath from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -694,7 +695,7 @@ async function _descendantsOfNullParent(stopType: string | null): Promise<BaseMo
 }
 
 function getDataDir() {
-  return process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData');
+  return processEnv['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData');
 }
 
 function getSqliteDBFilePath() {

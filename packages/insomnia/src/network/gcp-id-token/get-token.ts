@@ -14,6 +14,7 @@ import * as crypto from 'node:crypto';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
+import { env as processEnv } from 'node:process';
 
 export type CredentialSource =
   | { kind: 'adc'; impersonateServiceAccount?: string }
@@ -168,12 +169,12 @@ function parseSaEmailFromImpersonationUrl(url: string): string {
 }
 
 async function findAdcPath(): Promise<string> {
-  const envPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  const envPath = processEnv.GOOGLE_APPLICATION_CREDENTIALS;
   if (envPath) {
     return envPath;
   }
   const wellKnown = process.platform === 'win32'
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
+    ? path.join(processEnv.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
         'gcloud', 'application_default_credentials.json')
     : path.join(os.homedir(), '.config', 'gcloud', 'application_default_credentials.json');
   try {

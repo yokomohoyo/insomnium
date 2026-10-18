@@ -1,4 +1,5 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 
 import * as models from "../../models";
@@ -243,7 +244,7 @@ async function findAncestorDirectories(filePath: string, context: ProtoDirectory
 // Common buf cache locations across platforms. Best-effort: missing dirs are
 // fine - proto-loader silently ignores them.
 function bufCacheCandidates(): string[] {
-  const home = process.env.HOME || '';
+  const home = os.homedir();
   if (!home) return [];
   return [
     // buf v2 (current default on most installs)

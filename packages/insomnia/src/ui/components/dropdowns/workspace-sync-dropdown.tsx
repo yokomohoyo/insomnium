@@ -1,3 +1,4 @@
+import { env as processEnv } from 'node:process';
 import { FC, useEffect, useRef, useState } from 'react';
 import React from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
@@ -32,7 +33,7 @@ export function useVCS({
     async function updateVCS() {
       let vcsInstance = getVCS();
       if (!vcsInstance) {
-        const driver = FileSystemDriver.create(process.env['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'));
+        const driver = FileSystemDriver.create(processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'));
 
         vcsInstance = await initVCS(driver, async conflicts => {
           return new Promise(resolve => {

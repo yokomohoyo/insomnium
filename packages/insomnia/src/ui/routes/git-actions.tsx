@@ -1,5 +1,6 @@
 import { fromUrl } from 'hosted-git-info';
 import { Errors, clone } from 'isomorphic-git';
+import { env as processEnv } from 'node:process';
 import path from 'path';
 import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';
 import YAML from 'yaml';
@@ -80,7 +81,7 @@ export const gitRepoAction: ActionFunction = async ({
     }
 
     const baseDir = path.join(
-      process.env['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
+      processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
       `version-control/git/${gitRepository._id}`
     );
 
