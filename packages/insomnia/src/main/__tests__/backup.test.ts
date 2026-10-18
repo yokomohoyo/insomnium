@@ -133,35 +133,36 @@ describe('backupDataIfVersionChanged()', () => {
     expect(fs.readFileSync(marker(), 'utf8')).toBe(version);
   });
 
+  // versions older than any release, so none is the app's own
   it('keeps only the three most recent backups', async () => {
-    ['0.1.0', '0.2.0', '0.3.0'].forEach((name, i) => {
+    ['0.0.1', '0.0.2', '0.0.3'].forEach((name, i) => {
       const backupPath = path.join(dataPath, 'backups', name);
       fs.mkdirSync(backupPath, { recursive: true });
       const time = new Date(Date.now() - (10 - i) * 60_000);
       fs.utimesSync(backupPath, time, time);
     });
-    fs.writeFileSync(marker(), '0.4.0');
+    fs.writeFileSync(marker(), '0.0.4');
     fs.writeFileSync(path.join(dataPath, 'insomnia.sqlite'), 'sqlite');
 
     await backupDataIfVersionChanged();
 
-    expect(backups()).toEqual(['0.2.0', '0.3.0', '0.4.0']);
+    expect(backups()).toEqual(['0.0.2', '0.0.3', '0.0.4']);
   });
 
   it('keeps the backup it just made when older backups have later times', async () => {
     // Left by a clock that ran fast, and by launches that did not finish
-    ['0.1.0', '0.2.0', '0.3.0', '.unfinished-0.0.1', '.replaced-0.0.2'].forEach((name, i) => {
+    ['0.0.1', '0.0.2', '0.0.3', '.unfinished-0.0.5', '.replaced-0.0.6'].forEach((name, i) => {
       const backupPath = path.join(dataPath, 'backups', name);
       fs.mkdirSync(backupPath, { recursive: true });
       const time = new Date(Date.now() + (60 + i) * 60_000);
       fs.utimesSync(backupPath, time, time);
     });
-    fs.writeFileSync(marker(), '0.4.0');
+    fs.writeFileSync(marker(), '0.0.4');
     fs.writeFileSync(path.join(dataPath, 'insomnia.sqlite'), 'sqlite');
 
     await backupDataIfVersionChanged();
 
-    expect(backups()).toEqual(['0.2.0', '0.3.0', '0.4.0']);
+    expect(backups()).toEqual(['0.0.2', '0.0.3', '0.0.4']);
     expect(fs.readFileSync(marker(), 'utf8')).toBe(version);
   });
 
