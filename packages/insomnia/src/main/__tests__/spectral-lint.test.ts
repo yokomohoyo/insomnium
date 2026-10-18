@@ -37,6 +37,15 @@ describe('lintSpec()', () => {
     expect(codes(await lintSpec({ contents: spec }))).toContain('info-contact');
   });
 
+  it('lints an AsyncAPI document with the built-in AsyncAPI rules', async () => {
+    const asyncApi = 'asyncapi: 2.6.0\ninfo:\n  title: Lights\n  version: 1.0.0\nchannels: {}\n';
+
+    const found = codes(await lintSpec({ contents: asyncApi }));
+
+    expect(found).toContain('asyncapi-info-contact');
+    expect(found).not.toContain('info-contact');
+  });
+
   it("lints with a ruleset's own rules", async () => {
     const rulesetPath = ruleset('.spectral.yaml', 'extends: spectral:oas\nrules:\n  info-contact: off\n');
 
