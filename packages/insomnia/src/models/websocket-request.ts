@@ -13,7 +13,7 @@ export const canDuplicate = true;
 export const canSync = true;
 
 // kept only when set, so requests without them sync as before
-export const optionalKeys = ['savedMessages', 'graphqlSubscription'];
+export const optionalKeys = ['savedMessages', 'graphqlSubscription', 'socketIo'];
 
 export interface WebSocketSavedMessage {
   name: string;
@@ -41,6 +41,14 @@ export interface BaseWebSocketRequest {
     enabled: boolean;
     query: string;
     variables: string;
+  };
+  // speak Socket.IO over the connection (main/network/socket-io.ts): its
+  // namespace, its auth as JSON text, and the event the editor's message is sent as
+  socketIo?: {
+    enabled: boolean;
+    namespace: string;
+    auth: string;
+    event: string;
   };
 }
 

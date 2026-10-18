@@ -292,6 +292,7 @@ export class NeDBClient {
         models.protoFile.type,
         models.protoDirectory.type,
         models.webSocketRequest.type,
+        models.mcpRequest.type,
         models.webSocketPayload.type,
         models.responseExample.type,
       ];

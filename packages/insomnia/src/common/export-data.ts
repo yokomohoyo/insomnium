@@ -18,6 +18,7 @@ import { isResponseExample } from '../models/response-example';
 import { isUnitTest } from '../models/unit-test';
 import { isUnitTestSuite } from '../models/unit-test-suite';
 import { isWebSocketPayload } from '../models/websocket-payload';
+import { isMcpRequest } from '../models/mcp-request';
 import { isWebSocketRequest } from '../models/websocket-request';
 import { isWorkspace, Workspace } from '../models/workspace';
 import { resetKeys } from '../sync/ignore-keys';
@@ -27,6 +28,7 @@ import {
   EXPORT_TYPE_COOKIE_JAR,
   EXPORT_TYPE_ENVIRONMENT,
   EXPORT_TYPE_GRPC_REQUEST,
+  EXPORT_TYPE_MCP_REQUEST,
   EXPORT_TYPE_PROTO_DIRECTORY,
   EXPORT_TYPE_PROTO_FILE,
   EXPORT_TYPE_REQUEST,
@@ -133,7 +135,7 @@ export async function exportWorkspacesData(
 ) {
   const promises = workspaces.map(getDocWithDescendants(includePrivateDocs));
   const docs = (await Promise.all(promises)).flat();
-  const requests = docs.filter(doc => isRequest(doc) || isGrpcRequest(doc) || isWebSocketRequest(doc));
+  const requests = docs.filter(doc => isRequest(doc) || isGrpcRequest(doc) || isWebSocketRequest(doc) || isMcpRequest(doc));
   return exportRequestsData(requests, includePrivateDocs, format);
 }
 
@@ -205,6 +207,7 @@ export async function exportRequestsData(
           isWebSocketPayload(d) ||
           isResponseExample(d) ||
           isWebSocketRequest(d) ||
+          isMcpRequest(d) ||
           isGrpcRequest(d) ||
           isRequestGroup(d) ||
           isProtoFile(d) ||
@@ -257,6 +260,9 @@ export async function exportRequestsData(
       } else if (isWebSocketRequest(d)) {
         // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
         d._type = EXPORT_TYPE_WEBSOCKET_REQUEST;
+      } else if (isMcpRequest(d)) {
+        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
+        d._type = EXPORT_TYPE_MCP_REQUEST;
       } else if (isProtoFile(d)) {
         // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
         d._type = EXPORT_TYPE_PROTO_FILE;

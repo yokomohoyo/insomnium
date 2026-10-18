@@ -12,6 +12,7 @@ import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
 import { writeToFile } from '../../common/write-to-file';
 import type { EventStreamConnection } from '../../main/network/event-stream-request';
 import type { GraphqlSubscription } from '../../main/network/graphql-ws';
+import type { SocketIoOptions } from '../../main/network/socket-io';
 import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
@@ -24,6 +25,7 @@ import { isRequestMeta, RequestMeta } from '../../models/request-meta';
 import { RequestVersion } from '../../models/request-version';
 import { Response } from '../../models/response';
 import type { ResponseExample } from '../../models/response-example';
+import { isMcpRequestId, McpRequest } from '../../models/mcp-request';
 import { isWebSocketRequestId, WebSocketRequest } from '../../models/websocket-request';
 import { WebSocketResponse } from '../../models/websocket-response';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest } from '../../network/network';
@@ -32,6 +34,14 @@ import { guard } from '../../utils/guard';
 
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
 import { CreateRequestType } from '../hooks/use-request';
+
+export interface McpRequestLoaderData {
+  activeRequest: McpRequest;
+  activeRequestMeta: RequestMeta;
+  activeResponse: null;
+  responses: [];
+  requestVersions: [];
+}
 
 export interface WebSocketRequestLoaderData {
   activeRequest: WebSocketRequest;
@@ -57,7 +67,7 @@ export interface RequestLoaderData {
   examples?: ResponseExample[];
 }
 
-export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData> => {
+export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData | McpRequestLoaderData> => {
   const { organizationId, projectId, requestId, workspaceId } = params;
   guard(requestId, 'Request ID is required');
   guard(workspaceId, 'Workspace ID is required');
@@ -81,6 +91,10 @@ export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderD
   }
   const activeRequestMeta = await models.requestMeta.updateOrCreateByParentId(requestId, { lastActive: Date.now() });
   guard(activeRequestMeta, 'Request meta not found');
+  // its results stay in the pane, rather than a response history
+  if (isMcpRequestId(requestId)) {
+    return { activeRequest, activeRequestMeta, activeResponse: null, responses: [], requestVersions: [] } as McpRequestLoaderData;
+  }
   const { filterResponsesByEnv } = await models.settings.getOrCreate();
 
   const responseModelName = isWebSocketRequestId(requestId) ? 'webSocketResponse' : 'response';
@@ -147,6 +161,12 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
         { name: 'Accept', value: CONTENT_TYPE_EVENT_STREAM },
       ],
       name: 'New Event Stream',
+    }))._id;
+  }
+  if (requestType === 'MCP') {
+    activeRequestId = (await models.mcpRequest.create({
+      parentId: parentId || workspaceId,
+      name: 'New MCP Request',
     }))._id;
   }
   if (requestType === 'WebSocket') {
@@ -260,6 +280,7 @@ interface WebSocketConnectParams {
   cookieJar: CookieJar;
   suppressUserAgent: boolean;
   graphqlSubscription?: GraphqlSubscription;
+  socketIo?: SocketIoOptions;
 }
 export type ConnectActionParams = WebSocketConnectParams | EventStreamConnection;
 export const connectAction: ActionFunction = async ({ request, params }) => {
@@ -278,6 +299,7 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       authentication: rendered.authentication,
       cookieJar: rendered.cookieJar,
       graphqlSubscription: 'graphqlSubscription' in rendered ? rendered.graphqlSubscription : undefined,
+      socketIo: 'socketIo' in rendered ? rendered.socketIo : undefined,
     });
   }
   if (isEventStreamRequest(req)) {

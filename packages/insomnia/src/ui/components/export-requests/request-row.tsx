@@ -1,6 +1,7 @@
 import React, { FC, SyntheticEvent, useCallback } from 'react';
 
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
+import { isMcpRequest, McpRequest } from '../../../models/mcp-request';
 import { isRequest, Request } from '../../../models/request';
 import { isWebSocketRequest, WebSocketRequest } from '../../../models/websocket-request';
 import { GrpcTag } from '../tags/grpc-tag';
@@ -10,7 +11,7 @@ import { WebSocketTag } from '../tags/websocket-tag';
 interface Props {
   handleSetItemSelected: (...args: any[]) => any;
   isSelected: boolean;
-  request: Request | WebSocketRequest | GrpcRequest;
+  request: Request | WebSocketRequest | GrpcRequest | McpRequest;
 }
 
 export const RequestRow: FC<Props> = ({
@@ -32,6 +33,7 @@ export const RequestRow: FC<Props> = ({
           {isRequest(request) ? <MethodTag method={request.method} /> : null}
           {isGrpcRequest(request) ? <GrpcTag /> : null}
           {isWebSocketRequest(request) ? <WebSocketTag /> : null}
+          {isMcpRequest(request) ? <span className="tag success">MCP</span> : null}
           <span className="inline-block">{request.name}</span>
         </button>
       </div>

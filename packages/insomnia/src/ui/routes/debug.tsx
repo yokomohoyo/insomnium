@@ -37,6 +37,7 @@ import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { getByParentId as getGrpcRequestMetaByParentId } from '../../models/grpc-request-meta';
+import { isMcpRequest, isMcpRequestId, McpRequest } from '../../models/mcp-request';
 import {
   isEventStreamRequest,
   isRequest,
@@ -52,6 +53,8 @@ import {
 } from '../../models/websocket-request';
 import { guard } from '../../utils/guard';
 import { RequestActionsDropdown } from '../components/dropdowns/request-actions-dropdown';
+import { McpRequestPane } from '../components/mcp/mcp-request-pane';
+import { McpResponsePane } from '../components/mcp/mcp-response-pane';
 import { RequestGroupActionsDropdown } from '../components/dropdowns/request-group-actions-dropdown';
 
 import { ErrorBoundary } from '../components/error-boundary';
@@ -99,7 +102,7 @@ export interface GrpcMessage {
   created: number;
 }
 
-const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | WebSocketRequest): string => {
+const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest): string => {
   return !isRequestGroup(doc) ? doc.name || doc.url || 'Untitled request' : doc.name || 'Untitled folder';
 };
 
@@ -595,6 +598,16 @@ export const Debug: FC = () => {
           }),
       },
       {
+        id: 'MCP Request',
+        name: 'MCP Request',
+        icon: 'plus-circle',
+        action: () =>
+          createRequest({
+            requestType: 'MCP',
+            parentId: workspaceId,
+          }),
+      },
+      {
         id: 'From Curl',
         name: 'From Curl',
         icon: 'terminal',
@@ -911,6 +924,11 @@ export const Debug: FC = () => {
                           WS
                         </span>
                       )}
+                      {isMcpRequest(item.doc) && (
+                        <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
+                          MCP
+                        </span>
+                      )}
                       {isGrpcRequest(item.doc) && (
                         <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center method-grpc justify-center">
                           gRPC
@@ -990,6 +1008,11 @@ export const Debug: FC = () => {
                         {isWebSocketRequest(item.doc) && (
                           <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center info justify-center">
                             WS
+                          </span>
+                        )}
+                        {isMcpRequest(item.doc) && (
+                          <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
+                            MCP
                           </span>
                         )}
                         {isGrpcRequest(item.doc) && (
@@ -1076,6 +1099,9 @@ export const Debug: FC = () => {
             {isWebSocketRequestId(requestId) && (
               <WebSocketRequestPane environment={activeEnvironment} />
             )}
+            {isMcpRequestId(requestId) && (
+              <McpRequestPane key={requestId} environmentId={activeEnvironment ? activeEnvironment._id : ''} />
+            )}
             {isRequestId(requestId) && (
               <RequestPane
                 environmentId={activeEnvironment ? activeEnvironment._id : ''}
@@ -1107,6 +1133,9 @@ export const Debug: FC = () => {
           )}
           {activeRequest && isRequest(activeRequest) && !isRealtimeRequest && (
             <ResponsePane runningRequests={runningRequests} />
+          )}
+          {activeRequest && isMcpRequest(activeRequest) && (
+            <McpResponsePane key={activeRequest._id} environmentId={activeEnvironment ? activeEnvironment._id : ''} />
           )}
         </ErrorBoundary>
       }

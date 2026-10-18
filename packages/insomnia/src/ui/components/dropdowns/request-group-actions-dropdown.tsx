@@ -192,6 +192,15 @@ export const RequestGroupActionsDropdown = ({
         }),
       },
       {
+        id: 'MCP Request',
+        name: 'MCP Request',
+        icon: 'plus-circle',
+        action: () => createRequest({
+          requestType: 'MCP',
+          parentId: requestGroup._id,
+        }),
+      },
+      {
         id: 'New Folder',
         name: 'New Folder',
         icon: 'folder',

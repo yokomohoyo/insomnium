@@ -33,6 +33,7 @@ import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
 import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
+import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
 import { describeProxy, proxyFor } from './proxy';
 
 export interface WebSocketConnection extends WebSocket {
@@ -107,6 +108,8 @@ interface OpenWebSocketRequestOptions {
   initialPayload?: string;
   // subscribe once connected, with the graphql-transport-ws protocol
   graphqlSubscription?: GraphqlSubscription;
+  // speak Socket.IO: its transport URL, its namespace connect and heartbeat
+  socketIo?: SocketIoOptions;
 }
 const openWebSocketConnection = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -223,7 +226,11 @@ const openWebSocketConnection = async (
       'on': true,
       'global': settings.followRedirects,
     }[request.settingFollowRedirects] ?? true;
-    const subscription = options.graphqlSubscription;
+    const socketIo = options.socketIo;
+    if (socketIo) {
+      url = socketIoUrl(url);
+    }
+    const subscription = socketIo ? undefined : options.graphqlSubscription;
     const protocols = subscription
       ? withGraphqlProtocol(lowerCasedEnabledHeaders['sec-websocket-protocol'])
       : lowerCasedEnabledHeaders['sec-websocket-protocol'];
@@ -353,6 +360,9 @@ const openWebSocketConnection = async (
 
       eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(messageEvent) + '\n');
 
+      if (socketIo) {
+        socketIoReplies(data, socketIo).forEach(payload => sendPayload(ws, { requestId: options.requestId, payload }));
+      }
       if (subscription) {
         const { send, done } = graphqlWsReplies(data, subscription);
         send.forEach(payload => sendPayload(ws, { requestId: options.requestId, payload }));

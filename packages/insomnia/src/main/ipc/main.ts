@@ -16,6 +16,7 @@ import { checkForNewRelease } from '../release-check';
 import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
+import type { McpClientBridgeAPI } from '../network/mcp-client';
 import { WebSocketBridgeAPI } from '../network/websocket';
 import { lintSpec } from '../spectral-lint';
 import { gRPCBridgeAPI } from './grpc';
@@ -37,6 +38,7 @@ export interface MainBridgeAPI {
   curlRequest: typeof curlRequest;
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => () => void;
   webSocket: WebSocketBridgeAPI;
+  mcpClient: McpClientBridgeAPI;
   grpc: gRPCBridgeAPI;
   curl: CurlBridgeAPI;
   trackSegmentEvent: (options: { event: string; properties?: Record<string, unknown> }) => void;

@@ -5,6 +5,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import { exportRequestsToFile } from '../../../common/export';
 import * as models from '../../../models';
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
+import { isMcpRequest, McpRequest } from '../../../models/mcp-request';
 import { isRequest, Request } from '../../../models/request';
 import { RequestGroup } from '../../../models/request-group';
 import { isWebSocketRequest, WebSocketRequest } from '../../../models/websocket-request';
@@ -17,7 +18,7 @@ import { ModalHeader } from '../base/modal-header';
 import { Tree } from '../export-requests/tree';
 
 export interface Node {
-  doc: Request | WebSocketRequest | GrpcRequest | RequestGroup;
+  doc: Request | WebSocketRequest | GrpcRequest | McpRequest | RequestGroup;
   children: Node[];
   collapsed: boolean;
   totalRequests: number;
@@ -44,7 +45,7 @@ export const ExportRequestsModal = ({ workspace, onHide }: { workspace: Workspac
 
   useEffect(() => {
     const createTreeNode = (child: Child): Node => {
-      const docIsRequest = isRequest(child.doc) || isWebSocketRequest(child.doc) || isGrpcRequest(child.doc);
+      const docIsRequest = isRequest(child.doc) || isWebSocketRequest(child.doc) || isGrpcRequest(child.doc) || isMcpRequest(child.doc);
       const children = child.children.map((child: Child) => createTreeNode(child));
       const totalRequests = +docIsRequest + children.reduce((acc, { totalRequests }) => acc + totalRequests, 0);
       return {

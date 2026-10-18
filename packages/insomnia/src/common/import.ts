@@ -4,6 +4,7 @@ import { BaseEnvironment, Environment, isEnvironment } from '../models/environme
 import { GrpcRequest, isGrpcRequest } from '../models/grpc-request';
 import { BaseModel, getModel } from '../models/index';
 import * as models from '../models/index';
+import { isMcpRequest, McpRequest } from '../models/mcp-request';
 import { isRequest, Request } from '../models/request';
 import { isUnitTest, UnitTest } from '../models/unit-test';
 import { isUnitTestSuite, UnitTestSuite } from '../models/unit-test-suite';
@@ -79,7 +80,7 @@ export async function fetchImportContentFromURI(
 }
 
 export interface ScanResult {
-  requests?: (Request | WebSocketRequest | GrpcRequest)[];
+  requests?: (Request | WebSocketRequest | GrpcRequest | McpRequest)[];
   workspaces?: Workspace[];
   environments?: BaseEnvironment[];
   apiSpecs?: ApiSpec[];
@@ -136,6 +137,7 @@ export async function scanResources({
 
   const requests = resources.filter(isRequest);
   const websocketRequests = resources.filter(isWebSocketRequest);
+  const mcpRequests = resources.filter(isMcpRequest);
   const grpcRequests = resources.filter(isGrpcRequest);
   const environments = resources.filter(isEnvironment);
   const unitTests = resources.filter(isUnitTest);
@@ -148,7 +150,7 @@ export async function scanResources({
     type,
     unitTests,
     unitTestSuites,
-    requests: [...requests, ...websocketRequests, ...grpcRequests],
+    requests: [...requests, ...websocketRequests, ...grpcRequests, ...mcpRequests],
     workspaces,
     environments,
     apiSpecs,
