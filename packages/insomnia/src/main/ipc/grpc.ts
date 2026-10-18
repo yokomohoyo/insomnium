@@ -1,4 +1,4 @@
-import { Call, ClientDuplexStream, ClientReadableStream, credentials, makeGenericClientConstructor, Metadata, ServiceError, status, StatusObject } from '@grpc/grpc-js';
+import { Call, ClientDuplexStream, ClientReadableStream, makeGenericClientConstructor, Metadata, ServiceError, status, StatusObject } from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import electron, { ipcMain, IpcMainEvent } from 'electron';
 import * as grpcReflection from 'grpc-reflection-js';
@@ -11,6 +11,7 @@ import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
 import { fetchProto, FetchedProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
 import { guard } from '../../utils/guard';
+import { assertGrpcAuthSupported, getGrpcCredentials } from '../network/grpc-credentials';
 import { asServiceDefinition, grpcOptions, loadMethod, loadProto, validateProto } from '../proto-worker';
 import { generateRequestTemplate, mockRequestMethods } from './automock';
 
@@ -67,10 +68,10 @@ export interface MethodDefs {
   responseDeserialize: (value: Buffer) => any;
   example?: Record<string, any>;
 }
-const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeader[]): Promise<MethodDefs[]> => {
+const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeader[], parentId?: string | null): Promise<MethodDefs[]> => {
   const { url, enableTls } = parseGrpcUrl(host);
   const client = new grpcReflection.Client(url,
-    enableTls ? credentials.createSsl() : credentials.createInsecure(),
+    await getGrpcCredentials(url, enableTls, parentId),
     grpcOptions,
     filterDisabledMetaData(metadata)
   );
@@ -124,9 +125,10 @@ const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeade
 } catch { /* noop */ }
   }
 };
-export const loadMethodsFromReflection = async (options: { url: string; metadata: GrpcRequestHeader[] }): Promise<GrpcMethodInfo[]> => {
+// options is the rendered request, so parentId leads to its workspace's certificates
+export const loadMethodsFromReflection = async (options: { url: string; metadata: GrpcRequestHeader[]; parentId?: string | null }): Promise<GrpcMethodInfo[]> => {
   guard(options.url, 'gRPC request url not provided');
-  const methods = await getMethodsFromReflection(options.url, options.metadata);
+  const methods = await getMethodsFromReflection(options.url, options.metadata, options.parentId);
   return methods.map(method => ({
     type: getMethodType(method),
     fullPath: method.path,
@@ -158,7 +160,7 @@ export const getSelectedMethod = async (request: GrpcRequest): Promise<MethodDef
     const { filePath, dirs } = await writeProtoFile(protoFile);
     return loadMethod(filePath, dirs, request.protoMethodName ?? '');
   }
-  const methods = await getMethodsFromReflection(request.url, request.metadata);
+  const methods = await getMethodsFromReflection(request.url, request.metadata, request.parentId);
   guard(methods, 'No reflection methods found');
   return methods.find(c => c.path === request.protoMethodName);
 };
@@ -181,12 +183,9 @@ export const start = (
     console.log(`[gRPC] connecting to url=${url} ${enableTls ? 'with' : 'without'} TLS`);
     // @ts-expect-error -- TSCONVERSION second argument should be provided, send an empty string? Needs testing
     const Client = makeGenericClientConstructor({});
-    const client = new Client(url, enableTls ? credentials.createSsl() : credentials.createInsecure());
-    if (!client) {
-      return;
-    }
 
-    buildGrpcMetadata(request).then(metadata => {
+    Promise.all([getGrpcCredentials(url, enableTls, request.parentId), buildGrpcMetadata(request)]).then(([channelCredentials, metadata]) => {
+    const client = new Client(url, channelCredentials);
     try {
       const messageBody = JSON.parse(request.body.text || '');
       switch (methodType) {
@@ -342,6 +341,7 @@ const filterDisabledMetaData = (metadata: GrpcRequestHeader[],): Metadata => {
 // to its metadata, matching how HTTP injects them into request.headers. Auth
 // values arrive pre-rendered (nunjucks already applied by getRenderedGrpcRequest).
 async function buildGrpcMetadata(request: RenderedGrpcRequest): Promise<Metadata> {
+  assertGrpcAuthSupported((request as any).authentication);
   const base = filterDisabledMetaData(request.metadata);
   const authHeaders = await getAuthHeaders(
     { _id: request._id, method: '', body: {}, authentication: (request as any).authentication } as any,
