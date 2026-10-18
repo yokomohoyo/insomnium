@@ -6,6 +6,7 @@ import { useInterval } from 'react-use';
 import { docsGitSync } from '../../../common/documentation';
 import { GitRepository } from '../../../models/git-repository';
 import { deleteGitRepository } from '../../../models/helpers/git-repository-operations';
+import { pullRequestUrl } from '../../../sync/git/pull-request-url';
 import { getOauth2FormatName } from '../../../sync/git/utils';
 import {
   GitFetchLoaderData,
@@ -24,7 +25,8 @@ import {
 } from '../base/dropdown';
 import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';
-import { showAlert } from '../modals';
+import { showAlert, showModal } from '../modals';
+import { AskModal } from '../modals/ask-modal';
 import { GitBranchesModal } from '../modals/git-branches-modal';
 import { GitConflictsModal } from '../modals/git-conflicts-modal';
 import { GitLogModal } from '../modals/git-log-modal';
@@ -116,13 +118,29 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
 
   useEffect(() => {
     const errors = [...(gitPushFetcher.data?.errors ?? [])];
+    if (gitPushFetcher.data?.rejected) {
+      // pulling merges theirs; a force push replaces the remote's branch with this one
+      showModal(AskModal, {
+        title: 'Push Rejected',
+        message: `${errors.join('\n')} Pull to merge them first, or force push to replace the remote's branch with yours, dropping its commits you don't have.`,
+        yesText: 'Force Push',
+        noText: 'Cancel',
+        onDone: async (isYes: boolean) => {
+          if (isYes) {
+            handlePush({ force: true });
+          }
+        },
+      });
+      return;
+    }
     if (errors.length > 0) {
       showAlert({
         title: 'Push Failed',
         message: errors.join('\n'),
       });
     }
-  }, [gitPushFetcher.data?.errors]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per push
+  }, [gitPushFetcher.data]);
 
   useEffect(() => {
     const gitRepoDataErrors =
@@ -254,7 +272,17 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
     },
   ];
 
-  const currentBranchActions = branchActions.filter(action => hasRemote || !['Pull', 'Push', 'Fetch'].includes(String(action.label)));
+  // the host's page to propose this branch's changes, where it's known
+  const pullRequestPage = hasRemote && currentBranch ? pullRequestUrl(gitRepository?.uri || '', currentBranch) : undefined;
+  const currentBranchActions = [
+    ...branchActions.filter(action => hasRemote || !['Pull', 'Push', 'Fetch'].includes(String(action.label))),
+    ...(pullRequestPage ? [{
+      id: 6,
+      icon: 'code-pull-request',
+      label: 'Create Pull Request',
+      onClick: () => window.main.openInBrowser(pullRequestPage),
+    }] : []),
+  ];
 
   useInterval(() => {
     if (!hasRemote) {

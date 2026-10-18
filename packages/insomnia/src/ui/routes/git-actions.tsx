@@ -912,6 +912,8 @@ export const deleteGitBranchAction: ActionFunction = async ({
 
 export interface PushToGitRemoteResult {
   errors?: string[];
+  // the remote has commits this branch doesn't: pull them, or force push
+  rejected?: boolean;
 }
 
 export const pushToGitRemoteAction: ActionFunction = async ({
@@ -925,7 +927,8 @@ export const pushToGitRemoteAction: ActionFunction = async ({
 
   const formData = await request.formData();
 
-  const force = Boolean(formData.get('force'));
+  // sent as text: 'false' is no force
+  const force = formData.get('force') === 'true';
 
   const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
 
@@ -961,7 +964,7 @@ export const pushToGitRemoteAction: ActionFunction = async ({
   const bufferId = await database.bufferChanges();
   const providerName = getOauth2FormatName(gitRepository.credentials);
   try {
-    await GitVCS.push(gitRepository.credentials);
+    await GitVCS.push(gitRepository.credentials, force);
 
   } catch (err: unknown) {
     if (err instanceof Errors.HttpError) {
@@ -973,7 +976,8 @@ export const pushToGitRemoteAction: ActionFunction = async ({
 
     if (err instanceof Errors.PushRejectedError) {
       return {
-        errors: [`Push Rejected, ${errorMessage}` + `\n recommendation: use git inside terminal to resolve this.`],
+        errors: [`The remote has commits this branch doesn't have (${errorMessage}).`],
+        rejected: true,
       };
     }
 
