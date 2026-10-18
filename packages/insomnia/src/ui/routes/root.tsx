@@ -42,6 +42,7 @@ import { exchangeCodeForToken } from '../../sync/git/github-oauth-provider';
 import { exchangeCodeForGitLabToken } from '../../sync/git/gitlab-oauth-provider';
 /**** ><> ↑ --------- Account and Models */
 
+import { ConsoleDrawer } from '../components/console-drawer';
 import { WorkspaceDropdown } from '../components/dropdowns/workspace-dropdown';
 import { Hotkey } from '../components/hotkey';
 import { Icon } from '../components/icon';
@@ -101,6 +102,7 @@ const Root = () => {
     ':workspaceId'
   ) as WorkspaceLoaderData | null;
   const [importUri, setImportUri] = useState('');
+  const [isConsoleOpen, setConsoleOpen] = useState(false);
   const patchSettings = useSettingsPatcher();
 
   useEffect(() => {
@@ -416,7 +418,9 @@ const Root = () => {
             </div>
             {/* /**** ><> ↑ --------- Navbar */}
             <Outlet />
+            {isConsoleOpen && <ConsoleDrawer onClose={() => setConsoleOpen(false)} />}
             <div className="relative [grid-area:Statusbar] flex items-center justify-between overflow-hidden">
+              <div className="flex h-full">
               <TooltipTrigger>
                 <Button
                   data-testid="settings-button"
@@ -438,6 +442,15 @@ const Root = () => {
                   />
                 </Tooltip>
               </TooltipTrigger>
+              <Button
+                data-testid="console-button"
+                aria-pressed={isConsoleOpen}
+                className="px-4 py-1 h-full flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] text-[--color-font] text-xs hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all"
+                onPress={() => setConsoleOpen(!isConsoleOpen)}
+              >
+                <Icon icon="terminal" /> Console
+              </Button>
+              </div>
               <Link>
 
                 <a

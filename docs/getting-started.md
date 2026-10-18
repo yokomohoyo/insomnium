@@ -33,6 +33,8 @@ Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows t
 
 Hover the response time to see how it was spent: the DNS lookup, connecting, the TLS handshake, waiting for the first byte, and the download.
 
+**Console**, in the bar at the bottom, lists every request sent this session, from any collection or the runner: when, the method, the status, the name and URL, how its assertions went, the time and the size. Click one to see what its scripts logged, or why it failed. **Filter** narrows the list, and **Clear** empties it; it isn't kept after the app closes.
+
 ### MCP requests
 
 An **MCP Request** tries out an MCP (Model Context Protocol) server, as an agent would use it. Choose **HTTP** and enter the server's URL, with any headers it needs (such as an `Authorization` header), or **STDIO** and the command that starts the server, with its arguments one per line. Then **Connect**.

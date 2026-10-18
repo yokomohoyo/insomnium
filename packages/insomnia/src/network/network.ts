@@ -5,6 +5,7 @@ import { env as processEnv } from 'node:process';
 import { join as pathJoin } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
+import { entryFor, recordSend } from '../common/console-log';
 import { database as db } from '../common/database';
 import {
   getContentTypeHeader,
@@ -212,6 +213,15 @@ export interface AfterResponseContext {
   iteration?: number;
 }
 export const responseTransform = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>, scriptContext: AfterResponseContext = {}) => {
+  const finished = await transformedResponse(patch, environmentId, renderedRequest, context, scriptContext);
+  // the app's console (common/console-log.ts); the main process has none
+  if (process.type === 'renderer') {
+    recordSend(entryFor(renderedRequest, finished));
+  }
+  return finished;
+};
+
+const transformedResponse = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>, scriptContext: AfterResponseContext = {}) => {
   const response: ResponsePatch = {
     ...patch,
     // important for filter by responses
