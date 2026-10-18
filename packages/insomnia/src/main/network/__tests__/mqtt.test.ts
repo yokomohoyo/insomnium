@@ -26,7 +26,7 @@ describe('MQTT packets', () => {
 
   it('reads the packets that came in, keeping a partial one for later', () => {
     const publish = publishPacket({ topic: 'sensors/1', qos: 1, retain: false }, Buffer.from('21.5'), 7);
-    const stream = Buffer.concat([Buffer.from('20020000', 'hex'), Buffer.from('900300010180', 'hex'), publish, Buffer.from('d000', 'hex')]);
+    const stream = Buffer.concat([Buffer.from('20020000', 'hex'), Buffer.from('900400010180', 'hex'), publish, Buffer.from('d000', 'hex')]);
 
     const first = readPackets(stream.subarray(0, 12));
     expect(first.packets).toEqual([
@@ -63,7 +63,7 @@ describe('MqttSession', () => {
   };
 
   it('connects, subscribes once accepted, keeps alive, and acknowledges QoS 1 deliveries', () => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ doNotFake: ['performance'] });
     const { mqtt, sent, logged } = session();
 
     mqtt.open();
