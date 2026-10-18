@@ -43,6 +43,16 @@ describe('the secret tags', () => {
     expect(asked).toEqual([]);
   });
 
+  it("can't be led out of an allowed prefix, or to another host", async () => {
+    const env = { VAULT_ADDR: url, VAULT_TOKEN: 'token' };
+    for (const path of ['secret/data/app/../../../auth/token/lookup-self', 'secret/data/app/%2e%2e/%2E%2E/auth/token/lookup-self', 'secret/data/./app', 'secret//data', 'secret/data/app?x=1', 'secret\\data']) {
+      await expect(readVaultSecret(path, 'id', 'vault:secret/data/app/*', env)).rejects.toThrow("isn't a Vault secret path");
+    }
+    const aws = { AWS_ACCESS_KEY_ID: 'AKIATEST', AWS_SECRET_ACCESS_KEY: 'secret' };
+    await expect(readAwsSecret('prod/db', '', 'x.evil.example/#', 'aws:prod/*', aws)).rejects.toThrow("x.evil.example/# isn't an AWS region");
+    expect(asked).toEqual([]);
+  });
+
   it('read a field of a Vault KV secret, version 2 or 1, once for a while', async () => {
     answer = req => req.url === '/v1/secret/data/app'
       ? [200, { data: { data: { password: 's3cret', port: 5432 }, metadata: { version: 3 } } }]

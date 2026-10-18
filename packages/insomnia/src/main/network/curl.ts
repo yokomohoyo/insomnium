@@ -236,7 +236,8 @@ const openCurlConnection = async (
         const setCookieStrings: string[] = getSetCookieHeaders(responseHeaders).map(h => h.value);
         const totalSetCookies = setCookieStrings.length;
         if (totalSetCookies) {
-          const currentUrl = req.url;
+          // the last hop's cookies are that URL's, after any redirects
+          const currentUrl = String(curl.getInfo(Curl.info.EFFECTIVE_URL) || req.url);
           const { cookies, rejectedCookies } = await addSetCookiesToToughCookieJar({ setCookieStrings, currentUrl, cookieJar: options.cookieJar });
           rejectedCookies.forEach(errorMessage => timeline.push({ value: `Rejected cookie: ${errorMessage}`, name: 'Text', timestamp: Date.now() }));
           const hasCookiesToPersist = totalSetCookies > rejectedCookies.length;

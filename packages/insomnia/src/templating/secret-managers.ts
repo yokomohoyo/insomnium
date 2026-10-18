@@ -99,10 +99,27 @@ const run = (command: string, args: string[]) => new Promise<string>((resolve, r
   });
 });
 
+// A Vault path as the allowlist sees it and Vault gets it: no . or ..
+// segments (encoded or not), which the URL would collapse past an allowed
+// prefix, and no query, fragment or backslash
+const vaultPath = (secretPath: string) => {
+  const trimmed = secretPath.replace(/^\/+/, '');
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(trimmed);
+  } catch {
+    decoded = '';
+  }
+  const segments = decoded.split('/');
+  guard(decoded && !/[?#\\]/.test(decoded) && segments.every(segment => segment && segment !== '.' && segment !== '..'), `${secretPath} isn't a Vault secret path, such as secret/data/myapp`);
+  return trimmed;
+};
+
 // HashiCorp Vault: a KV secret, version 1 or 2, with VAULT_ADDR and VAULT_TOKEN
 // (or ~/.vault-token, as the vault CLI leaves it)
-export async function readVaultSecret(secretPath: string, field: string, allowedSecrets: string, env = processEnv) {
-  const reference = `vault:${secretPath.replace(/^\/+/, '')}`;
+export async function readVaultSecret(rawPath: string, field: string, allowedSecrets: string, env = processEnv) {
+  const secretPath = vaultPath(rawPath);
+  const reference = `vault:${secretPath}`;
   assertSecretAllowed(reference, allowedSecrets);
   const address = (env.VAULT_ADDR || '').replace(/\/+$/, '');
   guard(address, 'Set VAULT_ADDR to the Vault server, for example https://vault.example.com:8200');
@@ -132,6 +149,8 @@ export async function readAwsSecret(secretId: string, field: string, region: str
   assertSecretAllowed(reference, allowedSecrets);
   const awsRegion = region || env.AWS_REGION || env.AWS_DEFAULT_REGION || '';
   guard(awsRegion, 'Give the region, or set AWS_REGION');
+  // it goes into the host the signed request is sent to
+  guard(/^[a-z]{2}(-[a-z]+)+-\d+$/.test(awsRegion), `${awsRegion} isn't an AWS region, such as us-east-1`);
   guard(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY, 'Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (and AWS_SESSION_TOKEN for temporary credentials)');
   const endpoint = new URL(env.AWS_ENDPOINT_URL_SECRETS_MANAGER || env.AWS_ENDPOINT_URL || `https://secretsmanager.${awsRegion}.amazonaws.com`);
   const secret = await cached(`${reference} ${awsRegion} ${endpoint.origin}`, async () => {

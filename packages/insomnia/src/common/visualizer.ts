@@ -31,6 +31,8 @@ export function visualizationDocument({ template, data }: Visualization, handleb
     '<!doctype html>',
     '<html><head><meta charset="utf-8">',
     `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:">`,
+    // no WebRTC: its STUN and TURN traffic would go around the webview's network block
+    `<script>['RTCPeerConnection', 'webkitRTCPeerConnection', 'RTCDataChannel', 'RTCSessionDescription', 'RTCIceCandidate'].forEach(function (name) { try { Object.defineProperty(window, name, { value: undefined, writable: false, configurable: false }); } catch (err) {} });</script>`,
     `<script>${handlebarsRuntime.replace(/<\/script/gi, '<\\/script')}</script>`,
     '<script>',
     `(function () {
