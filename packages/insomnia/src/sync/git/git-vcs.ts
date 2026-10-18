@@ -1,6 +1,10 @@
 import * as git from 'isomorphic-git';
 import path from 'path';
+import YAML from 'yaml';
 
+import { database as db } from '../../common/database';
+import * as models from '../../models';
+import type { BaseModel } from '../../models';
 import { httpClient } from './http-client';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
 import { sanitizeGitConfig } from './sanitize-git-config';
@@ -398,12 +402,79 @@ export class GitVCS {
 
   async pull(gitCredentials?: GitCredentials | null) {
     console.log('[git] Pull remote=origin', await this.getBranch());
-    return git.pull({
+    return this._removingDroppedDocs(() => git.pull({
       ...this._baseOpts,
       ...gitCallbacks(gitCredentials),
       remote: 'origin',
       singleBranch: true,
-    });
+    }));
+  }
+
+  /**
+   * isomorphic-git never sees the synced docs in the work tree (the root listing
+   * comes from the 'other' store), so a checkout only drops a doc the incoming
+   * commit no longer has from the index, and the doc stays in the app. Remove
+   * those docs too, unless they have changes that were never committed (they
+   * then show as added) or something still in the app sits under them. The
+   * workspace always stays.
+   */
+  async _removingDroppedDocs<T>(operation: () => Promise<T>) {
+    const head = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' }).catch(() => null);
+    const before = await git.listFiles({ ...this._baseOpts });
+    const result = await operation();
+    if (!head) {
+      return result;
+    }
+
+    const after = new Set(await git.listFiles({ ...this._baseOpts }));
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const workspaceIds = new Set<string>();
+    const dropped = new Map<string, BaseModel>();
+    for (const filepath of before) {
+      const [root, type, fileName, ...rest] = filepath.split('/');
+      if (root !== GIT_INSOMNIA_DIR_NAME || !fileName || rest.length) {
+        continue;
+      }
+      if (type === models.workspace.type) {
+        workspaceIds.add(fileName.replace(/\.yml$/, ''));
+        continue;
+      }
+      if (after.has(filepath) || !models.getModel(type)?.canSync) {
+        continue;
+      }
+      const committed = await git.readBlob({ ...this._baseOpts, oid: head, filepath }).catch(() => null);
+      const content = await fs.readFile(filepath).catch(() => null);
+      // only staged, or not in the app
+      if (!committed || !content) {
+        continue;
+      }
+      if ((await git.hashBlob({ object: content })).oid !== committed.oid) {
+        console.log(`[git] Keeping ${filepath}, removed upstream: it has changes that were not committed`);
+        continue;
+      }
+      const doc: BaseModel = YAML.parse(content.toString());
+      dropped.set(doc._id, doc);
+    }
+
+    for (const { _id, type } of dropped.values()) {
+      // already gone if it was under another dropped doc
+      const doc = await db.get(type, _id);
+      if (!doc) {
+        continue;
+      }
+      if (!(await db.withAncestors(doc)).some(d => d.type === models.workspace.type && workspaceIds.has(d._id))) {
+        console.log(`[git] Keeping ${type} ${_id}, removed upstream: it is not under this repository's workspace`);
+        continue;
+      }
+      const kept = (await db.withDescendants(doc)).find(d => !dropped.has(d._id) && models.getModel(d.type)?.canSync);
+      if (kept) {
+        console.log(`[git] Keeping ${type} ${_id}, removed upstream: ${kept.type} ${kept._id} is under it`);
+        continue;
+      }
+      console.log(`[git] Removing ${type} ${_id}: removed upstream`);
+      await db.remove(doc, true);
+    }
+    return result;
   }
 
   async merge(theirBranch: string) {
@@ -512,11 +583,11 @@ export class GitVCS {
         console.log('[git] Fetch failed', e);
       }
 
-      await git.checkout({
+      await this._removingDroppedDocs(() => git.checkout({
         ...this._baseOpts,
         ref: branch,
         remote: 'origin',
-      });
+      }));
       const branches = await this.listBranches();
       console.log('[git] Checkout branches', { branches });
     } else {
