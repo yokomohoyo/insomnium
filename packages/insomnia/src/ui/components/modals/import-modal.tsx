@@ -633,6 +633,10 @@ const ScanResourcesForm = ({
               Hoppscotch
             </Pill>
             <Pill>
+              <i className="fa-regular fa-file fa-lg" />
+              Bruno
+            </Pill>
+            <Pill>
               <OpenAPIIcon />
               OpenAPI
             </Pill>
@@ -734,6 +738,12 @@ const ImportResourcesForm = ({
                     <Fragment>
                       <HoppscotchIcon width={24} height={24} />
                       Hoppscotch
+                    </Fragment>
+                  )}
+                  {scanResult.type?.id === 'bruno' && (
+                    <Fragment>
+                      <i className="fa-regular fa-file fa-lg" />
+                      Bruno
                     </Fragment>
                   )}
                   {scanResult.type?.id.includes('swagger') && (

@@ -1,0 +1,389 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "",
+  "__export_source": "insomnia.importers:v0.1.0",
+  "resources": [
+    {
+      "parentId": "__BASE_ENVIRONMENT_ID__",
+      "name": "Local",
+      "data": {
+        "version": "v1",
+        "token": "t0ken",
+        "host": "http://localhost:3000",
+        "apiKey": ""
+      },
+      "_id": "__ENV_1__",
+      "_type": "environment"
+    },
+    {
+      "parentId": "__BASE_ENVIRONMENT_ID__",
+      "name": "Staging",
+      "data": {
+        "version": "v2",
+        "token": "t0ken",
+        "host": "https://staging.example.com"
+      },
+      "_id": "__ENV_2__",
+      "_type": "environment"
+    },
+    {
+      "parentId": "__WORKSPACE_ID__",
+      "name": "Pet Store",
+      "environment": {},
+      "_id": "__GRP_1__",
+      "_type": "request_group",
+      "description": "# Pet Store\n\nThe collection's docs.\n\n**Bruno pre-request script**, not run by Insomnium:\n\n```js\nreq.setHeader('X-Trace', bru.interpolate('{{$guid}}'));\n```"
+    },
+    {
+      "parentId": "__GRP_1__",
+      "name": "Health",
+      "url": "{{host}}/health",
+      "body": {
+        "mimeType": "text/plain",
+        "text": "ping"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Client",
+          "value": "bruno-import"
+        },
+        {
+          "name": "Content-Type",
+          "value": "text/plain"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "bearer",
+          "token": "{{token}}",
+          "prefix": "",
+          "disabled": false
+        }
+      ],
+      "_id": "__REQ_2__",
+      "_type": "request",
+      "description": "",
+      "method": "PUT",
+      "assertions": [
+        {
+          "id": "asrt_bruno1",
+          "source": "header",
+          "property": "X-Up",
+          "operator": "equals",
+          "value": "yes"
+        }
+      ],
+      "metaSortKey": 0
+    },
+    {
+      "parentId": "__GRP_1__",
+      "name": "Pets",
+      "environment": {
+        "species": "cat"
+      },
+      "_id": "__GRP_3__",
+      "_type": "request_group",
+      "description": "Everything about pets.\n\n**Bruno tests**, not run by Insomnium:\n\n```js\ntest('folder', () => {});\n```",
+      "metaSortKey": 2
+    },
+    {
+      "parentId": "__GRP_3__",
+      "name": "Get pet",
+      "url": "{{host}}/pets/:id",
+      "body": {},
+      "parameters": [
+        {
+          "name": "expand",
+          "value": "owner",
+          "disabled": false
+        },
+        {
+          "name": "fields",
+          "value": "name",
+          "disabled": false
+        },
+        {
+          "name": "debug",
+          "value": "1",
+          "disabled": true
+        }
+      ],
+      "headers": [
+        {
+          "name": "X-Client",
+          "value": "own"
+        },
+        {
+          "name": "Accept",
+          "value": "application/json",
+          "disabled": true
+        }
+      ],
+      "authentication": [],
+      "_id": "__REQ_4__",
+      "_type": "request",
+      "description": "Fetches one pet.\n\n**Bruno post-response script**, not run by Insomnium:\n\n```js\nbru.setVar('petId', res.body.id);\n```\n\n**Bruno tests**, not run by Insomnium:\n\n```js\ntest('is a pet', () => expect(res.body).to.have.property('id'));\n```\n\n**Bruno post-response variables**, not run by Insomnium:\n\n```\npetName: res.body.name\n```\n\n**Bruno assertions**, not run by Insomnium:\n\n```\nres.body.age: gte 1\nres.body.name: matches ^T\nreq.body.name: isString (disabled)\n```",
+      "method": "GET",
+      "segmentParams": [
+        {
+          "name": "id",
+          "value": "42",
+          "disabled": false,
+          "id": "pair_ending0"
+        }
+      ],
+      "assertions": [
+        {
+          "id": "asrt_bruno1",
+          "source": "status",
+          "operator": "equals",
+          "value": "200"
+        },
+        {
+          "id": "asrt_bruno2",
+          "source": "status",
+          "operator": "equals",
+          "value": "200"
+        },
+        {
+          "id": "asrt_bruno3",
+          "source": "jsonpath",
+          "property": "$.name",
+          "operator": "equals",
+          "value": "Tom"
+        },
+        {
+          "id": "asrt_bruno4",
+          "disabled": true,
+          "source": "jsonpath",
+          "property": "$.tags[0]",
+          "operator": "exists"
+        },
+        {
+          "id": "asrt_bruno5",
+          "source": "header",
+          "property": "content-type",
+          "operator": "contains",
+          "value": "json"
+        },
+        {
+          "id": "asrt_bruno6",
+          "source": "header",
+          "property": "etag",
+          "operator": "notExists"
+        },
+        {
+          "id": "asrt_bruno7",
+          "source": "responseTime",
+          "operator": "lessThan",
+          "value": "500"
+        },
+        {
+          "id": "asrt_bruno8",
+          "source": "body",
+          "operator": "contains",
+          "value": "{{species}}"
+        }
+      ],
+      "settingEncodeUrl": false,
+      "settingFollowRedirects": "off",
+      "settingTimeout": 5000,
+      "metaSortKey": 0
+    },
+    {
+      "parentId": "__GRP_3__",
+      "name": "Create pet",
+      "url": "{{host}}/{{version}}/pets",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Tom\",\n  \"species\": \"{{species}}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Client",
+          "value": "pets-folder"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "basic",
+          "username": "admin",
+          "password": "{{password}}",
+          "disabled": false
+        }
+      ],
+      "_id": "__REQ_5__",
+      "_type": "request",
+      "description": "",
+      "method": "POST",
+      "metaSortKey": 1
+    },
+    {
+      "parentId": "__GRP_3__",
+      "name": "Photos",
+      "environment": {},
+      "_id": "__GRP_6__",
+      "_type": "request_group",
+      "description": "",
+      "metaSortKey": 2
+    },
+    {
+      "parentId": "__GRP_6__",
+      "name": "Upload photo",
+      "url": "{{host}}/pets/42/photos",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "caption",
+            "value": "On the sofa",
+            "disabled": false
+          },
+          {
+            "name": "photo",
+            "type": "file",
+            "fileName": "/tmp/a.png",
+            "disabled": false
+          },
+          {
+            "name": "photo",
+            "type": "file",
+            "fileName": "/tmp/b.png",
+            "disabled": false
+          },
+          {
+            "name": "draft",
+            "value": "yes",
+            "disabled": true
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Client",
+          "value": "pets-folder"
+        },
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "basic",
+          "username": "admin",
+          "password": "{{password}}",
+          "disabled": false
+        }
+      ],
+      "_id": "__REQ_7__",
+      "_type": "request",
+      "description": "",
+      "method": "POST",
+      "metaSortKey": 0
+    },
+    {
+      "parentId": "__GRP_1__",
+      "name": "Pets by GraphQL",
+      "url": "{{host}}/graphql",
+      "body": {
+        "mimeType": "application/graphql",
+        "text": "{\"query\":\"query ($first: Int) { pets(first: $first) { name } }\",\"variables\":{\"first\":10}}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "X-Client",
+          "value": "bruno-import"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "apikey",
+          "key": "X-Api-Key",
+          "value": "{{apiKey}}",
+          "addTo": "header",
+          "disabled": false
+        }
+      ],
+      "_id": "__REQ_8__",
+      "_type": "request",
+      "description": "",
+      "method": "POST",
+      "metaSortKey": 3
+    },
+    {
+      "parentId": "__GRP_1__",
+      "name": "Login (an older export)",
+      "url": "{{host}}/login",
+      "body": {
+        "mimeType": "application/x-www-form-urlencoded",
+        "params": [
+          {
+            "name": "user",
+            "value": "admin",
+            "disabled": false
+          },
+          {
+            "name": "remember",
+            "value": "1",
+            "disabled": true
+          }
+        ]
+      },
+      "parameters": [
+        {
+          "name": "next",
+          "value": "home",
+          "disabled": false
+        }
+      ],
+      "headers": [
+        {
+          "name": "X-Client",
+          "value": "bruno-import"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/x-www-form-urlencoded; charset=utf-8"
+        }
+      ],
+      "authentication": [
+        {
+          "type": "oauth2",
+          "grantType": "client_credentials",
+          "accessTokenUrl": "{{host}}/token",
+          "authorizationUrl": "",
+          "clientId": "app",
+          "clientSecret": "{{secret}}",
+          "scope": "read",
+          "state": "",
+          "redirectUrl": "",
+          "username": "",
+          "password": "",
+          "usePkce": false,
+          "credentialsInBody": false,
+          "tokenPrefix": "Bearer",
+          "disabled": false
+        }
+      ],
+      "_id": "__REQ_9__",
+      "_type": "request",
+      "description": "",
+      "method": "POST",
+      "metaSortKey": 4
+    }
+  ]
+}

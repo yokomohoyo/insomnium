@@ -1,4 +1,5 @@
 import { Importer } from '../entities';
+import * as bruno from './bruno';
 import * as curl from './curl';
 import * as har from './har';
 import * as hoppscotch2 from './hoppscotch-2';
@@ -22,6 +23,7 @@ export const importers: Importer[] = [
   insomnia5,
   postman,
   postmanenv,
+  bruno,
   har,
   hoppscotch2,
   curl,
