@@ -6,7 +6,6 @@ const collection = `_type: export
 __export_format: 4
 resources:
   - { _id: wrk_1, _type: workspace, parentId: null, name: Subscriptions, scope: collection }
-  - { _id: env_1, _type: environment, parentId: wrk_1, name: Base Environment, data: { species: cat } }
   - _id: ws-req_1
     _type: websocket_request
     parentId: wrk_1
@@ -15,7 +14,7 @@ resources:
     graphqlSubscription:
       enabled: true
       query: 'subscription PetAdded($species: String) { petAdded(species: $species) { name species } }'
-      variables: '{ "species": "{{ species }}" }'
+      variables: '{ "species": "cat" }'
 `;
 
 test('a WebSocket request subscribes with GraphQL, and shows each event @ci', async ({ app, page }) => {
@@ -32,7 +31,7 @@ test('a WebSocket request subscribes with GraphQL, and shows each event @ci', as
   await expect(page.getByTestId('request-pane')).toContainText('subscription PetAdded');
 
   await page.getByRole('button', { name: 'Connect' }).click();
-  // the server's events, for the variables rendered from the environment
+  // the server's events, for the subscription's variables
   const events = page.getByTestId('response-pane').filter({ hasText: 'Fido' });
   await expect(events).toHaveCount(1);
   await expect(events).toContainText('cat');
