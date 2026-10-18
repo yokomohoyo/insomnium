@@ -46,6 +46,14 @@ Export a collection or document from its menu, or everything in a project from *
 - **Insomnium v4**, as JSON or YAML: everything, for import into Insomnium or Insomnia, or for [insomnium-server](../packages/insomnium-server/README.md).
 - **HAR**: the requests only.
 - **Postman Collection v2.1**, for Postman or any tool that imports it: folders, requests (query, path variables, headers, bodies), auth (Basic, Bearer, API key, Digest, NTLM, OAuth 1 and 2, AWS and Hawk; an empty one inherits, as in Insomnium), scripts as Postman's pre-request and test scripts, examples as saved responses, and the base environment as collection variables. `{{ _.name }}` becomes `{{name}}`, and Faker tags become Postman's `{{$randomEmail}}` variables. Other tags have no Postman form and stay as written. gRPC and WebSocket requests, and sub environments, aren't part of a Postman collection, so they're left out.
+- **OpenAPI 3.0** (YAML), an API description of the HTTP requests, for documentation and mock tools, or to start a [design document](design-documents.md) from requests you already have. Each request is an operation:
+  - its method and path, with `{{ _.id }}` and `:id` as the path parameter `{id}`, and its query parameters and headers;
+  - its body as the request body, with a schema worked out from a JSON example;
+  - its [examples](getting-started.md#requests) as responses;
+  - its folder as its tag;
+  - its auth, or the folder's it inherits, as security (Basic, Digest, Bearer, API key and OAuth 2).
+
+  Servers come from the start of the URLs: `{{ _.base_url }}` is the base environment's `base_url`, and each sub environment's, when they're set. Variables and tags in values aren't examples, so they're left out. A second request for the same method and path, such as a variant of the first, is left out too, as are gRPC and WebSocket requests.
 
 Insomnium asks whether to include private environments.
 

@@ -7,6 +7,7 @@
 // give a server, where the URL's variables resolve. A second request for the
 // same method and path (a variant of the first) is left out, as are gRPC and
 // WebSocket requests, which have no OpenAPI form.
+import YAML from 'yaml';
 
 interface Resource {
   _id: string;
@@ -212,9 +213,10 @@ export function toOpenApi(resources: Resource[], name: string) {
       return [];
     }
     const subs = resources.filter(resource => resource._type === 'environment' && resource.parentId === base._id);
-    return subs.length
-      ? subs.map(sub => ({ name: sub.name || 'Environment', data: { ...base.data, ...sub.data } }))
-      : [{ name: base.name || 'Base Environment', data: base.data || {} }];
+    return [
+      { name: base.name || 'Base Environment', data: base.data || {} },
+      ...subs.map(sub => ({ name: sub.name || 'Environment', data: { ...base.data, ...sub.data } })),
+    ];
   };
   const serversOf = (server: string, workspace: Resource) => {
     const servers = new Map<string, { url: string; description?: string }>();
@@ -223,7 +225,8 @@ export function toOpenApi(resources: Resource[], name: string) {
       if (url && !isTemplated(url)) {
         const absolute = /^[a-z][a-z0-9+.-]*:\/\//i.test(url) ? url : `http://${url}`;
         if (!servers.has(absolute)) {
-          servers.set(absolute, { url: absolute.replace(/\/$/, ''), description: environment.name });
+          // which environment it is, when that's what decides it
+          servers.set(absolute, { url: absolute.replace(/\/$/, ''), ...(HAS_VARIABLE.test(server) ? { description: environment.name } : {}) });
         }
       }
     }
@@ -329,3 +332,7 @@ export function toOpenApi(resources: Resource[], name: string) {
     ...(Object.keys(securitySchemes).length ? { components: { securitySchemes } } : {}),
   };
 }
+
+// as YAML; the JSON round trip leaves no shared objects for YAML to alias
+export const toOpenApiYaml = (resources: Resource[], name: string) =>
+  YAML.stringify(JSON.parse(JSON.stringify(toOpenApi(resources, name))));

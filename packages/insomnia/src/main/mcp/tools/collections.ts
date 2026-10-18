@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { exportWorkspacesData } from '../../../common/export-data';
+import { toOpenApiYaml } from '../../../common/export-openapi';
 import { toPostmanCollection } from '../../../common/export-postman';
 import { importResourcesToWorkspace, scanResources } from '../../../common/import';
 import * as models from '../../../models';
@@ -38,15 +39,18 @@ export function registerCollectionTools(server: McpServer) {
 
   server.tool(
     'export_workspace',
-    "Export a workspace: as Insomnium's v4 JSON (to back it up, or move it to another Insomnium or Insomnia) or as a Postman Collection v2.1. Private environments are left out unless includePrivate is true.",
-    { workspaceId: z.string(), format: z.enum(['insomnium', 'postman']).default('insomnium'), includePrivate: z.boolean().default(false) },
+    "Export a workspace: as Insomnium's v4 JSON (to back it up, or move it to another Insomnium or Insomnia), as a Postman Collection v2.1, or as an OpenAPI 3.0 description (YAML) of its HTTP requests. Private environments are left out unless includePrivate is true.",
+    { workspaceId: z.string(), format: z.enum(['insomnium', 'postman', 'openapi']).default('insomnium'), includePrivate: z.boolean().default(false) },
     async ({ workspaceId, format, includePrivate }) => {
       const workspace = await models.workspace.getById(workspaceId);
       if (!workspace) {
         return text({ error: 'workspace not found' }, true);
       }
       const exported = await exportWorkspacesData([workspace], includePrivate, 'json');
-      return text(format === 'postman' ? JSON.stringify(toPostmanCollection(JSON.parse(exported).resources, workspace.name), null, 2) : exported);
+      const { resources } = JSON.parse(exported);
+      return text(format === 'postman' ? JSON.stringify(toPostmanCollection(resources, workspace.name), null, 2)
+        : format === 'openapi' ? toOpenApiYaml(resources, workspace.name)
+          : exported);
     },
   );
 
