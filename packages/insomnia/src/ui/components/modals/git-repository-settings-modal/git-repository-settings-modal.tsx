@@ -1,10 +1,10 @@
-import React, { Key, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { docsGitSync } from '../../../../common/documentation';
-import type { GitRepository, OauthProviderName } from '../../../../models/git-repository';
+import type { GitRepository } from '../../../../models/git-repository';
 import { Link } from '../../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
 import { ModalBody } from '../../base/modal-body';
@@ -15,8 +15,6 @@ import { ErrorBoundary } from '../../error-boundary';
 import { HelpTooltip } from '../../help-tooltip';
 import { showAlert } from '..';
 import { CustomRepositorySettingsFormGroup } from './custom-repository-settings-form-group';
-import { GitHubRepositorySetupFormGroup } from './github-repository-settings-form-group';
-import { GitLabRepositorySetupFormGroup } from './gitlab-repository-settings-form-group';
 
 const TabPill = styled.div({
   display: 'flex',
@@ -33,7 +31,6 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
   const updateGitRepositoryFetcher = useFetcher();
   const deleteGitRepositoryFetcher = useFetcher();
 
-  const [selectedTab, setTab] = useState<OauthProviderName>('custom');
 
   useEffect(() => {
     modalRef.current?.show();
@@ -92,8 +89,6 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
             <Tabs
               isDisabled={isLoading || hasGitRepository}
               aria-label="Git repository settings tabs"
-              selectedKey={selectedTab}
-              onSelectionChange={(key: Key) => setTab(key as OauthProviderName)}
             >
               <TabItem key='custom' title={<TabPill><i className="fa fa-code-fork" /> Git</TabPill>}>
                 <PanelContainer className="pad pad-top-sm">
@@ -138,7 +133,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
               <button
                 type="submit"
                 disabled={isLoading}
-                form={selectedTab}
+                form="custom"
                 className="btn"
                 data-testid="git-repository-settings-modal__sync-btn"
               >

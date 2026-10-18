@@ -123,12 +123,6 @@ export const displayModifierKey = (key: keyof Omit<KeyCombination, 'keyCode'>) =
 // API
 export const getApiBaseURL = () => env.INSOMNIA_API_URL || 'https://api.insomnia.rest';
 
-// App website
-export const getAppWebsiteBaseURL = () => env.INSOMNIA_APP_WEBSITE_URL || 'https://app.insomnia.rest';
-
-// GitHub API
-export const getGitHubGraphQLApiURL = () => env.INSOMNIA_GITHUB_API_URL || 'https://api.github.com/graphql';
-
 // License
 export const getLicenseURL = () => env.INSOMNIUM_LICENSE_URL || 'https://github.com/yokomohoyo/insomnium/blob/main/LICENSE';
 

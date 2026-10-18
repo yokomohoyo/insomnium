@@ -99,7 +99,7 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 
 ## Saved credentials
 
-Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials (a GitHub or GitLab sign-in's tokens included), client certificate passphrases, and the proto and MCP tokens in Settings. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
+Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials, client certificate passphrases, and the proto and MCP tokens in Settings. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
 
 What this does not cover:
 

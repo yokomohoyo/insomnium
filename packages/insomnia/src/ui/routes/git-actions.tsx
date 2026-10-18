@@ -34,7 +34,6 @@ import { routableFSClient } from '../../sync/git/routable-fs-client';
 import { shallowClone } from '../../sync/git/shallow-clone';
 import {
   addDotGit,
-  getOauth2FormatName,
 } from '../../sync/git/utils';
 import { type DocDiff, docDiff } from '../../sync/git/doc-diff';
 import { guard } from '../../utils/guard';
@@ -391,39 +390,20 @@ export const cloneGitRepoAction: ActionFunction = async ({
   };
 
   // Git Credentials
-  const oauth2format = formData.get('oauth2format');
-  if (oauth2format) {
-    guard(
-      oauth2format === 'gitlab' || oauth2format === 'github',
-      'OAuth2 format is required'
-    );
-    const token = formData.get('token');
-    guard(typeof token === 'string', 'Token is required');
-    const username = formData.get('username');
-    guard(typeof username === 'string', 'Username is required');
+  const token = formData.get('token');
+  guard(typeof token === 'string', 'Token is required');
+  const username = formData.get('username');
+  guard(typeof username === 'string', 'Username is required');
 
-    repoSettingsPatch.credentials = {
-      username,
-      token,
-      oauth2format,
-    };
-  } else {
-    const token = formData.get('token');
-    guard(typeof token === 'string', 'Token is required');
-    const username = formData.get('username');
-    guard(typeof username === 'string', 'Username is required');
-
-    repoSettingsPatch.credentials = {
-      password: token,
-      username,
-    };
-  }
+  repoSettingsPatch.credentials = {
+    password: token,
+    username,
+  };
 
   repoSettingsPatch.needsFullClone = true;
   repoSettingsPatch.uri = addDotGit(repoSettingsPatch.uri);
   const fsClient = MemClient.createClient();
 
-  const providerName = getOauth2FormatName(repoSettingsPatch.credentials);
   try {
     await shallowClone({
       fsClient,
@@ -544,33 +524,15 @@ export const updateGitRepoAction: ActionFunction = async ({
   };
 
   // Git Credentials
-  const oauth2format = formData.get('oauth2format');
-  if (oauth2format) {
-    guard(
-      oauth2format === 'gitlab' || oauth2format === 'github',
-      'OAuth2 format is required'
-    );
-    const token = formData.get('token');
-    guard(typeof token === 'string', 'Token is required');
-    const username = formData.get('username');
-    guard(typeof username === 'string', 'Username is required');
+  const token = formData.get('token');
+  guard(typeof token === 'string', 'Token is required');
+  const username = formData.get('username');
+  guard(typeof username === 'string', 'Username is required');
 
-    repoSettingsPatch.credentials = {
-      username,
-      token,
-      oauth2format,
-    };
-  } else {
-    const token = formData.get('token');
-    guard(typeof token === 'string', 'Token is required');
-    const username = formData.get('username');
-    guard(typeof username === 'string', 'Username is required');
-
-    repoSettingsPatch.credentials = {
-      password: token,
-      username,
-    };
-  }
+  repoSettingsPatch.credentials = {
+    password: token,
+    username,
+  };
 
   if (gitRepositoryId) {
     const repo = await models.gitRepository.getById(gitRepositoryId);
@@ -681,7 +643,6 @@ export const commitToGitRepoAction: ActionFunction = async ({
 
     await GitVCS.commit(message);
 
-    const providerName = getOauth2FormatName(repo?.credentials);
 
   } catch (e) {
     const message =
@@ -898,7 +859,6 @@ export const deleteGitBranchAction: ActionFunction = async ({
   guard(typeof branch === 'string', 'Branch name is required');
 
   try {
-    const providerName = getOauth2FormatName(repo?.credentials);
     await GitVCS.deleteBranch(branch);
 
   } catch (err) {
@@ -961,7 +921,6 @@ export const pushToGitRemoteAction: ActionFunction = async ({
   }
 
   const bufferId = await database.bufferChanges();
-  const providerName = getOauth2FormatName(gitRepository.credentials);
   try {
     await GitVCS.push(gitRepository.credentials, force);
 
@@ -1016,7 +975,6 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
 
   const bufferId = await database.bufferChanges();
 
-  const providerName = getOauth2FormatName(gitRepository.credentials);
 
   // the pull fetches what it merges
   try {

@@ -37,8 +37,6 @@ import { assertValidThemeName } from '../../main/validate-package-spec';
 import { reloadPlugins } from '../../plugins';
 import { createPlugin } from '../../plugins/create';
 import { setTheme } from '../../plugins/misc';
-import { exchangeCodeForToken } from '../../sync/git/github-oauth-provider';
-import { exchangeCodeForGitLabToken } from '../../sync/git/gitlab-oauth-provider';
 /**** ><> ↑ --------- Account and Models */
 
 import { ConsoleDrawer } from '../components/console-drawer';
@@ -216,34 +214,6 @@ const Root = () => {
                 }
               },
             });
-            break;
-          }
-
-          case 'insomnia://oauth/github/authenticate': {
-            const { code, state } = params;
-            await exchangeCodeForToken({ code, state }).catch(
-              (error: Error) => {
-                showError({
-                  error,
-                  title: 'Error authorizing GitHub',
-                  message: error.message,
-                });
-              }
-            );
-            break;
-          }
-
-          case 'insomnia://oauth/gitlab/authenticate': {
-            const { code, state } = params;
-            await exchangeCodeForGitLabToken({ code, state }).catch(
-              (error: Error) => {
-                showError({
-                  error,
-                  title: 'Error authorizing GitLab',
-                  message: error.message,
-                });
-              }
-            );
             break;
           }
 
