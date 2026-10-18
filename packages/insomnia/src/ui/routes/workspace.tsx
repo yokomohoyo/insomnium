@@ -3,6 +3,7 @@ import { LoaderFunction, Outlet, useLoaderData } from 'react-router-dom';
 
 import { SortOrder } from '../../common/constants';
 import { database } from '../../common/database';
+import { getGlobalEnvironments } from '../../common/global-environments';
 import { fuzzyMatchAll } from '../../common/misc';
 import { sortMethodMap } from '../../common/sorting';
 import * as models from '../../models';
@@ -38,6 +39,8 @@ export interface WorkspaceLoaderData {
   activeProject: Project;
   gitRepository: GitRepository | null;
   activeEnvironment: Environment;
+  // the project's global sub environment the collection uses
+  activeGlobalEnvironment: Environment | null;
   activeCookieJar: CookieJar;
   baseEnvironment: Environment;
   subEnvironments: Environment[];
@@ -258,6 +261,7 @@ export const workspaceLoader: LoaderFunction = async ({
     activeWorkspaceMeta,
     activeCookieJar,
     activeEnvironment,
+    activeGlobalEnvironment: (await getGlobalEnvironments(projectId, workspaceId)).active,
     subEnvironments,
     baseEnvironment,
     activeApiSpec,

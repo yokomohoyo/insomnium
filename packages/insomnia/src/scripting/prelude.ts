@@ -31,9 +31,12 @@ export const PRELUDE = String.raw`
   var baseEnvironment = state.environmentIsBase ? environment : state.baseEnvironment;
   var variables = state.variables;
   var iterationData = state.iterationData || {};
+  // the project's global environment in use, and its global base under it
+  var globals = state.globals || {};
+  var globalBase = state.globalBase || {};
 
   function lookup(key) {
-    var stores = [variables, iterationData, environment, baseEnvironment];
+    var stores = [variables, iterationData, environment, baseEnvironment, globals, globalBase];
     for (var i = 0; i < stores.length; i++) {
       if (hasOwn(stores[i], key)) {
         return stores[i][key];
@@ -442,9 +445,9 @@ export const PRELUDE = String.raw`
   var api = {
     environment: scope(environment, 'environment', false),
     baseEnvironment: scope(baseEnvironment, 'baseEnvironment', false),
-    // Insomnium keeps these in the base environment
+    // Insomnium keeps a collection's variables in its base environment
     collectionVariables: scope(baseEnvironment, 'collectionVariables', false),
-    globals: scope(baseEnvironment, 'globals', false),
+    globals: scope(globals, 'globals', false),
     variables: variablesApi,
     iterationData: scope(iterationData, 'iterationData', true),
     request: requestApi(state.request, state.event !== 'prerequest'),
@@ -457,7 +460,7 @@ export const PRELUDE = String.raw`
   globalThis.pm = api;
   globalThis.__pending = function () { return Promise.all(pending); };
   globalThis.__output = function () {
-    return JSON.stringify({ request: state.request, environment: environment, baseEnvironment: baseEnvironment, variables: variables, tests: state.tests });
+    return JSON.stringify({ request: state.request, environment: environment, baseEnvironment: baseEnvironment, globals: globals, variables: variables, tests: state.tests });
   };
 })();
 `;

@@ -7,7 +7,7 @@ Import from a collection's menu (the collection's name, top left), or from **Pre
 | Format | Notes |
 |---|---|
 | **Postman** collections, v2.0 and v2.1 | Folders, auth (including auth inherited from a folder or the collection), path variables, bodies and collection variables. Scripts become [request scripts](scripts.md): see below. `{{$randomEmail}}`-style dynamic variables become [Faker tags](template-tags.md). |
-| **Postman** environments | Their values become an environment. |
+| **Postman** environments and globals | An environment's values become a sub environment. Globals are added to the project's [global environment](getting-started.md#global-environments). |
 | **Insomnia v5** (YAML), from Insomnia 11 and later | Folders, requests, gRPC and WebSocket requests, environments, the cookie jar, the API spec, unit tests, and scripts. Socket.IO requests, MCP clients and mock servers have no counterpart in Insomnium, so they're left out. |
 | **Insomnium and Insomnia v1 to v4** (JSON or YAML) | Insomnium's own export format, and Insomnia's before v5. |
 | **Bruno** collection and environment exports (JSON) | Folders, requests, auth, headers, variables, environments and assertions, which become [assertions](testing.md#assertions). Bruno's scripts and tests use its own API, so they're kept as text in the request's description. `{{process.env.NAME}}` becomes the [`env` tag](template-tags.md#os-environment-variables-and-dotenv). |

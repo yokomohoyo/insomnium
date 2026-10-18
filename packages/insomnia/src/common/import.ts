@@ -18,6 +18,7 @@ import { database as db } from './database';
 import { generateId } from './misc';
 import { importResourcesToProject } from './importResourcesToProject';
 import { getAppVersion } from './constants';
+import { importGlobalEnvironments } from './global-environments';
 
 export interface ExportedModel extends BaseModel {
   _type: string;
@@ -173,7 +174,7 @@ export const importToWorkspaceFromJSON = async ({ workspaceId, json }: { workspa
   return await importToWorkspace({ workspaceId, resources });
 };
 
-export const importToWorkspace = async ({ workspaceId, resources }: { workspaceId: string; resources: BaseModel[] }) => {
+export const importToWorkspace = async ({ workspaceId, resources: imported }: { workspaceId: string; resources: BaseModel[] }) => {
 
   const bufferId = await db.bufferChanges();
   const ResourceIdMap = new Map();
@@ -183,6 +184,7 @@ export const importToWorkspace = async ({ workspaceId, resources }: { workspaceI
     existingWorkspace,
     `Could not find workspace with id ${workspaceId}`
   );
+  const resources = existingWorkspace.parentId ? await importGlobalEnvironments(existingWorkspace.parentId, imported) : imported;
   // Map new IDs
   ResourceIdMap.set(workspaceId, existingWorkspace._id);
   ResourceIdMap.set('__WORKSPACE_ID__', existingWorkspace._id);

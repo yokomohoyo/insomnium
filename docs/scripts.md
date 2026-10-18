@@ -32,8 +32,9 @@ If the pre-request script throws, the request isn't sent, and the error and its 
 | | |
 |---|---|
 | `insomnia.environment` | The environment in use: the sub environment, or the base one if none is chosen. |
-| `insomnia.baseEnvironment` | The base environment. `collectionVariables` and `globals` are the same store, for scripts from Postman. |
-| `insomnia.variables` | Variables for this send only. `get` looks here first, then in the iteration data, the environment and the base environment. |
+| `insomnia.baseEnvironment` | The base environment. `collectionVariables` is the same store, for scripts from Postman. |
+| `insomnia.globals` | The project's [global environment](getting-started.md#global-environments) in use: the global sub environment the collection uses, or else the global base environment. |
+| `insomnia.variables` | Variables for this send only. `get` looks here first, then in the iteration data, the environment, the base environment and the globals. |
 | `insomnia.iterationData` | The [runner](testing.md)'s current data row, read-only. |
 
 Each has `get(name)`, `has(name)`, `toObject()` and `replaceIn(text)`. All but `iterationData` also have `set(name, value)`, `unset(name)` and `clear()`. `replaceIn('{{host}}/users')` fills in the variables it knows and leaves the rest.

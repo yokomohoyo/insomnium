@@ -1,8 +1,10 @@
 import { database as db } from '../common/database';
+import { getGlobalEnvironments } from '../common/global-environments';
 import type { ResponsePatch } from '../main/network/libcurl-promise';
 import * as models from '../models';
 import type { Environment } from '../models/environment';
 import type { Request, RequestBodyParameter, RequestHeader, RequestParameter } from '../models/request';
+import { isProject } from '../models/project';
 import { isWorkspace } from '../models/workspace';
 import type { AssertionResult } from '../network/assertions';
 import { runInSandbox, ScriptLog } from './sandbox';
@@ -26,6 +28,7 @@ interface ScriptOutput {
   request: ScriptRequest;
   environment: Record<string, unknown>;
   baseEnvironment: Record<string, unknown>;
+  globals: Record<string, unknown>;
   variables: Record<string, unknown>;
   tests: { name: string; passed: boolean; error?: string }[];
 }
@@ -53,26 +56,35 @@ const fromScriptRequest = (request: Request, changed: ScriptRequest): Request =>
 });
 
 // The environments a script sees: the base one, and the sub environment in
-// use when there is one; otherwise `environment` is the base one too
+// use when there is one; otherwise `environment` is the base one too. Its
+// globals are the project's global environment in use, or its global base.
 async function environmentsFor(request: Request, environmentId?: string | null) {
-  const ancestors = await db.withAncestors(request, [models.requestGroup.type, models.workspace.type]);
+  const ancestors = await db.withAncestors(request, [models.requestGroup.type, models.workspace.type, models.project.type]);
   const workspace = ancestors.find(isWorkspace);
   if (!workspace) {
     throw new Error('Could not find the workspace to run the script in');
   }
   const base = await models.environment.getOrCreateForParentId(workspace._id);
   const chosen = environmentId ? await models.environment.getById(environmentId) : null;
-  return { base, active: chosen && chosen._id !== base._id ? chosen : null };
+  const projectId = ancestors.find(isProject)?._id || null;
+  const globals = await getGlobalEnvironments(projectId, workspace._id);
+  return { base, active: chosen && chosen._id !== base._id ? chosen : null, projectId, globals };
 }
+
+type Environments = Awaited<ReturnType<typeof environmentsFor>>;
 
 const sameData = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-async function saveEnvironments(base: Environment, active: Environment | null, output: ScriptOutput) {
+async function saveEnvironments({ base, active, projectId, globals }: Environments, output: ScriptOutput) {
   if (active && !sameData(active.data, output.environment)) {
     await models.environment.update(active, { data: output.environment });
   }
   if (!sameData(base.data, active ? output.baseEnvironment : output.environment)) {
     await models.environment.update(base, { data: active ? output.baseEnvironment : output.environment });
+  }
+  const global: Environment | null = globals.active || globals.base;
+  if (!sameData(global?.data || {}, output.globals) && projectId) {
+    await models.environment.update(global || await models.environment.getOrCreateForParentId(projectId), { data: output.globals });
   }
 }
 
@@ -83,7 +95,8 @@ interface ScriptContext {
 }
 
 async function run(event: 'prerequest' | 'test', script: string, request: Request, context: ScriptContext, response?: object) {
-  const { base, active } = await environmentsFor(request, context.environmentId);
+  const environments = await environmentsFor(request, context.environmentId);
+  const { base, active, globals } = environments;
   const result = await runInSandbox<ScriptOutput>(script, {
     event,
     request: toScriptRequest(request),
@@ -91,13 +104,16 @@ async function run(event: 'prerequest' | 'test', script: string, request: Reques
     environment: (active || base).data,
     baseEnvironment: base.data,
     environmentIsBase: !active,
+    globals: (globals.active || globals.base)?.data || {},
+    // read under the globals in use, as the render does
+    globalBase: globals.active ? globals.base?.data : undefined,
     variables: {},
     iterationData: context.iterationData || {},
     iteration: context.iteration || 0,
     tests: [],
   });
   if (result.output) {
-    await saveEnvironments(base, active, result.output);
+    await saveEnvironments(environments, result.output);
   }
   return result;
 }
