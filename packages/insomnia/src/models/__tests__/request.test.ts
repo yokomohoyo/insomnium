@@ -447,3 +447,22 @@ describe('newBodyGraphQL()', () => {
     });
   });
 });
+
+describe('optional keys', () => {
+  beforeEach(globalBeforeEach);
+
+  it('keeps the per-request overrides through the database, and adds none to a request without them', async () => {
+    const plain = await models.request.create({ parentId: 'fld_1' });
+    expect(Object.keys(await models.request.getById(plain._id) || {})).not.toContain('settingTimeout');
+
+    const request = await models.request.create({ parentId: 'fld_1', settingTimeout: 1500 });
+    await models.request.update(request, { settingValidateSSL: 'off', settingHttpVersion: 'V1_1' });
+
+    expect(await models.request.getById(request._id)).toMatchObject({ settingTimeout: 1500, settingValidateSSL: 'off', settingHttpVersion: 'V1_1' });
+  });
+
+  it('still prunes keys the model does not know', async () => {
+    const request = await models.request.create({ parentId: 'fld_1', notAField: true } as any);
+    expect(await models.request.getById(request._id)).not.toHaveProperty('notAField');
+  });
+});

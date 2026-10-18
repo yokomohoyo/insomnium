@@ -30,6 +30,8 @@ export const prefix = 'req';
 export const canDuplicate = true;
 
 export const canSync = true;
+// kept by initModel when set, without a default (see BaseRequest)
+export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion'];
 
 // A single auth strategy (e.g. one Bearer, one GCP ID Token). Optional
 // `headerName` overrides where the resulting credential is written.

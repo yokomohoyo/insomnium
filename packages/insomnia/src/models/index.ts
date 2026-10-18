@@ -196,9 +196,12 @@ export async function initModel<T extends BaseModel>(type: string, ...sources: R
   // NOTE: Do migration before pruning because we might need to look at those fields
   const migratedDoc = model.migrate(fullObject);
 
-  // Prune extra keys from doc
+  // Prune extra keys from doc, but keep the model's optional keys: they have
+  // no default, so docs that never set them (and their synced YAML) stay as
+  // they were
+  const optionalKeys: string[] = (model as { optionalKeys?: string[] }).optionalKeys || [];
   for (const key of Object.keys(migratedDoc)) {
-    if (!objectDefaults.hasOwnProperty(key)) {
+    if (!objectDefaults.hasOwnProperty(key) && !optionalKeys.includes(key)) {
       // @ts-expect-error -- mapping unsoundness
       delete migratedDoc[key];
     }
