@@ -151,6 +151,27 @@ export async function use() {
     expect(error).toMatchObject({ status: 404, body: { message: 'no such pet' } });
   });
 
+  it("can't be made to run a spec's text as code", async () => {
+    const hostile = typescriptClient({
+      openapi: '3.0.0',
+      info: { title: 'Evil\nglobalThis.titled = 1;', version: '1' },
+      servers: [{ url: 'https://api.example.com' }],
+      paths: {
+        '/a`${globalThis.pathed = 1}\\`/{id}': {
+          get: { operationId: 'grab', parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }], responses: { 200: { description: 'ok' } } },
+        },
+      },
+    });
+    expect(typeErrors(hostile)).toEqual([]);
+
+    const { client, sent } = run(hostile, { status: 200 });
+    await client.grab({ id: '1' });
+
+    expect(sent[0].url).toBe('https://api.example.com/a`${globalThis.pathed = 1}\\`/1');
+    expect((globalThis as any).pathed).toBeUndefined();
+    expect((globalThis as any).titled).toBeUndefined();
+  });
+
   it("makes one from a collection's requests when there's no spec", () => {
     const client = clientFromExport([
       { _id: 'wrk_1', _type: 'workspace', parentId: null, name: 'Shop' },
