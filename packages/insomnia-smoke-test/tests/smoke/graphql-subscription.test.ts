@@ -29,7 +29,7 @@ test('a WebSocket request subscribes with GraphQL, and shows each event @ci', as
 
   await page.getByRole('tab', { name: 'GraphQL' }).click();
   await expect(page.getByLabel('Subscribe when connected')).toBeChecked();
-  await expect(page.locator('#graphql-subscription-query')).toContainText('subscription PetAdded');
+  await expect(page.getByTestId('request-pane')).toContainText('subscription PetAdded');
 
   await page.getByRole('button', { name: 'Connect' }).click();
   const responsePane = page.getByTestId('response-pane');
