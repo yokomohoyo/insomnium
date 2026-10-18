@@ -13,6 +13,7 @@ describe('parseConfig()', () => {
       INSOMNIUM_VAR_apiKey: 'k3y',
       INSOMNIUM_VAR_: 'ignored',
       INSOMNIUM_VALIDATE_SSL: 'false',
+      INSOMNIUM_ALLOWED_ENV: 'API_TOKEN, CI_*',
     })).toEqual({
       collections: ['a.yaml', 'b.json'],
       environment: 'staging',
@@ -22,11 +23,12 @@ describe('parseConfig()', () => {
       allowedHosts: ['api.example.com', '*.internal.example.com'],
       variables: { apiKey: 'k3y' },
       validateSSL: false,
+      allowedEnvironmentVariables: 'API_TOKEN, CI_*',
     });
   });
 
-  it('listens on loopback, port 8080, and validates certificates by default', () => {
-    expect(parseConfig(['--collection', 'a.yaml'], env)).toMatchObject({ host: '127.0.0.1', port: 8080, validateSSL: true, variables: {} });
+  it('listens on loopback, port 8080, validates certificates and allows no environment variables by default', () => {
+    expect(parseConfig(['--collection', 'a.yaml'], env)).toMatchObject({ host: '127.0.0.1', port: 8080, validateSSL: true, variables: {}, allowedEnvironmentVariables: '' });
   });
 
   it.each([
