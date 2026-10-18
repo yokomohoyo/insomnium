@@ -112,6 +112,15 @@ export interface AuthTypeOAuth2 {
   pkceMethod?: string;
   responseType?: OAuth2ResponseType;
   origin?: string;
+  // sign in with the system browser, at a loopback redirect URL
+  // (main/authorize-in-system-browser.ts), rather than a window of the app
+  useSystemBrowser?: boolean;
+  // client authentication with a signed JWT instead of the secret
+  // (private_key_jwt: network/o-auth-2/client-assertion.ts)
+  usePrivateKeyJwt?: boolean;
+  privateKey?: string;
+  privateKeyAlgorithm?: string;
+  privateKeyId?: string;
 }
 export interface RequestHeader {
   name: string;

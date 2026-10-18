@@ -33,6 +33,13 @@ Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows t
 
 Hover the response time to see how it was spent: the DNS lookup, connecting, the TLS handshake, waiting for the first byte, and the download.
 
+### OAuth 2.0
+
+OAuth 2.0 auth gets a token with the authorization code (with PKCE if you like), implicit, password or client credentials grant, keeps it with the request, and refreshes it when it expires.
+
+- **Use the System Browser** (authorization code) signs in with your browser instead of a window of the app. That's for providers that block embedded windows, and for single sign-on and passkeys that live in your browser. The redirect URL has to be a loopback address the provider allows, such as `http://127.0.0.1:8484/callback`; leave out the port and any free one is used. Insomnium checks that the sign-in comes back with the state it sent.
+- **Client Assertion (private_key_jwt)**, under the advanced options, authenticates the client with a short-lived JWT signed with its private key (RS256 to ES512), instead of the client secret. Give the PEM private key, and the key ID if the provider needs it.
+
 ## Folders
 
 Folders group requests. A folder can also have:

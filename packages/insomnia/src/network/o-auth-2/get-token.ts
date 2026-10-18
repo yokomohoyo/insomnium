@@ -11,6 +11,7 @@ import type { Response } from '../../models/response';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getBasicAuthHeader } from '../basic-auth/get-header';
+import { CLIENT_ASSERTION_TYPE, clientAssertion } from './client-assertion';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../network';
 import {
   AuthKeys,
@@ -110,14 +111,30 @@ export const getOAuth2Token = async (
         { name: 'code_challenge_method', value: authentication.pkceMethod },
       ] : []),
     ].forEach(p => p.value && authCodeUrl.searchParams.append(p.name, p.value));
-    const redirectedTo = await window.main.authorizeUserInWindow({
-      url: authCodeUrl.toString(),
-      urlSuccessRegex: authentication.redirectUrl ?
-        new RegExp(`${escapeRegex(authentication.redirectUrl)}.*([?&]code=)`, 'i') : /([?&]code=)/i,
-      urlFailureRegex: authentication.redirectUrl ?
-        new RegExp(`${escapeRegex(authentication.redirectUrl)}.*([?&]error=)`, 'i') : /([?&]error=)/i,
-      sessionId: getOAuthSession(),
-    });
+    let redirectedTo: string;
+    let redirectUri = authentication.redirectUrl;
+    // the state a redirect to the system browser's loopback server must bring
+    // back, so another page can't hand it a code
+    let expectedState: string | undefined;
+    if (authentication.useSystemBrowser) {
+      guard(authentication.redirectUrl, 'To sign in with the system browser, set a loopback redirect URL, such as http://127.0.0.1:8484/callback');
+      expectedState = authentication.state || encodePKCE(crypto.randomBytes(16));
+      authCodeUrl.searchParams.set('state', expectedState);
+      authCodeUrl.searchParams.delete('redirect_uri');
+      ({ redirectedTo, redirectUri } = await window.main.authorizeInSystemBrowser({
+        url: authCodeUrl.toString(),
+        redirectUrl: authentication.redirectUrl,
+      }));
+    } else {
+      redirectedTo = await window.main.authorizeUserInWindow({
+        url: authCodeUrl.toString(),
+        urlSuccessRegex: authentication.redirectUrl ?
+          new RegExp(`${escapeRegex(authentication.redirectUrl)}.*([?&]code=)`, 'i') : /([?&]code=)/i,
+        urlFailureRegex: authentication.redirectUrl ?
+          new RegExp(`${escapeRegex(authentication.redirectUrl)}.*([?&]error=)`, 'i') : /([?&]error=)/i,
+        sessionId: getOAuthSession(),
+      });
+    }
     console.log('[oauth2] Detected redirect ' + withoutSecrets(redirectedTo));
     const redirectParams = Object.fromEntries(new URL(redirectedTo).searchParams);
     if (redirectParams.error) {
@@ -126,10 +143,13 @@ export const getOAuth2Token = async (
       const uri = redirectParams.error_uri;
       throw new Error(`OAuth 2.0 Error ${code}\n\n${msg}\n\n${uri}`);
     }
+    if (expectedState !== undefined && redirectParams.state !== expectedState) {
+      throw new Error("The sign-in came back with a different state than it was sent with, so it wasn't used");
+    }
     params = [
       { name: 'grant_type', value: GRANT_TYPE_AUTHORIZATION_CODE },
       { name: 'code', value: redirectParams.code },
-      ...insertAuthKeyIf('redirect_uri', authentication.redirectUrl),
+      ...insertAuthKeyIf('redirect_uri', redirectUri),
       ...insertAuthKeyIf('state', authentication.state),
       ...insertAuthKeyIf('audience', authentication.audience),
       ...insertAuthKeyIf('resource', authentication.resource),
@@ -152,17 +172,8 @@ export const getOAuth2Token = async (
     ];
   }
   const headers = authentication.origin ? [{ name: 'Origin', value: authentication.origin }] : [];
-  if (authentication.credentialsInBody) {
-    params = [
-      ...params,
-      ...insertAuthKeyIf('client_id', authentication.clientId),
-      ...insertAuthKeyIf('client_secret', authentication.clientSecret),
-    ];
-  } else {
-    headers.push(getBasicAuthHeader(authentication.clientId, authentication.clientSecret));
-  }
-
-  const response = await sendAccessTokenRequest(requestId, authentication, params, headers);
+  const authenticated = withClientAuthentication(authentication, params, headers);
+  const response = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
   const old = await models.oAuth2Token.getOrCreateByParentId(requestId);
   return models.oAuth2Token.update(old, transformNewAccessTokenToOauthModel(
     oauthResponseToAccessToken(authentication.accessTokenUrl, response)
@@ -190,22 +201,15 @@ async function getExistingAccessTokenAndRefreshIfExpired(
     return null;
   }
 
-  let params = [
+  const params = [
     { name: 'grant_type', value: 'refresh_token' },
     { name: 'refresh_token', value: token.refreshToken },
     ...insertAuthKeyIf('scope', authentication.scope),
   ];
-  const headers = [];
-  if (authentication.credentialsInBody) {
-    params = [
-      ...params,
-      ...insertAuthKeyIf('client_id', authentication.clientId),
-      ...insertAuthKeyIf('client_secret', authentication.clientSecret),
-    ];
-  } else {
-    headers.push(getBasicAuthHeader(authentication.clientId, authentication.clientSecret));
-  }
-  const response = await sendAccessTokenRequest(requestId, authentication, params, []);
+  // the client's credentials go with a refresh too (they used to be left out
+  // when they were sent as a Basic header)
+  const authenticated = withClientAuthentication(authentication, params, []);
+  const response = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
 
   const statusCode = response.statusCode || 0;
   const bodyBuffer = models.response.getBodyBuffer(response);
@@ -352,3 +356,41 @@ const tryToParse = (body: string): Record<string, any> | null => {
 };
 
 const insertAuthKeyIf = (name: AuthKeys, value?: string) => value ? [{ name, value }] : [];
+
+// how a token request says which client it's from: a signed JWT
+// (private_key_jwt), the id and secret in the body, or a Basic header
+export const withClientAuthentication = (authentication: AuthTypeOAuth2, params: RequestParameter[], headers: RequestHeader[]) => {
+  if (authentication.usePrivateKeyJwt) {
+    guard(authentication.clientId, 'A client assertion needs the client ID');
+    guard(authentication.privateKey, 'A client assertion needs the private key to sign it with');
+    guard(authentication.accessTokenUrl, 'Missing access token URL');
+    return {
+      params: [
+        ...params,
+        { name: 'client_id', value: authentication.clientId },
+        { name: 'client_assertion_type', value: CLIENT_ASSERTION_TYPE },
+        {
+          name: 'client_assertion', value: clientAssertion({
+            clientId: authentication.clientId,
+            audience: authentication.accessTokenUrl,
+            privateKey: authentication.privateKey,
+            algorithm: authentication.privateKeyAlgorithm || undefined,
+            keyId: authentication.privateKeyId || undefined,
+          }),
+        },
+      ],
+      headers,
+    };
+  }
+  if (authentication.credentialsInBody) {
+    return {
+      params: [
+        ...params,
+        ...insertAuthKeyIf('client_id', authentication.clientId),
+        ...insertAuthKeyIf('client_secret', authentication.clientSecret),
+      ],
+      headers,
+    };
+  }
+  return { params, headers: [...headers, getBasicAuthHeader(authentication.clientId, authentication.clientSecret)] };
+};
