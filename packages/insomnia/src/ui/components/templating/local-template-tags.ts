@@ -85,13 +85,26 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           placeholder: 'MMMM Do YYYY, h:mm:ss a',
           hide: args => args[0].value !== 'custom',
         },
+        {
+          help: 'Shift the time, for example -30m, +2h or +7d (s, m, h, d, w)',
+          displayName: 'Offset',
+          type: 'string',
+          placeholder: '+1d',
+        },
       ],
-      run(_context, dateType = 'iso-8601', formatStr = '') {
+      run(_context, dateType = 'iso-8601', formatStr = '', offset = '') {
         if (typeof dateType === 'string') {
           dateType = dateType.toLowerCase();
         }
 
-        const now = new Date();
+        let shift = 0;
+        if (offset) {
+          const match = String(offset).match(/^\s*([+-]?\d+)\s*([smhdw])\s*$/i);
+          guard(match, `Invalid offset "${offset}". Use a number and a unit, for example -30m or +7d`);
+          const unit = { s: 1, m: 60, h: 3600, d: 86400, w: 604800 }[match[2].toLowerCase() as 's' | 'm' | 'h' | 'd' | 'w'];
+          shift = Number(match[1]) * unit * 1000;
+        }
+        const now = new Date(Date.now() + shift);
 
         switch (dateType) {
           case 'millis':
@@ -227,6 +240,179 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
         const hash = crypto.createHash(algorithm);
         hash.update(value || '', 'utf8');
         return hash.digest(encoding);
+      },
+    },
+  },
+  {
+    templateTag: {
+      name: 'hmac',
+      displayName: 'HMAC',
+      description: 'sign a value with a secret key',
+      args: [
+        {
+          displayName: 'Algorithm',
+          type: 'enum',
+          options: [
+            { displayName: 'SHA256', value: 'sha256' },
+            { displayName: 'SHA512', value: 'sha512' },
+            { displayName: 'SHA1', value: 'sha1' },
+            { displayName: 'MD5', value: 'md5' },
+          ],
+        },
+        {
+          displayName: 'Digest Encoding',
+          description: 'The encoding of the output',
+          type: 'enum',
+          options: [
+            { displayName: 'Hexadecimal', value: 'hex' },
+            { displayName: 'Base64', value: 'base64' },
+            { displayName: 'Base64 URL', value: 'base64url' },
+          ],
+        },
+        {
+          displayName: 'Key',
+          type: 'string',
+          placeholder: 'Secret key',
+        },
+        {
+          displayName: 'Input',
+          type: 'string',
+          placeholder: 'Value to sign',
+        },
+      ],
+      run(_context, algorithm = 'sha256', encoding = 'hex', key = '', value = '') {
+        guard(['sha256', 'sha512', 'sha1', 'md5'].includes(algorithm), `Invalid algorithm ${algorithm}. Choices are sha256, sha512, sha1, md5`);
+        guard(['hex', 'base64', 'base64url'].includes(encoding), `Invalid encoding ${encoding}. Choices are hex, base64, base64url`);
+        guard(typeof key === 'string' && typeof value === 'string', 'The key and input must be text');
+        return crypto.createHmac(algorithm, key).update(value, 'utf8').digest(encoding);
+      },
+    },
+  },
+  {
+    templateTag: {
+      name: 'jwt',
+      displayName: 'JSON Web Token',
+      description: 'sign a JWT with a shared secret',
+      args: [
+        {
+          displayName: 'Algorithm',
+          type: 'enum',
+          options: [
+            { displayName: 'HS256', value: 'HS256' },
+            { displayName: 'HS384', value: 'HS384' },
+            { displayName: 'HS512', value: 'HS512' },
+          ],
+        },
+        {
+          displayName: 'Payload',
+          help: 'The claims, as a JSON object',
+          type: 'string',
+          placeholder: '{"sub": "1234"}',
+        },
+        {
+          displayName: 'Secret',
+          type: 'string',
+          placeholder: 'Shared secret',
+        },
+        {
+          displayName: 'Expires In (seconds)',
+          help: 'Adds iat and exp claims; 0 leaves them out',
+          type: 'number',
+          defaultValue: 0,
+        },
+      ],
+      run(_context, algorithm = 'HS256', payload = '{}', secret = '', expiresIn = 0) {
+        const digest = ({ HS256: 'sha256', HS384: 'sha384', HS512: 'sha512' } as Record<string, string>)[algorithm];
+        guard(digest, `Invalid algorithm ${algorithm}. Choices are HS256, HS384, HS512`);
+        let claims;
+        try {
+          claims = JSON.parse(payload);
+        } catch (err) {
+          throw new Error('The payload must be a JSON object');
+        }
+        guard(claims && typeof claims === 'object' && !Array.isArray(claims), 'The payload must be a JSON object');
+        if (Number(expiresIn) > 0) {
+          const iat = Math.floor(Date.now() / 1000);
+          claims = { iat, exp: iat + Number(expiresIn), ...claims };
+        }
+        const encode = (part: object) => Buffer.from(JSON.stringify(part)).toString('base64url');
+        const unsigned = `${encode({ alg: algorithm, typ: 'JWT' })}.${encode(claims)}`;
+        return `${unsigned}.${crypto.createHmac(digest, String(secret)).update(unsigned).digest('base64url')}`;
+      },
+    },
+  },
+  {
+    templateTag: {
+      name: 'random',
+      displayName: 'Random',
+      description: 'generate a random value',
+      args: [
+        {
+          displayName: 'Type',
+          type: 'enum',
+          options: [
+            { displayName: 'Integer', value: 'integer' },
+            { displayName: 'Alphanumeric', value: 'alphanumeric' },
+            { displayName: 'Hexadecimal', value: 'hex' },
+            { displayName: 'Boolean', value: 'boolean' },
+            { displayName: 'One Of', value: 'choice' },
+          ],
+        },
+        {
+          displayName: 'Minimum',
+          type: 'number',
+          defaultValue: 0,
+          hide: args => args[0].value !== 'integer',
+        },
+        {
+          displayName: 'Maximum',
+          type: 'number',
+          defaultValue: 1000,
+          hide: args => args[0].value !== 'integer',
+        },
+        {
+          displayName: 'Length',
+          type: 'number',
+          defaultValue: 16,
+          hide: args => args[0].value !== 'alphanumeric' && args[0].value !== 'hex',
+        },
+        {
+          displayName: 'Choices',
+          help: 'Comma-separated',
+          type: 'string',
+          placeholder: 'red,green,blue',
+          hide: args => args[0].value !== 'choice',
+        },
+      ],
+      run(_context, type = 'integer', min = 0, max = 1000, length = 16, choices = '') {
+        const size = Number(length);
+        const checkLength = () => guard(Number.isInteger(size) && size >= 1 && size <= 1024, 'The length must be a whole number from 1 to 1024');
+        switch (type) {
+          case 'integer': {
+            const low = Number(min);
+            const high = Number(max);
+            guard(Number.isSafeInteger(low) && Number.isSafeInteger(high) && low <= high, 'The minimum and maximum must be whole numbers, the minimum no higher');
+            guard(high - low < 2 ** 48 - 1, 'The range is too large');
+            return String(crypto.randomInt(low, high + 1));
+          }
+          case 'alphanumeric': {
+            checkLength();
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            return Array.from({ length: size }, () => characters[crypto.randomInt(characters.length)]).join('');
+          }
+          case 'hex':
+            checkLength();
+            return crypto.randomBytes(Math.ceil(size / 2)).toString('hex').slice(0, size);
+          case 'boolean':
+            return String(crypto.randomInt(2) === 1);
+          case 'choice': {
+            const options = String(choices).split(',').map(choice => choice.trim()).filter(Boolean);
+            guard(options.length, 'Give at least one choice');
+            return options[crypto.randomInt(options.length)];
+          }
+          default:
+            throw new Error(`Invalid random type "${type}"`);
+        }
       },
     },
   },
