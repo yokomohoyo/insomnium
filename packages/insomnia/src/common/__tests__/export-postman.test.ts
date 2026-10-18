@@ -84,6 +84,19 @@ describe('toPostmanCollection()', () => {
   });
 });
 
+describe("a folder's headers", () => {
+  it('go to each request under it, which Postman folders have no headers of their own', () => {
+    const collection = toPostmanCollection([
+      { _id: 'wrk_1', _type: 'workspace', parentId: null, name: 'Shop' },
+      { _id: 'fld_1', _type: 'request_group', parentId: 'wrk_1', name: 'Orders', headers: [{ name: 'X-Tenant', value: 'acme' }, { name: 'Accept', value: 'application/json' }] },
+      { _id: 'req_1', _type: 'request', parentId: 'fld_1', name: 'List', method: 'GET', url: 'https://shop.example.com/orders', headers: [{ name: 'accept', value: 'text/csv' }] },
+    ] as any, 'Shop');
+
+    const [folder] = collection.item;
+    expect(folder.item[0].request.header).toEqual([{ key: 'X-Tenant', value: 'acme' }, { key: 'accept', value: 'text/csv' }]);
+  });
+});
+
 describe('JWT and EdgeGrid auth in Postman', () => {
   const withAuth = (authentication: Record<string, unknown>) => [
     { _id: 'wrk_1', _type: 'workspace', parentId: null, name: 'Signed' },

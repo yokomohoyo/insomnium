@@ -6,6 +6,8 @@
 // conflicting fields are reported, to be chosen in the app.
 import YAML from 'yaml';
 
+import { mergeLines } from './line-merge';
+
 export type MergeChoice = 'ours' | 'theirs';
 
 export interface FieldConflict {
@@ -69,6 +71,9 @@ export function mergeDoc(base: string, ours: string, theirs: string, choice?: Me
       value = Math.max(Number(mine) || 0, Number(yours) || 0);
     } else if (NOISE.has(field)) {
       value = mine;
+    } else if (typeof mine === 'string' && typeof yours === 'string' && (typeof was === 'string' || was === undefined) && (mine.includes('\n') || yours.includes('\n')) && mergeLines(String(was ?? ''), mine, yours).cleanMerge) {
+      // a long text (a spec, a body, a script) changed in different places
+      value = mergeLines(String(was ?? ''), mine, yours).mergedText;
     } else if (choice) {
       value = choice === 'ours' ? mine : yours;
     } else {
@@ -80,6 +85,16 @@ export function mergeDoc(base: string, ours: string, theirs: string, choice?: Me
     }
   }
   return conflicts.length ? { conflicts } : { merged: YAML.stringify(merged), conflicts };
+}
+
+// Is a file one of the synced documents? isomorphic-git gives a merge driver
+// only its name, and a document's file is named for its _id
+export function isSyncedDoc(file: string, ...texts: string[]) {
+  const id = file.replace(/\.yml$/, '');
+  return file.endsWith('.yml') && texts.some(text => {
+    const doc = parse(text);
+    return !!doc && doc._id === id && typeof doc.type === 'string';
+  });
 }
 
 // a document's name and type, for listing a conflict

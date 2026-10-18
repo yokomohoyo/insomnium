@@ -49,9 +49,19 @@ export async function listSnapshots(): Promise<Snapshot[]> {
   return snapshots.sort((a, b) => b.created - a.created);
 }
 
-// Keeps the newest, and clears what an unfinished snapshot left
-async function prune() {
-  const keep = new Set((await listSnapshots()).slice(0, SNAPSHOTS_TO_KEEP).map(({ name }) => name));
+// a daily one is named for its time alone; others say why (manual, before-restore)
+const isDaily = (name: string) => /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z\.sqlite$/.test(name);
+
+// Keeps the newest daily ones, and the newest of the others apart (taking
+// one by hand doesn't push out the daily history), never the one a restore
+// is waiting for, and clears what an unfinished snapshot left
+async function prune(protect = '') {
+  const snapshots = await listSnapshots();
+  const waiting = await readFile(path.join(getDataPath(), PENDING_RESTORE_FILE), 'utf8').then(text => text.trim(), () => '');
+  const keep = new Set([
+    ...snapshots.filter(({ name }) => isDaily(name)).slice(0, SNAPSHOTS_TO_KEEP),
+    ...snapshots.filter(({ name }) => !isDaily(name)).slice(0, SNAPSHOTS_TO_KEEP),
+  ].map(({ name }) => name).concat([protect, waiting].filter(Boolean)));
   const names = await readdir(getSnapshotsPath());
   await Promise.all(names
     .filter(name => (SNAPSHOT_NAME.test(name) && !keep.has(name)) || name.startsWith('.unfinished-'))
@@ -60,7 +70,7 @@ async function prune() {
 
 // Named for when it was taken, 2026-10-18T09-30-00Z.sqlite, and why when it's
 // not one of the daily ones
-export async function takeSnapshot(reason = '', at = new Date()) {
+export async function takeSnapshot(reason = '', at = new Date(), protect = '') {
   const dir = getSnapshotsPath();
   await mkdir(dir, { recursive: true });
   const stamp = at.toISOString().replace(/\.\d+Z$/, 'Z').replace(/:/g, '-');
@@ -69,7 +79,7 @@ export async function takeSnapshot(reason = '', at = new Date()) {
   await rm(unfinished, { force: true });
   snapshotDatabaseTo(unfinished);
   await rename(unfinished, path.join(dir, name));
-  await prune();
+  await prune(protect);
   return name;
 }
 
@@ -97,7 +107,8 @@ export async function restoreSnapshotOnRestart(name: string) {
   if (!(await listSnapshots()).some(snapshot => snapshot.name === name)) {
     throw new Error(`There's no snapshot ${name}`);
   }
-  await takeSnapshot('before-restore');
+  // the one being restored stays, whatever the snapshot before it prunes
+  await takeSnapshot('before-restore', new Date(), name);
   await writeFile(path.join(getDataPath(), PENDING_RESTORE_FILE), name);
   electron.app.relaunch();
   electron.app.exit(0);

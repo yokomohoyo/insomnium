@@ -64,6 +64,15 @@ export const importResourcesToNewWorkspace = async (projectId: string, _resource
     model && ResourceIdMap.set(resource._id, generateId(model.prefix));
   }
 
+  // environments an importer gave the base environment as their parent (Bruno's,
+  // Postman environment files): the import's own base, or else the new workspace's
+  if (resources.some(resource => resource.parentId === '__BASE_ENVIRONMENT_ID__')) {
+    const importedBase = resourcesWithoutWorkspaceAndApiSpec.find(resource => isEnvironment(resource) && (resource.parentId === workspaceToImport?._id || resource.parentId === '__WORKSPACE_ID__'));
+    ResourceIdMap.set('__BASE_ENVIRONMENT_ID__', importedBase
+      ? ResourceIdMap.get(importedBase._id)
+      : (await models.environment.getOrCreateForParentId(newWorkspace._id))._id);
+  }
+
   for (const resource of resourcesWithoutWorkspaceAndApiSpec) {
     const model = getModel(resource.type);
 
