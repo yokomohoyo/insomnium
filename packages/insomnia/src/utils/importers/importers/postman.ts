@@ -1,5 +1,6 @@
 import { translateDynamicVariables } from '../../../templating/faker-functions';
 import { Converter, ImportRequest, Parameter } from '../entities';
+import { InheritedScript, scriptAsText, withInheritedScripts } from '../scripts';
 import {
   Auth as V200Auth,
   Folder as V200Folder,
@@ -59,6 +60,17 @@ const SCRIPT_NAMES: Record<string, string> = {
   test: 'test script',
 };
 
+// the collection's and folders' scripts, for the requests under them
+interface Inherited {
+  prerequest: InheritedScript[];
+  test: InheritedScript[];
+}
+
+const codeOf = ({ script }: Event) => {
+  const exec = script?.exec;
+  return (Array.isArray(exec) ? exec.join('\n') : exec || '').trim();
+};
+
 let requestCount = 1;
 let requestGroupCount = 1;
 
@@ -108,11 +120,12 @@ export class ImportPostman {
     items: PostmanCollection['item'],
     parentId = '__WORKSPACE_ID__',
     inheritedAuth?: Authetication | null,
+    inheritedScripts: Inherited = { prerequest: [], test: [] },
   ): ImportRequest[] => {
     // @ts-expect-error this is because there are devergent behaviors for how the function treats this collection.  This is handled appropriately in the function itself in different branches.
     return items.reduce((accumulator: ImportRequest[], item: Item | Folder) => {
       if (Object.prototype.hasOwnProperty.call(item, 'request')) {
-        return [...accumulator, this.importRequestItem(item as Item, parentId, inheritedAuth)];
+        return [...accumulator, this.importRequestItem(item as Item, parentId, inheritedAuth, inheritedScripts)];
       }
 
       const requestGroup = this.importFolderItem(item as Folder, parentId);
@@ -123,15 +136,29 @@ export class ImportPostman {
           item.item as PostmanCollection['item'],
           requestGroup._id,
           (item as Folder).auth ?? inheritedAuth,
+          this.inherit(inheritedScripts, (item as Folder).event, `Postman folder "${item.name || ''}"`),
         ),
       ];
     }, []);
   };
 
+  // the code of the enabled scripts that listen for an event
+  scriptFor = (events: Event[] | undefined, listen: string) => (events || [])
+    .filter(event => event.listen === listen && !event.disabled)
+    .map(codeOf)
+    .filter(Boolean)
+    .join('\n\n');
+
+  inherit = (inherited: Inherited, events: Event[] | undefined, from: string): Inherited => ({
+    prerequest: [...inherited.prerequest, { from, code: this.scriptFor(events, 'prerequest') }],
+    test: [...inherited.test, { from, code: this.scriptFor(events, 'test') }],
+  });
+
   importRequestItem = (
     { request, name = '', event }: Item,
     parentId: string,
     inheritedAuth?: Authetication | null,
+    inheritedScripts: Inherited = { prerequest: [], test: [] },
   ): ImportRequest => {
     if (typeof request === 'string') {
       return {};
@@ -149,12 +176,17 @@ export class ImportPostman {
     }
     const url = this.importUrl(request.url);
     const segmentParams = typeof request.url === 'object' ? this.importPathVariables(url, request.url.variable) : undefined;
+    // Postman's test scripts run on the response, as after-response scripts do
+    const preRequestScript = withInheritedScripts(inheritedScripts.prerequest, this.scriptFor(event, 'prerequest'));
+    const afterResponseScript = withInheritedScripts(inheritedScripts.test, this.scriptFor(event, 'test'));
     return {
       parentId,
       _id: `__REQ_${requestCount++}__`,
       _type: 'request',
       name,
       description: this.withScripts(request.description, event),
+      ...(preRequestScript ? { preRequestScript } : {}),
+      ...(afterResponseScript ? { afterResponseScript } : {}),
       url,
       ...(segmentParams ? { segmentParams } : {}),
       parameters: parameters,
@@ -201,19 +233,20 @@ export class ImportPostman {
     });
   };
 
-  // Insomnium can't run Postman scripts, so they're kept as text in the
-  // description rather than dropped. A description is a string or { content }.
-  withScripts = (description: unknown, events?: Event[]) => {
+  // Scripts Insomnium doesn't run as written are kept as text in the
+  // description: disabled ones, ones for other events, and a collection's or
+  // folder's (copied into each request under it, which runs them). A
+  // description is a string or { content }.
+  withScripts = (description: unknown, events?: Event[], copied = false) => {
     const content = typeof description === 'string' ? description : (description as { content?: unknown } | null)?.content;
-    const scripts = (events || []).flatMap(({ listen, script, disabled }) => {
-      const exec = script?.exec;
-      const code = (Array.isArray(exec) ? exec.join('\n') : exec || '').trim();
-      if (!code) {
+    const scripts = (events || []).flatMap(event => {
+      const code = codeOf(event);
+      const known = event.listen in SCRIPT_NAMES;
+      if (!code || (known && !event.disabled && !copied)) {
         return [];
       }
-      const fence = '`'.repeat(Math.max(3, ...(code.match(/`+/g) || []).map(run => run.length + 1)));
-      const title = `Postman ${SCRIPT_NAMES[listen] || `${listen} script`}${disabled ? ' (disabled)' : ''}`;
-      return [`**${title}**, not run by Insomnium:\n\n${fence}js\n${code}\n${fence}`];
+      const title = `Postman ${SCRIPT_NAMES[event.listen] || `${event.listen} script`}${event.disabled ? ' (disabled)' : ''}`;
+      return [scriptAsText(title, known && !event.disabled ? 'copied into each request under this folder, which runs it' : 'not run by Insomnium', code)];
     });
     return [typeof content === 'string' ? content : '', ...scripts].filter(Boolean).join('\n\n');
   };
@@ -224,7 +257,7 @@ export class ImportPostman {
       _id: `__GRP_${requestGroupCount++}__`,
       _type: 'request_group',
       name,
-      description: this.withScripts(description, event),
+      description: this.withScripts(description, event, true),
     };
   };
 
@@ -243,14 +276,15 @@ export class ImportPostman {
       _id: `__GRP_${requestGroupCount++}__`,
       _type: 'request_group',
       name,
-      description: this.withScripts(description, event),
+      description: this.withScripts(description, event, true),
     };
 
     if (postmanVariable) {
       collectionFolder.variable = postmanVariable;
     }
 
-    return [collectionFolder, ...this.importItems(item, collectionFolder._id, auth)];
+    const scripts = this.inherit({ prerequest: [], test: [] }, event, `Postman collection "${name}"`);
+    return [collectionFolder, ...this.importItems(item, collectionFolder._id, auth, scripts)];
   };
 
   importUrl = (url?: Url | string) => {

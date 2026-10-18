@@ -93,6 +93,8 @@ export interface ImportRequest<T extends {} = {}> extends Comment {
   queryString?: QueryString[];
   segmentParams?: Parameter[];
   url?: string;
+  preRequestScript?: string;
+  afterResponseScript?: string;
 }
 
 export type Converter<T extends {} = {}> = (
