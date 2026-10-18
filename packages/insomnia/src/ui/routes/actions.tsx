@@ -6,8 +6,9 @@ import { parseApiSpec, resolveComponentSchemaRefs } from '../../common/api-specs
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { database } from '../../common/database';
 import { database as db } from '../../common/database';
-import { importResourcesToWorkspace, scanResources } from '../../common/import';
+import { ResourceCache, scanResources } from '../../common/import';
 import { generateId } from '../../common/misc';
+import { specSyncSummary, syncSpecToWorkspace } from '../../common/spec-sync';
 import { spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import * as models from '../../models';
 import { getById, update } from '../../models/helpers/request-operations';
@@ -510,15 +511,17 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
     throw new Error('Error Generating Configuration');
   }
 
-  await scanResources({
+  const scanned = await scanResources({
     content: apiSpec.contents,
   });
+  if (scanned.errors.length || !ResourceCache) {
+    throw new Error(scanned.errors[0] || 'No requests found in the spec');
+  }
 
-  await importResourcesToWorkspace({
-    workspaceId,
-  });
-
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_DEBUG}`);
+  // updates the requests generated before instead of adding copies. The Spec
+  // tab goes to the requests: a redirect from here is dropped when the
+  // changes revalidate the routes before the action returns
+  return { summary: specSyncSummary(await syncSpecToWorkspace({ workspaceId, resources: ResourceCache.resources })) };
 };
 
 export const generateCollectionAndTestsAction: ActionFunction = async ({ params }) => {

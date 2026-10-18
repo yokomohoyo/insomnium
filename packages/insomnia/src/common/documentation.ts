@@ -12,7 +12,7 @@ export const docsImportExport = insomniumDocs('import-export.md');
 export const docsKeyMaps = insomniumDocs('keyboard-shortcuts.md');
 export const docsIntroductionInsomnia = insomniumDocs('getting-started.md');
 export const docsWorkingWithDesignDocs = insomniumDocs('design-documents.md');
-export const docsUnitTesting = insomniumDocs('testing.md#unit-tests-in-design-documents');
+export const docsUnitTesting = insomniumDocs('testing.md#unit-tests');
 export const docsRunInCI = insomniumDocs('testing.md#run-a-collection-in-ci');
 export const docsScripts = insomniumDocs('scripts.md');
 

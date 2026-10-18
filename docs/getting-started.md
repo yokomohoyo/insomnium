@@ -5,7 +5,9 @@
 Insomnium opens in **My Collection**, a collection of requests. The dashboard (the home button, top left) lists your collections and design documents, grouped into projects.
 
 - A **collection** holds requests, folders and environments.
-- A **design document** holds an OpenAPI spec as well, with its own requests and tests: see [Design documents](design-documents.md).
+- A **design document** holds an OpenAPI spec as well: see [Design documents](design-documents.md).
+
+Both have [unit tests](testing.md#unit-tests) in their **Test** tab, and either can become the other from its menu: **Convert to Design Document** or **Convert to Collection**.
 
 Create either from the dashboard, or bring one in with [Import](import-export.md) or [Git Clone](git-sync.md#clone-a-repository).
 
