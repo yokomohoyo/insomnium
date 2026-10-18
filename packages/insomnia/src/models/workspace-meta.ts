@@ -36,6 +36,10 @@ export interface BaseWorkspaceMeta {
   // local and never get exported with a shared workspace.
   bufToken: string;
   githubToken: string;
+  // a Spectral ruleset file chosen for the document's spec, on this computer
+  // (common/spectral-ruleset-path.ts); empty uses its git repository's or the
+  // built-in rules
+  spectralRulesetPath: string;
 }
 
 export type WorkspaceMeta = BaseWorkspaceMeta & BaseModel;
@@ -65,6 +69,7 @@ export function init(): BaseWorkspaceMeta {
     pushSnapshotOnInitialize: false,
     bufToken: '',
     githubToken: '',
+    spectralRulesetPath: '',
   };
 }
 

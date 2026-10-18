@@ -1,7 +1,5 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
 import { generate, runTests, type Test } from 'insomnia-testing';
-import { env as processEnv } from 'node:process';
-import path from 'path';
 import { ActionFunction, redirect } from 'react-router-dom';
 
 import { parseApiSpec, resolveComponentSchemaRefs } from '../../common/api-specs';
@@ -10,6 +8,7 @@ import { database } from '../../common/database';
 import { database as db } from '../../common/database';
 import { importResourcesToWorkspace, scanResources } from '../../common/import';
 import { generateId } from '../../common/misc';
+import { spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import * as models from '../../models';
 import { getById, update } from '../../models/helpers/request-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
@@ -250,6 +249,27 @@ export const updateWorkspaceAction: ActionFunction = async ({ request }) => {
   return null;
 };
 
+// a collection becomes a design document, with a spec, or a document a
+// collection; its spec is kept, for if it becomes a document again
+export const convertWorkspaceAction: ActionFunction = async ({ request, params }) => {
+  const { organizationId, projectId, workspaceId } = params;
+  guard(typeof workspaceId === 'string', 'Workspace ID is required');
+  const { scope } = await request.json();
+  guard(scope === 'design' || scope === 'collection', 'Scope is required');
+  const workspace = await models.workspace.getById(workspaceId);
+  guard(workspace, 'Workspace not found');
+
+  if (scope === 'design') {
+    const apiSpec = await models.apiSpec.getOrCreateForParentId(workspaceId);
+    if (!apiSpec.fileName) {
+      await models.apiSpec.update(apiSpec, { fileName: workspace.name });
+    }
+  }
+  await models.workspace.update(workspace, { scope });
+
+  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${scope === 'design' ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+};
+
 export const updateWorkspaceMetaAction: ActionFunction = async ({ request, params }) => {
   const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace ID is required');
@@ -480,13 +500,8 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
 
   guard(workspace, 'Workspace not found');
 
-  const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-
   const isLintError = (result: IRuleResult) => result.severity === 0;
-  const rulesetPath = path.join(
-    processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
-    `version-control/git/${workspaceMeta?.gitRepositoryId}/other/.spectral.yaml`,
-  );
+  const { rulesetPath } = await spectralRulesetFor(workspaceId);
 
   const results = (await window.main.spectralRun({ contents: apiSpec.contents, rulesetPath })).filter(isLintError);
   if (apiSpec.contents && results && results.length) {
@@ -519,13 +534,8 @@ export const generateCollectionAndTestsAction: ActionFunction = async ({ params 
 
   guard(workspace, 'Workspace not found');
 
-  const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-
   const isLintError = (result: IRuleResult) => result.severity === 0;
-  const rulesetPath = path.join(
-    processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
-    `version-control/git/${workspaceMeta?.gitRepositoryId}/other/.spectral.yaml`,
-  );
+  const { rulesetPath } = await spectralRulesetFor(workspaceId);
 
   const results = (await window.main.spectralRun({ contents: apiSpec.contents, rulesetPath })).filter(isLintError);
   if (apiSpec.contents && results && results.length) {

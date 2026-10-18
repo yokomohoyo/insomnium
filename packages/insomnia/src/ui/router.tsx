@@ -749,6 +749,13 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
                               ).updateWorkspaceAction(...args),
                           },
                           {
+                            path: ':workspaceId/convert',
+                            action: async (...args) =>
+                              (await import('./routes/actions')).convertWorkspaceAction(
+                                ...args
+                              ),
+                          },
+                          {
                             path: ':workspaceId/update-meta',
                             action: async (...args) =>
                               (await import('./routes/actions')).updateWorkspaceMetaAction(

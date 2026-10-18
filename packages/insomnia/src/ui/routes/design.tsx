@@ -1,7 +1,5 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
 import CodeMirror from 'codemirror';
-import { stat } from 'fs/promises';
-import { env as processEnv } from 'node:process';
 import path from 'path';
 import React, { createRef, FC, Fragment, useCallback, useEffect, useMemo } from 'react';
 import {
@@ -17,6 +15,8 @@ import { SwaggerUIBundle } from 'swagger-ui-dist';
 import { parseApiSpec } from '../../common/api-specs';
 import { ACTIVITY_SPEC } from '../../common/constants';
 import { debounce } from '../../common/misc';
+import { selectFileOrFolder } from '../../common/select-file-or-folder';
+import { RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import { ApiSpec } from '../../models/api-spec';
 import * as models from '../../models/index';
 import { guard } from '../../utils/guard';
@@ -24,13 +24,13 @@ import {
   CodeEditor,
   CodeEditorHandle,
 } from '../components/codemirror/code-editor';
+import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../components/base/dropdown';
 import { DesignEmptyState } from '../components/design-empty-state';
 
 import { ErrorBoundary } from '../components/error-boundary';
 import { Notice, NoticeTable } from '../components/notice-table';
 import { SidebarLayout } from '../components/sidebar-layout';
 import { SpecEditorSidebar } from '../components/spec-editor/spec-editor-sidebar';
-import { Tooltip } from '../components/tooltip';
 import {
   useActiveApiSpecSyncVCSVersion,
   useGitVCSVersion,
@@ -78,6 +78,7 @@ interface LoaderData {
   lintMessages: LintMessage[];
   apiSpec: ApiSpec;
   rulesetPath: string;
+  rulesetSource: RulesetSource;
 }
 
 export const loader: LoaderFunction = async ({
@@ -90,24 +91,8 @@ export const loader: LoaderFunction = async ({
   const workspace = await models.workspace.getById(workspaceId);
   guard(workspace, 'Workspace not found');
 
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
   let lintMessages: LintMessage[] = [];
-
-  let rulesetPath = '';
-
-  try {
-    const spectralRulesetPath = path.join(
-      processEnv['INSOMNIA_DATA_PATH'] || window.app.getPath('userData'),
-      `version-control/git/${workspaceMeta?.gitRepositoryId}/other/.spectral.yaml`,
-    );
-
-    if ((await stat(spectralRulesetPath)).isFile()) {
-      rulesetPath = spectralRulesetPath;
-    }
-  } catch (err) {
-    // Ignore
-  }
+  const { rulesetPath, source: rulesetSource } = await spectralRulesetFor(workspaceId);
 
   if (apiSpec.contents && apiSpec.contents.length !== 0) {
     try {
@@ -131,6 +116,7 @@ export const loader: LoaderFunction = async ({
     lintMessages,
     apiSpec,
     rulesetPath,
+    rulesetSource,
   };
 };
 
@@ -162,11 +148,23 @@ const Design: FC = () => {
     projectId: string;
     workspaceId: string;
   };
-  const { apiSpec, lintMessages, rulesetPath } = useLoaderData() as LoaderData;
+  const { apiSpec, lintMessages, rulesetPath, rulesetSource } = useLoaderData() as LoaderData;
   const editor = createRef<CodeEditorHandle>();
 
   const updateApiSpecFetcher = useFetcher();
   const generateRequestCollectionFetcher = useFetcher();
+  // a ruleset file for this document, kept on this computer
+  const rulesetFetcher = useFetcher();
+  const setRulesetPath = (spectralRulesetPath: string) => rulesetFetcher.submit(
+    { spectralRulesetPath },
+    { action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/update-meta`, method: 'post', encType: 'application/json' },
+  );
+  const chooseRuleset = async () => {
+    const { canceled, filePath } = await selectFileOrFolder({ itemTypes: ['file'], extensions: ['yaml', 'yml', 'json'] });
+    if (!canceled && filePath) {
+      setRulesetPath(filePath);
+    }
+  };
   const [showRightPane, toggleRightPane] = useToggle(true);
 
   useEffect(() => {
@@ -320,44 +318,29 @@ const Design: FC = () => {
             )}
             {apiSpec.contents ? (
               <Toolbar>
-                {
-                  <Tooltip
-                    message={
-                      rulesetPath ? (
-                        <Fragment>
-                          <p>
-                            Using ruleset from
-                          </p>
-                          <code
-                            style={{
-                              wordBreak: 'break-all',
-                            }}
-                          >{rulesetPath}</code>
-                        </Fragment>
-                      ) : (
-                        <Fragment>
-                          <p>Using default OAS ruleset.</p>
-                          <p>
-                            To use a custom ruleset add a{' '}
-                            <code>.spectral.yaml</code> file to the root of your
-                            git repository
-                          </p>
-                        </Fragment>
-                      )
-                    }
-                  >
-                    <RulesetLabel>
-                      <i
-                        className={
-                          rulesetPath
-                            ? 'fa fa-file-circle-check'
-                            : 'fa fa-file-circle-xmark'
-                        }
-                      />{' '}
-                      Ruleset
-                    </RulesetLabel>
-                  </Tooltip>
-                }
+                <Dropdown
+                  aria-label="Ruleset"
+                  triggerButton={
+                    <DropdownButton>
+                      <RulesetLabel title={rulesetPath || 'The built-in OpenAPI rules'}>
+                        <i className={rulesetSource === 'built-in' ? 'fa fa-file-circle-xmark' : 'fa fa-file-circle-check'} />
+                        {rulesetSource === 'built-in' ? 'Ruleset: built-in' : `Ruleset: ${path.basename(rulesetPath)}${rulesetSource === 'git' ? ' (git)' : ''}`}
+                      </RulesetLabel>
+                    </DropdownButton>
+                  }
+                >
+                  <DropdownItem aria-label="Choose a Ruleset File">
+                    <ItemContent icon="file-circle-plus" label="Choose a Ruleset File…" onClick={chooseRuleset} />
+                  </DropdownItem>
+                  <DropdownItem aria-label="Clear the Chosen Ruleset">
+                    <ItemContent
+                      icon="xmark"
+                      label={rulesetSource === 'chosen' ? 'Clear the Chosen Ruleset' : 'No Ruleset Chosen'}
+                      isDisabled={rulesetSource !== 'chosen'}
+                      onClick={() => setRulesetPath('')}
+                    />
+                  </DropdownItem>
+                </Dropdown>
                 <button
                   disabled={lintMessages.filter(message => message.type === 'error').length > 0 || generateRequestCollectionFetcher.state !== 'idle'}
                   className="btn btn--compact"
