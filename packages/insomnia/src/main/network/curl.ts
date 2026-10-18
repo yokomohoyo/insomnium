@@ -4,7 +4,6 @@ import { Curl, CurlFeature, CurlInfoDebug, HeaderInfo } from '@getinsomnia/node-
 import electron, { BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import tls from 'tls';
 import { v4 as uuidV4 } from 'uuid';
 
 import { describeByteSize, generateId, getSetCookieHeaders } from '../../common/misc';
@@ -15,6 +14,7 @@ import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
+import { getCaBundle } from './ca-bundle';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance } from './libcurl-promise';
 
@@ -122,11 +122,10 @@ const openCurlConnection = async (
     }
     const caCert = await models.caCertificate.findByParentId(options.workspaceId);
     const caCertficatePath = caCert?.disabled === false ? caCert.path : null;
-    // attempt to read CA Certificate PEM from disk, fallback to root certificates
-    const caCertificate = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
     const readyStateChannel = `curl.${request._id}.readyState`;
 
     const settings = await models.settings.getOrCreate();
+    const caCertificate = await getCaBundle(caCertficatePath, settings.useSystemCertificates);
     const start = performance.now();
     const clientCertificates = await models.clientCertificate.findByParentId(options.workspaceId);
     const filteredClientCertificates = clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), options.url));

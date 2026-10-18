@@ -8,7 +8,6 @@ import electron from 'electron';
 import fs from 'fs';
 import path from 'path';
 import { Readable, Writable } from 'stream';
-import tls from 'tls';
 import { parse as urlParse } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,6 +17,7 @@ import { describeByteSize, hasAuthHeader } from '../../common/misc';
 import { ClientCertificate } from '../../models/client-certificate';
 import { getAuthStrategies, RequestHeader } from '../../models/request';
 import { ResponseHeader } from '../../models/response';
+import { getCaBundle } from './ca-bundle';
 import { buildMultipart } from './multipart';
 import { parseHeaderStrings } from './parse-header-strings';
 export interface CurlRequestOptions {
@@ -48,6 +48,7 @@ interface SettingsUsedHere {
   proxyEnabled: boolean;
   timeout: number;
   validateSSL: boolean;
+  useSystemCertificates: boolean;
   legacyTls: boolean;
   followRedirects: boolean;
   maxTimelineDataSizeKB: number;
@@ -102,7 +103,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
     const responseBodyPath = path.join(responsesDir, uuidv4() + '.response');
 
     const { requestId, req, finalUrl, settings, certificates, caCertficatePath, socketPath } = options;
-    const caCert = (caCertficatePath && (await fs.promises.readFile(caCertficatePath)).toString()) || tls.rootCertificates.join('\n');
+    const caCert = await getCaBundle(caCertficatePath, settings.useSystemCertificates);
 
     const { curl, debugTimeline } = createConfiguredCurlInstance({
       req,
