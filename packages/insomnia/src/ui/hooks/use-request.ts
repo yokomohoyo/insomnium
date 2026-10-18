@@ -86,4 +86,4 @@ export const useWorkspaceMetaPatcher = () => {
   };
 };
 
-export type CreateRequestType = 'HTTP' | 'gRPC' | 'GraphQL' | 'WebSocket' | 'MCP' | 'Event Stream' | 'From Curl';
+export type CreateRequestType = 'HTTP' | 'gRPC' | 'GraphQL' | 'WebSocket' | 'MCP' | 'Event Stream' | 'LLM' | 'From Curl';
