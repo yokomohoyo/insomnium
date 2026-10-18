@@ -38,6 +38,14 @@ describe('collectionFiles()', () => {
     expect(files.get('Orders/Create order.yaml')!.split('\n').slice(0, 3)).toEqual(['_id: req_1', 'type: Request', 'name: Create order']);
     expect(JSON.stringify([...files.values()])).not.toContain('secret');
   });
+
+  it('keeps a long value on one line', () => {
+    const url = `https://shop.example.com/orders?${'filter=open&'.repeat(12)}`;
+    const files = collectionFiles([docs[0], { _id: 'req_9', type: 'Request', parentId: 'wrk_1', name: 'Long', url }]);
+
+    expect(files.get('Long.yaml')).toContain(`url: ${url}\n`);
+    expect(YAML.stringify({ url })).not.toContain(`url: ${url}\n`);
+  });
 });
 
 describe('folderDocs()', () => {

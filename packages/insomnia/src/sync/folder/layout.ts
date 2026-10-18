@@ -50,7 +50,17 @@ const readable = (doc: SyncDoc, extra: Record<string, unknown> = {}) => {
   return { ...out, ...extra };
 };
 
-const yaml = (value: unknown) => YAML.stringify(value, { lineWidth: 0 });
+// long values (a URL, a body) on one line, rather than folded
+const yaml = (value: unknown) => {
+  const { fold } = YAML.scalarOptions.str;
+  const lineWidth = fold.lineWidth;
+  fold.lineWidth = 0;
+  try {
+    return YAML.stringify(value);
+  } finally {
+    fold.lineWidth = lineWidth;
+  }
+};
 
 const byOrder = (a: SyncDoc, b: SyncDoc) => (a.metaSortKey ?? 0) - (b.metaSortKey ?? 0) || a._id.localeCompare(b._id);
 

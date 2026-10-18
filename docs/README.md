@@ -8,6 +8,7 @@ Insomnium is a local API client for HTTP, GraphQL, gRPC, WebSocket and Server-Se
 - [Tests and the runner](testing.md): assertions, script tests, running a collection or folder, and running it in CI.
 - [Mock server](mock-server.md): answer as a collection's requests would, with their examples.
 - [Git Sync](git-sync.md): keep a collection in a Git repository, with branches, commits, pulls and pushes.
+- [Folder Sync](folder-sync.md): keep a collection in a folder of readable YAML files, a file per request, to edit and review like code.
 - [Import and export](import-export.md): bring collections from Postman, Insomnia, Bruno and others, and export your own.
 - [Design documents](design-documents.md): edit and lint OpenAPI specs, and generate requests from them.
 - [Plugins](plugins.md): add template tags, request hooks, actions and themes.
