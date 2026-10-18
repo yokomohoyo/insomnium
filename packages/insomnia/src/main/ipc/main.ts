@@ -1,9 +1,4 @@
 import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
-import type { RulesetDefinition } from '@stoplight/spectral-core';
-import { Spectral } from '@stoplight/spectral-core';
-// @ts-expect-error - This is a bundled file not sure why it's not found
-import { bundleAndLoadRuleset } from '@stoplight/spectral-ruleset-bundler/with-loader';
-import { oas } from '@stoplight/spectral-rulesets';
 import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
@@ -21,7 +16,7 @@ import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, ta
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
 import { WebSocketBridgeAPI } from '../network/websocket';
-import { assertDataOnlyRuleset } from '../spectral-ruleset';
+import { lintSpec } from '../spectral-lint';
 import { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {
@@ -136,31 +131,5 @@ export function registerMainHandlers() {
     }
   });
 
-  ipcMain.handle('spectralRun', async (_, { contents, rulesetPath }: {
-    contents: string;
-    rulesetPath?: string;
-  }) => {
-    const spectral = new Spectral();
-
-    if (rulesetPath) {
-      try {
-        assertDataOnlyRuleset(await fs.promises.readFile(rulesetPath, 'utf8'));
-        const ruleset = await bundleAndLoadRuleset(rulesetPath, {
-          fs,
-          fetch: (url: string) => Promise.reject(new Error(`remote rulesets are not supported: ${url}`)),
-        });
-
-        spectral.setRuleset(ruleset);
-      } catch (err) {
-        console.log('Error while parsing ruleset:', err);
-        spectral.setRuleset(oas as RulesetDefinition);
-      }
-    } else {
-      spectral.setRuleset(oas as RulesetDefinition);
-    }
-
-    const diagnostics = await spectral.run(contents);
-
-    return diagnostics;
-  });
+  ipcMain.handle('spectralRun', async (_, options: { contents: string; rulesetPath?: string }) => lintSpec(options));
 }

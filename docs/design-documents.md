@@ -1,12 +1,12 @@
 # Design documents
 
-A design document is a collection with an OpenAPI spec at its heart. Create one from the dashboard, or import an OpenAPI 3.0 or Swagger 2.0 file into one.
+A design document is a collection with an OpenAPI spec at its heart. Create one from the dashboard, import an OpenAPI 3.0 or Swagger 2.0 file into one, or turn a collection into one with **Convert to Design Document** in its menu. **Convert to Collection** turns it back: the requests and tests stay, and the spec is put aside until it's a design document again.
 
 It has three tabs, at the top:
 
 - **Spec**: the spec, in YAML or JSON.
 - **Debug**: the document's requests, as in any collection.
-- **Test**: [unit tests](testing.md#unit-tests-in-design-documents) for its requests.
+- **Test**: [unit tests](testing.md#unit-tests) for its requests.
 
 ## Spec
 
@@ -14,7 +14,9 @@ The editor checks the spec as you type, with [Spectral](https://github.com/stopl
 
 ### Your own lint rules
 
-When the document is synced with [Git Sync](git-sync.md), a `.spectral.yaml` at the root of the repository replaces the built-in rules. It can extend the built-in rulesets (`spectral:oas`, `spectral:asyncapi`, `spectral:arazzo`) and add, change or turn off rules:
+**Ruleset**, under the editor, says which rules the spec is checked with. **Choose a Ruleset File…** there picks a Spectral ruleset (`.spectral.yaml`, or `.yml` or `.json`) on your computer for this document; the choice stays on this computer. Without one, a `.spectral.yaml` at the root of the document's [Git Sync](git-sync.md) repository is used, and otherwise the built-in rules.
+
+A ruleset can extend the built-in rulesets (`spectral:oas`, `spectral:asyncapi`, `spectral:arazzo`) and add, change or turn off rules:
 
 ```yaml
 extends: spectral:oas
@@ -23,7 +25,7 @@ rules:
   info-contact: error
 ```
 
-A ruleset comes from a repository that others can write to, so it has to be plain data: custom functions, and extending a ruleset from npm, a file or a URL, aren't supported.
+A ruleset can come from a repository that others can write to, or from a file someone sent you, so it has to be plain data: custom functions, and extending a ruleset from npm, a file or a URL, aren't supported. When a ruleset can't be used, the first problem listed says why, and the built-in rules apply.
 
 ## Generate requests
 

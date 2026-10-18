@@ -1,7 +1,7 @@
-import React, { FC, useCallback, useRef, useState } from 'react';
-import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
+import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
-import { getProductName } from '../../../common/constants';
+import { ACTIVITY_DEBUG, ACTIVITY_SPEC, getProductName } from '../../../common/constants';
 import { database as db } from '../../../common/database';
 import { getWorkspaceLabel } from '../../../common/get-workspace-label';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
@@ -16,7 +16,8 @@ import { useAIContext } from '../../context/app/ai-context';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 
-import { showError, showPrompt } from '../modals';
+import { showError, showModal, showPrompt } from '../modals';
+import { AskModal } from '../modals/ask-modal';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
 import { configGenerators, showGenerateConfigModal } from '../modals/generate-config-modal';
 import { ImportModal } from '../modals/import-modal';
@@ -49,6 +50,38 @@ export const WorkspaceDropdown: FC = () => {
   const workspaceName = activeWorkspace.name;
   const projectName = activeProject.name ?? getProductName();
   const fetcher = useFetcher();
+  // a collection gets a spec, and a document gives one up (kept, for if it
+  // becomes a document again)
+  const isDocument = isDesign(activeWorkspace);
+  const convertFetcher = useFetcher();
+  const navigate = useNavigate();
+  const converted = convertFetcher.data as { scope: string } | undefined;
+  useEffect(() => {
+    if (convertFetcher.state === 'idle' && converted) {
+      navigate(`/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/${activeWorkspace._id}/${converted.scope === 'design' ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+    }
+  }, [convertFetcher.state, converted, navigate, organizationId, activeWorkspace.parentId, activeWorkspace._id]);
+  const convert = () => {
+    const submit = () => convertFetcher.submit(
+      { scope: isDocument ? 'collection' : 'design' },
+      { action: `/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/${activeWorkspace._id}/convert`, method: 'post', encType: 'application/json' },
+    );
+    if (!isDocument) {
+      submit();
+      return;
+    }
+    showModal(AskModal, {
+      title: 'Convert to Collection',
+      message: `"${activeWorkspaceName}" keeps its requests and tests. Its spec is put aside, and comes back if you convert it to a design document again.`,
+      yesText: 'Convert',
+      noText: 'Cancel',
+      onDone: async (isYes: boolean) => {
+        if (isYes) {
+          submit();
+        }
+      },
+    });
+  };
 
   const [actionPlugins, setActionPlugins] = useState<WorkspaceAction[]>([]);
   const [loadingActions, setLoadingActions] = useState<Record<string, boolean>>({});
@@ -189,6 +222,14 @@ export const WorkspaceDropdown: FC = () => {
             onClick={() => setIsExportModalOpen(true)}
           />
         </DropdownItem>
+
+          <DropdownItem aria-label={isDocument ? 'Convert to Collection' : 'Convert to Design Document'}>
+            <ItemContent
+              icon={isDocument ? 'bars' : 'file-code'}
+              label={isDocument ? 'Convert to Collection' : 'Convert to Design Document'}
+              onClick={convert}
+            />
+          </DropdownItem>
 
           <DropdownItem aria-label="Settings">
             <ItemContent
