@@ -15,6 +15,8 @@ Create either from the dashboard, or bring one in with [Import](import-export.md
 
 Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket or an Event Stream (Server-Sent Events). A gRPC response's **Metadata** tab shows the headers and trailers the server sent. A WebSocket request keeps messages to send again: **Save Message** saves the one in the editor with the request, and **Saved messages** puts one back.
 
+Each request you open gets a tab above the request and response, to switch back to it; close one with its **×**, or with a middle click. The tabs stay open, on this computer, when you come back to the collection.
+
 An HTTP request's tabs:
 
 - **Body**: JSON, XML, form, multipart, a file, GraphQL, or none.
