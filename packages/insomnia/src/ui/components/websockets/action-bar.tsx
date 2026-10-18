@@ -3,6 +3,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { subscriptionToSend } from '../../../main/network/graphql-ws';
+import { type MqttOptions, parseSubscriptions } from '../../../main/network/mqtt';
 import type { SocketIoOptions } from '../../../main/network/socket-io';
 import * as models from '../../../models';
 import { WebSocketRequest } from '../../../models/websocket-request';
@@ -104,8 +105,17 @@ export const WebSocketActionBar: FC<ActionBarProps> = ({ request, environmentId,
         workspaceCookieJar,
         graphqlSubscription: request.graphqlSubscription,
         socketIo: request.socketIo,
+        mqtt: request.mqtt,
       },
     });
+    // MQTT's connect: a new client ID when none is given
+    const mqtt: MqttOptions | undefined = rendered?.mqtt?.enabled && !rendered.socketIo?.enabled ? {
+      clientId: rendered.mqtt.clientId?.trim() || `insomnium-${Math.random().toString(36).slice(2, 10)}`,
+      username: rendered.mqtt.username || undefined,
+      password: rendered.mqtt.password || undefined,
+      keepalive: rendered.mqtt.keepalive ?? 30,
+      subscriptions: parseSubscriptions(rendered.mqtt.subscriptions || ''),
+    } : undefined;
     let graphqlSubscription;
     let socketIo: SocketIoOptions | undefined;
     try {
@@ -129,6 +139,7 @@ export const WebSocketActionBar: FC<ActionBarProps> = ({ request, environmentId,
       suppressUserAgent: rendered.suppressUserAgent,
       graphqlSubscription,
       socketIo,
+      mqtt,
     });
 
   };

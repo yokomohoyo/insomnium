@@ -32,6 +32,7 @@ import { Pane, PaneHeader as OriginalPaneHeader } from '../panes/pane';
 import { RenderedQueryString } from '../rendered-query-string';
 import { WebSocketActionBar } from './action-bar';
 import { GraphqlSubscriptionEditor } from './graphql-subscription-editor';
+import { emptyMqtt, MqttEditor } from './mqtt-editor';
 import { emptySocketIo, SocketIoEditor } from './socket-io-editor';
 
 const supportedAuthTypes: AuthType[] = ['apikey', 'basic', 'bearer'];
@@ -114,6 +115,8 @@ const WebSocketRequestForm: FC<FormProps> = ({
 
   // with Socket.IO on, the message is an event's arguments
   const socketIo = request.socketIo?.enabled ? request.socketIo : undefined;
+  // with MQTT on, it's published to a topic
+  const mqtt = !socketIo && request.mqtt?.enabled ? { ...emptyMqtt(), ...request.mqtt } : undefined;
 
   // NOTE: Nunjucks interpolation can throw errors
   const interpolateOpenAndSend = async (payload: string) => {
@@ -126,6 +129,19 @@ const WebSocketRequestForm: FC<FormProps> = ({
           return;
         }
         window.main.webSocket.event.send({ requestId: request._id, payload: socketIoEvent(socketIo.event || 'message', socketIoArgs(renderedMessage), socketIo.namespace) });
+        return;
+      }
+      if (mqtt) {
+        if (!readyState) {
+          showAlert({ title: 'MQTT', message: 'Connect first (the button by the URL), then publish.' });
+          return;
+        }
+        const topic = (await tryToInterpolateRequestOrShowRenderErrorModal({ request, environmentId, payload: mqtt.topic })).trim();
+        if (!topic) {
+          showAlert({ title: 'MQTT', message: 'Choose the topic to publish to, by the message.' });
+          return;
+        }
+        await window.main.webSocket.event.send({ requestId: request._id, payload: renderedMessage, mqtt: { topic, qos: mqtt.qos, retain: mqtt.retain } });
         return;
       }
       if (!readyState) {
@@ -228,6 +244,38 @@ const WebSocketRequestForm: FC<FormProps> = ({
         interpolateOpenAndSend(editorRef.current?.getValue() || '');
       }}
     >
+      {mqtt && (
+        <div className="flex items-center gap-2 pad-sm txt-sm">
+          <label className="flex items-center gap-2 flex-1">
+            Topic
+            <input
+              type="text"
+              aria-label="MQTT topic"
+              className="flex-1"
+              defaultValue={mqtt.topic}
+              placeholder="sensors/kitchen/temperature"
+              onChange={event => patchRequest(request._id, { mqtt: { ...mqtt, ...request.mqtt, topic: event.currentTarget.value } })}
+            />
+          </label>
+          <select
+            aria-label="MQTT QoS"
+            defaultValue={String(mqtt.qos)}
+            onChange={event => patchRequest(request._id, { mqtt: { ...mqtt, ...request.mqtt, qos: event.currentTarget.value === '1' ? 1 : 0 } })}
+          >
+            <option value="0">QoS 0</option>
+            <option value="1">QoS 1</option>
+          </select>
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              aria-label="MQTT retain"
+              defaultChecked={mqtt.retain}
+              onChange={event => patchRequest(request._id, { mqtt: { ...mqtt, ...request.mqtt, retain: event.currentTarget.checked } })}
+            />
+            Retain
+          </label>
+        </div>
+      )}
       {socketIo && (
         <label className="flex items-center gap-2 pad-sm txt-sm">
           Event
@@ -386,6 +434,22 @@ export const WebSocketRequestPane: FC<Props> = ({ environment }) => {
         >
           {disabled && <PaneReadOnlyBanner />}
           <SocketIoEditor key={uniqueKey} request={activeRequest} disabled={disabled} />
+        </TabItem>
+        <TabItem
+          key="mqtt"
+          title={
+            <>
+              MQTT
+              {activeRequest.mqtt?.enabled && (
+                <span className="bubble space-left">
+                  <i className="fa fa--skinny fa-check txt-xxs" />
+                </span>
+              )}
+            </>
+          }
+        >
+          {disabled && <PaneReadOnlyBanner />}
+          <MqttEditor key={uniqueKey} request={activeRequest} disabled={disabled} />
         </TabItem>
         <TabItem
           key="graphql"

@@ -33,6 +33,7 @@ import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
 import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
+import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
 import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
 import { describeProxy, proxyFor } from './proxy';
 
@@ -79,6 +80,7 @@ export type WebSocketEvent =
 export type WebSocketEventLog = WebSocketEvent[];
 
 const WebSocketConnections = new Map<string, WebSocket>();
+const MqttSessions = new Map<string, MqttSession>();
 const eventLogFileStreams = new Map<string, fs.WriteStream>();
 const timelineFileStreams = new Map<string, fs.WriteStream>();
 
@@ -110,6 +112,8 @@ interface OpenWebSocketRequestOptions {
   graphqlSubscription?: GraphqlSubscription;
   // speak Socket.IO: its transport URL, its namespace connect and heartbeat
   socketIo?: SocketIoOptions;
+  // speak MQTT 3.1.1 (mqtt.ts): connect, subscribe, keep alive
+  mqtt?: MqttOptions;
 }
 const openWebSocketConnection = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -231,9 +235,10 @@ const openWebSocketConnection = async (
       url = socketIoUrl(url);
     }
     const subscription = socketIo ? undefined : options.graphqlSubscription;
+    const mqtt = socketIo || subscription ? undefined : options.mqtt;
     const protocols = subscription
       ? withGraphqlProtocol(lowerCasedEnabledHeaders['sec-websocket-protocol'])
-      : lowerCasedEnabledHeaders['sec-websocket-protocol'];
+      : lowerCasedEnabledHeaders['sec-websocket-protocol'] || (mqtt ? MQTT_PROTOCOL : undefined);
     if (subscription) {
       delete lowerCasedEnabledHeaders['sec-websocket-protocol'];
     }
@@ -256,6 +261,12 @@ const openWebSocketConnection = async (
       maxRedirects: settings.maxRedirects > 0 ? settings.maxRedirects : undefined,
     });
     WebSocketConnections.set(options.requestId, ws);
+    if (mqtt) {
+      MqttSessions.set(options.requestId, new MqttSession(mqtt, data => ws.send(data), (text, direction) => {
+        const event: WebSocketMessageEvent = { _id: uuidV4(), requestId: options.requestId, data: text, type: 'message', direction, timestamp: Date.now() };
+        eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(event) + '\n');
+      }));
+    }
 
     ws.on('upgrade', async incomingMessage => {
       // @ts-expect-error -- private property
@@ -341,7 +352,10 @@ const openWebSocketConnection = async (
         window.webContents.send(readyStateChannel, ws.readyState === WebSocket.OPEN);
       }
 
-      if (subscription) {
+      const mqttSession = MqttSessions.get(options.requestId);
+      if (mqttSession) {
+        mqttSession.open();
+      } else if (subscription) {
         sendPayload(ws, { requestId: options.requestId, payload: connectionInit() });
       } else if (options.initialPayload) {
         sendPayload(ws, { requestId: options.requestId, payload: options.initialPayload });
@@ -349,6 +363,16 @@ const openWebSocketConnection = async (
     });
 
     ws.addEventListener('message', ({ data }: MessageEvent) => {
+      // MQTT's binary packets go to the log as text, by the session
+      const mqttSession = MqttSessions.get(options.requestId);
+      if (mqttSession) {
+        const bytes = Buffer.isBuffer(data) ? data : Array.isArray(data) ? Buffer.concat(data) : data instanceof ArrayBuffer ? Buffer.from(data) : Buffer.from(String(data));
+        const refusal = mqttSession.receive(bytes);
+        if (refusal) {
+          ws.close(1000, refusal);
+        }
+        return;
+      }
       const messageEvent: WebSocketMessageEvent = {
         _id: uuidV4(),
         requestId: options.requestId,
@@ -436,6 +460,8 @@ const deleteRequestMaps = async (requestId: string, message: string, event?: Web
   if (event) {
     eventLogFileStreams.get(requestId)?.write(JSON.stringify(event) + '\n');
   }
+  MqttSessions.get(requestId)?.stop();
+  MqttSessions.delete(requestId);
   eventLogFileStreams.get(requestId)?.end();
   eventLogFileStreams.delete(requestId);
   timelineFileStreams.get(requestId)?.write(JSON.stringify({ value: message, name: 'Text', timestamp: Date.now() }) + '\n');
@@ -479,7 +505,7 @@ const sendPayload = async (ws: WebSocket, options: { payload: string; requestId:
 };
 
 const sendWebSocketEvent = async (
-  options: { payload: string; requestId: string }
+  options: { payload: string; requestId: string; mqtt?: MqttPublish }
 ): Promise<void> => {
   const ws = WebSocketConnections.get(options.requestId);
 
@@ -488,6 +514,15 @@ const sendWebSocketEvent = async (
     return;
   }
 
+  // over MQTT, the message is published to the topic
+  const mqttSession = MqttSessions.get(options.requestId);
+  if (mqttSession) {
+    if (!options.mqtt) {
+      throw new Error('Choose a topic to publish to');
+    }
+    mqttSession.publish(options.mqtt, options.payload);
+    return;
+  }
   sendPayload(ws, options);
 };
 
@@ -498,6 +533,8 @@ const closeWebSocketConnection = (
   if (!ws) {
     return;
   }
+  // an MQTT client says it's leaving
+  MqttSessions.get(options.requestId)?.close();
   ws.close();
 };
 
