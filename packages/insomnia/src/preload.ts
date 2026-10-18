@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { gRPCBridgeAPI } from './main/ipc/grpc';
 import { CurlBridgeAPI } from './main/network/curl';
 import type { AiBridgeAPI } from './main/ai';
+import type { CaptureBridgeAPI } from './main/capture-proxy';
 import type { FolderSyncBridgeAPI } from './main/folder-sync';
 import type { McpClientBridgeAPI } from './main/network/mcp-client';
 import type { WebSocketBridgeAPI } from './main/network/websocket';
@@ -11,6 +12,15 @@ const folderSync: FolderSyncBridgeAPI = {
   start: options => ipcRenderer.invoke('folderSync.start', options),
   stop: options => ipcRenderer.invoke('folderSync.stop', options),
   status: options => ipcRenderer.invoke('folderSync.status', options),
+};
+
+const capture: CaptureBridgeAPI = {
+  start: options => ipcRenderer.invoke('capture.start', options),
+  stop: () => ipcRenderer.invoke('capture.stop'),
+  status: () => ipcRenderer.invoke('capture.status'),
+  list: () => ipcRenderer.invoke('capture.list'),
+  get: options => ipcRenderer.invoke('capture.get', options),
+  clear: () => ipcRenderer.invoke('capture.clear'),
 };
 
 const ai: AiBridgeAPI = {
@@ -95,6 +105,7 @@ const main: Window['main'] = {
   mcpClient,
   folderSync,
   ai,
+  capture,
   grpc,
   curl,
   trackSegmentEvent: options => ipcRenderer.send('trackSegmentEvent', options),

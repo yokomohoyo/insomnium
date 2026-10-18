@@ -41,6 +41,12 @@ The folder keeps the original as text in its description. Postman scripts that a
 
 A link like `insomnia://app/import?uri=https://example.com/api.yaml` opens Insomnium and offers to import from that URL, so "Run in Insomnia" buttons work with Insomnium too.
 
+## Capture traffic
+
+**Capture Traffic…**, in a collection's menu, records the requests an app, a script or a browser sends, to keep as requests. It starts a proxy on this computer (port 8899, or one you choose); point what you want to capture at it, such as `HTTP_PROXY=http://127.0.0.1:8899 npm test` or `curl -x http://127.0.0.1:8899 http://…`. Each request sent through it is listed with its response's status and time; **Save** keeps one in the collection, with its method, URL, headers and body, and **Save as Requests** keeps the ones you've chosen.
+
+Plain HTTP is recorded in full. HTTPS goes through untouched and is listed by its host only: reading it would mean trusting a certificate authority of Insomnium's, which no privacy tool should ask of you. To keep HTTPS requests, save them from a browser's devtools (**Network → Save all as HAR**) and import the HAR file. The proxy listens on this computer only, keeps the latest 500 requests while the app runs, and stops with **Stop** or when the app closes.
+
 ## Export
 
 Export a collection or document from its menu, or everything in a project from **Preferences → Data → Export Data**:
