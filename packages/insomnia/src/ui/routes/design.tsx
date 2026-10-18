@@ -14,6 +14,7 @@ import styled from 'styled-components';
 import { SwaggerUIBundle } from 'swagger-ui-dist';
 
 import { parseApiSpec } from '../../common/api-specs';
+import { AsyncApiPreview } from '../components/spec-editor/asyncapi-preview';
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { debounce } from '../../common/misc';
 import { selectFileOrFolder } from '../../common/select-file-or-folder';
@@ -140,6 +141,21 @@ const SwaggerUIDiv = ({ text }: { text: string }) => {
   />;
 };
 
+// Swagger UI for OpenAPI and Swagger; AsyncAPI documents have their own
+const SpecPreview = ({ text }: { text: string }) => {
+  const parsed = useMemo(() => {
+    try {
+      return parseApiSpec(text);
+    } catch {
+      return null;
+    }
+  }, [text]);
+  if (parsed?.format === 'asyncapi' && parsed.contents) {
+    return <AsyncApiPreview contents={parsed.contents} />;
+  }
+  return <SwaggerUIDiv text={text} />;
+};
+
 interface LintMessage extends Notice {
   range: IRuleResult['range'];
 }
@@ -180,6 +196,13 @@ const Design: FC = () => {
     navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_DEBUG}`);
   }, [generateRequestCollectionFetcher.state, generated, navigate, organizationId, projectId, workspaceId]);
   const [showRightPane, toggleRightPane] = useToggle(true);
+  const isAsyncApi = useMemo(() => {
+    try {
+      return parseApiSpec(apiSpec?.contents || '').format === 'asyncapi';
+    } catch {
+      return false;
+    }
+  }, [apiSpec?.contents]);
 
   useEffect(() => {
     CodeMirror.registerHelper('lint', 'openapi', async (contents: string) => {
@@ -290,7 +313,7 @@ const Design: FC = () => {
           </Fragment>
         )
       }
-      renderPaneTwo={showRightPane && <SwaggerUIDiv text={apiSpec.contents} />}
+      renderPaneTwo={showRightPane && <SpecPreview text={apiSpec.contents} />}
       renderPaneOne={
         apiSpec ? (
           <div className="column tall theme--pane__body">
@@ -356,7 +379,8 @@ const Design: FC = () => {
                   </DropdownItem>
                 </Dropdown>
                 <button
-                  disabled={lintMessages.filter(message => message.type === 'error').length > 0 || generateRequestCollectionFetcher.state !== 'idle'}
+                  disabled={isAsyncApi || lintMessages.filter(message => message.type === 'error').length > 0 || generateRequestCollectionFetcher.state !== 'idle'}
+                  title={isAsyncApi ? 'Requests are generated from OpenAPI and Swagger documents' : undefined}
                   className="btn btn--compact"
                   onClick={() => {
                     generateRequestCollectionFetcher.submit(

@@ -1,6 +1,6 @@
 # Design documents
 
-A design document is a collection with an OpenAPI spec at its heart. Create one from the dashboard, import an OpenAPI 3.0 or Swagger 2.0 file into one, or turn a collection into one with **Convert to Design Document** in its menu. **Convert to Collection** turns it back: the requests and tests stay, and the spec is put aside until it's a design document again.
+A design document is a collection with an API spec at its heart: OpenAPI 3, Swagger 2.0, or AsyncAPI 2 or 3. Create one from the dashboard, import a spec file into one, or turn a collection into one with **Convert to Design Document** in its menu. **Convert to Collection** turns it back: the requests and tests stay, and the spec is put aside until it's a design document again.
 
 It has three tabs, at the top:
 
@@ -10,7 +10,16 @@ It has three tabs, at the top:
 
 ## Spec
 
-The editor checks the spec as you type, with [Spectral](https://github.com/stoplightio/spectral)'s OpenAPI rules. Problems are listed under the editor; click one to go to its line. The sidebar outlines the spec's paths, schemas and other parts, and **Toggle Preview** shows it as API documentation.
+The editor checks the spec as you type, with [Spectral](https://github.com/stoplightio/spectral)'s OpenAPI rules, or its AsyncAPI rules for an AsyncAPI document. Problems are listed under the editor; click one to go to its line. The sidebar outlines the spec's paths, schemas and other parts, and **Toggle Preview** shows it as API documentation.
+
+### AsyncAPI
+
+An AsyncAPI document (one that starts with `asyncapi: 3.0.0` or `asyncapi: 2.6.0`) describes an event-driven API: its servers (Kafka, MQTT, WebSocket and so on), its channels, and the messages sent and received on them. The preview lists the servers, each channel with its operations (send and receive, or publish and subscribe in 2.x), and each message with its payload schema. **Generate Request Collection** is for OpenAPI and Swagger documents only.
+
+### Not yet
+
+- `$ref`s to other files or URLs. They're left as they are; refs within the document work.
+- A visual editor, and specs in other formats (protobuf, GraphQL SDL).
 
 ### Your own lint rules
 

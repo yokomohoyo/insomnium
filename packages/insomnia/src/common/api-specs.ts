@@ -3,7 +3,7 @@ import YAML from 'yaml';
 export interface ParsedApiSpec {
   contents: Record<string, any> | null;
   rawContents: string;
-  format: 'openapi' | 'swagger' | null;
+  format: 'openapi' | 'swagger' | 'asyncapi' | null;
   formatVersion: string | null;
 }
 
@@ -33,6 +33,10 @@ export function parseApiSpec(
       // Check if it's Swagger
       result.format = 'swagger';
       result.formatVersion = result.contents.swagger;
+    } else if (result.contents.asyncapi) {
+      // event-driven APIs: linted and previewed, but not made into requests
+      result.format = 'asyncapi';
+      result.formatVersion = String(result.contents.asyncapi);
     } else {
       // Not sure what format it is
     }
