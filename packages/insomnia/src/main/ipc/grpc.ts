@@ -10,6 +10,7 @@ import { getAuthHeaders } from '../../network/authentication';
 import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
 import { fetchProto, FetchedProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
+import { checkRequestPolicy } from '../../network/request-policy';
 import { guard } from '../../utils/guard';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../network/grpc-credentials';
 import { asServiceDefinition, grpcOptions, loadMethod, loadProto, validateProto } from '../proto-worker';
@@ -70,6 +71,7 @@ export interface MethodDefs {
 }
 const getMethodsFromReflection = async (host: string, metadata: GrpcRequestHeader[], parentId?: string | null): Promise<MethodDefs[]> => {
   const { url, enableTls } = parseGrpcUrl(host);
+  checkRequestPolicy(`${enableTls ? 'https' : 'http'}://${url}`);
   const client = new grpcReflection.Client(url,
     await getGrpcCredentials(url, enableTls, parentId),
     grpcOptions,

@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "insomnium-server",
+  "version": "0.3.5",
+  "description": "Headless Insomnium MCP server: loads a collection and lets AI clients list and send its requests over Streamable HTTP, for running in a container next to the APIs under test.",
+  "license": "MIT",
+  "author": "yokomohoyo <yokomohoyo@users.noreply.github.com>",
+  "bin": {
+    "insomnium-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "cd ../insomnia && npm run build:server",
+    "smoke": "node test/smoke.mjs --bundle dist/index.js"
+  },
+  "engines": {
+    "node": ">=24.18.0"
+  }
+}

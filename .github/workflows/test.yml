@@ -136,6 +136,25 @@ jobs:
           path: packages/insomnia-smoke-test/traces
           retention-days: 7
 
+  Server:
+    # The headless MCP server image (packages/insomnium-server): build it, run
+    # it against a local echo server, and drive it over MCP. Not required yet.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Build image
+        run: docker build -f packages/insomnium-server/Dockerfile -t insomnium-server:ci .
+
+      - name: Smoke test
+        run: node packages/insomnium-server/test/smoke.mjs --image insomnium-server:ci
+
   Package:
     # Catches electron-builder/native-dep regressions before they hit a release
     # branch. macOS only — windows/linux artifacts still build on release/**.

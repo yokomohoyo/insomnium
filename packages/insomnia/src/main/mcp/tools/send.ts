@@ -53,7 +53,9 @@ export function registerSendTool(server: McpServer) {
         caCert,
         settings,
       );
-      const stored = await models.response.create(response, settings.maxHistoryResponses);
+      // libcurl writes the body uncompressed (as responseTransform records for
+      // Send); left unset, migration would mark it zip and reading would fail
+      const stored = await models.response.create({ ...response, bodyCompression: null }, settings.maxHistoryResponses);
       return {
         content: [{
           type: 'text',
