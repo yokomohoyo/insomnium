@@ -20,7 +20,7 @@ An HTTP request's tabs:
 - **Query** and **Headers**.
 - **Assertions**: checks on the response: see [Tests and the runner](testing.md).
 - **Scripts**: JavaScript run before the request and after its response: see [Scripts](scripts.md).
-- **Examples**: responses the request should give. Save one from a response with **Save as Example**, in the response's history menu (Ctrl+Shift+H), or write one. Unlike the response history, examples are part of the collection, so they're exported and synced with it.
+- **Examples**: responses the request should give. Save one from a response with **Save as Example**, in the response's history menu (Ctrl+Shift+H), or write one. Unlike the response history, examples are part of the collection, so they're exported and synced with it. The [mock server](mock-server.md) answers with them.
 - **Docs**: a description, in Markdown.
 
 `:name` segments in a URL are path parameters, filled in below the query parameters. Request settings (the request's dropdown, then **Settings**) cover redirects, URL encoding, cookies, a timeout, certificate validation and the HTTP version for that request.

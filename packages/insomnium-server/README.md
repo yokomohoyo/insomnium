@@ -104,6 +104,21 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 `INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL`, `INSOMNIUM_ALLOWED_ENV` and the proxy variables work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 
+## Mock a collection
+
+`mock` answers as a collection's requests would, with their examples (saved responses), for a front end or tests to call instead of the real API. See the [mock server docs](../../docs/mock-server.md) for how it matches.
+
+```sh
+docker run --rm -p 4040:4040 -v "$PWD:/work" -w /work \
+  ghcr.io/yokomohoyo/insomnium-server mock --collection api.yaml --host 0.0.0.0
+```
+
+| | |
+|---|---|
+| `--collection <file>` | A collection to answer for, in any format Import takes; repeat for more. |
+| `--port <n>` | The port (`INSOMNIUM_MOCK_PORT`; default 4040). |
+| `--host <address>` | The address to listen on (`INSOMNIUM_MOCK_HOST`; default 127.0.0.1, so use 0.0.0.0 in a container). |
+
 ## Not yet
 
 - OAuth 2 flows that need a browser (authorization code, implicit) can't run here; client credentials and password grants can.

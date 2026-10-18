@@ -13,6 +13,7 @@ import type { ToastNotification } from '../../ui/components/toast';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { credentialStorageNotices } from '../credential-keys';
 import { insomniaFetch } from '../insomniaFetch';
+import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import installPlugin from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
 import { checkForNewRelease } from '../release-check';
@@ -55,6 +56,13 @@ export interface MainBridgeAPI {
   // relaunches the app, which restores the snapshot before opening the data
   restoreSnapshot: (name: string) => Promise<void>;
   showSnapshotsFolder: () => Promise<void>;
+  // a collection's local mock server (mock/mock-server.ts); it reports each
+  // request it answers on 'mockServer.request'
+  mockServer: {
+    start: (options: { workspaceId: string; port: number }) => Promise<MockServerStatus>;
+    stop: (workspaceId: string) => Promise<void>;
+    status: (workspaceId: string) => Promise<MockServerStatus | null>;
+  };
 }
 export function registerMainHandlers() {
   ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
@@ -82,6 +90,9 @@ export function registerMainHandlers() {
     }
   });
 
+  ipcMain.handle('mockServer.start', (event, { workspaceId, port }: { workspaceId: string; port: number }) => startCollectionMock(workspaceId, port, event.sender));
+  ipcMain.handle('mockServer.stop', (_, workspaceId: string) => stopCollectionMock(workspaceId));
+  ipcMain.handle('mockServer.status', (_, workspaceId: string) => collectionMockStatus(workspaceId));
   ipcMain.handle('runScript', (_, { code, input, timeoutMs }: { code: string; input: object; timeoutMs: number }) => runInSandbox(code, input, { timeoutMs }));
   ipcMain.handle('checkForNewRelease', () => checkForNewRelease());
   ipcMain.handle('credentialStorageNotices', () => credentialStorageNotices(credentialStorageStatus()));
