@@ -640,10 +640,13 @@ const FORWARDED_NAMES = [
 type Forwarded = typeof FORWARDED_NAMES[number];
 const FORWARDED = new Set<string>(FORWARDED_NAMES);
 
-// a window's call, refused unless it's one of those
-export const _callFromWindow = async (fnName: string, args: unknown[]) => {
+// A window's call, refused unless it's one of those. Not an async function:
+// that would take the reply a few ticks longer, past the change broadcast
+// (notifyOfChange), whose revalidation drops an action's redirect in the
+// window (a new request wouldn't open)
+export const _callFromWindow = (fnName: string, args: unknown[]): Promise<unknown> => {
   if (!FORWARDED.has(fnName)) {
-    throw new Error(`The database has no ${fnName} for the app's windows`);
+    return Promise.reject(new Error(`The database has no ${fnName} for the app's windows`));
   }
   // @ts-expect-error -- mapping unsoundness
   return database[fnName](...args);
