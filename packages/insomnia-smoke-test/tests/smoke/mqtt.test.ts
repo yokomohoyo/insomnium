@@ -22,12 +22,16 @@ test('a WebSocket request speaks MQTT: connect, subscribe, deliveries and publis
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
   await page.getByLabel('Request Collection').getByRole('row', { name: 'smoke broker' }).click();
 
-  await page.getByRole('tab', { name: 'MQTT' }).click();
-  await page.getByLabel('Use MQTT').check();
+  const mqttTab = page.getByRole('tab', { name: 'MQTT' });
+  await mqttTab.click();
   await page.getByLabel('MQTT client ID').fill('e2e-client');
   await page.getByLabel('MQTT user name').fill('smoke');
   await page.getByLabel('MQTT password').fill('secret');
   await page.getByLabel('MQTT subscriptions').fill('smoke/# 1');
+  // turned on last: each edit saves the whole, and a quicker one replaces a
+  // save still going, so the tab's check means all of it is saved
+  await page.getByLabel('Use MQTT').check();
+  await expect(mqttTab.locator('.bubble')).toBeVisible();
 
   await page.getByRole('button', { name: 'Connect' }).click();
   // the WebSocket's pane: there's a second, hidden response pane
