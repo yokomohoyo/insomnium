@@ -11,9 +11,9 @@ module.exports = {
   cache: false,
   modulePathIgnorePatterns: ['./src/network/.*/__mocks__'],
   transform: {
-    '^.+\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': 'ts-jest',
     // ES modules only (src/__jest__/esm-to-cjs.js)
-    '/node_modules/@faker-js/faker/.+\.js$': '<rootDir>/src/__jest__/esm-to-cjs.js',
+    '/node_modules/@faker-js/faker/.+\\.js$': '<rootDir>/src/__jest__/esm-to-cjs.js',
   },
   transformIgnorePatterns: ['/node_modules/(?!(@getinsomnia/api-client|@faker-js/faker)/)'],
   setupFiles: ['./src/__jest__/setup.ts'],
