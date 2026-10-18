@@ -672,6 +672,17 @@ export class GitVCS {
     }
   }
 
+  // a file as it is now, in the working tree (for the database's documents,
+  // as NeDBClient writes them), or null when there's none
+  async readWorkingFile(relPath: string) {
+    try {
+      const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+      return (await fs.readFile(path.join(this._baseOpts.dir, relPath), 'utf8')).toString();
+    } catch (err) {
+      return null;
+    }
+  }
+
   async repoExists() {
     try {
       await git.getConfig({ ...this._baseOpts, path: '' });

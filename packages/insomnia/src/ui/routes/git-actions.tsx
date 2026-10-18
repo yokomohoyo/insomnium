@@ -34,6 +34,7 @@ import {
   addDotGit,
   getOauth2FormatName,
 } from '../../sync/git/utils';
+import { type DocDiff, docDiff } from '../../sync/git/doc-diff';
 import { guard } from '../../utils/guard';
 import electron from 'electron';
 
@@ -1043,6 +1044,8 @@ export interface GitChange {
   staged: boolean;
   added: boolean;
   editable: boolean;
+  // what changed since the last commit, by field (sync/git/doc-diff.ts)
+  diff?: DocDiff;
 }
 
 async function getGitVCSPaths(vcs: typeof GitVCS) {
@@ -1115,6 +1118,8 @@ async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
       editable = false;
       staged = true;
     }
+    const committed = log.length > 0 ? await vcs.readObjFromTree(log[0].commit.tree, gitPath) : null;
+    const current = status.includes('deleted') ? null : await vcs.readWorkingFile(gitPath);
     items[gitPath] = {
       type: type as any,
       staged,
@@ -1122,6 +1127,7 @@ async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
       status,
       added,
       path: gitPath,
+      diff: docDiff(committed ? committed.toString() : null, current),
     };
   }
 
