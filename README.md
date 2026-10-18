@@ -19,6 +19,8 @@ This fork is being actively maintained — Insomnium is a useful tool worth keep
 
 I have removed user login, tracking, analytics, etc, from Insomnia so it is now a 100% local app. (And runs faster!)
 
+**[Documentation](docs/README.md)**: getting started, template tags, scripts, tests and the runner, Git Sync, import and export, and plugins.
+
 
 ## Download
 

@@ -331,10 +331,10 @@ const TestSuiteRoute = () => {
             icon={<SvgIcon icon="vial" />}
             documentationLinks={[
               documentationLinks.unitTesting,
-              documentationLinks.introductionToInsoCLI,
+              documentationLinks.runInCI,
             ]}
             title="Add unit tests to verify your API"
-            secondaryAction="You can run these tests in CI with Inso CLI"
+            secondaryAction="To check requests in CI, give them assertions or after-response scripts and run them with insomnium-server run"
           />
         </div>
       ) : null}
