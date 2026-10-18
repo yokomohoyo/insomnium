@@ -157,11 +157,11 @@ const dirOf = (path: string) => path.includes('/') ? path.slice(0, path.lastInde
 export function folderDocs(files: Map<string, string>, newId: (type: string) => string, resolveId?: (id: string, type: string, path: string) => string | undefined): FolderDocs {
   const docs: SyncDoc[] = [];
   const problems: string[] = [];
-  const paths: string[] = [];
+  const docPaths: string[] = [];
   const failed = new Set<string>();
   const add = (doc: SyncDoc, path: string) => {
     docs.push(doc);
-    paths.push(path);
+    docPaths.push(path);
   };
   const parse = (path: string) => {
     try {
@@ -191,7 +191,7 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
   const collection = files.has(COLLECTION_FILE) ? parse(COLLECTION_FILE) : null;
   if (!collection || typeof collection._id !== 'string') {
     problems.push(`${COLLECTION_FILE}: missing, or without the collection's _id`);
-    return { docs, problems, paths, failed };
+    return { docs, problems, paths: docPaths, failed };
   }
   const workspace = asDoc(collection, 'Workspace', null, COLLECTION_FILE);
   add(workspace, COLLECTION_FILE);
@@ -243,7 +243,7 @@ export function folderDocs(files: Map<string, string>, newId: (type: string) => 
       }
     }
   }
-  return { docs, problems, paths, failed };
+  return { docs, problems, paths: docPaths, failed };
 }
 
 // the fields a file holds for a document, to compare a file's with the app's

@@ -207,7 +207,8 @@ export class FolderSync {
       if (doc.type === 'Workspace') {
         const existing = current.get(this.workspaceId);
         if (existing && (existing.name !== doc.name || existing.description !== doc.description)) {
-          await db.update({ ...existing, name: doc.name, description: doc.description ?? '' } as BaseModel, true);
+          const renamed: SyncDoc = { ...existing, name: doc.name, description: doc.description ?? '' };
+          await db.update(renamed as BaseModel, true);
         }
         continue;
       }
