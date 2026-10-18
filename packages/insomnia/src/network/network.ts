@@ -71,13 +71,14 @@ export const fetchRequestData = async (requestId: string) => {
   return { request, environment, settings, clientCertificates, caCert, activeEnvironmentId };
 };
 
-export const tryToInterpolateRequest = async (request: Request, environmentId: string, purpose?: RenderPurpose, extraInfo?: ExtraRenderInfo) => {
+export const tryToInterpolateRequest = async (request: Request, environmentId: string, purpose?: RenderPurpose, extraInfo?: ExtraRenderInfo, iterationData?: Record<string, unknown>) => {
   try {
     return await getRenderedRequestAndContext({
       request: request,
       environmentId,
       purpose,
       extraInfo,
+      iterationData,
     });
   } catch (err) {
     if ('type' in err && err.type === 'render') {

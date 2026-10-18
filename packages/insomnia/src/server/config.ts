@@ -11,6 +11,7 @@ export interface ServerConfig {
 }
 
 export const USAGE = `Usage: insomnium-server --collection <file> [--collection <file> ...] [--env <name>] [--host <address>] [--port <port>]
+       insomnium-server run --collection <file> ...   (the collection runner; run --help)
 
   --collection  an Insomnium or Insomnia (v4 or v5) export, or a Postman collection
   --env         the sub environment to send with, by name
