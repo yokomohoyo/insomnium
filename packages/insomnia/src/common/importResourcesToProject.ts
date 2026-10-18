@@ -21,6 +21,7 @@ export async function importResourcesToProject({ projectId = DEFAULT_PROJECT_ID,
   }
   if (!resources.find(isWorkspace)) {
     await importResourcesToNewWorkspace(projectId, resources);
+    await db.flushChanges(bufferId);
     return { resources };
   }
   const r = await Promise.all(resources.filter(isWorkspace)

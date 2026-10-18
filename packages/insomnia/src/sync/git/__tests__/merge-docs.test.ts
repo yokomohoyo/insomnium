@@ -121,17 +121,16 @@ describe('GitVCS.mergeByField()', () => {
     };
     await GitVCS.checkout('main');
     await write('{\n  "name": "app",\n  "version": "1.0.0",\n  "private": true\n}\n', 'package');
-    await GitVCS.checkout('theirs');
-    await write('{\n  "name": "app",\n  "version": "1.0.0",\n  "private": true\n}\n', 'package');
+    await GitVCS.branch('packaged', true);
     await commit(doc({ url: 'https://pets.example.com/animals' }), 'their url');
-    await write('{\n  "name": "app",\n  "version": "1.1.0",\n  "private": true\n}\n', 'their version');
+    await write('{\n  "name": "app",\n  "version": "1.0.0",\n  "private": false\n}\n', 'their private');
     await GitVCS.checkout('main');
     await write('{\n  "name": "app-renamed",\n  "version": "1.0.0",\n  "private": true\n}\n', 'our name');
     await commit(doc({ method: 'POST' }), 'our method');
 
-    await GitVCS.mergeByField('theirs');
+    await GitVCS.mergeByField('packaged');
 
-    expect((await fsClient.promises.readFile(pkg)).toString()).toBe('{\n  "name": "app-renamed",\n  "version": "1.1.0",\n  "private": true\n}\n');
+    expect((await fsClient.promises.readFile(pkg)).toString()).toBe('{\n  "name": "app-renamed",\n  "version": "1.0.0",\n  "private": false\n}\n');
     expect(await working()).toMatchObject({ method: 'POST', url: 'https://pets.example.com/animals' });
   });
 
