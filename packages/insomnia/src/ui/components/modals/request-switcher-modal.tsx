@@ -63,15 +63,19 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
   }, [mode, requests]);
 
   const matches = useMemo(() => {
-    const found = requests.filter(({ doc, folder }) => !filter.trim() || fuzzyMatchAll(
-      filter,
-      [doc.name, folder, doc.url],
-      { splitSpace: true, loose: true },
-    )?.indexes);
-    if (mode === 'recent' && lastActive) {
-      return [...found].sort((a, b) => (lastActive[b.doc._id] || 0) - (lastActive[a.doc._id] || 0));
+    if (filter.trim()) {
+      // every word has to match, best match first (ties keep sidebar order)
+      return requests
+        .flatMap(entry => {
+          const match = fuzzyMatchAll(filter, [entry.doc.name, entry.folder, entry.doc.url], { splitSpace: true });
+          return match ? [{ ...entry, score: match.score }] : [];
+        })
+        .sort((a, b) => b.score - a.score);
     }
-    return found;
+    if (mode === 'recent' && lastActive) {
+      return [...requests].sort((a, b) => (lastActive[b.doc._id] || 0) - (lastActive[a.doc._id] || 0));
+    }
+    return requests;
   }, [requests, filter, mode, lastActive]);
 
   useEffect(() => {
