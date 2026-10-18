@@ -30,6 +30,7 @@ import { RequestSettingsModal } from '../modals/request-settings-modal';
 import { Pane, PaneHeader as OriginalPaneHeader } from '../panes/pane';
 import { RenderedQueryString } from '../rendered-query-string';
 import { WebSocketActionBar } from './action-bar';
+import { GraphqlSubscriptionEditor } from './graphql-subscription-editor';
 
 const supportedAuthTypes: AuthType[] = ['apikey', 'basic', 'bearer'];
 
@@ -343,6 +344,22 @@ export const WebSocketRequestPane: FC<Props> = ({ environment }) => {
               workspaceId={workspaceId}
             />
           </div>
+        </TabItem>
+        <TabItem
+          key="graphql"
+          title={
+            <>
+              GraphQL
+              {activeRequest.graphqlSubscription?.enabled && (
+                <span className="bubble space-left">
+                  <i className="fa fa--skinny fa-check txt-xxs" />
+                </span>
+              )}
+            </>
+          }
+        >
+          {disabled && <PaneReadOnlyBanner />}
+          <GraphqlSubscriptionEditor key={uniqueKey} request={activeRequest} disabled={disabled} />
         </TabItem>
         <TabItem key="auth" title={<AuthDropdown authTypes={supportedAuthTypes} disabled={disabled} />}>
           {disabled && <PaneReadOnlyBanner />}
