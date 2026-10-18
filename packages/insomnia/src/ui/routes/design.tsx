@@ -8,6 +8,7 @@ import {
   LoaderFunction,
   useFetcher,
   useLoaderData,
+  useNavigate,
   useParams,
 } from 'react-router-dom';
 import { useToggle } from 'react-use';
@@ -15,7 +16,7 @@ import styled from 'styled-components';
 import { SwaggerUIBundle } from 'swagger-ui-dist';
 
 import { parseApiSpec } from '../../common/api-specs';
-import { ACTIVITY_SPEC } from '../../common/constants';
+import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { debounce } from '../../common/misc';
 import { ApiSpec } from '../../models/api-spec';
 import * as models from '../../models/index';
@@ -25,6 +26,7 @@ import {
   CodeEditorHandle,
 } from '../components/codemirror/code-editor';
 import { DesignEmptyState } from '../components/design-empty-state';
+import { showAlert } from '../components/modals';
 
 import { ErrorBoundary } from '../components/error-boundary';
 import { Notice, NoticeTable } from '../components/notice-table';
@@ -167,6 +169,18 @@ const Design: FC = () => {
 
   const updateApiSpecFetcher = useFetcher();
   const generateRequestCollectionFetcher = useFetcher();
+  // once generated: what changed, when it changed requests made before, and the requests
+  const navigate = useNavigate();
+  const generated = generateRequestCollectionFetcher.data as { summary: string } | undefined;
+  useEffect(() => {
+    if (generateRequestCollectionFetcher.state !== 'idle' || !generated) {
+      return;
+    }
+    if (generated.summary) {
+      showAlert({ title: 'Request Collection Updated', message: generated.summary });
+    }
+    navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_DEBUG}`);
+  }, [generateRequestCollectionFetcher.state, generated, navigate, organizationId, projectId, workspaceId]);
   const [showRightPane, toggleRightPane] = useToggle(true);
 
   useEffect(() => {
