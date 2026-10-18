@@ -1,0 +1,97 @@
+{
+  "info": {
+    "name": "Inherited auth, scripts and path variables",
+    "description": {
+      "content": "Collection docs",
+      "type": "text/markdown"
+    },
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{collectionToken}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": { "type": "text/javascript", "exec": ["pm.environment.set('ts', Date.now());"] }
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "auth": {
+        "type": "basic",
+        "basic": [
+          { "key": "username", "value": "folder-user", "type": "string" },
+          { "key": "password", "value": "folder-pass", "type": "string" }
+        ]
+      },
+      "item": [
+        {
+          "name": "Get user",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ok', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "// a ``` fence inside"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "disabled": true,
+              "script": { "type": "text/javascript", "exec": "console.log('off');" }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "https://api.example.com:8443/users/:userId/posts/:postId",
+              "protocol": "https",
+              "host": ["api", "example", "com"],
+              "port": "8443",
+              "path": ["users", ":userId", "posts", ":postId"],
+              "variable": [
+                { "key": "postId", "value": "7" },
+                { "key": "userId", "value": "42", "description": "the user" }
+              ]
+            },
+            "description": "Get one user"
+          }
+        },
+        {
+          "name": "No auth",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "https://api.example.com/health"
+          }
+        },
+        {
+          "name": "Own header",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer own-token" }],
+            "url": "https://api.example.com/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Collection auth",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "https://api.example.com/items"
+      }
+    }
+  ]
+}
