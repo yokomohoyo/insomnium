@@ -32,6 +32,8 @@ export interface CapturedExchange {
 
 export const MAX_EXCHANGES = 500;
 export const MAX_BODY = 1024 * 1024;
+// the bodies kept in all, the oldest exchanges' let go first
+export const MAX_KEPT_BYTES = 32 * 1024 * 1024;
 // sent on by the proxy, not by what's captured
 const HOP_BY_HOP = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade']);
 
@@ -69,7 +71,7 @@ export class CaptureProxy {
   private nextId = 1;
   private sockets = new Set<net.Socket>();
 
-  constructor(private readonly onChange: () => void = () => {}) {}
+  constructor(private readonly onChange: () => void = () => {}, private readonly maxKeptBytes = MAX_KEPT_BYTES) {}
 
   get port() {
     const address = this.server?.address();
@@ -83,6 +85,31 @@ export class CaptureProxy {
     }
     this.onChange();
     return exchange;
+  }
+
+  // the oldest bodies go once those kept pass MAX_KEPT_BYTES
+  private trim() {
+    let kept = this.exchanges.reduce((sum, exchange) => sum + exchange.requestBody.length + exchange.responseBody.length, 0);
+    for (const exchange of this.exchanges) {
+      if (kept <= this.maxKeptBytes) {
+        break;
+      }
+      if (exchange.requestBody || exchange.responseBody) {
+        kept -= exchange.requestBody.length + exchange.responseBody.length;
+        exchange.requestBody = '';
+        exchange.responseBody = '';
+        exchange.truncated = true;
+      }
+    }
+  }
+
+  // the list, without bodies: the dialog shows only what each was
+  summaries(): CapturedExchange[] {
+    return this.exchanges.map(exchange => ({ ...exchange, requestBody: '', responseBody: '' }));
+  }
+
+  get(id: number) {
+    return this.exchanges.find(exchange => exchange.id === id) ?? null;
   }
 
   async start(port: number) {
@@ -174,6 +201,7 @@ export class CaptureProxy {
         exchange.responseBody = responseBody.text();
         exchange.truncated = requestBody.truncated || responseBody.truncated;
         exchange.elapsedMs = Date.now() - started;
+        this.trim();
         this.onChange();
       });
     });
@@ -236,17 +264,25 @@ export class CaptureProxy {
 }
 
 let proxy: CaptureProxy | undefined;
+// at most a few times a second, however busy the traffic
+let broadcastTimer: NodeJS.Timeout | undefined;
 const broadcast = () => {
-  for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send('capture.changed');
-  }
+  broadcastTimer ??= setTimeout(() => {
+    broadcastTimer = undefined;
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send('capture.changed');
+    }
+  }, 250);
 };
 
 export interface CaptureBridgeAPI {
   start: (options: { port: number }) => Promise<number | null>;
   stop: () => Promise<void>;
   status: () => Promise<number | null>;
+  // what was captured, without the bodies
   list: () => Promise<CapturedExchange[]>;
+  // one, with its bodies
+  get: (options: { id: number }) => Promise<CapturedExchange | null>;
   clear: () => Promise<void>;
 }
 
@@ -257,6 +293,7 @@ export function registerCaptureHandlers() {
   });
   ipcMain.handle('capture.stop', () => proxy?.stop());
   ipcMain.handle('capture.status', () => proxy?.port ?? null);
-  ipcMain.handle('capture.list', () => proxy?.exchanges ?? []);
+  ipcMain.handle('capture.list', () => proxy?.summaries() ?? []);
+  ipcMain.handle('capture.get', (_, { id }: { id: number }) => proxy?.get(id) ?? null);
   ipcMain.handle('capture.clear', () => proxy?.clear());
 }

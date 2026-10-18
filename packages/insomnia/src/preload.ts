@@ -19,6 +19,7 @@ const capture: CaptureBridgeAPI = {
   stop: () => ipcRenderer.invoke('capture.stop'),
   status: () => ipcRenderer.invoke('capture.status'),
   list: () => ipcRenderer.invoke('capture.list'),
+  get: options => ipcRenderer.invoke('capture.get', options),
   clear: () => ipcRenderer.invoke('capture.clear'),
 };
 

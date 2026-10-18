@@ -63,8 +63,9 @@ export const CaptureModal: FC<ModalProps & { workspace: Workspace }> = ({ worksp
     setListening(null);
   };
   const save = async (toSave: CapturedExchange[]) => {
-    for (const exchange of toSave) {
-      await saveExchange(exchange, workspace._id);
+    for (const summary of toSave) {
+      // the list leaves the bodies out
+      await saveExchange(await window.main.capture.get({ id: summary.id }) || summary, workspace._id);
     }
     setSaved(`Saved ${toSave.length} ${toSave.length === 1 ? 'request' : 'requests'} to ${workspace.name}.`);
     setChosen(new Set());
@@ -144,7 +145,7 @@ export const CaptureModal: FC<ModalProps & { workspace: Workspace }> = ({ worksp
         </table>
       </ModalBody>
       <ModalFooter>
-        <div className="margin-left faint txt-sm">{exchanges.length} captured, the latest {500} kept while the app runs</div>
+        <div className="margin-left faint txt-sm">{exchanges.length} captured; the latest 500 are kept while the app runs</div>
         <div>
           <button className="btn" disabled={!chosen.size} onClick={() => save(savable.filter(exchange => chosen.has(exchange.id)))}>
             Save {chosen.size || ''} as Requests

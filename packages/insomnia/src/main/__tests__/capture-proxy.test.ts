@@ -83,6 +83,20 @@ describe('CaptureProxy', () => {
     expect(proxy.exchanges[0].truncated).toBe(true);
   });
 
+  it('lets the oldest bodies go past its budget, and lists without bodies', async () => {
+    await proxy.stop();
+    proxy = new CaptureProxy(() => {}, 100);
+    proxyPort = (await proxy.start(0))!;
+    await viaProxy(proxyPort, `http://127.0.0.1:${targetPort}/first`, 'POST', 'a'.repeat(60));
+    await viaProxy(proxyPort, `http://127.0.0.1:${targetPort}/second`, 'POST', 'b'.repeat(60));
+
+    const [first, second] = proxy.exchanges;
+    expect(first).toMatchObject({ requestBody: '', responseBody: '', truncated: true });
+    expect(second.requestBody).toBe('b'.repeat(60));
+    expect(proxy.summaries().every(exchange => exchange.requestBody === '' && exchange.responseBody === '')).toBe(true);
+    expect(proxy.get(second.id)?.requestBody).toBe('b'.repeat(60));
+  });
+
   it('tunnels CONNECT without reading it, and lists it by host', async () => {
     const socket = net.connect(proxyPort, '127.0.0.1');
     let received = '';
