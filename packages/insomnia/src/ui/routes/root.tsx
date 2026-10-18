@@ -20,7 +20,6 @@ import {
   useLoaderData,
   useLocation,
   useNavigate,
-  useRevalidator,
   useParams,
   useRouteLoaderData,
 } from 'react-router-dom';
@@ -28,7 +27,6 @@ import {
 /**** ><> ↑ --------- Imports */
 
 import { isDevelopment } from '../../common/constants';
-import { ChangeBufferEvent, database } from '../../common/database';
 import * as models from '../../models';
 
 import { Settings } from '../../models/settings';
@@ -69,12 +67,6 @@ import { defaultOrganization } from '../../models/organization';
 
 /**** ><> ↑ --------- Hooks and Containers */
 
-// Loader-relevant doc types; Response/Stats/*Meta excluded to avoid Send-loop.
-const REVALIDATE_TYPES = new Set([
-  'Workspace', 'Project', 'Request', 'RequestGroup', 'Environment',
-  'GrpcRequest', 'WebSocketRequest', 'McpRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
-]);
-
 export interface RootLoaderData {
   settings: Settings;
 }
@@ -91,7 +83,6 @@ export const loader: LoaderFunction = async (): Promise<RootLoaderData> => {
 const Root = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { revalidate } = useRevalidator();
   const { settings } = useLoaderData() as RootLoaderData;
   const organizations = [defaultOrganization];
 
@@ -109,16 +100,7 @@ const Root = () => {
       });
   }, [location.pathname, navigate]);
 
-  // Revalidate loaders on structural DB changes (e.g. MCP writes from main).
-  useEffect(() => {
-    const listener = (changes: ChangeBufferEvent[]) => {
-      if (changes.some(([, doc]) => REVALIDATE_TYPES.has(doc.type))) {
-        revalidate();
-      }
-    };
-    database.onChange(listener);
-    return () => database.offChange(listener);
-  }, [revalidate]);
+  // (database changes revalidate the routes: revalidate-on-changes.ts)
 
   useEffect(() => {
     return window.main.on(
