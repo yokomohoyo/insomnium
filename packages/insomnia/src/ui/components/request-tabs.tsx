@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useState } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { neighborOf, withoutTab, withTab } from '../../common/open-tabs';
@@ -21,30 +21,58 @@ export const RequestTabs: FC = () => {
     workspaceId: string;
     requestId?: string;
   };
-  const { activeWorkspaceMeta, collection } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const { collection } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   const navigate = useNavigate();
-  // here rather than from the loader, which doesn't run again as requests change
-  const [open, setOpen] = useState<string[]>(() => activeWorkspaceMeta?.openRequestIds || []);
+  // here, from the database, rather than the loader's: that doesn't run again as
+  // requests change, nor between debug, spec and test, so its list is old by the
+  // time this mounts again. Kept with its workspace, so it's saved to that one
+  const [loaded, setLoaded] = useState<{ workspaceId: string; ids: string[] }>();
+  const open = loaded?.workspaceId === workspaceId ? loaded.ids : undefined;
 
   useEffect(() => {
-    if (requestId) {
-      setOpen(current => withTab(current, requestId));
-    }
-  }, [requestId]);
+    let current = true;
+    models.workspaceMeta.getOrCreateByParentId(workspaceId).then(meta => {
+      if (current) {
+        setLoaded({ workspaceId, ids: meta.openRequestIds || [] });
+      }
+    });
+    return () => {
+      current = false;
+    };
+  }, [workspaceId]);
+  // a request gets its tab as it opens (or once the list has loaded), not again
+  // as the list changes: one just closed is still open until the navigation lands
+  const added = useRef<string>();
   useEffect(() => {
-    models.workspaceMeta.updateByParentId(workspaceId, { openRequestIds: open });
-  }, [open, workspaceId]);
+    if (!requestId) {
+      added.current = undefined;
+    } else if (open && added.current !== requestId) {
+      added.current = requestId;
+      setLoaded(current => {
+        if (!current) {
+          return current;
+        }
+        const ids = withTab(current.ids, requestId);
+        return ids === current.ids ? current : { ...current, ids };
+      });
+    }
+  }, [open, requestId]);
+  useEffect(() => {
+    if (loaded) {
+      models.workspaceMeta.updateByParentId(loaded.workspaceId, { openRequestIds: loaded.ids });
+    }
+  }, [loaded]);
 
   const docs = useMemo(() => new Map(collection.map(({ doc }) => [doc._id, doc])), [collection]);
   // a request deleted since has no tab
-  const tabs = open.filter(id => docs.has(id) && !isRequestGroup(docs.get(id)!));
+  const tabs = (open || []).filter(id => docs.has(id) && !isRequestGroup(docs.get(id)!));
   if (!tabs.length) {
     return null;
   }
 
   const debug = `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug`;
   const close = async (id: string) => {
-    setOpen(current => withoutTab(current, id));
+    setLoaded(current => current && { ...current, ids: withoutTab(current.ids, id) });
     if (id !== requestId) {
       return;
     }

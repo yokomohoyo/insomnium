@@ -1,7 +1,7 @@
 import { IconName } from '@fortawesome/fontawesome-svg-core';
-import React, { Fragment, useCallback, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useState } from 'react';
 import { Button, Item, Menu, MenuTrigger, Popover } from 'react-aria-components';
-import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
+import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { exportHarRequest } from '../../../common/har';
 import { toKebabCase } from '../../../common/misc';
@@ -52,6 +52,13 @@ export const RequestActionsDropdown = ({
   const [loadingActions, setLoadingActions] = useState<Record<string, boolean>>({});
   const requestFetcher = useFetcher();
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
+  const navigate = useNavigate();
+  const duplicatedId = requestFetcher.data?.duplicatedId;
+  useEffect(() => {
+    if (duplicatedId) {
+      navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${duplicatedId}`);
+    }
+  }, [duplicatedId, navigate, organizationId, projectId, workspaceId]);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 

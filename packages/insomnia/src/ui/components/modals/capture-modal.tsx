@@ -1,4 +1,5 @@
 import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { OverlayContainer } from 'react-aria';
 
 import type { CapturedExchange } from '../../../main/capture-proxy';
 import * as models from '../../../models';
@@ -75,83 +76,85 @@ export const CaptureModal: FC<ModalProps & { workspace: Workspace }> = ({ worksp
   const newestFirst = [...exchanges].reverse();
 
   return (
-    <Modal ref={modalRef} onHide={onHide} wide tall>
-      <ModalHeader>Capture Traffic</ModalHeader>
-      <ModalBody className="pad">
-        <p className="faint txt-sm no-margin-top">
-          A proxy on this computer that records the requests an app, a script or a browser sends through it, to keep as requests in {workspace.name}.
-          Plain HTTP is recorded in full. HTTPS goes through untouched and is listed by host only: to keep HTTPS requests, save them as a HAR file from a browser&apos;s devtools, and import it.
-        </p>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2">
-            Port
-            <input type="number" aria-label="Capture port" min={1024} max={65535} value={port} disabled={listening !== null} onChange={event => setPort(Number(event.currentTarget.value) || DEFAULT_PORT)} />
-          </label>
-          {listening === null
-            ? <button className="btn btn--clicky" onClick={start}>Start Capturing</button>
-            : <button className="btn btn--clicky" onClick={stop}>Stop</button>}
-          <button className="btn btn--compact" disabled={!exchanges.length} onClick={() => window.main.capture.clear().then(refresh)}>Clear</button>
-        </div>
-        {listening !== null && (
-          <p className="notice info selectable" data-testid="capture-status">
-            Capturing on 127.0.0.1:{listening}. Set it as the HTTP proxy, such as <code>HTTP_PROXY=http://127.0.0.1:{listening}</code>, or <code>curl -x http://127.0.0.1:{listening} http://…</code>
+    <OverlayContainer onClick={e => e.stopPropagation()}>
+      <Modal ref={modalRef} onHide={onHide} wide tall>
+        <ModalHeader>Capture Traffic</ModalHeader>
+        <ModalBody className="pad">
+          <p className="faint txt-sm no-margin-top">
+            A proxy on this computer that records the requests an app, a script or a browser sends through it, to keep as requests in {workspace.name}.
+            Plain HTTP is recorded in full. HTTPS goes through untouched and is listed by host only: to keep HTTPS requests, save them as a HAR file from a browser&apos;s devtools, and import it.
           </p>
-        )}
-        {error && <p className="notice error">{error}</p>}
-        {saved && <p className="notice success">{saved}</p>}
-        <table className="table--fancy table--striped margin-top" aria-label="Captured requests">
-          <thead>
-            <tr>
-              <th />
-              <th>Request</th>
-              <th className="text-right">Status</th>
-              <th className="text-right">Time</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {newestFirst.length === 0 && (
-              <tr><td colSpan={5} className="faint">Nothing captured yet.</td></tr>
-            )}
-            {newestFirst.map(exchange => (
-              <tr key={exchange.id} aria-label={`${exchange.method} ${exchange.url}`}>
-                <td>
-                  {!exchange.tunnel && (
-                    <input
-                      type="checkbox"
-                      aria-label="Choose"
-                      checked={chosen.has(exchange.id)}
-                      onChange={event => {
-                        const next = new Set(chosen);
-                        event.currentTarget.checked ? next.add(exchange.id) : next.delete(exchange.id);
-                        setChosen(next);
-                      }}
-                    />
-                  )}
-                </td>
-                <td className="selectable">
-                  <span className="monospace faint">{exchange.method}</span> {exchange.tunnel ? <span className="faint">{exchange.tunnel}, HTTPS (not read)</span> : exchange.url}
-                  {exchange.error && <div className="danger txt-sm">{exchange.error}</div>}
-                  {exchange.truncated && <div className="faint txt-sm">Bodies over 1 MB are cut short.</div>}
-                </td>
-                <td className="text-right">{exchange.statusCode ?? '…'}</td>
-                <td className="text-right">{exchange.elapsedMs === undefined ? '' : `${exchange.elapsedMs} ms`}</td>
-                <td className="text-right">
-                  {!exchange.tunnel && <button className="btn btn--super-compact" onClick={() => save([exchange])}>Save</button>}
-                </td>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2">
+              Port
+              <input type="number" aria-label="Capture port" min={1024} max={65535} value={port} disabled={listening !== null} onChange={event => setPort(Number(event.currentTarget.value) || DEFAULT_PORT)} />
+            </label>
+            {listening === null
+              ? <button className="btn btn--clicky" onClick={start}>Start Capturing</button>
+              : <button className="btn btn--clicky" onClick={stop}>Stop</button>}
+            <button className="btn btn--compact" disabled={!exchanges.length} onClick={() => window.main.capture.clear().then(refresh)}>Clear</button>
+          </div>
+          {listening !== null && (
+            <p className="notice info selectable" data-testid="capture-status">
+              Capturing on 127.0.0.1:{listening}. Set it as the HTTP proxy, such as <code>HTTP_PROXY=http://127.0.0.1:{listening}</code>, or <code>curl -x http://127.0.0.1:{listening} http://…</code>
+            </p>
+          )}
+          {error && <p className="notice error">{error}</p>}
+          {saved && <p className="notice success">{saved}</p>}
+          <table className="table--fancy table--striped margin-top" aria-label="Captured requests">
+            <thead>
+              <tr>
+                <th />
+                <th>Request</th>
+                <th className="text-right">Status</th>
+                <th className="text-right">Time</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </ModalBody>
-      <ModalFooter>
-        <div className="margin-left faint txt-sm">{exchanges.length} captured; the latest 500 are kept while the app runs</div>
-        <div>
-          <button className="btn" disabled={!chosen.size} onClick={() => save(savable.filter(exchange => chosen.has(exchange.id)))}>
-            Save {chosen.size || ''} as Requests
-          </button>
-        </div>
-      </ModalFooter>
-    </Modal>
+            </thead>
+            <tbody>
+              {newestFirst.length === 0 && (
+                <tr><td colSpan={5} className="faint">Nothing captured yet.</td></tr>
+              )}
+              {newestFirst.map(exchange => (
+                <tr key={exchange.id} aria-label={`${exchange.method} ${exchange.url}`}>
+                  <td>
+                    {!exchange.tunnel && (
+                      <input
+                        type="checkbox"
+                        aria-label="Choose"
+                        checked={chosen.has(exchange.id)}
+                        onChange={event => {
+                          const next = new Set(chosen);
+                          event.currentTarget.checked ? next.add(exchange.id) : next.delete(exchange.id);
+                          setChosen(next);
+                        }}
+                      />
+                    )}
+                  </td>
+                  <td className="selectable">
+                    <span className="monospace faint">{exchange.method}</span> {exchange.tunnel ? <span className="faint">{exchange.tunnel}, HTTPS (not read)</span> : exchange.url}
+                    {exchange.error && <div className="danger txt-sm">{exchange.error}</div>}
+                    {exchange.truncated && <div className="faint txt-sm">Bodies over 1 MB are cut short.</div>}
+                  </td>
+                  <td className="text-right">{exchange.statusCode ?? '…'}</td>
+                  <td className="text-right">{exchange.elapsedMs === undefined ? '' : `${exchange.elapsedMs} ms`}</td>
+                  <td className="text-right">
+                    {!exchange.tunnel && <button className="btn btn--super-compact" onClick={() => save([exchange])}>Save</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </ModalBody>
+        <ModalFooter>
+          <div className="margin-left faint txt-sm">{exchanges.length} captured; the latest 500 are kept while the app runs</div>
+          <div>
+            <button className="btn" disabled={!chosen.size} onClick={() => save(savable.filter(exchange => chosen.has(exchange.id)))}>
+              Save {chosen.size || ''} as Requests
+            </button>
+          </div>
+        </ModalFooter>
+      </Modal>
+    </OverlayContainer>
   );
 };

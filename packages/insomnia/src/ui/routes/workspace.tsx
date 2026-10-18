@@ -154,7 +154,7 @@ export const workspaceLoader: LoaderFunction = async ({
   const mcpReqs = await database.find(models.mcpRequest.type, { parentId: { $in: listOfParentIds } });
   const allRequests = [...reqs, ...reqGroups, ...grpcReqs, ...wsReqs, ...mcpReqs] as (Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest)[];
 
-  const requestMetas = await database.find(models.requestMeta.type, { parentId: { $in: reqs.map(r => r._id) } });
+  const requestMetas = await database.find(models.requestMeta.type, { parentId: { $in: [...reqs, ...wsReqs, ...mcpReqs].map(r => r._id) } });
   const grpcRequestMetas = await database.find(models.grpcRequestMeta.type, { parentId: { $in: grpcReqs.map(r => r._id) } });
   const grpcAndRequestMetas = [...requestMetas, ...grpcRequestMetas] as (RequestMeta | GrpcRequestMeta)[];
   const requestGroupMetas = await database.find(models.requestGroupMeta.type, { parentId: { $in: listOfParentIds } }) as RequestGroupMeta[];

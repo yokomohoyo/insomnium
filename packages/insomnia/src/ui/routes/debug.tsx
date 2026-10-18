@@ -437,6 +437,13 @@ export const Debug: FC = () => {
   const reorderFetcher = useFetcher();
 
   const navigate = useNavigate();
+  // a duplicate, opened (see duplicateRequestAction)
+  const duplicatedId = requestFetcher.data?.duplicatedId;
+  useEffect(() => {
+    if (duplicatedId) {
+      navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${duplicatedId}`);
+    }
+  }, [duplicatedId, navigate, organizationId, projectId, workspaceId]);
 
   const collectionDragAndDrop = useDragAndDrop({
     getItems: keys =>

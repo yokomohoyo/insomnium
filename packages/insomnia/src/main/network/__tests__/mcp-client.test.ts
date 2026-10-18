@@ -78,6 +78,15 @@ describe('the MCP client', () => {
     await expect(mcpCall({ requestId: 'mcp-req_1', kind: 'tool', name: 'add', args: {} })).rejects.toThrow('Not connected');
   });
 
+  it('stops connecting when disconnected meanwhile, and stays disconnected', async () => {
+    const connecting = mcpConnect({ requestId: 'mcp-req_3', transport: 'http', url });
+    await new Promise(resolve => setImmediate(resolve));
+    await mcpDisconnect({ requestId: 'mcp-req_3' });
+
+    await expect(connecting).rejects.toThrow('Stopped connecting');
+    expect(mcpIsConnected({ requestId: 'mcp-req_3' })).toBe(false);
+  });
+
   it('needs an http(s) URL, or a command', async () => {
     await expect(mcpConnect({ requestId: 'mcp-req_2', transport: 'http', url: 'ftp://example.com' })).rejects.toThrow('http or https');
     await expect(mcpConnect({ requestId: 'mcp-req_2', transport: 'http', url: 'not a url' })).rejects.toThrow("MCP server's http:// or https:// URL");

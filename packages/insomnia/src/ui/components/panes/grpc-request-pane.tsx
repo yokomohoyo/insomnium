@@ -137,6 +137,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
           ...grpcState,
           requestMessages: [],
           responseMessages: [],
+          headers: undefined,
           status: undefined,
           error: undefined,
         });
@@ -215,6 +216,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                     ...grpcState,
                     requestMessages: [],
                     responseMessages: [],
+                    headers: undefined,
                     status: undefined,
                     error: undefined,
                     method: nextMethod,

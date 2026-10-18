@@ -476,7 +476,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
   useEffect(() => {
     const handleOnBlur = () => onBlur?.();
     codeMirror.current?.on('blur', handleOnBlur);
-    return () => codeMirror.current?.on('blur', handleOnBlur);
+    return () => codeMirror.current?.off('blur', handleOnBlur);
   }, [onBlur]);
 
   const tryToSetOption = (key: keyof EditorConfiguration, value: any) => {

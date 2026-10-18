@@ -21,6 +21,7 @@ import {
 } from '../../../../common/constants';
 import {
   getAuthStrategies,
+  isRequest,
   patchAuthStrategy,
   removeAuthStrategy,
   RequestAuthentication,
@@ -182,7 +183,8 @@ export const AuthWrapper: FC<{ disabled?: boolean }> = ({ disabled = false }) =>
       authentication={activeRequest.authentication}
       onChange={onChange}
       disabled={disabled}
-      inheritedFrom={authFolder}
+      // only HTTP requests are sent with their folder's auth
+      inheritedFrom={isRequest(activeRequest) ? authFolder : undefined}
     />
   );
 };
