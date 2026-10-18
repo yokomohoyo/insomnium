@@ -35,6 +35,8 @@ export type AuthType =
   | 'netrc'
   | 'asap'
   | 'gcp-id-token'
+  | 'jwt'
+  | 'edgegrid'
   | 'sha256'
   | 'sha1';
 export const getBrowserUserAgent = () => encodeURIComponent(
@@ -281,6 +283,8 @@ export const AUTH_AWS_IAM = 'iam';
 export const AUTH_NETRC = 'netrc';
 export const AUTH_ASAP = 'asap';
 export const AUTH_GCP_ID_TOKEN = 'gcp-id-token';
+export const AUTH_JWT = 'jwt';
+export const AUTH_EDGEGRID = 'edgegrid';
 export const HAWK_ALGORITHM_SHA256 = 'sha256';
 export const HAWK_ALGORITHM_SHA1 = 'sha1';
 
@@ -301,6 +305,8 @@ const authTypesMap: Record<string, string[]> = {
   [AUTH_ASAP]: ['ASAP', 'Atlassian ASAP'],
   [AUTH_NETRC]: ['Netrc', 'Netrc File'],
   [AUTH_GCP_ID_TOKEN]: ['GCP ID Token', 'Google Cloud ID Token'],
+  [AUTH_JWT]: ['JWT', 'JWT (signed here)'],
+  [AUTH_EDGEGRID]: ['EdgeGrid', 'Akamai EdgeGrid'],
 };
 
 // Sort Orders

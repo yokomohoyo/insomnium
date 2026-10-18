@@ -20,7 +20,7 @@ import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 import { MarkdownEditor } from '../markdown-editor';
 
 // OAuth 2 keeps its tokens per request, so a folder can't hold one yet
-const FOLDER_AUTH_TYPES: AuthType[] = ['apikey', 'basic', 'digest', 'oauth1', 'ntlm', 'iam', 'bearer', 'hawk', 'asap', 'gcp-id-token', 'netrc'];
+const FOLDER_AUTH_TYPES: AuthType[] = ['apikey', 'basic', 'digest', 'oauth1', 'ntlm', 'iam', 'bearer', 'hawk', 'asap', 'gcp-id-token', 'jwt', 'edgegrid', 'netrc'];
 
 export interface RequestGroupSettingsModalOptions {
   requestGroup: RequestGroup;

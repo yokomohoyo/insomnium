@@ -30,6 +30,8 @@ const defaultTypes: AuthType[] = [
   'hawk',
   'asap',
   'gcp-id-token',
+  'jwt',
+  'edgegrid',
   'netrc',
 ];
 
@@ -60,6 +62,10 @@ function newStrategy(type: string): RequestAuthenticationStrategy {
       return { type, issuer: '', subject: '', audience: '', additionalClaims: '', keyId: '', privateKey: '' };
     case 'gcp-id-token':
       return { type, disabled: false, credentialSource: 'adc', saFilePath: '', saInlineJson: '', audience: '' };
+    case 'jwt':
+      return { type, disabled: false, algorithm: 'HS256', secret: '', secretBase64: false, privateKey: '', payload: '{}', header: '', expiresIn: '300', addTo: 'header', prefix: 'Bearer', queryParamKey: 'token' };
+    case 'edgegrid':
+      return { type, disabled: false, clientToken: '', clientSecret: '', accessToken: '', headersToSign: '', maxBody: '131072' };
     case 'netrc':
     default:
       return { type };

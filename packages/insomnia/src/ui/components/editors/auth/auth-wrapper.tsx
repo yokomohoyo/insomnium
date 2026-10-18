@@ -8,8 +8,10 @@ import {
   AUTH_BASIC,
   AUTH_BEARER,
   AUTH_DIGEST,
+  AUTH_EDGEGRID,
   AUTH_GCP_ID_TOKEN,
   AUTH_HAWK,
+  AUTH_JWT,
   AUTH_NETRC,
   AUTH_NONE,
   AUTH_NTLM,
@@ -30,6 +32,8 @@ import { useRequestSetter } from '../../../hooks/use-request';
 import { RequestLoaderData } from '../../../routes/request';
 import { ApiKeyAuth } from './api-key-auth';
 import { AsapAuth } from './asap-auth';
+import { EdgeGridAuth } from './edgegrid-auth';
+import { JwtAuth } from './jwt-auth';
 import { AuthStrategyProvider } from './auth-strategy-context';
 import { AWSAuth } from './aws-auth';
 import { BasicAuth } from './basic-auth';
@@ -56,6 +60,8 @@ function renderEditor(type: string, disabled: boolean): ReactNode {
     case AUTH_NETRC: return <NetrcAuth />;
     case AUTH_ASAP: return <AsapAuth />;
     case AUTH_GCP_ID_TOKEN: return <GcpIdTokenAuth disabled={disabled} />;
+    case AUTH_JWT: return <JwtAuth />;
+    case AUTH_EDGEGRID: return <EdgeGridAuth />;
     case AUTH_NONE:
       return <div className="pad super-faint text-sm">Sends no auth, and doesn't use its folder's.</div>;
     default:

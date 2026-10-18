@@ -20,7 +20,9 @@ Each request you open gets a tab above the request and response, to switch back 
 An HTTP request's tabs:
 
 - **Body**: JSON, XML, form, multipart, a file, GraphQL, or none.
-- **Auth**: Basic, Digest, Bearer, API key, OAuth 1 and 2, AWS IAM, Hawk, NTLM, Atlassian ASAP, Netrc and Google Cloud ID tokens. Several can be stacked on one request.
+- **Auth**: Basic, Digest, Bearer, API key, OAuth 1 and 2, AWS IAM, Hawk, NTLM, Atlassian ASAP, Netrc, Google Cloud ID tokens, a JWT signed on each send, and Akamai EdgeGrid. Several can be stacked on one request.
+  - **JWT** signs a token from your claims (JSON, with variables) with a secret (HS256 to HS512, optionally Base64) or a private key (RS, PS and ES), sets `iat` and an `exp` from a lifetime unless the claims have them, and sends it as `Authorization: Bearer …` or as a query parameter.
+  - **Akamai EdgeGrid** signs each request (EG1-HMAC-SHA256) with an API client's client token, client secret and access token, over its method, URL, the headers you choose, and a POST's body.
 - **Query** and **Headers**.
 - **Assertions**: checks on the response: see [Tests and the runner](testing.md).
 - **Scripts**: JavaScript run before the request and after its response: see [Scripts](scripts.md).

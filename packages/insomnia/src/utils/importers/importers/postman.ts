@@ -493,7 +493,8 @@ export class ImportPostman {
       };
     }
 
-    switch (authentication.type) {
+    // jwt is newer than the collection schema's types
+    switch (authentication.type as string) {
       case 'awsv4':
         return {
           authentication: this.importAwsV4Authentication(authentication),
@@ -533,6 +534,18 @@ export class ImportPostman {
       case 'apikey':
         return {
           authentication: this.importApiKeyAuthentication(authentication),
+          headers,
+        };
+
+      case 'jwt':
+        return {
+          authentication: this.importJwtAuthentication(authentication),
+          headers,
+        };
+
+      case 'edgegrid':
+        return {
+          authentication: this.importEdgeGridAuthentication(authentication),
           headers,
         };
 
@@ -828,6 +841,56 @@ export class ImportPostman {
       disabled: false,
     };
   };
+  // a key's value, whatever its type (findValueByKey keeps only strings)
+  anyValueByKey = (pairs: unknown, key: string): unknown => Array.isArray(pairs)
+    ? pairs.find(pair => pair && pair.key === key)?.value
+    : undefined;
+
+  importJwtAuthentication = (auth: Authetication) => {
+    const jwt = (auth as { jwt?: unknown }).jwt;
+    if (!jwt) {
+      return {};
+    }
+    const text = (key: string) => {
+      const value = this.anyValueByKey(jwt, key);
+      return value === undefined || value === null ? '' : typeof value === 'string' ? value : JSON.stringify(value);
+    };
+    return {
+      type: 'jwt',
+      disabled: false,
+      algorithm: text('algorithm') || 'HS256',
+      secret: text('secret'),
+      secretBase64: this.anyValueByKey(jwt, 'isSecretBase64Encoded') === true || text('isSecretBase64Encoded') === 'true',
+      privateKey: text('privateKey'),
+      payload: text('payload') || '{}',
+      header: text('header') === '{}' ? '' : text('header'),
+      expiresIn: '',
+      addTo: text('addTokenTo') === 'queryParam' ? 'queryParams' : 'header',
+      prefix: text('headerPrefix') || 'Bearer',
+      queryParamKey: text('queryParamKey') || 'token',
+    };
+  };
+
+  importEdgeGridAuthentication = (auth: Authetication) => {
+    const edgegrid = (auth as { edgegrid?: unknown }).edgegrid;
+    if (!edgegrid) {
+      return {};
+    }
+    const text = (key: string) => {
+      const value = this.anyValueByKey(edgegrid, key);
+      return value === undefined || value === null ? '' : String(value);
+    };
+    return {
+      type: 'edgegrid',
+      disabled: false,
+      clientToken: text('clientToken'),
+      clientSecret: text('clientSecret'),
+      accessToken: text('accessToken'),
+      headersToSign: text('headersToSign'),
+      maxBody: text('maxBody') || '131072',
+    };
+  };
+
   importOauth2Authentication = (auth: Authetication) => {
     if (!auth.oauth2) {
       return {};
