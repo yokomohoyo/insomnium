@@ -15,6 +15,7 @@ import {
   METHOD_GET,
 } from '../common/constants';
 import { database as db } from '../common/database';
+import type { HttpVersion } from '../common/settings';
 import { SIGNATURE_METHOD_HMAC_SHA1 } from '../network/o-auth-1/constants';
 import { GRANT_TYPE_AUTHORIZATION_CODE } from '../network/o-auth-2/constants';
 import { deconstructQueryStringToParams } from '../utils/url/querystring';
@@ -168,6 +169,12 @@ export interface BaseRequest {
   settingEncodeUrl: boolean;
   settingRebuildPath: boolean;
   settingFollowRedirects: 'global' | 'on' | 'off';
+  // Overrides of the global settings, set only when chosen (absent, null or
+  // 'global' uses the setting), so existing requests and their synced YAML
+  // don't change
+  settingTimeout?: number | null;
+  settingValidateSSL?: 'global' | 'on' | 'off';
+  settingHttpVersion?: 'global' | HttpVersion;
   segmentParams: RequestSegment[];
 }
 
