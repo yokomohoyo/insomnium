@@ -1,6 +1,9 @@
-export interface ServerConfig {
-  collections: string[];
+import { emptySources, GIT_USAGE, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
+
+export interface ServerConfig extends Sources {
   environment?: string;
+  // seconds between updates of the repositories; 0 for none
+  pullInterval: number;
   host: string;
   port: number;
   token: string;
@@ -11,10 +14,12 @@ export interface ServerConfig {
   allowedSecrets: string;
 }
 
-export const USAGE = `Usage: insomnium-server --collection <file> [--collection <file> ...] [--env <name>] [--host <address>] [--port <port>]
+export const USAGE = `Usage: insomnium-server (--collection <file> | --repo <url or directory>) ... [--env <name>] [--host <address>] [--port <port>]
        insomnium-server run --collection <file> ...   (the collection runner; run --help)
 
-  --collection  an Insomnium or Insomnia (v4 or v5) export, or a Postman collection
+${SOURCES_USAGE}
+  --pull-interval  seconds between updates of the repositories (INSOMNIUM_PULL_INTERVAL,
+                default 300); 0 for none
   --env         the sub environment to send with, by name
   --host        the address to listen on (INSOMNIUM_HOST, default 127.0.0.1)
   --port        the port to listen on (INSOMNIUM_PORT, default 8080)
@@ -29,12 +34,14 @@ Environment:
                            {% env 'NAME' %}: names, or prefixes ending in *; none by default
   INSOMNIUM_ALLOWED_SECRETS secret-manager secrets templates may read (vault:<path>, op://…,
                            aws:<id>, gcp:projects/…, azure:<vault>/<name>), or prefixes
-                           ending in *; none by default`;
+                           ending in *; none by default
+${GIT_USAGE}`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
 
 export const parseConfig = (argv: string[], env: Record<string, string | undefined>): ServerConfig => {
-  const collections: string[] = [];
+  const sources = emptySources(env);
+  let pullInterval = Number(env.INSOMNIUM_PULL_INTERVAL ?? 300);
   let environment: string | undefined;
   let host = env.INSOMNIUM_HOST || '127.0.0.1';
   let port = Number(env.INSOMNIUM_PORT || 8080);
@@ -48,9 +55,12 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
       }
       return next;
     };
+    if (takeSourceOption(sources, option, value)) {
+      continue;
+    }
     switch (option) {
-      case '--collection':
-        collections.push(value());
+      case '--pull-interval':
+        pullInterval = Number(value());
         break;
       case '--env':
         environment = value();
@@ -66,8 +76,9 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
     }
   }
 
-  if (!collections.length) {
-    throw new Error('Give at least one --collection');
+  requireSources(sources);
+  if (!Number.isInteger(pullInterval) || pullInterval < 0) {
+    throw new Error('--pull-interval must be a whole number of seconds (0 for none)');
   }
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('The port must be a number from 1 to 65535');
@@ -85,7 +96,8 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
     .map(([name, value]) => [name.slice(VAR_PREFIX.length), value]));
 
   return {
-    collections,
+    ...sources,
+    pullInterval,
     environment,
     host,
     port,

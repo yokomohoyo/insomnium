@@ -17,6 +17,8 @@ describe('parseConfig()', () => {
       INSOMNIUM_ALLOWED_SECRETS: 'op://CI/*',
     })).toEqual({
       collections: ['a.yaml', 'b.json'],
+      repos: [],
+      pullInterval: 300,
       environment: 'staging',
       host: '0.0.0.0',
       port: 9000,
@@ -34,7 +36,8 @@ describe('parseConfig()', () => {
   });
 
   it.each([
-    ['no collection', [], env, /--collection/],
+    ['no collection', [], env, /--collection or --repo/],
+    ['a bad pull interval', ['--repo', 'r', '--pull-interval', '-1'], env, /--pull-interval/],
     ['an option without its value', ['--collection'], env, /needs a value/],
     ['an unknown option', ['--collection', 'a', '--verbose'], env, /Unknown option --verbose/],
     ['a bad port', ['--collection', 'a', '--port', '70000'], env, /port/],

@@ -153,7 +153,7 @@ async function mock(argv: string[]) {
   // a mock answers; it never sends (a {% response %} tag in an example would)
   const log = console.log;
   console.log = console.info = console.debug = () => {};
-  const workspaces = await loadWorkspaces({ collections: config.collections, variables: {}, validateSSL: true, allowedHosts: [], allowedEnvironmentVariables: '' });
+  const workspaces = await loadWorkspaces({ collections: config.collections, repos: config.repos, branch: config.branch, gitToken: config.gitToken, gitUsername: config.gitUsername, variables: {}, validateSSL: true, allowedHosts: [], allowedEnvironmentVariables: '' });
   for (const workspace of workspaces) {
     for (const { request, examples } of await loadMockRoutes(workspace)) {
       log(`[mock] ${request.method} ${mockPathOf(request.url)}  ${request.name} (${examples.length} ${examples.length === 1 ? 'example' : 'examples'})`);
@@ -190,6 +190,9 @@ async function serve(argv: string[]) {
     console.log(`[server] loaded ${workspace.name}`);
   }
   console.log(`[server] MCP at http://${config.host}:${config.port}/mcp, sending to ${config.allowedHosts.join(', ')}`);
+  if (config.repos.length && config.pullInterval > 0) {
+    console.log(`[server] updating ${config.repos.length === 1 ? 'the repository' : `${config.repos.length} repositories`} every ${config.pullInterval} s`);
+  }
 
   const stop = () => http.close(() => process.exit(0));
   process.on('SIGTERM', stop);

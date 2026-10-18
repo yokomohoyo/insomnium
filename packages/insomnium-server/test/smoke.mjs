@@ -79,6 +79,14 @@ resources:
   - { _id: req_fail, _type: request, parentId: fld_fail, name: fails, method: GET, url: '{{ base }}/run', assertions: [{ id: a1, source: status, operator: equals, value: '201' }] }
 `);
 fs.writeFileSync(path.join(dir, 'rows.csv'), 'row\none\ntwo\n');
+// a Git Sync checkout, as a mounted volume has it: one file per document (JSON is YAML too)
+for (const doc of [
+  { _id: 'wrk_repo', type: 'Workspace', parentId: null, name: 'From a repository', scope: 'collection' },
+  { _id: 'req_repo', type: 'Request', parentId: 'wrk_repo', name: 'from the repo', method: 'GET', url: '{{ base }}/run/repo', assertions: [{ id: 'a1', source: 'status', operator: 'equals', value: '200' }] },
+]) {
+  fs.mkdirSync(path.join(dir, 'checkout', '.insomnium', doc.type), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'checkout', '.insomnium', doc.type, `${doc._id}.yml`), JSON.stringify(doc));
+}
 // the image runs as node (uid 1000), not as whoever made the 0700 temp dir
 fs.chmodSync(dir, 0o755);
 // where the runner writes its reports, writable by it too
@@ -188,6 +196,11 @@ try {
   check(failing.status === 1 && /<failure message="Status code equals 201: got &quot;200&quot;"\/>/.test(report), `run exits 1 when one fails, and writes JUnit (${failing.status}: ${failing.stdout}${failing.stderr})`);
   const viaProxy = await run(data => ['--env', 'ci', '--folder', 'passing', '--data', path.join(data, 'rows.csv')], { HTTP_PROXY: `http://127.0.0.1:${forwardProxy.address().port}`, NO_PROXY: '' });
   check(viaProxy.status === 0 && proxied.some(url => url.endsWith('/run/one')), `run sends through HTTP_PROXY (${viaProxy.status}, ${proxied.length} through it: ${viaProxy.stdout}${viaProxy.stderr})`);
+  const repoEnv = { INSOMNIUM_ALLOWED_HOSTS: '127.0.0.1', INSOMNIUM_VAR_base: env.INSOMNIUM_VAR_base };
+  const fromRepo = mode === '--bundle'
+    ? await command(process.execPath, [target, 'run', '--repo', path.join(dir, 'checkout')], { ...process.env, ...repoEnv })
+    : await command('docker', ['run', '--rm', '--network', 'host', '-v', `${dir}:/data:ro`, ...Object.entries(repoEnv).flatMap(([name, value]) => ['-e', `${name}=${value}`]), target, 'run', '--repo', '/data/checkout'], process.env);
+  check(fromRepo.status === 0 && seen.some(({ url }) => url === '/run/repo'), `run reads a mounted Git Sync checkout (--repo) (${fromRepo.status}: ${fromRepo.stdout}${fromRepo.stderr})`);
 } catch (err) {
   check(false, `ran without errors: ${err.stack}`);
 } finally {

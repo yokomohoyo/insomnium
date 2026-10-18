@@ -25,7 +25,7 @@ describe('insomnium-server load', () => {
   });
 
   it('refuses what it cannot run', () => {
-    expect(() => parseLoadConfig([], {})).toThrow('Give at least one --collection');
+    expect(() => parseLoadConfig([], {})).toThrow('Give at least one --collection or --repo');
     expect(() => parseLoadConfig(['--collection', 'a.yaml', '--users', '101'], {})).toThrow('--users must be a number from 1 to 100');
     expect(() => parseLoadConfig(['--collection', 'a.yaml', '--users', '2.5'], {})).toThrow('--users must be a whole number');
     expect(() => parseLoadConfig(['--collection', 'a.yaml', '--duration', '2h'], {})).toThrow('--duration must be a time such as 30s');

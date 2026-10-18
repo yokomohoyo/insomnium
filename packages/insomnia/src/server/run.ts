@@ -5,12 +5,12 @@ import type { RequestGroup } from '../models/request-group';
 import type { Workspace } from '../models/workspace';
 import { parseDataFile } from '../network/run-files';
 import { listRunnableRequests, RunnableRequest } from '../network/runner';
+import { emptySources, GIT_USAGE, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
 
 // `insomnium-server run`: the collection runner for CI. It sends the requests
 // in order, checks their assertions, and exits 1 when any fails.
 
-export interface RunConfig {
-  collections: string[];
+export interface RunConfig extends Sources {
   environment?: string;
   folder?: string;
   iterations?: number;
@@ -26,12 +26,12 @@ export interface RunConfig {
   allowedSecrets: string;
 }
 
-export const RUN_USAGE = `Usage: insomnium-server run --collection <file> [--folder <name>] [--env <name>] [options]
+export const RUN_USAGE = `Usage: insomnium-server run (--collection <file> | --repo <url or directory>) [--folder <name>] [--env <name>] [options]
 
 Sends the collection's HTTP requests in order, as Send does, and checks their
 assertions. Exits 1 when a request can't be sent or an assertion fails.
 
-  --collection  a collection file, in any format Import takes; repeat for more
+${SOURCES_USAGE}
   --folder      only the requests in this folder: its name, or a path like "Users/Admin"
   --env         the sub environment to send with, by name
   --iterations  how many times to run them (default 1, or once per data row)
@@ -50,7 +50,8 @@ Environment:
                            comma-separated names, or prefixes ending in *; none by default
   INSOMNIUM_ALLOWED_SECRETS secret-manager secrets templates may read (vault:<path>, op://…,
                            aws:<id>, gcp:projects/…, azure:<vault>/<name>), or prefixes
-                           ending in *; none by default`;
+                           ending in *; none by default
+${GIT_USAGE}`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
 
@@ -78,7 +79,7 @@ export const sendingEnvironment = (env: Record<string, string | undefined>) => {
 
 export const parseRunConfig = (argv: string[], env: Record<string, string | undefined>): RunConfig => {
   const config: RunConfig = {
-    collections: [],
+    ...emptySources(env),
     delay: 0,
     bail: false,
     ...sendingEnvironment(env),
@@ -93,10 +94,10 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
       }
       return next;
     };
+    if (takeSourceOption(config, option, value)) {
+      continue;
+    }
     switch (option) {
-      case '--collection':
-        config.collections.push(value());
-        break;
       case '--env':
         config.environment = value();
         break;
@@ -126,9 +127,7 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
     }
   }
 
-  if (!config.collections.length) {
-    throw new Error('Give at least one --collection');
-  }
+  requireSources(config);
   return config;
 };
 

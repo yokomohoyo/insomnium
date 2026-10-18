@@ -1,12 +1,12 @@
 import type { LoadSummary, LoadThresholds } from '../network/load-stats';
 import { MAX_DURATION_MS, MAX_VIRTUAL_USERS } from '../network/load-test';
 import { sendingEnvironment } from './run';
+import { emptySources, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
 
 // `insomnium-server load`: a load test for CI. Virtual users send the
 // requests over and over for a while; it exits 1 when a threshold is broken.
 
-export interface LoadConfig {
-  collections: string[];
+export interface LoadConfig extends Sources {
   environment?: string;
   folder?: string;
   virtualUsers: number;
@@ -29,7 +29,7 @@ order, again and again, until the time is up. Prints the latency percentiles,
 throughput and errors, and exits 1 when a threshold is broken. A request fails
 when it can't be sent, answers 400 or above, or fails an assertion.
 
-  --collection   a collection file, in any format Import takes; repeat for more
+${SOURCES_USAGE}
   --folder       only the requests in this folder: its name, or a path like "Users/Admin"
   --env          the sub environment to send with, by name
   --users        virtual users, 1 to ${MAX_VIRTUAL_USERS} (default 5)
@@ -64,7 +64,7 @@ const number = (option: string, value: string, min: number, max = Infinity) => {
 
 export const parseLoadConfig = (argv: string[], env: Record<string, string | undefined>): LoadConfig => {
   const config: LoadConfig = {
-    collections: [],
+    ...emptySources(env),
     virtualUsers: 5,
     durationMs: 30_000,
     rampUpMs: 0,
@@ -82,10 +82,10 @@ export const parseLoadConfig = (argv: string[], env: Record<string, string | und
       }
       return next;
     };
+    if (takeSourceOption(config, option, value)) {
+      continue;
+    }
     switch (option) {
-      case '--collection':
-        config.collections.push(value());
-        break;
       case '--env':
         config.environment = value();
         break;
@@ -129,9 +129,7 @@ export const parseLoadConfig = (argv: string[], env: Record<string, string | und
     }
   }
 
-  if (!config.collections.length) {
-    throw new Error('Give at least one --collection');
-  }
+  requireSources(config);
   return config;
 };
 

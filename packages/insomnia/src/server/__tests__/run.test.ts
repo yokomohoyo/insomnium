@@ -14,6 +14,7 @@ describe('parseRunConfig()', () => {
       { INSOMNIUM_VAR_token: 't', INSOMNIUM_VALIDATE_SSL: 'false', INSOMNIUM_ALLOWED_ENV: 'CI_*' },
     )).toEqual({
       collections: ['a.yaml'],
+      repos: [],
       folder: 'Users/Admin',
       environment: 'ci',
       iterations: 3,
