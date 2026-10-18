@@ -174,6 +174,83 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
       },
     },
   },
+  // secret managers (templating/secret-managers.ts): only secrets allowed in Preferences
+  {
+    templateTag: {
+      displayName: 'HashiCorp Vault Secret',
+      name: 'vault',
+      description: 'read a field of a Vault KV secret, with VAULT_ADDR and VAULT_TOKEN',
+      args: [
+        { displayName: 'Path', type: 'string', placeholder: 'secret/data/app', help: 'The secret\'s API path: for KV version 2, mount/data/name. Allow it as vault:<path> in Preferences > General > Secrets.' },
+        { displayName: 'Field', type: 'string', placeholder: 'password' },
+      ],
+      async run(_context, secretPath = '', field = '') {
+        const { readVaultSecret } = await import('../../../templating/secret-managers');
+        return readVaultSecret(String(secretPath).trim(), String(field).trim(), (await models.settings.getOrCreate()).allowedSecrets);
+      },
+    },
+  },
+  {
+    templateTag: {
+      displayName: '1Password Secret',
+      name: 'onePassword',
+      description: 'read a secret reference with the 1Password CLI (op)',
+      args: [
+        { displayName: 'Secret reference', type: 'string', placeholder: 'op://Work/Database/password', help: 'Copy it from 1Password. The op CLI must be installed and signed in. Allow it, or op://<vault>/* for a vault, in Preferences > General > Secrets.' },
+      ],
+      async run(_context, reference = '') {
+        const { readOnePasswordSecret } = await import('../../../templating/secret-managers');
+        return readOnePasswordSecret(String(reference).trim(), (await models.settings.getOrCreate()).allowedSecrets);
+      },
+    },
+  },
+  {
+    templateTag: {
+      displayName: 'AWS Secret',
+      name: 'awsSecret',
+      description: 'read an AWS Secrets Manager secret, with the AWS_* credentials in the environment',
+      args: [
+        { displayName: 'Secret ID', type: 'string', placeholder: 'prod/api/key', help: 'Its name or ARN. Allow it as aws:<id> in Preferences > General > Secrets.' },
+        { displayName: 'JSON field', type: 'string', placeholder: 'optional', help: 'For a secret stored as JSON key/value pairs, the key to read.' },
+        { displayName: 'Region', type: 'string', placeholder: 'AWS_REGION' },
+      ],
+      async run(_context, secretId = '', field = '', region = '') {
+        const { readAwsSecret } = await import('../../../templating/secret-managers');
+        return readAwsSecret(String(secretId).trim(), String(field).trim(), String(region).trim(), (await models.settings.getOrCreate()).allowedSecrets);
+      },
+    },
+  },
+  {
+    templateTag: {
+      displayName: 'Google Cloud Secret',
+      name: 'gcpSecret',
+      description: 'read a Secret Manager secret, with the application default credentials',
+      args: [
+        { displayName: 'Secret', type: 'string', placeholder: 'projects/my-project/secrets/api-key', help: 'Add /versions/<n> for a version other than the latest. Allow it as gcp:projects/<project>/secrets/<name> in Preferences > General > Secrets.' },
+        { displayName: 'JSON field', type: 'string', placeholder: 'optional' },
+      ],
+      async run(_context, name = '', field = '') {
+        const { readGcpSecret } = await import('../../../templating/secret-managers');
+        return readGcpSecret(String(name).trim(), String(field).trim(), (await models.settings.getOrCreate()).allowedSecrets);
+      },
+    },
+  },
+  {
+    templateTag: {
+      displayName: 'Azure Key Vault Secret',
+      name: 'azureSecret',
+      description: 'read a Key Vault secret, signed in with the Azure CLI (az)',
+      args: [
+        { displayName: 'Key vault', type: 'string', placeholder: 'my-vault' },
+        { displayName: 'Secret', type: 'string', placeholder: 'api-key', help: 'Allow it as azure:<vault>/<secret> in Preferences > General > Secrets.' },
+        { displayName: 'JSON field', type: 'string', placeholder: 'optional' },
+      ],
+      async run(_context, vault = '', name = '', field = '') {
+        const { readAzureSecret } = await import('../../../templating/secret-managers');
+        return readAzureSecret(String(vault).trim(), String(name).trim(), String(field).trim(), (await models.settings.getOrCreate()).allowedSecrets);
+      },
+    },
+  },
   {
     templateTag: {
       displayName: 'OS',

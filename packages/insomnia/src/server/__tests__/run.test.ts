@@ -26,6 +26,7 @@ describe('parseRunConfig()', () => {
       variables: { token: 't' },
       validateSSL: false,
       allowedEnvironmentVariables: 'CI_*',
+      allowedSecrets: '',
     });
     expect(parseRunConfig(['--collection', 'a.yaml'], { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com' }).allowedHosts).toEqual(['api.example.com']);
   });

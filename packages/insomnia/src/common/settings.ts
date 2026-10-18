@@ -157,6 +157,8 @@ export interface Settings {
   allowedEnvironmentVariables: string;
   /** A .env file to read them from when the OS environment has no value */
   dotenvFile: string;
+  // the secret-manager secrets templates may read (templating/secret-managers.ts)
+  allowedSecrets: string;
   /** Also trust the OS certificate store, on top of the bundled roots */
   useSystemCertificates: boolean;
 

@@ -34,11 +34,11 @@ export const SERVER_TOOLS = new Set([
 ]);
 
 // The in-memory database with the collections loaded, for serving or a run
-export async function loadWorkspaces(config: Pick<ServerConfig, 'collections' | 'environment' | 'variables' | 'validateSSL' | 'allowedHosts' | 'allowedEnvironmentVariables'>) {
+export async function loadWorkspaces(config: Pick<ServerConfig, 'collections' | 'environment' | 'variables' | 'validateSSL' | 'allowedHosts' | 'allowedEnvironmentVariables'> & { allowedSecrets?: string }) {
   await database.init(models.types(), { inMemoryOnly: true }, true, () => {});
   await models.project.all();
   // the proxy a container or CI runner is given: HTTPS_PROXY, HTTP_PROXY, NO_PROXY
-  await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables, useSystemProxy: true });
+  await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables, allowedSecrets: config.allowedSecrets || '', useSystemProxy: true });
   // file would let a template read the container's files into a request
   disableTemplateTags(['file']);
   setRequestPolicy(makeHostPolicy(config.allowedHosts));

@@ -308,6 +308,18 @@ export const General: FC = () => {
 
       <hr className="pad-top" />
 
+      <h2>Secrets</h2>
+      <div className="form-row pad-top-sm">
+        <TextSetting
+          label="Allowed secrets"
+          setting="allowedSecrets"
+          help="The secrets the Vault, 1Password, AWS, Google Cloud and Azure tags may read, with your credentials on this computer: comma-separated references, or prefixes ending in *, such as vault:secret/data/app, op://Work/*, aws:prod/*, gcp:projects/my-project/secrets/*, azure:my-vault/*. None are allowed until you list them, so a collection from someone else can't send yours anywhere."
+          placeholder="op://Work/*, aws:staging/*"
+        />
+      </div>
+
+      <hr className="pad-top" />
+
       <h2>Network Proxy</h2>
 
       <BooleanSetting

@@ -51,6 +51,7 @@ claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Au
 | `INSOMNIUM_VALIDATE_SSL` | `false` to skip certificate validation. |
 | `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` | The proxy to send through, read as curl reads them. gRPC can only use an `http://` proxy. |
 | `INSOMNIUM_ALLOWED_ENV` | Comma-separated environment variables that collections may read with `{% env 'NAME' %}`: names, or prefixes ending in `*`. None by default, so a collection can't read the container's environment unless you allow it. |
+| `INSOMNIUM_ALLOWED_SECRETS` | The secret-manager secrets the [secret tags](../../docs/template-tags.md#secrets-from-a-secret-manager) may read, such as `vault:secret/data/app` or `aws:prod/*`. None by default. |
 
 `GET /health` answers without a token, for health checks.
 

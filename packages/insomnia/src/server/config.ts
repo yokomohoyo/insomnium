@@ -8,6 +8,7 @@ export interface ServerConfig {
   variables: Record<string, string>;
   validateSSL: boolean;
   allowedEnvironmentVariables: string;
+  allowedSecrets: string;
 }
 
 export const USAGE = `Usage: insomnium-server --collection <file> [--collection <file> ...] [--env <name>] [--host <address>] [--port <port>]
@@ -25,7 +26,10 @@ Environment:
   INSOMNIUM_VAR_<name>     sets <name> in the environment, for secrets
   INSOMNIUM_VALIDATE_SSL   false to skip certificate validation
   INSOMNIUM_ALLOWED_ENV    comma-separated environment variables templates may read with
-                           {% env 'NAME' %}: names, or prefixes ending in *; none by default`;
+                           {% env 'NAME' %}: names, or prefixes ending in *; none by default
+  INSOMNIUM_ALLOWED_SECRETS secret-manager secrets templates may read (vault:<path>, op://…,
+                           aws:<id>, gcp:projects/…, azure:<vault>/<name>), or prefixes
+                           ending in *; none by default`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
 
@@ -90,5 +94,6 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
     variables,
     validateSSL: env.INSOMNIUM_VALIDATE_SSL !== 'false',
     allowedEnvironmentVariables: env.INSOMNIUM_ALLOWED_ENV || '',
+    allowedSecrets: env.INSOMNIUM_ALLOWED_SECRETS || '',
   };
 };

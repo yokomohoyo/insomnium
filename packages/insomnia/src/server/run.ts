@@ -23,6 +23,7 @@ export interface RunConfig {
   variables: Record<string, string>;
   validateSSL: boolean;
   allowedEnvironmentVariables: string;
+  allowedSecrets: string;
 }
 
 export const RUN_USAGE = `Usage: insomnium-server run --collection <file> [--folder <name>] [--env <name>] [options]
@@ -46,7 +47,10 @@ Environment:
   INSOMNIUM_VAR_<name>     sets <name> in the environment, for secrets
   INSOMNIUM_VALIDATE_SSL   false to skip certificate validation
   INSOMNIUM_ALLOWED_ENV    environment variables templates may read with {% env 'NAME' %}:
-                           comma-separated names, or prefixes ending in *; none by default`;
+                           comma-separated names, or prefixes ending in *; none by default
+  INSOMNIUM_ALLOWED_SECRETS secret-manager secrets templates may read (vault:<path>, op://…,
+                           aws:<id>, gcp:projects/…, azure:<vault>/<name>), or prefixes
+                           ending in *; none by default`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
 
@@ -69,6 +73,7 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
       .map(([name, value]) => [name.slice(VAR_PREFIX.length), value])),
     validateSSL: env.INSOMNIUM_VALIDATE_SSL !== 'false',
     allowedEnvironmentVariables: env.INSOMNIUM_ALLOWED_ENV || '',
+    allowedSecrets: env.INSOMNIUM_ALLOWED_SECRETS || '',
   };
 
   for (let index = 0; index < argv.length; index++) {
