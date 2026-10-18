@@ -1,7 +1,7 @@
-import React, { FC, useCallback, useRef, useState } from 'react';
-import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
+import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
+import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
-import { getProductName } from '../../../common/constants';
+import { ACTIVITY_DEBUG, ACTIVITY_SPEC, getProductName } from '../../../common/constants';
 import { database as db } from '../../../common/database';
 import { getWorkspaceLabel } from '../../../common/get-workspace-label';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
@@ -53,8 +53,16 @@ export const WorkspaceDropdown: FC = () => {
   // a collection gets a spec, and a document gives one up (kept, for if it
   // becomes a document again)
   const isDocument = isDesign(activeWorkspace);
+  const convertFetcher = useFetcher();
+  const navigate = useNavigate();
+  const converted = convertFetcher.data as { scope: string } | undefined;
+  useEffect(() => {
+    if (convertFetcher.state === 'idle' && converted) {
+      navigate(`/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/${activeWorkspace._id}/${converted.scope === 'design' ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+    }
+  }, [convertFetcher.state, converted, navigate, organizationId, activeWorkspace.parentId, activeWorkspace._id]);
   const convert = () => {
-    const submit = () => fetcher.submit(
+    const submit = () => convertFetcher.submit(
       { scope: isDocument ? 'collection' : 'design' },
       { action: `/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/${activeWorkspace._id}/convert`, method: 'post', encType: 'application/json' },
     );

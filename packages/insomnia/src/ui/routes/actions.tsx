@@ -250,9 +250,11 @@ export const updateWorkspaceAction: ActionFunction = async ({ request }) => {
 };
 
 // a collection becomes a design document, with a spec, or a document a
-// collection; its spec is kept, for if it becomes a document again
+// collection; its spec is kept, for if it becomes a document again. The menu
+// goes to the right tab after: a redirect from here is dropped when the change
+// revalidates the routes first (root.tsx)
 export const convertWorkspaceAction: ActionFunction = async ({ request, params }) => {
-  const { organizationId, projectId, workspaceId } = params;
+  const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace ID is required');
   const { scope } = await request.json();
   guard(scope === 'design' || scope === 'collection', 'Scope is required');
@@ -267,7 +269,7 @@ export const convertWorkspaceAction: ActionFunction = async ({ request, params }
   }
   await models.workspace.update(workspace, { scope });
 
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${scope === 'design' ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+  return { scope };
 };
 
 export const updateWorkspaceMetaAction: ActionFunction = async ({ request, params }) => {
