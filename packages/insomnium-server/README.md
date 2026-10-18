@@ -49,6 +49,7 @@ claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Au
 | `INSOMNIUM_ALLOWED_HOSTS` | **Required**. Comma-separated hosts requests may go to: `api.example.com`, `*.example.com` (subdomains), `10.0.0.5`, or `*` for any. |
 | `INSOMNIUM_VAR_<name>` | Sets `<name>` in the chosen environment (or the base one), so secrets come from the deployment rather than the collection file. |
 | `INSOMNIUM_VALIDATE_SSL` | `false` to skip certificate validation. |
+| `INSOMNIUM_ALLOWED_ENV` | Comma-separated environment variables that collections may read with `{% env 'NAME' %}`: names, or prefixes ending in `*`. None by default, so a collection can't read the container's environment unless you allow it. |
 
 `GET /health` answers without a token, for health checks.
 
@@ -60,6 +61,7 @@ The server can reach whatever its network can, so it only sends where you say:
 - Cloud metadata addresses (169.254.0.0/16, `fe80::/10`, `metadata.google.internal`) are refused even with `*`, unless listed by name.
 - Redirects aren't followed.
 - The `file` template tag is off, so a template can't read the container's files into a request.
+- The `env` template tag reads only the variables `INSOMNIUM_ALLOWED_ENV` names.
 - Only the tools that read and send are offered: listing and reading workspaces, requests, responses, environments and auth, choosing the active environment, and sending HTTP and gRPC requests.
 
 Keep the token secret and serve it over TLS (a reverse proxy or ingress) when it leaves a private network.

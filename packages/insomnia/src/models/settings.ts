@@ -72,6 +72,8 @@ export function init(): BaseSettings {
     validateAuthSSL: true,
     validateSSL: true,
     useSystemCertificates: false,
+    allowedEnvironmentVariables: '',
+    dotenvFile: '',
     bufToken: '',
     githubToken: '',
     mcpEnabled: false,

@@ -8,11 +8,13 @@ import { CookieJar } from 'tough-cookie';
 import * as uuid from 'uuid';
 import type { SelectedValue } from 'xpath';
 
+import * as models from '../../../models';
 import { Request, RequestParameter } from '../../../models/request';
 import { Response } from '../../../models/response';
 import { TemplateTag } from '../../../plugins';
 import { PluginTemplateTag } from '../../../templating/extensions';
 import { fakerFunctions, isFakerFunction } from '../../../templating/faker-functions';
+import { readEnvironmentVariable } from '../../../templating/os-environment';
 import { guard } from '../../../utils/guard';
 import { buildQueryStringFromParams, joinUrlAndQueryString, smartEncodeUrl } from '../../../utils/url/querystring';
 
@@ -151,6 +153,24 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           default:
             throw new Error(`Invalid UUID type "${uuidType}"`);
         }
+      },
+    },
+  },
+  {
+    templateTag: {
+      displayName: 'Environment Variable',
+      name: 'env',
+      description: 'read an OS environment variable allowed in Preferences, or one from a dotenv file',
+      args: [
+        {
+          displayName: 'Name',
+          type: 'string',
+          placeholder: 'API_TOKEN',
+          help: 'Only names allowed in Preferences > General > OS Environment Variables can be read.',
+        },
+      ],
+      async run(_context, name = '') {
+        return readEnvironmentVariable(String(name).trim(), await models.settings.getOrCreate());
       },
     },
   },

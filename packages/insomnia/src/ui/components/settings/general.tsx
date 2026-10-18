@@ -290,6 +290,24 @@ export const General: FC = () => {
 
       <hr className="pad-top" />
 
+      <h2>OS Environment Variables</h2>
+      <div className="form-row pad-top-sm">
+        <TextSetting
+          label="Allowed names"
+          setting="allowedEnvironmentVariables"
+          help="The OS environment variables templates can read with the Environment Variable tag, {% env 'NAME' %}: comma-separated names, or prefixes ending in *. None are allowed until you list them, so a collection from someone else can't send yours anywhere."
+          placeholder="API_TOKEN, STAGING_*"
+        />
+        <TextSetting
+          label="dotenv file"
+          setting="dotenvFile"
+          help="Optional. A .env file to read allowed names from when the OS environment doesn't set them. It's read on each send, so edits apply straight away."
+          placeholder="~/projects/api/.env"
+        />
+      </div>
+
+      <hr className="pad-top" />
+
       <h2>Network Proxy</h2>
 
       <BooleanSetting

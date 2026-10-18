@@ -90,6 +90,20 @@ describe('faker', () => {
   });
 });
 
+describe('env', () => {
+  beforeEach(globalBeforeEach);
+  afterEach(() => {
+    delete process.env.INSOMNIUM_TAG_TEST;
+  });
+
+  it('reads a variable once Preferences allow it', async () => {
+    process.env.INSOMNIUM_TAG_TEST = 'v4lue';
+    await expect(run('env', 'INSOMNIUM_TAG_TEST')).rejects.toThrow(/isn't an allowed environment variable/);
+    await models.settings.patch({ allowedEnvironmentVariables: 'INSOMNIUM_TAG_*' });
+    expect(await run('env', ' INSOMNIUM_TAG_TEST ')).toBe('v4lue');
+  });
+});
+
 describe('now', () => {
   afterEach(() => jest.useRealTimers());
 
