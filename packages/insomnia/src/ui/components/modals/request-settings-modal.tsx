@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
+import { HttpVersions } from '../../../common/settings';
 import * as models from '../../../models';
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
 import { isRequest, Request } from '../../../models/request';
@@ -304,6 +305,54 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                         <option value={'off'}>Don't follow redirects</option>
                         <option value={'on'}>Follow redirects</option>
                       </select>
+                    </label>
+                  </div>
+                  <div className="form-control form-control--outlined">
+                    <label>
+                      Validate certificates <span className="txt-sm faint italic">(overrides global setting)</span>
+                      <select
+                        defaultValue={request.settingValidateSSL || 'global'}
+                        onChange={event => patchRequest(request._id, { settingValidateSSL: event.currentTarget.value as Request['settingValidateSSL'] })}
+                      >
+                        <option value={'global'}>Use global setting</option>
+                        <option value={'on'}>Validate certificates</option>
+                        <option value={'off'}>Don't validate certificates</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="form-control form-control--outlined">
+                    <label>
+                      HTTP version <span className="txt-sm faint italic">(overrides global setting)</span>
+                      <select
+                        defaultValue={request.settingHttpVersion || 'global'}
+                        onChange={event => patchRequest(request._id, { settingHttpVersion: event.currentTarget.value as Request['settingHttpVersion'] })}
+                      >
+                        <option value={'global'}>Use global setting</option>
+                        <option value={HttpVersions.default}>Default</option>
+                        <option value={HttpVersions.V1_0}>HTTP 1.0</option>
+                        <option value={HttpVersions.V1_1}>HTTP 1.1</option>
+                        <option value={HttpVersions.V2PriorKnowledge}>HTTP/2 PriorKnowledge</option>
+                        <option value={HttpVersions.V2_0}>HTTP/2</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div className="form-control form-control--outlined">
+                    <label>
+                      Request timeout (ms) <span className="txt-sm faint italic">(overrides global setting; 0 for none)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={100}
+                        placeholder="Use global setting"
+                        defaultValue={request.settingTimeout ?? ''}
+                        onChange={event => {
+                          const { value } = event.currentTarget;
+                          const timeout = Number(value);
+                          if (value === '' || (Number.isInteger(timeout) && timeout >= 0)) {
+                            patchRequest(request._id, { settingTimeout: value === '' ? null : timeout });
+                          }
+                        }}
+                      />
                     </label>
                   </div>
                 </>

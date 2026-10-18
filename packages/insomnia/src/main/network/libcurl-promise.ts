@@ -35,6 +35,10 @@ interface RequestUsedHere {
   body: { mimeType?: string | null };
   authentication: Record<string, any>;
   settingFollowRedirects: 'global' | 'on' | 'off';
+  // per-request overrides; streams don't carry them
+  settingTimeout?: number | null;
+  settingValidateSSL?: 'global' | 'on' | 'off';
+  settingHttpVersion?: string;
   settingRebuildPath: boolean;
   settingSendCookies: boolean;
   url: string;
@@ -299,7 +303,8 @@ export const createConfiguredCurlInstance = ({
       curl.setOpt(Curl.option.KEYPASSWD, passphrase);
     }
   });
-  const httpVersion = getHttpVersion(settings.preferredHttpVersion);
+  const hasOwnHttpVersion = req.settingHttpVersion && req.settingHttpVersion !== 'global';
+  const httpVersion = getHttpVersion(hasOwnHttpVersion ? req.settingHttpVersion as string : settings.preferredHttpVersion);
   debugTimeline.push({ value: httpVersion.log, name: 'Text', timestamp: Date.now() });
 
   if (httpVersion.curlHttpVersion) {
@@ -328,14 +333,14 @@ export const createConfiguredCurlInstance = ({
       curl.setOpt(Curl.option.NOPROXY, noProxy);
     }
   }
-  const { timeout } = settings;
+  const timeout = typeof req.settingTimeout === 'number' ? req.settingTimeout : settings.timeout;
   if (timeout <= 0) {
     curl.setOpt(Curl.option.TIMEOUT_MS, 0);
   } else {
     curl.setOpt(Curl.option.TIMEOUT_MS, timeout);
     debugTimeline.push({ value: `Enable timeout of ${timeout}ms`, name: 'Text', timestamp: Date.now() });
   }
-  const { validateSSL } = settings;
+  const validateSSL = { on: true, off: false, global: settings.validateSSL }[req.settingValidateSSL || 'global'] ?? settings.validateSSL;
   if (!validateSSL) {
     curl.setOpt(Curl.option.SSL_VERIFYHOST, 0);
     curl.setOpt(Curl.option.SSL_VERIFYPEER, 0);

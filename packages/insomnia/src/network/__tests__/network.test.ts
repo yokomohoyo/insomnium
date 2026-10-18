@@ -24,6 +24,7 @@ import { DEFAULT_BOUNDARY } from '../../main/network/multipart';
 import { _getAwsAuthHeaders } from '../../main/network/parse-header-strings';
 import * as models from '../../models';
 import type { Request } from '../../models/request';
+import type { Settings } from '../../models/settings';
 import * as networkUtils from '../network';
 import { getSetCookiesFromResponseHeaders } from '../network';
 
@@ -791,6 +792,27 @@ describe('sendCurlAndWriteTimeline()', () => {
     expect(getHttpVersion(HttpVersions.v3).curlHttpVersion).toBe(CurlHttpVersion.v3);
     expect(getHttpVersion(HttpVersions.default).curlHttpVersion).toBe(undefined);
     expect(getHttpVersion('blah').curlHttpVersion).toBe(undefined);
+  });
+
+  it('lets a request override the global timeout, certificate validation and HTTP version', async () => {
+    const workspace = await models.workspace.create();
+    const settings = await models.settings.getOrCreate();
+    const send = async (patch: Partial<Request>, globals: Partial<Settings> = {}) => {
+      const request = Object.assign(models.request.init(), { _id: 'req_123', parentId: workspace._id, ...patch });
+      const renderedRequest = await getRenderedRequest({ request });
+      const response = await networkUtils.sendCurlAndWriteTimeline(renderedRequest, [], null, { ...settings, ...globals });
+      return JSON.parse(String(models.response.getBodyBuffer(response))).options;
+    };
+
+    const own = await send({ settingTimeout: 1500, settingValidateSSL: 'off', settingHttpVersion: HttpVersions.V1_1 });
+    expect(own).toMatchObject({ TIMEOUT_MS: 1500, SSL_VERIFYHOST: 0, SSL_VERIFYPEER: 0, HTTP_VERSION: 'V1_1' });
+
+    const noTimeout = await send({ settingTimeout: 0, settingValidateSSL: 'on' }, { validateSSL: false });
+    expect(noTimeout.TIMEOUT_MS).toBe(0);
+    expect(noTimeout.SSL_VERIFYPEER).toBeUndefined();
+
+    const global = await send({}, { timeout: 2500, validateSSL: false, preferredHttpVersion: HttpVersions.V2_0 });
+    expect(global).toMatchObject({ TIMEOUT_MS: 2500, SSL_VERIFYPEER: 0, HTTP_VERSION: 'V2_0' });
   });
 });
 
