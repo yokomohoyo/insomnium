@@ -19,7 +19,17 @@ export const canDuplicate = false;
 
 export const canSync = false;
 // kept by initModel when set (see BaseResponse)
-export const optionalKeys = ['assertionResults', 'scriptLogs'];
+export const optionalKeys = ['assertionResults', 'scriptLogs', 'timings'];
+
+// When each part of the exchange was done, in milliseconds from the start, as
+// libcurl measures it: the name lookup, the connection, the TLS handshake (0
+// without TLS) and the response's first byte
+export interface ResponseTimings {
+  dns: number;
+  connect: number;
+  tls: number;
+  firstByte: number;
+}
 
 export interface ResponseHeader {
   name: string;
@@ -38,6 +48,7 @@ export interface BaseResponse {
   bytesRead: number;
   bytesContent: number;
   elapsedTime: number;
+  timings?: ResponseTimings;
   headers: ResponseHeader[];
   bodyPath: string;
   // Actual bodies are stored on the filesystem

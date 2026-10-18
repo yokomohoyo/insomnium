@@ -26,6 +26,8 @@ An HTTP request's tabs:
 
 Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows the body, headers, cookies, the timeline (the raw exchange), and **Tests**, which lists the results of the request's assertions and script tests, and what its scripts logged.
 
+Hover the response time to see how it was spent: the DNS lookup, connecting, the TLS handshake, waiting for the first byte, and the download.
+
 ## Folders
 
 Folders group requests. A folder can also have:

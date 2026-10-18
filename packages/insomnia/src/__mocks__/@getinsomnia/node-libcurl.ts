@@ -19,6 +19,10 @@ class Curl extends EventEmitter {
     EFFECTIVE_URL: 'EFFECTIVE_URL',
     SIZE_DOWNLOAD: 'SIZE_DOWNLOAD',
     TOTAL_TIME: 'TOTAL_TIME',
+    NAMELOOKUP_TIME: 'NAMELOOKUP_TIME',
+    CONNECT_TIME: 'CONNECT_TIME',
+    APPCONNECT_TIME: 'APPCONNECT_TIME',
+    STARTTRANSFER_TIME: 'STARTTRANSFER_TIME',
   };
 
   static option = {
@@ -135,6 +139,18 @@ class Curl extends EventEmitter {
 
       case Curl.info.TOTAL_TIME:
         return 700;
+
+      case Curl.info.NAMELOOKUP_TIME:
+        return 0.01;
+
+      case Curl.info.CONNECT_TIME:
+        return 0.03;
+
+      case Curl.info.APPCONNECT_TIME:
+        return 0;
+
+      case Curl.info.STARTTRANSFER_TIME:
+        return 0.5;
 
       case Curl.info.SIZE_DOWNLOAD:
         return 800;
