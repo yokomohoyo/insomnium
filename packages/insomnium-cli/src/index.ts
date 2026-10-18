@@ -5,7 +5,11 @@
 // both humans and LLM agents — `--json` emits structured output, and the
 // tools/describe/call verbs mirror MCP's introspection surface.
 
+import { promises as fs } from 'node:fs';
 import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { CliError, readDiscovery, withClient } from './connect.js';
 
@@ -20,6 +24,9 @@ Commands:
   describe <tool>             Show a tool's input JSON schema
   call <tool> [args]          Invoke a tool and print its result
   status                      Show connection status to the running app
+  agent install [--dir <dir>] Install the Insomnium skill for coding agents (Claude
+                              Code's ~/.claude/skills by default), so an agent knows
+                              how to find, send and test your saved requests
   help                        Show this help
 
 Call arguments:
@@ -42,6 +49,7 @@ Examples:
 interface Parsed {
   positional: string[];
   json: boolean;
+  dir?: string;
   argsJson?: string;
   argPairs: string[];
   help: boolean;
@@ -57,6 +65,7 @@ function parse(argv: string[]): Parsed {
     else if (a === '-v' || a === '--version') out.version = true;
     else if (a === '--args') out.argsJson = argv[++i];
     else if (a === '--arg') out.argPairs.push(argv[++i]);
+    else if (a === '--dir') out.dir = argv[++i];
     else if (a.startsWith('-')) throw new CliError(`unknown option: ${a}`);
     else out.positional.push(a);
   }
@@ -171,6 +180,20 @@ async function cmdStatus(json: boolean): Promise<void> {
   out(`healthy: ${healthy ? 'yes' : 'no (is the app running?)'}`);
 }
 
+// The skill shipped with this package (skill/SKILL.md), into the agent's
+// skills folder, and how to connect the agent to the app's tools
+async function cmdAgentInstall(dir: string | undefined): Promise<void> {
+  const source = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'skill', 'SKILL.md');
+  const target = path.join(dir || path.join(os.homedir(), '.claude', 'skills'), 'insomnium', 'SKILL.md');
+  await fs.mkdir(path.dirname(target), { recursive: true });
+  await fs.copyFile(source, target);
+  out(`Installed the Insomnium skill: ${target}`);
+  out('');
+  out('To give the agent the tools as well, enable Preferences > Automation (MCP) in Insomnium, then, for Claude Code:');
+  out('  claude mcp add insomnium npx insomnium-mcp');
+  out('Or the agent can use this CLI: insomnium tools, insomnium call <tool> --json.');
+}
+
 async function main(argv: string[]): Promise<void> {
   const p = parse(argv.slice(2));
   if (p.version) {
@@ -197,6 +220,9 @@ async function main(argv: string[]): Promise<void> {
     }
     case 'status':
       return cmdStatus(p.json);
+    case 'agent':
+      if (p.positional[1] !== 'install') throw new CliError('usage: insomnium agent install [--dir <skills dir>]');
+      return cmdAgentInstall(p.dir);
     default:
       throw new CliError(`unknown command: ${cmd} (run \`insomnium help\`)`);
   }

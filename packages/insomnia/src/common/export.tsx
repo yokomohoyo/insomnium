@@ -1,310 +1,45 @@
-import clone from 'clone';
 import { format } from 'date-fns';
 import fs from 'fs';
 import path from 'path';
 import React from 'react';
-import YAML from 'yaml';
 
-import { isApiSpec } from '../models/api-spec';
-import { isCookieJar } from '../models/cookie-jar';
-import { isEnvironment } from '../models/environment';
-import { isGrpcRequest } from '../models/grpc-request';
 import * as requestOperations from '../models/helpers/request-operations';
 import type { BaseModel } from '../models/index';
 import * as models from '../models/index';
-import { isProtoDirectory } from '../models/proto-directory';
-import { isProtoFile } from '../models/proto-file';
-import { isRequest } from '../models/request';
-import { isRequestGroup } from '../models/request-group';
-import { isResponseExample } from '../models/response-example';
-import { isUnitTest } from '../models/unit-test';
-import { isUnitTestSuite } from '../models/unit-test-suite';
-import { isWebSocketPayload } from '../models/websocket-payload';
-import { isWebSocketRequest } from '../models/websocket-request';
 import { isWorkspace, Workspace } from '../models/workspace';
-import { resetKeys } from '../sync/ignore-keys';
-
 import { showAlert, showError, showModal } from '../ui/components/modals';
 import { AskModal } from '../ui/components/modals/ask-modal';
 import { SelectModal } from '../ui/components/modals/select-modal';
-import { Insomnia4Data } from '../utils/importers/importers';
-import {
-  EXPORT_TYPE_API_SPEC,
-  EXPORT_TYPE_COOKIE_JAR,
-  EXPORT_TYPE_ENVIRONMENT,
-  EXPORT_TYPE_GRPC_REQUEST,
-  EXPORT_TYPE_PROTO_DIRECTORY,
-  EXPORT_TYPE_PROTO_FILE,
-  EXPORT_TYPE_REQUEST,
-  EXPORT_TYPE_REQUEST_GROUP,
-  EXPORT_TYPE_UNIT_TEST,
-  EXPORT_TYPE_UNIT_TEST_SUITE,
-  EXPORT_TYPE_WEBSOCKET_PAYLOAD,
-  EXPORT_TYPE_RESPONSE_EXAMPLE,
-  EXPORT_TYPE_WEBSOCKET_REQUEST,
-  EXPORT_TYPE_WORKSPACE,
-  getAppVersion,
-} from './constants';
-import { database, database as db } from './database';
+import { database } from './database';
+import { exportRequestsData, exportRequestsHAR, exportWorkspacesData, exportWorkspacesHAR } from './export-data';
+import { toOpenApiYaml } from './export-openapi';
 import { toPostmanCollection } from './export-postman';
-import * as har from './har';
 import { strings } from './strings';
 
-const EXPORT_FORMAT = 4;
-
-const getDocWithDescendants = (includePrivateDocs = false) => async (parentDoc: BaseModel | null) => {
-  const docs = await db.withDescendants(parentDoc);
-  return docs.filter(
-    // Don't include if private, except if we want to
-    doc => !doc?.isPrivate || includePrivateDocs,
-  );
-};
-
-export async function exportWorkspacesHAR(
-  workspaces: Workspace[],
-  includePrivateDocs = false,
-) {
-  const promises = workspaces.map(getDocWithDescendants(includePrivateDocs));
-  const docs = (await Promise.all(promises)).flat();
-  const requests = docs.filter(isRequest);
-  return exportRequestsHAR(requests, includePrivateDocs);
-}
-
-export async function exportRequestsHAR(
-  requests: BaseModel[],
-  includePrivateDocs = false,
-) {
-  const workspaces: BaseModel[] = [];
-  const mapRequestIdToWorkspace: Record<string, any> = {};
-  const workspaceLookup: Record<string, any> = {};
-
-  for (const request of requests) {
-    const ancestors: BaseModel[] = await db.withAncestors(request, [
-      models.workspace.type,
-      models.requestGroup.type,
-    ]);
-    const workspace = ancestors.find(isWorkspace);
-    mapRequestIdToWorkspace[request._id] = workspace;
-
-    if (workspace == null || workspaceLookup.hasOwnProperty(workspace._id)) {
-      continue;
-    }
-
-    workspaceLookup[workspace._id] = true;
-    workspaces.push(workspace);
-  }
-
-  const mapWorkspaceIdToEnvironmentId: Record<string, any> = {};
-
-  const exportedRequestIds = new Set(requests.map(request => request._id));
-  const isExampleOfExported = (d: BaseModel) => isResponseExample(d) && exportedRequestIds.has(d.parentId);
-  for (const workspace of workspaces) {
-    const workspaceMeta = await models.workspaceMeta.getByParentId(workspace._id);
-    let environmentId = workspaceMeta ? workspaceMeta.activeEnvironmentId : null;
-    const environment = await models.environment.getById(environmentId || 'n/a');
-
-    if (!environment || (environment.isPrivate && !includePrivateDocs)) {
-      environmentId = 'n/a';
-    }
-
-    mapWorkspaceIdToEnvironmentId[workspace._id] = environmentId;
-  }
-
-  requests = requests.sort((a: Record<string, any>, b: Record<string, any>) =>
-    a.metaSortKey < b.metaSortKey ? -1 : 1,
-  );
-  const harRequests: har.ExportRequest[] = [];
-
-  for (const request of requests) {
-    const workspace = mapRequestIdToWorkspace[request._id];
-
-    if (workspace == null) {
-      // Workspace not found for request, so don't export it.
-      continue;
-    }
-
-    const environmentId = mapWorkspaceIdToEnvironmentId[workspace._id];
-    harRequests.push({
-      requestId: request._id,
-      environmentId: environmentId,
-    });
-  }
-
-  const data = await har.exportHar(harRequests);
-  return JSON.stringify(data, null, '\t');
-}
-
-export async function exportWorkspacesData(
-  workspaces: Workspace[],
-  includePrivateDocs: boolean,
-  format: 'json' | 'yaml',
-) {
-  const promises = workspaces.map(getDocWithDescendants(includePrivateDocs));
-  const docs = (await Promise.all(promises)).flat();
-  const requests = docs.filter(doc => isRequest(doc) || isGrpcRequest(doc) || isWebSocketRequest(doc));
-  return exportRequestsData(requests, includePrivateDocs, format);
-}
-
-export async function exportRequestsData(
-  requests: BaseModel[],
-  includePrivateDocs: boolean,
-  format: 'json' | 'yaml',
-) {
-  const data: Insomnia4Data = {
-    // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-    _type: 'export',
-    __export_format: EXPORT_FORMAT,
-    __export_date: new Date(),
-    __export_source: `insomnia.desktop.app:v${getAppVersion()}`,
-    resources: [],
-  };
-  const docs: BaseModel[] = [];
-  const workspaces: Workspace[] = [];
-  const mapTypeAndIdToDoc: Record<string, BaseModel> = {};
-
-  for (const request of requests) {
-    const ancestors = clone<BaseModel[]>(await db.withAncestors(request));
-
-    for (const ancestor of ancestors) {
-      const key = ancestor.type + '___' + ancestor._id;
-
-      if (mapTypeAndIdToDoc.hasOwnProperty(key)) {
-        continue;
-      }
-
-      mapTypeAndIdToDoc[key] = ancestor;
-      docs.push(ancestor);
-
-      if (isWorkspace(ancestor)) {
-        workspaces.push(ancestor);
-      }
-    }
-  }
-
-  const exportedRequestIds = new Set(requests.map(request => request._id));
-  const isExampleOfExported = (d: BaseModel) => isResponseExample(d) && exportedRequestIds.has(d.parentId);
-  for (const workspace of workspaces) {
-    const descendants = (await db.withDescendants(workspace)).filter(d => {
-      // Only interested in these additional model types.
-      return (
-        isCookieJar(d) ||
-        isEnvironment(d) ||
-        isApiSpec(d) ||
-        isUnitTestSuite(d) ||
-        isUnitTest(d) ||
-        isProtoFile(d) ||
-        isProtoDirectory(d) ||
-        isWebSocketPayload(d) ||
-        // the examples of the requests exported
-        isExampleOfExported(d)
-      );
-    });
-    docs.push(...descendants);
-  }
-
-  data.resources = docs
-    .filter(d => {
-      // Only export these model types.
-      if (
-        !(
-          isUnitTestSuite(d) ||
-          isUnitTest(d) ||
-          isRequest(d) ||
-          isWebSocketPayload(d) ||
-          isResponseExample(d) ||
-          isWebSocketRequest(d) ||
-          isGrpcRequest(d) ||
-          isRequestGroup(d) ||
-          isProtoFile(d) ||
-          isProtoDirectory(d) ||
-          isWorkspace(d) ||
-          isCookieJar(d) ||
-          isEnvironment(d) ||
-          isApiSpec(d)
-        )
-      ) {
-        return false;
-      }
-
-      // BaseModel doesn't have isPrivate, so cast it first.
-      return !d.isPrivate || includePrivateDocs;
-    })
-    .map(d => {
-      if (isWorkspace(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_WORKSPACE;
-        // reset the parentId of a workspace
-        resetKeys(d);
-      } else if (isCookieJar(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_COOKIE_JAR;
-      } else if (isEnvironment(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_ENVIRONMENT;
-      } else if (isUnitTestSuite(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_UNIT_TEST_SUITE;
-      } else if (isUnitTest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_UNIT_TEST;
-      } else if (isRequestGroup(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_REQUEST_GROUP;
-      } else if (isRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_REQUEST;
-      } else if (isGrpcRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_GRPC_REQUEST;
-      } else if (isWebSocketPayload(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_WEBSOCKET_PAYLOAD;
-      } else if (isResponseExample(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_RESPONSE_EXAMPLE;
-      } else if (isWebSocketRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_WEBSOCKET_REQUEST;
-      } else if (isProtoFile(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_PROTO_FILE;
-      } else if (isProtoDirectory(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_PROTO_DIRECTORY;
-      } else if (isApiSpec(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_API_SPEC;
-      }
-
-      // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-      // Delete the things we don't want to export
-      delete d.type;
-      return d;
-    });
-
-  if (format.toLowerCase() === 'yaml') {
-    return YAML.stringify(data);
-  } else if (format.toLowerCase() === 'json') {
-    return JSON.stringify(data);
-  } else {
-    throw new Error(`Invalid export format ${format}. Must be "json" or "yaml"`);
-  }
-}
+// the data itself is in export-data.ts, which the main process can import
+export * from './export-data';
 
 const VALUE_JSON = 'json';
 const VALUE_YAML = 'yaml';
 const VALUE_HAR = 'har';
 const VALUE_POSTMAN = 'postman';
+const VALUE_OPENAPI = 'openapi';
 
 export type SelectedFormat =
   | typeof VALUE_HAR
   | typeof VALUE_JSON
   | typeof VALUE_YAML
   | typeof VALUE_POSTMAN
+  | typeof VALUE_OPENAPI
   ;
 
 // Insomnium's export, as a Postman collection (export-postman.ts)
 const asPostman = (insomniumJson: string, name: string) => JSON.stringify(toPostmanCollection(JSON.parse(insomniumJson).resources, name), null, 2);
+
+// and as an OpenAPI description of its HTTP requests (export-openapi.ts)
+const asOpenApi = (insomniumJson: string, name: string) => toOpenApiYaml(JSON.parse(insomniumJson).resources, name);
+
+const EXTENSIONS: Record<string, string> = { [VALUE_POSTMAN]: 'postman_collection.json', [VALUE_OPENAPI]: 'openapi.yaml' };
 
 const showSelectExportTypeModal = ({ onDone }: {
   onDone: (selectedFormat: SelectedFormat) => Promise<void>;
@@ -325,6 +60,10 @@ const showSelectExportTypeModal = ({ onDone }: {
     {
       name: 'Postman Collection v2.1',
       value: VALUE_POSTMAN,
+    },
+    {
+      name: 'OpenAPI 3.0 (YAML)',
+      value: VALUE_OPENAPI,
     },
   ];
 
@@ -375,7 +114,7 @@ const showSaveExportedFileDialog = async ({
   const options = {
     title: 'Export Insomnium Data',
     buttonLabel: 'Export',
-    defaultPath: `${path.join(dir, `${name}_${date}`)}.${selectedFormat === VALUE_POSTMAN ? 'postman_collection.json' : selectedFormat}`,
+    defaultPath: `${path.join(dir, `${name}_${date}`)}.${EXTENSIONS[selectedFormat] || selectedFormat}`,
   };
   const { filePath } = await window.dialog.showSaveDialog(options);
   return filePath || null;
@@ -426,6 +165,10 @@ export const exportAllToFile = (activeProjectName: string, workspacesForActivePr
 
           case VALUE_POSTMAN:
             stringifiedExport = asPostman(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
+            break;
+
+          case VALUE_OPENAPI:
+            stringifiedExport = asOpenApi(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
             break;
 
           default:
@@ -502,6 +245,10 @@ export const exportRequestsToFile = (requestIds: string[]) => {
 
           case VALUE_POSTMAN:
             stringifiedExport = asPostman(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
+            break;
+
+          case VALUE_OPENAPI:
+            stringifiedExport = asOpenApi(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
             break;
 
           default:

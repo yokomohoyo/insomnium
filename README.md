@@ -88,10 +88,13 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Projects & workspaces** — list/create projects, workspaces (collections or design docs), and folders.
 - **Request introspection** — list HTTP/gRPC/WebSocket requests, read full request details, and read recent responses (including the last response body).
 - **Execution** — `send_http_request` and `send_grpc_request` (all four gRPC method types), with optional environment and timeout overrides.
-- **Mutation** — create, update, and delete requests.
+- **Mutation** — create, update, and delete requests; create folders.
+- **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium, Postman or OpenAPI (`export_workspace`), and list cookies (values only on request).
 - **Auth strategies** — list, add, update, and remove authentication on a request.
 - **Environments** — list environments, read the active one, and switch it.
 - **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.
+
+**For coding agents:** `npx insomnium-cli agent install` installs a skill for Claude Code that tells it how to use your collections: find a request, check the environment, send it, read the response and its assertions, and run a folder. See [insomnium-cli](packages/insomnium-cli/README.md).
 
 
 ## Saved credentials

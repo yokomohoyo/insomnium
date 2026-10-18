@@ -10,6 +10,7 @@
   },
   "files": [
     "dist",
+    "skill",
     "README.md"
   ],
   "engines": {
