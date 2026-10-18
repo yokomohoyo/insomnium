@@ -12,6 +12,7 @@ import { AskModal } from '../ui/components/modals/ask-modal';
 import { SelectModal } from '../ui/components/modals/select-modal';
 import { database } from './database';
 import { exportRequestsData, exportRequestsHAR, exportWorkspacesData, exportWorkspacesHAR } from './export-data';
+import { toOpenApiYaml } from './export-openapi';
 import { toPostmanCollection } from './export-postman';
 import { strings } from './strings';
 
@@ -22,16 +23,23 @@ const VALUE_JSON = 'json';
 const VALUE_YAML = 'yaml';
 const VALUE_HAR = 'har';
 const VALUE_POSTMAN = 'postman';
+const VALUE_OPENAPI = 'openapi';
 
 export type SelectedFormat =
   | typeof VALUE_HAR
   | typeof VALUE_JSON
   | typeof VALUE_YAML
   | typeof VALUE_POSTMAN
+  | typeof VALUE_OPENAPI
   ;
 
 // Insomnium's export, as a Postman collection (export-postman.ts)
 const asPostman = (insomniumJson: string, name: string) => JSON.stringify(toPostmanCollection(JSON.parse(insomniumJson).resources, name), null, 2);
+
+// and as an OpenAPI description of its HTTP requests (export-openapi.ts)
+const asOpenApi = (insomniumJson: string, name: string) => toOpenApiYaml(JSON.parse(insomniumJson).resources, name);
+
+const EXTENSIONS: Record<string, string> = { [VALUE_POSTMAN]: 'postman_collection.json', [VALUE_OPENAPI]: 'openapi.yaml' };
 
 const showSelectExportTypeModal = ({ onDone }: {
   onDone: (selectedFormat: SelectedFormat) => Promise<void>;
@@ -52,6 +60,10 @@ const showSelectExportTypeModal = ({ onDone }: {
     {
       name: 'Postman Collection v2.1',
       value: VALUE_POSTMAN,
+    },
+    {
+      name: 'OpenAPI 3.0 (YAML)',
+      value: VALUE_OPENAPI,
     },
   ];
 
@@ -102,7 +114,7 @@ const showSaveExportedFileDialog = async ({
   const options = {
     title: 'Export Insomnium Data',
     buttonLabel: 'Export',
-    defaultPath: `${path.join(dir, `${name}_${date}`)}.${selectedFormat === VALUE_POSTMAN ? 'postman_collection.json' : selectedFormat}`,
+    defaultPath: `${path.join(dir, `${name}_${date}`)}.${EXTENSIONS[selectedFormat] || selectedFormat}`,
   };
   const { filePath } = await window.dialog.showSaveDialog(options);
   return filePath || null;
@@ -153,6 +165,10 @@ export const exportAllToFile = (activeProjectName: string, workspacesForActivePr
 
           case VALUE_POSTMAN:
             stringifiedExport = asPostman(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
+            break;
+
+          case VALUE_OPENAPI:
+            stringifiedExport = asOpenApi(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
             break;
 
           default:
@@ -229,6 +245,10 @@ export const exportRequestsToFile = (requestIds: string[]) => {
 
           case VALUE_POSTMAN:
             stringifiedExport = asPostman(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
+            break;
+
+          case VALUE_OPENAPI:
+            stringifiedExport = asOpenApi(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
             break;
 
           default:
