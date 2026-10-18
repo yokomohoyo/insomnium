@@ -1,3 +1,4 @@
+import { translateDynamicVariables } from '../../../templating/faker-functions';
 import { Converter, ImportRequest, Parameter } from '../entities';
 import {
   Auth as V200Auth,
@@ -836,7 +837,7 @@ export const convert: Converter = rawData => {
       collection.info.schema === POSTMAN_SCHEMA_V2_0 ||
       collection.info.schema === POSTMAN_SCHEMA_V2_1
     ) {
-      return new ImportPostman(collection).importCollection();
+      return translateDynamicVariables(new ImportPostman(collection).importCollection());
     }
   } catch (error) {
     // Nothing

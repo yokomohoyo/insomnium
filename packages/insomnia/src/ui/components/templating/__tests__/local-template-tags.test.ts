@@ -75,6 +75,21 @@ describe('random', () => {
   });
 });
 
+describe('faker', () => {
+  it('generates the value named, as Postman and Kong Insomnia name them', async () => {
+    expect(await run('faker', 'guid')).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(await run('faker', 'randomEmail')).toMatch(/@/);
+    expect(await run('faker')).toMatch(/\w+ \w+/);
+  });
+
+  it('offers every name, and refuses one it does not have', async () => {
+    const tag = localTemplateTags.find(({ templateTag }) => templateTag.name === 'faker');
+    expect(tag?.templateTag.args?.[0].options?.map(({ value }) => value)).toContain('randomFullName');
+    await expect(run('faker', 'randomNope')).rejects.toThrow('Unknown faker value "randomNope"');
+    await expect(run('faker', 'constructor')).rejects.toThrow(/Unknown faker value/);
+  });
+});
+
 describe('now', () => {
   afterEach(() => jest.useRealTimers());
 

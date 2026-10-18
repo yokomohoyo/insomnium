@@ -27,7 +27,7 @@ const freePort = () => new Promise(resolve => {
 // the echo server the collection's request goes to
 const seen = [];
 const echo = http.createServer((req, res) => {
-  seen.push({ url: req.url, secret: req.headers['x-secret'] });
+  seen.push({ url: req.url, secret: req.headers['x-secret'], trace: req.headers['x-trace'] });
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ echoed: req.url }));
 });
@@ -48,7 +48,7 @@ resources:
     name: echo
     method: GET
     url: '{{ base }}/echo'
-    headers: [{ name: X-Secret, value: '{{ secret }}' }]
+    headers: [{ name: X-Secret, value: '{{ secret }}' }, { name: X-Trace, value: "{% faker 'guid' %}" }]
   - { _id: req_blocked, _type: request, parentId: wrk_smoke, name: blocked, method: GET, url: 'http://example.com/' }
 `);
 // the image runs as node (uid 1000), not as whoever made the 0700 temp dir
@@ -123,6 +123,7 @@ try {
   const sent = await call('send_http_request', { requestId: byName('echo') });
   check(!sent.isError && sent.data.statusCode === 200, `sends to an allowed host (${JSON.stringify(sent.data)})`);
   check(seen[0]?.url === '/echo' && seen[0]?.secret === 's3cret', 'renders the environment, with INSOMNIUM_VAR_ values');
+  check(/^[0-9a-f]{8}-[0-9a-f]{4}-4/.test(seen[0]?.trace || ''), 'renders template tags, faker loaded from the bundle');
   const response = await call('get_last_response', { requestId: byName('echo') });
   check(JSON.stringify(response.data).includes('echoed'), 'returns the response body');
 
