@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { AuthType, CONTENT_TYPE_JSON } from '../../../common/constants';
 import * as models from '../../../models';
 import { Environment } from '../../../models/environment';
+import { socketIoArgs, socketIoEvent } from '../../../main/network/socket-io';
 import { WebSocketRequest } from '../../../models/websocket-request';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../../utils/url/querystring';
@@ -31,6 +32,7 @@ import { Pane, PaneHeader as OriginalPaneHeader } from '../panes/pane';
 import { RenderedQueryString } from '../rendered-query-string';
 import { WebSocketActionBar } from './action-bar';
 import { GraphqlSubscriptionEditor } from './graphql-subscription-editor';
+import { emptySocketIo, SocketIoEditor } from './socket-io-editor';
 
 const supportedAuthTypes: AuthType[] = ['apikey', 'basic', 'bearer'];
 
@@ -110,11 +112,22 @@ const WebSocketRequestForm: FC<FormProps> = ({
     init();
   }, [request._id]);
 
+  // with Socket.IO on, the message is an event's arguments
+  const socketIo = request.socketIo?.enabled ? request.socketIo : undefined;
+
   // NOTE: Nunjucks interpolation can throw errors
   const interpolateOpenAndSend = async (payload: string) => {
     try {
       const renderedMessage = await tryToInterpolateRequestOrShowRenderErrorModal({ request, environmentId, payload });
       const readyState = await window.main.webSocket.readyState.getCurrent({ requestId: request._id });
+      if (socketIo) {
+        if (!readyState) {
+          showAlert({ title: 'Socket.IO', message: 'Connect first (the button by the URL), then send the event.' });
+          return;
+        }
+        window.main.webSocket.event.send({ requestId: request._id, payload: socketIoEvent(socketIo.event || 'message', socketIoArgs(renderedMessage), socketIo.namespace) });
+        return;
+      }
       if (!readyState) {
         const workspaceCookieJar = await models.cookieJar.getOrCreateForParentId(workspaceId);
         const rendered = await tryToInterpolateRequestOrShowRenderErrorModal({
@@ -215,6 +228,19 @@ const WebSocketRequestForm: FC<FormProps> = ({
         interpolateOpenAndSend(editorRef.current?.getValue() || '');
       }}
     >
+      {socketIo && (
+        <label className="flex items-center gap-2 pad-sm txt-sm">
+          Event
+          <input
+            type="text"
+            aria-label="Socket.IO event"
+            className="flex-1"
+            defaultValue={socketIo.event}
+            placeholder="message"
+            onChange={event => patchRequest(request._id, { socketIo: { ...emptySocketIo(), ...request.socketIo, event: event.currentTarget.value } })}
+          />
+        </label>
+      )}
       <div className="flex items-center gap-2 pad-sm">
         <select
           aria-label="Saved messages"
@@ -344,6 +370,22 @@ export const WebSocketRequestPane: FC<Props> = ({ environment }) => {
               workspaceId={workspaceId}
             />
           </div>
+        </TabItem>
+        <TabItem
+          key="socket-io"
+          title={
+            <>
+              Socket.IO
+              {activeRequest.socketIo?.enabled && (
+                <span className="bubble space-left">
+                  <i className="fa fa--skinny fa-check txt-xxs" />
+                </span>
+              )}
+            </>
+          }
+        >
+          {disabled && <PaneReadOnlyBanner />}
+          <SocketIoEditor key={uniqueKey} request={activeRequest} disabled={disabled} />
         </TabItem>
         <TabItem
           key="graphql"
