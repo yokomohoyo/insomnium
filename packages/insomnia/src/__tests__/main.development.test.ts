@@ -47,6 +47,7 @@ jest.mock('../common/database', () => ({
   database: { init: async () => mockStartupSteps.push('database.init'), onChange: () => {} },
 }));
 jest.mock('../main/backup', () => ({ backupDataIfVersionChanged: async () => mockStartupSteps.push('backup') }));
+jest.mock('../main/snapshots', () => ({ restorePendingSnapshot: async () => mockStartupSteps.push('restore'), scheduleSnapshots: () => {} }));
 jest.mock('../main/ipc/electron', () => ({ registerElectronHandlers: () => {} }));
 jest.mock('../main/ipc/grpc', () => ({ registergRPCHandlers: () => {} }));
 jest.mock('../main/ipc/main', () => ({ registerMainHandlers: () => {} }));
@@ -328,11 +329,11 @@ describe('main.development startup', () => {
     mockGotLock = true;
   });
 
-  it('backs up the data before the database opens it', async () => {
+  it('restores a snapshot a restore asked for, then backs up the data, before the database opens it', async () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    expect(mockStartupSteps).toEqual(['backup', 'database.init']);
+    expect(mockStartupSteps).toEqual(['restore', 'backup', 'database.init']);
   });
 
   it('quits a second instance before it backs up or opens the data', async () => {

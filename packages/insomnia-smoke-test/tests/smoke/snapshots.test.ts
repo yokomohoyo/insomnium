@@ -3,7 +3,8 @@ import { expect } from '@playwright/test';
 import { test } from '../../playwright/test';
 
 test('Preferences list the data snapshots, and take one by hand @ci', async ({ page }) => {
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+,' : 'Control+,');
+  // the status bar's button, there once the app has loaded
+  await page.getByTestId('settings-button').click();
   await page.getByRole('tab', { name: 'Data' }).click();
   const snapshots = page.getByRole('region', { name: 'Snapshots' });
   // the one taken at launch, since this data has none a day old
