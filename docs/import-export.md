@@ -57,6 +57,17 @@ Export a collection or document from its menu, or everything in a project from *
 
   Servers come from the start of the URLs: `{{ _.base_url }}` is the base environment's `base_url`, and each sub environment's, when they're set. Variables and tags in values aren't examples, so they're left out. A second request for the same method and path, such as a variant of the first, is left out too, as are gRPC and WebSocket requests.
 
+- **TypeScript client**: a client for the API, in one `.ts` file with no dependencies, for an app or a test suite to call it with. It's made from a design document's OpenAPI 3 spec, or from the requests (as for the OpenAPI export) when there's no spec. Each schema is a type and each operation a function, taking its path, query and header parameters and its body, and answering with its response's type:
+
+  ```ts
+  import { createClient } from './pet-store.client';
+
+  const api = createClient({ headers: { Authorization: `Bearer ${token}` } });
+  const pets = await api.listPets({ limit: 10 });
+  ```
+
+  The base URL is the spec's first server, unless you give `baseUrl`. A response that isn't 2xx throws an `ApiError` with its status and body. It runs wherever `fetch` does: browsers, Node 18 and later, Deno and Bun.
+
 Insomnium asks whether to include private environments.
 
 To share a collection with a team as it changes, use [Git Sync](git-sync.md) instead.

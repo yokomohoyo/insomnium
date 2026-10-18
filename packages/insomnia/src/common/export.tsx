@@ -13,6 +13,7 @@ import { SelectModal } from '../ui/components/modals/select-modal';
 import { database } from './database';
 import { exportRequestsData, exportRequestsHAR, exportWorkspacesData, exportWorkspacesHAR } from './export-data';
 import { toOpenApiYaml } from './export-openapi';
+import { clientFromExport } from './openapi-client';
 import { toPostmanCollection } from './export-postman';
 import { strings } from './strings';
 
@@ -24,6 +25,7 @@ const VALUE_YAML = 'yaml';
 const VALUE_HAR = 'har';
 const VALUE_POSTMAN = 'postman';
 const VALUE_OPENAPI = 'openapi';
+const VALUE_TYPESCRIPT = 'typescript';
 
 export type SelectedFormat =
   | typeof VALUE_HAR
@@ -31,6 +33,7 @@ export type SelectedFormat =
   | typeof VALUE_YAML
   | typeof VALUE_POSTMAN
   | typeof VALUE_OPENAPI
+  | typeof VALUE_TYPESCRIPT
   ;
 
 // Insomnium's export, as a Postman collection (export-postman.ts)
@@ -39,7 +42,10 @@ const asPostman = (insomniumJson: string, name: string) => JSON.stringify(toPost
 // and as an OpenAPI description of its HTTP requests (export-openapi.ts)
 const asOpenApi = (insomniumJson: string, name: string) => toOpenApiYaml(JSON.parse(insomniumJson).resources, name);
 
-const EXTENSIONS: Record<string, string> = { [VALUE_POSTMAN]: 'postman_collection.json', [VALUE_OPENAPI]: 'openapi.yaml' };
+// and as a TypeScript client for the API (openapi-client.ts)
+const asTypeScriptClient = (insomniumJson: string, name: string) => clientFromExport(JSON.parse(insomniumJson).resources, name);
+
+const EXTENSIONS: Record<string, string> = { [VALUE_POSTMAN]: 'postman_collection.json', [VALUE_OPENAPI]: 'openapi.yaml', [VALUE_TYPESCRIPT]: 'client.ts' };
 
 const showSelectExportTypeModal = ({ onDone }: {
   onDone: (selectedFormat: SelectedFormat) => Promise<void>;
@@ -64,6 +70,10 @@ const showSelectExportTypeModal = ({ onDone }: {
     {
       name: 'OpenAPI 3.0 (YAML)',
       value: VALUE_OPENAPI,
+    },
+    {
+      name: 'TypeScript client (from OpenAPI)',
+      value: VALUE_TYPESCRIPT,
     },
   ];
 
@@ -171,6 +181,10 @@ export const exportAllToFile = (activeProjectName: string, workspacesForActivePr
             stringifiedExport = asOpenApi(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
             break;
 
+          case VALUE_TYPESCRIPT:
+            stringifiedExport = asTypeScriptClient(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
+            break;
+
           default:
             throw new Error(`selected export format "${selectedFormat}" is invalid`);
         }
@@ -249,6 +263,10 @@ export const exportRequestsToFile = (requestIds: string[]) => {
 
           case VALUE_OPENAPI:
             stringifiedExport = asOpenApi(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
+            break;
+
+          case VALUE_TYPESCRIPT:
+            stringifiedExport = asTypeScriptClient(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
             break;
 
           default:
