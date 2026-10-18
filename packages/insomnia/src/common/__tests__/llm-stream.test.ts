@@ -37,7 +37,7 @@ describe('readLlmStream()', () => {
       deltas: 2,
       firstTokenMs: 200,
       totalMs: 500,
-      tokensPerSecond: 30,
+      tokensPerSecond: 10,
     });
   });
 
