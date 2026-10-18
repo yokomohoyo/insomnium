@@ -1,5 +1,6 @@
 import { database as db } from '../common/database';
 import type { BaseModel } from './index';
+import type { RequestAuthenticationStrategy, RequestHeader } from './request';
 
 export const name = 'Folder';
 
@@ -10,12 +11,19 @@ export const prefix = 'fld';
 export const canDuplicate = true;
 
 export const canSync = true;
+
+// kept on the folders that set them, without a default
+export const optionalKeys = ['authentication', 'headers'];
+
 interface BaseRequestGroup {
   name: string;
   description: string;
   environment: Record<string, any>;
   environmentPropertyOrder: Record<string, any> | null;
   metaSortKey: number;
+  // what the requests in it inherit; unset unless the folder has them
+  authentication?: RequestAuthenticationStrategy[];
+  headers?: RequestHeader[];
 }
 
 export type RequestGroup = BaseModel & BaseRequestGroup;

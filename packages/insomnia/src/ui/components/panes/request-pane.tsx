@@ -7,6 +7,7 @@ import * as models from '../../../models';
 import { queryAllWorkspaceUrls } from '../../../models/helpers/query-all-workspace-urls';
 import type { Settings } from '../../../models/settings';
 import { deconstructQueryStringToParams, extractQueryStringFromUrl } from '../../../utils/url/querystring';
+import { useFolderInheritance } from '../../hooks/use-folder-inheritance';
 import { useRequestSetter, useSettingsPatcher } from '../../hooks/use-request';
 import { useActiveRequestSyncVCSVersion, useGitVCSVersion } from '../../hooks/use-vcs-version';
 import { RequestLoaderData } from '../../routes/request';
@@ -79,6 +80,7 @@ export const RequestPane: FC<Props> = ({
   const [isRequestSettingsModalOpen, setIsRequestSettingsModalOpen] =
     useState(false);
   const patchRequest = useRequestSetter();
+  const inheritance = useFolderInheritance(activeRequest);
 
   useState(false);
   const handleImportQueryFromUrl = () => {
@@ -142,6 +144,9 @@ export const RequestPane: FC<Props> = ({
     p => !p.disabled,
   ).length;
   const numHeaders = activeRequest.headers.filter(h => !h.disabled).length;
+  // the headers its folders add, less those it sets itself
+  const folderHeaders = inheritance.headers
+    .filter(header => !activeRequest.headers.some(own => !own.disabled && own.name.trim().toLowerCase() === header.name.trim().toLowerCase()));
   const numAssertions = (activeRequest.assertions || []).filter(a => !a.disabled).length;
   const urlHasQueryParameters = activeRequest.url.indexOf('?') >= 0;
   const contentType =
@@ -263,6 +268,11 @@ export const RequestPane: FC<Props> = ({
             >
               <TabPanelBody>
                 <RequestHeadersEditor bulk={settings.useBulkHeaderEditor} />
+                {folderHeaders.length > 0 && (
+                  <p className="pad-left pad-right faint txt-sm" data-testid="folder-headers">
+                    Also sends its folders' headers: {folderHeaders.map(({ name, folder }) => `${name} (${folder})`).join(', ')}
+                  </p>
+                )}
               </TabPanelBody>
             </ErrorBoundary>
 
