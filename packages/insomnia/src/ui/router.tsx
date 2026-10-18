@@ -24,6 +24,7 @@ import { init as initPlugins } from '../plugins';
 import { applyColorScheme } from '../plugins/misc';
 import { guard } from '../utils/guard';
 import { AppLoadingIndicator } from './components/app-loading-indicator';
+import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
 import { shouldOrganizationsRevalidate } from './routes/organization';
 import Root from './routes/root';
@@ -774,6 +775,9 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
     match?.params.organizationId && localStorage.setItem(`locationHistoryEntry:${match?.params.organizationId}`, location.pathname);
     console.log("location.pathname", location.pathname);
   });
+
+  // for as long as the window's router lives
+  revalidateOnDatabaseChanges(router);
 
   return router;
 
