@@ -16,7 +16,9 @@ export const ResponseVisualizer: FC<{ visualization: Visualization }> = ({ visua
       webview?.loadURL(page);
     };
     webview?.addEventListener('dom-ready', load);
-    return () => webview?.removeEventListener('dom-ready', load);
+    return () => {
+      webview?.removeEventListener('dom-ready', load);
+    };
   }, [visualization]);
 
   return (

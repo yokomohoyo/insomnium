@@ -150,6 +150,7 @@ export const ResponsePane: FC<Props> = ({
       <Tabs
         aria-label="Response pane tabs"
       >
+        {[
         <TabItem
           key="preview"
           title={
@@ -176,7 +177,7 @@ export const ResponsePane: FC<Props> = ({
             updateFilter={activeResponse.error ? undefined : handleSetFilter}
             url={activeResponse.url}
           />
-        </TabItem>
+        </TabItem>,
         <TabItem
           key="headers"
           title={
@@ -193,7 +194,7 @@ export const ResponsePane: FC<Props> = ({
               <ResponseHeadersViewer headers={activeResponse.headers} />
             </ErrorBoundary>
           </PanelContainer>
-        </TabItem>
+        </TabItem>,
         <TabItem
           key="cookies"
           title={
@@ -214,7 +215,7 @@ export const ResponsePane: FC<Props> = ({
               />
             </ErrorBoundary>
           </PanelContainer>
-        </TabItem>
+        </TabItem>,
         <TabItem
           key="tests"
           title={
@@ -233,14 +234,15 @@ export const ResponsePane: FC<Props> = ({
               <AssertionResultsViewer results={assertionResults} logs={activeResponse.scriptLogs} />
             </ErrorBoundary>
           </PanelContainer>
-        </TabItem>
-        {activeResponse.visualization && (
+        </TabItem>,
+        // only for a response a script visualized
+        ...(activeResponse.visualization ? [
           <TabItem key="visualize" title="Visualize">
             <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
               <ResponseVisualizer visualization={activeResponse.visualization} />
             </ErrorBoundary>
-          </TabItem>
-        )}
+          </TabItem>,
+        ] : []),
         <TabItem key="timeline" title="Timeline">
           <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
             <ResponseTimelineViewer
@@ -248,7 +250,8 @@ export const ResponsePane: FC<Props> = ({
               timeline={timeline}
             />
           </ErrorBoundary>
-        </TabItem>
+        </TabItem>,
+        ]}
       </Tabs>
       <ErrorBoundary errorClassName="font-error pad text-center">
         {runningRequests[activeRequest._id] && <ResponseTimer
