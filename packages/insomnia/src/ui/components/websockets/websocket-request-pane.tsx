@@ -24,7 +24,7 @@ import { RequestParametersEditor } from '../editors/request-parameters-editor';
 import { RequestSegmentEditor } from '../editors/request-segment-editor';
 import { ErrorBoundary } from '../error-boundary';
 import { MarkdownPreview } from '../markdown-preview';
-import { showAlert, showModal } from '../modals';
+import { showAlert, showModal, showPrompt } from '../modals';
 import { RequestRenderErrorModal } from '../modals/request-render-error-modal';
 import { RequestSettingsModal } from '../modals/request-settings-modal';
 import { Pane, PaneHeader as OriginalPaneHeader } from '../panes/pane';
@@ -161,6 +161,35 @@ const WebSocketRequestForm: FC<FormProps> = ({
     }
   };
 
+  // messages saved with the request, to put back in the editor and send again
+  const patchRequest = useRequestSetter();
+  const savedMessages = request.savedMessages || [];
+  const [chosen, setChosen] = useState<number>();
+  const loadMessage = (index: number) => {
+    const message = savedMessages[index];
+    if (message) {
+      setChosen(index);
+      editorRef.current?.setValue(message.value);
+      upsertPayloadWithValue(message.value);
+    }
+  };
+  const saveMessage = () => showPrompt({
+    title: 'Save Message',
+    label: 'Name',
+    defaultValue: `Message ${savedMessages.length + 1}`,
+    submitName: 'Save',
+    onComplete: name => {
+      patchRequest(request._id, { savedMessages: [...savedMessages, { name: name.trim() || `Message ${savedMessages.length + 1}`, value: editorRef.current?.getValue() || '' }] });
+      setChosen(savedMessages.length);
+    },
+  });
+  const deleteMessage = () => {
+    if (chosen !== undefined) {
+      patchRequest(request._id, { savedMessages: savedMessages.filter((_, index) => index !== chosen) });
+      setChosen(undefined);
+    }
+  };
+
   const upsertPayloadWithValue = async (value: string) => {
     const payload = await models.webSocketPayload.getByParentId(request._id);
     if (payload) {
@@ -185,6 +214,22 @@ const WebSocketRequestForm: FC<FormProps> = ({
         interpolateOpenAndSend(editorRef.current?.getValue() || '');
       }}
     >
+      <div className="flex items-center gap-2 pad-sm">
+        <select
+          aria-label="Saved messages"
+          value={chosen ?? ''}
+          disabled={!savedMessages.length}
+          onChange={event => loadMessage(Number(event.currentTarget.value))}
+        >
+          <option value="" disabled>{savedMessages.length ? 'Saved messages…' : 'No saved messages'}</option>
+          {savedMessages.map((message, index) => (
+            // eslint-disable-next-line react/no-array-index-key -- names can repeat, and the list is in order
+            <option key={index} value={index}>{message.name}</option>
+          ))}
+        </select>
+        <button type="button" className="btn btn--compact" onClick={saveMessage}>Save Message</button>
+        {chosen !== undefined && <button type="button" className="btn btn--compact" onClick={deleteMessage}>Delete</button>}
+      </div>
       <CodeEditor
         id="websocket-message-editor"
         showPrettifyButton
