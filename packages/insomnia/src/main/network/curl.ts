@@ -1,6 +1,4 @@
-import { Readable } from 'node:stream';
-
-import { Curl, CurlFeature, CurlInfoDebug, HeaderInfo } from '@getinsomnia/node-libcurl';
+import { Curl, CurlInfoDebug, HeaderInfo } from '@getinsomnia/node-libcurl';
 import electron, { BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
@@ -147,7 +145,6 @@ const openCurlConnection = async (
     }
     debugTimeline.forEach(entry => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(entry) + '\n'));
     CurlConnections.set(options.requestId, curl);
-    CurlConnections.get(options.requestId)?.enable(CurlFeature.StreamResponse);
     CurlConnections.get(options.requestId)?.setOpt(Curl.option.HTTPHEADER, headerStrings);
     CurlConnections.get(options.requestId)?.on('error', async (error, errorCode) => {
       const errorEvent: CurlErrorEvent = {
@@ -200,10 +197,19 @@ const openCurlConnection = async (
       return 0;
     });
 
-    CurlConnections.get(options.requestId)?.on('stream', async (stream: Readable, _code: number, [headersWithStatus]: HeaderInfo[]) => {
+    // The response, once its headers are in: with the body's first chunk, or at
+    // the end when there's none. Each chunk goes to the event log as it arrives,
+    // from WRITEFUNCTION: node-libcurl's StreamResponse pauses the transfer at
+    // the first chunk and resumes it from the progress callback, which libcurl
+    // 8.17+ doesn't call for a paused transfer, so a stream stalled there.
+    let responded: Promise<void> | undefined;
+    const respond = () => responded ??= (async () => {
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send(readyStateChannel, true);
       }
+      // the last response's, after any redirects
+      const allHeaders = (curl as unknown as { getHeaders: () => HeaderInfo[] }).getHeaders();
+      const headersWithStatus = allHeaders[allHeaders.length - 1] || { result: { code: 0, reason: '', version: '' } } as HeaderInfo;
       const { timeline, responseHeaders, statusCode, statusMessage, httpVersion } = parseHeadersAndBuildTimeline(options.url, headersWithStatus);
 
       const responsePatch: Partial<Response> = {
@@ -241,24 +247,32 @@ const openCurlConnection = async (
         }
       }
       timeline.map(t => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(t) + '\n'));
+    })();
 
-      guard(eventLogFileStreams.get(request._id), 'writableStream should be defined');
-      for await (const chunk of stream) {
-        const messageEvent: CurlMessageEvent = {
-          _id: uuidV4(),
-          requestId: options.requestId,
-          data: new TextDecoder('utf-8').decode(chunk),
-          type: 'message',
-          timestamp: Date.now(),
-          direction: 'INCOMING',
-        };
-        eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(messageEvent) + '\n');
-      }
-      // NOTE: this can only happen if the stream is closed cleanly by the remote server
-      eventLogFileStreams.get(options.requestId)?.end();
+    const decoder = new TextDecoder('utf-8');
+    curl.setOpt(Curl.option.WRITEFUNCTION, (chunk: Buffer) => {
+      respond();
+      const messageEvent: CurlMessageEvent = {
+        _id: uuidV4(),
+        requestId: options.requestId,
+        // a character split across chunks waits for the next one
+        data: decoder.decode(chunk, { stream: true }),
+        type: 'message',
+        timestamp: Date.now(),
+        direction: 'INCOMING',
+      };
+      eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(messageEvent) + '\n');
+      return chunk.length;
+    });
+
+    // the remote server closed the stream cleanly
+    curl.on('end', async () => {
+      await respond();
+      deleteRequestMaps(request._id, 'Closed by the server');
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send(readyStateChannel, false);
       }
+      curl.close();
     });
     curl.perform();
   } catch (e) {

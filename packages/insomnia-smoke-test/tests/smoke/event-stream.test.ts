@@ -21,6 +21,8 @@ test('event stream sends rendered headers and auth @ci', async ({ app, page }) =
   await page.getByLabel('Request Collection').getByRole('row', { name: 'connects to event stream with rendered headers and auth' }).click();
   await page.getByTestId('request-pane').getByRole('button', { name: 'Connect' }).click();
   await expect(statusTag).toContainText('200 OK');
+  // the events arrive as the server sends them: its first, and a tick a second
+  await expect(page.getByTestId('response-pane')).toContainText('"message":"Time: ', { timeout: 10_000 });
   await page.getByRole('tab', { name: 'Timeline' }).click();
   // libcurl 8 says 'Established connection to', 7.x said 'Connected to'
   await expect(responseBody).toContainText(/(Connected to|Established connection to) 127\.0\.0\.1/);
