@@ -227,7 +227,6 @@ export const gitFetchAction: ActionFunction = async ({
   try {
     await GitVCS.fetch({
       singleBranch: true,
-      depth: 1,
       credentials: gitRepository.credentials,
     });
   } catch (e) {
@@ -1019,18 +1018,7 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
 
   const providerName = getOauth2FormatName(gitRepository.credentials);
 
-  try {
-    await GitVCS.fetch({
-      singleBranch: true,
-      depth: 1,
-      credentials: gitRepository?.credentials,
-    });
-
-  } catch (e) {
-    console.warn('Error fetching from remote', e);
-  }
-
-
+  // the pull fetches what it merges
   try {
     await GitVCS.pull(gitRepository.credentials, mergeChoicesFrom(await request.formData()));
   } catch (err: unknown) {
