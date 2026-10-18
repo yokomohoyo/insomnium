@@ -495,6 +495,7 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
     throw new Error('Error Generating Configuration');
   }
 
+  console.log('[spec-sync] linted');
   const scanned = await scanResources({
     content: apiSpec.contents,
   });
@@ -502,8 +503,10 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
     throw new Error(scanned.errors[0] || 'No requests found in the spec');
   }
 
+  console.log('[spec-sync] scanned', scanned.errors, ResourceCache?.resources.length);
   // updates the requests generated before instead of adding copies
   const summary = specSyncSummary(await syncSpecToWorkspace({ workspaceId, resources: ResourceCache.resources }));
+  console.log('[spec-sync] synced', summary);
   if (summary) {
     showAlert({ title: 'Request Collection Updated', message: summary });
   }
