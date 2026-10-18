@@ -1,7 +1,10 @@
 import fs from 'fs';
 
+import { database as db } from '../common/database';
 import { RENDER_PURPOSE_SEND } from '../common/render';
+import * as models from '../models';
 import type { Request } from '../models/request';
+import { isWorkspace } from '../models/workspace';
 import { runPreRequestScript } from '../scripting/request-scripts';
 import { type LoadSample, type LoadSummary, summarizeLoad } from './load-stats';
 import {
@@ -93,10 +96,15 @@ export async function runLoadTest(requests: RunnableRequest[], options: LoadOpti
     throw new Error(`The duration must be from 1 second to ${MAX_DURATION_MS / 60_000} minutes`);
   }
 
-  // what each send needs that doesn't change during the test
+  // what each send needs that doesn't change during the test, and the cookie
+  // jar the users' first sends would otherwise all try to create
   const data = new Map<string, RequestData>();
   for (const { request } of requests) {
     data.set(request._id, await fetchRequestData(request._id));
+    const workspace = (await db.withAncestors(request, [models.requestGroup.type, models.workspace.type])).find(isWorkspace);
+    if (workspace) {
+      await models.cookieJar.getOrCreateForParentId(workspace._id);
+    }
   }
   const environmentId = options.environmentId ?? data.get(requests[0].request._id)!.environment._id;
 

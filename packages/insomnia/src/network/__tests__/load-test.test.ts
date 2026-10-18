@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import electron from 'electron';
 import fs from 'fs';
 import path from 'path';
@@ -8,6 +8,12 @@ import * as models from '../../models';
 import { brokenThresholds, type LoadSummary, percentile, summarizeLoad } from '../load-stats';
 import { runLoadTest } from '../load-test';
 import { listRunnableRequests } from '../runner';
+
+// a load test sends more than the mocked ids go around (uuid itself is ES modules)
+jest.mock('uuid', () => {
+  const { randomUUID } = require('node:crypto');
+  return { v1: randomUUID, v4: randomUUID };
+});
 
 window.app = electron.app;
 
@@ -58,7 +64,7 @@ describe('runLoadTest()', () => {
 
   it('sends the requests from each user until the time is up, and keeps nothing of them', async () => {
     const progress: LoadSummary[] = [];
-    const summary = await runLoadTest(await listRunnableRequests(workspaceId), { virtualUsers: 3, durationMs: 1500, onProgress: snapshot => progress.push(snapshot) });
+    const summary = await runLoadTest(await listRunnableRequests(workspaceId), { virtualUsers: 3, durationMs: 1500, thinkTimeMs: 5, onProgress: snapshot => progress.push(snapshot) });
 
     expect(summary.requests).toBeGreaterThanOrEqual(6);
     expect(summary.virtualUsers).toBe(3);
