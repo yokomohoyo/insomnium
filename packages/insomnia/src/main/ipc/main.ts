@@ -15,6 +15,7 @@ import { insomniaFetch } from '../insomniaFetch';
 import installPlugin from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
 import { checkForNewRelease } from '../release-check';
+import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
 import { WebSocketBridgeAPI } from '../network/websocket';
@@ -46,6 +47,11 @@ export interface MainBridgeAPI {
   getMcpStatus: () => Promise<{ running: boolean; port: number | null }>;
   checkForNewRelease: () => Promise<ToastNotification | null>;
   credentialStorageNotices: () => Promise<ToastNotification[]>;
+  listSnapshots: () => Promise<Snapshot[]>;
+  takeSnapshot: () => Promise<string>;
+  // relaunches the app, which restores the snapshot before opening the data
+  restoreSnapshot: (name: string) => Promise<void>;
+  showSnapshotsFolder: () => Promise<void>;
 }
 export function registerMainHandlers() {
   ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
@@ -75,6 +81,13 @@ export function registerMainHandlers() {
 
   ipcMain.handle('checkForNewRelease', () => checkForNewRelease());
   ipcMain.handle('credentialStorageNotices', () => credentialStorageNotices(credentialStorageStatus()));
+  ipcMain.handle('listSnapshots', () => listSnapshots());
+  ipcMain.handle('takeSnapshot', () => takeSnapshot('manual'));
+  ipcMain.handle('restoreSnapshot', (_, name: string) => restoreSnapshotOnRestart(name));
+  ipcMain.handle('showSnapshotsFolder', async () => {
+    await fs.promises.mkdir(getSnapshotsPath(), { recursive: true });
+    await shell.openPath(getSnapshotsPath());
+  });
 
   ipcMain.handle('curlRequest', (_, options: Parameters<typeof curlRequest>[0]) => {
     return curlRequest(options);

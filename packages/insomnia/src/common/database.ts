@@ -652,6 +652,15 @@ async function ensureCredentialKey(docs: BaseModel[]) {
   }
 }
 
+// Main process only, and not on `database`, which the renderer can call: a
+// consistent copy of the open database, for snapshots
+export function snapshotDatabaseTo(file: string) {
+  if (!store) {
+    throw new Error('The database is not open');
+  }
+  store.snapshotTo(file);
+}
+
 // Main process only. state: none | ready | weak | locked | unavailable (see
 // credential-guard.ts); unreadableKeys: saved keys this keychain can't open.
 export const credentialStorageStatus = (): { state: GuardState; unreadableKeys: string[] } => ({
