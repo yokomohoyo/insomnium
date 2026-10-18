@@ -30,7 +30,8 @@ test('a WebSocket request speaks MQTT: connect, subscribe, deliveries and publis
   await page.getByLabel('MQTT subscriptions').fill('smoke/# 1');
 
   await page.getByRole('button', { name: 'Connect' }).click();
-  const events = page.getByTestId('response-pane');
+  // the WebSocket's pane: there's a second, hidden response pane
+  const events = page.getByTestId('response-pane').filter({ hasText: 'CONNACK' });
   await expect(events).toContainText('CONNACK: connected');
   await expect(events).toContainText('SUBACK: QoS 1');
   await expect(events).toContainText('smoke/hello: retained hi');
