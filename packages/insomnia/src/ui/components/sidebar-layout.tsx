@@ -293,9 +293,10 @@ export const SidebarLayout: FC<Props> = ({
   const [paneHeight, setPaneHeight] = useState(activeWorkspaceMeta?.paneHeight || DEFAULT_PANE_HEIGHT);
 
   useEffect(() => {
-    const unsubscribe = window.main.on('toggle-sidebar', () => {
-      if (activeWorkspaceMeta) {
-        models.workspaceMeta.update(activeWorkspaceMeta, { sidebarHidden: !activeWorkspaceMeta.sidebarHidden });
+    const unsubscribe = window.main.on('toggle-sidebar', async () => {
+      const meta = activeWorkspaceMeta && await models.workspaceMeta.getByParentId(activeWorkspaceMeta.parentId);
+      if (meta) {
+        models.workspaceMeta.update(meta, { sidebarHidden: !meta.sidebarHidden });
       }
     });
     return () => unsubscribe();
@@ -304,19 +305,19 @@ export const SidebarLayout: FC<Props> = ({
   const handleSetPaneWidth = useCallback((paneWidth: number) => {
     setPaneWidth(paneWidth);
     if (activeWorkspaceMeta) {
-      debounce(() => models.workspaceMeta.update(activeWorkspaceMeta, { paneWidth }));
+      debounce(() => models.workspaceMeta.updateByParentId(activeWorkspaceMeta.parentId, { paneWidth }));
     }
   }, [activeWorkspaceMeta]);
   const handleSetPaneHeight = useCallback((paneHeight: number) => {
     setPaneHeight(paneHeight);
     if (activeWorkspaceMeta) {
-      debounce(() => models.workspaceMeta.update(activeWorkspaceMeta, { paneHeight }));
+      debounce(() => models.workspaceMeta.updateByParentId(activeWorkspaceMeta.parentId, { paneHeight }));
     }
   }, [activeWorkspaceMeta]);
   const handleSetSidebarWidth = useCallback((sidebarWidth: number) => {
     setSidebarWidth(sidebarWidth);
     if (activeWorkspaceMeta) {
-      debounce(() => models.workspaceMeta.update(activeWorkspaceMeta, { sidebarWidth }));
+      debounce(() => models.workspaceMeta.updateByParentId(activeWorkspaceMeta.parentId, { sidebarWidth }));
     }
   }, [activeWorkspaceMeta]);
 

@@ -268,7 +268,7 @@ export const deleteRequestAction: ActionFunction = async ({ request, params }) =
 };
 
 export const duplicateRequestAction: ActionFunction = async ({ request, params }) => {
-  const { organizationId, projectId, workspaceId, requestId } = params;
+  const { workspaceId, requestId } = params;
   guard(typeof workspaceId === 'string', 'Workspace ID is required');
   guard(typeof requestId === 'string', 'Request ID is required');
   const { name, parentId } = await request.json();
@@ -288,7 +288,9 @@ export const duplicateRequestAction: ActionFunction = async ({ request, params }
   const newRequest = await requestOperations.duplicate(req, { name });
   guard(newRequest, 'Failed to duplicate request');
   models.stats.incrementCreatedRequests();
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${newRequest._id}`);
+  // opened by the caller: a redirect from here is dropped, as the database's
+  // change (which arrives first) revalidates the routes
+  return { duplicatedId: newRequest._id };
 };
 
 export const updateRequestMetaAction: ActionFunction = async ({ request, params }) => {

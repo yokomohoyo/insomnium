@@ -39,6 +39,9 @@ export type McpCallOptions =
   | { requestId: string; kind: 'resource'; uri: string };
 
 const connections = new Map<string, Client>();
+// the clients still connecting, so a disconnect can stop one
+const connecting = new Map<string, Client>();
+const STOPPED = 'Stopped connecting';
 
 const newClient = () => new Client({ name: 'insomnium', version: getAppVersion() });
 
@@ -60,16 +63,58 @@ const notifyClosed = (requestId: string) => {
 };
 
 export async function mcpConnect(options: McpConnectOptions): Promise<McpServerSummary> {
-  await mcpDisconnect({ requestId: options.requestId });
+  const { requestId } = options;
+  await mcpDisconnect({ requestId });
 
-  let client = newClient();
+  const start = () => {
+    const client = newClient();
+    connecting.set(requestId, client);
+    return client;
+  };
+  let client = start();
+  const stopped = () => connecting.get(requestId) !== client;
   let transport: McpServerSummary['transport'];
+  try {
+    transport = await connectWith(options, () => client, () => {
+      if (stopped()) {
+        return undefined;
+      }
+      client = start();
+      return client;
+    });
+  } catch (err) {
+    if (stopped()) {
+      throw new Error(STOPPED);
+    }
+    connecting.delete(requestId);
+    throw err;
+  }
+  if (stopped()) {
+    await client.close().catch(() => undefined);
+    throw new Error(STOPPED);
+  }
+  connecting.delete(requestId);
+
+  client.onclose = () => {
+    if (connections.get(requestId) === client) {
+      connections.delete(requestId);
+      notifyClosed(requestId);
+    }
+  };
+  connections.set(requestId, client);
+  return summarize(client, transport);
+}
+
+// Connects the client to the server, by stdio or HTTP (streamable, or else SSE
+// for a server from before it, on a new client from again(), which is
+// undefined once the connect has been stopped)
+async function connectWith(options: McpConnectOptions, current: () => Client, again: () => Client | undefined): Promise<McpServerSummary['transport']> {
   if (options.transport === 'stdio') {
     if (!options.command?.trim()) {
       throw new Error('Enter the command that starts the MCP server');
     }
-    await client.connect(new StdioClientTransport({ command: options.command.trim(), args: options.args || [], stderr: 'ignore' }));
-    transport = 'stdio';
+    await current().connect(new StdioClientTransport({ command: options.command.trim(), args: options.args || [], stderr: 'ignore' }));
+    return 'stdio';
   } else {
     let url: URL;
     try {
@@ -82,28 +127,22 @@ export async function mcpConnect(options: McpConnectOptions): Promise<McpServerS
     }
     const requestInit = { headers: options.headers || {} };
     try {
-      await client.connect(new StreamableHTTPClientTransport(url, { requestInit }));
-      transport = 'streamable-http';
+      await current().connect(new StreamableHTTPClientTransport(url, { requestInit }));
+      return 'streamable-http';
     } catch (streamableError) {
       // a server from before streamable HTTP
-      client = newClient();
+      const client = again();
+      if (!client) {
+        throw streamableError;
+      }
       try {
         await client.connect(new SSEClientTransport(url, { requestInit, eventSourceInit: { fetch: (input, init) => fetch(input, { ...init, headers: { ...options.headers, ...Object.fromEntries(new Headers(init?.headers).entries()) } }) } }));
-        transport = 'sse';
+        return 'sse';
       } catch {
         throw streamableError;
       }
     }
   }
-
-  client.onclose = () => {
-    if (connections.get(options.requestId) === client) {
-      connections.delete(options.requestId);
-      notifyClosed(options.requestId);
-    }
-  };
-  connections.set(options.requestId, client);
-  return summarize(client, transport);
 }
 
 export async function mcpCall(options: McpCallOptions) {
@@ -121,6 +160,9 @@ export async function mcpCall(options: McpCallOptions) {
 }
 
 export async function mcpDisconnect({ requestId }: { requestId: string }) {
+  const pending = connecting.get(requestId);
+  connecting.delete(requestId);
+  await pending?.close().catch(() => undefined);
   const client = connections.get(requestId);
   connections.delete(requestId);
   if (client) {

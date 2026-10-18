@@ -59,7 +59,10 @@ export const McpRequestPane: FC<{ environmentId: string }> = ({ environmentId })
       try {
         setMcpConnection(requestId, { status: 'connected', server: await window.main.mcpClient.connect(options) });
       } catch (err) {
-        setMcpConnection(requestId, { status: 'disconnected', error: err instanceof Error ? err.message : String(err) });
+        const message = err instanceof Error ? err.message : String(err);
+        if (!message.includes('Stopped connecting')) {
+          setMcpConnection(requestId, { status: 'disconnected', error: message });
+        }
       }
     };
     if (activeRequest.transport !== 'stdio') {

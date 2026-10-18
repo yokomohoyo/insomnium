@@ -517,7 +517,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                         checked={Boolean(workspaceMeta?.gitRepositoryId)}
                         onChange={async () => {
                           if (workspaceMeta?.gitRepositoryId) {
-                            await models.workspaceMeta.update(workspaceMeta, {
+                            await models.workspaceMeta.updateByParentId(workspaceMeta.parentId, {
                               gitRepositoryId: null,
                             });
                           } else {
@@ -527,7 +527,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                               uri: '',
                             });
 
-                            await models.workspaceMeta.update(workspaceMeta, {
+                            await models.workspaceMeta.updateByParentId(workspaceMeta.parentId, {
                               gitRepositoryId: repo._id,
                             });
                           }
