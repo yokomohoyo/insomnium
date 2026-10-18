@@ -114,10 +114,12 @@ describe('docs removed upstream', () => {
   });
 
   it('stay when they are not under the repository\'s workspace', async () => {
+    // committed from this workspace, then moved to another
     await models.workspace.create({ _id: 'wrk_2', parentId: DEFAULT_PROJECT_ID });
-    await models.request.create({ _id: 'req_9', parentId: 'wrk_2' });
+    const request = await models.request.create({ _id: 'req_9', parentId: 'wrk_1' });
     await GitVCS.add(file(models.request.type, 'req_9'));
     await GitVCS.commit('two');
+    await models.request.update(request, { parentId: 'wrk_2' });
 
     await pullDeleting(file(models.request.type, 'req_9'));
 
