@@ -92,12 +92,25 @@ export async function getGcpIdToken({ source, audience }: MintOptions): Promise<
   return mint;
 }
 
+// An OAuth access token for Google Cloud APIs (cloud-platform scope), from a
+// service account or the user's gcloud credentials, for the gcpSecret tag
+export async function getGcpAccessToken(source: CredentialSource): Promise<string> {
+  const cred = await loadCredential(source, { forAccessToken: true });
+  if (cred.type === 'service_account') {
+    return accessTokenFromServiceAccount(cred);
+  }
+  if (cred.type === 'authorized_user') {
+    return accessTokenFromUser(cred);
+  }
+  throw new Error('GCP access token: impersonated credentials are not supported here; sign in with `gcloud auth application-default login`');
+}
+
 export function _resetGcpIdTokenCache(): void {
   tokenCache.clear();
   pendingMints.clear();
 }
 
-async function loadCredential(source: CredentialSource): Promise<AnyCredential> {
+async function loadCredential(source: CredentialSource, { forAccessToken = false } = {}): Promise<AnyCredential> {
   let raw: string;
   let originDescription: string;
   switch (source.kind) {
@@ -134,7 +147,8 @@ async function loadCredential(source: CredentialSource): Promise<AnyCredential> 
       if (!parsed.client_id || !parsed.client_secret || !parsed.refresh_token) {
         throw new Error(`GCP ID token: ${originDescription} missing client_id/client_secret/refresh_token`);
       }
-      if (!source.impersonateServiceAccount) {
+      // an ID token needs a service account to stand for; an access token doesn't
+      if (!source.impersonateServiceAccount && !forAccessToken) {
         throw new Error(
           `GCP ID token: ${originDescription} is authorized_user; set \`impersonateServiceAccount\` ` +
             'on the auth strategy (or re-run `gcloud auth application-default login --impersonate-service-account=...`).',

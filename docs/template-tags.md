@@ -20,6 +20,11 @@ Press Ctrl+Space in a field to pick a variable or a tag. Click a tag to edit its
 | **HMAC** `hmac` | Signs a value with a secret key: SHA-256, SHA-512, SHA-1 or MD5, in hex, Base64 or Base64 URL. |
 | **JSON Web Token** `jwt` | A JWT signed with a shared secret (HS256, HS384, HS512), from a JSON payload, optionally expiring after a number of seconds. |
 | **Environment Variable** `env` | An OS environment variable, or one from a dotenv file: see below. |
+| **HashiCorp Vault Secret** `vault` | A field of a Vault KV secret (version 1 or 2): see [secrets](#secrets-from-a-secret-manager). |
+| **1Password Secret** `onePassword` | A 1Password secret reference, `op://vault/item/field`. |
+| **AWS Secret** `awsSecret` | An AWS Secrets Manager secret, or a field of a JSON one. |
+| **Google Cloud Secret** `gcpSecret` | A Secret Manager secret, or a field of a JSON one. |
+| **Azure Key Vault Secret** `azureSecret` | A Key Vault secret, or a field of a JSON one. |
 | **OS** `os` | The computer's architecture, CPUs, free memory, hostname, platform, release or user info, optionally filtered with JSONPath. |
 | **File** `file` | The contents of a file you choose. |
 | **JSONPath** `jsonpath` | A value picked out of a JSON string with a JSONPath expression. |
@@ -55,6 +60,28 @@ A [script](scripts.md) can do the same with `insomnia.environment.set('token', i
 - **dotenv file**: optionally, a `.env` file to read allowed names from when the OS environment doesn't set them. It's read on each send, so edits apply straight away.
 
 On import, Bruno's `{{process.env.NAME}}` becomes `{% env 'NAME' %}`.
+
+## Secrets from a secret manager
+
+The secret tags read a secret when the request is sent, with credentials already on your computer, so the secret is never saved in the collection:
+
+| Tag | Credentials |
+|---|---|
+| `vault` | `VAULT_ADDR`, and `VAULT_TOKEN` or the token the `vault` CLI saved (`~/.vault-token`); `VAULT_NAMESPACE` for Vault Enterprise. |
+| `onePassword` | The 1Password CLI, `op`, installed and signed in. |
+| `awsSecret` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, and `AWS_SESSION_TOKEN` for temporary ones; the region as an argument or `AWS_REGION`. `AWS_ENDPOINT_URL_SECRETS_MANAGER` points it elsewhere, such as LocalStack. |
+| `gcpSecret` | Application default credentials (`gcloud auth application-default login`, or `GOOGLE_APPLICATION_CREDENTIALS`). |
+| `azureSecret` | The Azure CLI, `az`, signed in. |
+
+A collection from someone else could otherwise send your secrets anywhere, so a tag reads only the secrets you allow, in **Preferences → General → Secrets**. List references, or prefixes ending in `*`:
+
+- `vault:secret/data/app`, for a Vault path;
+- `op://Work/*`, for a 1Password vault;
+- `aws:prod/*`, for AWS secret names;
+- `gcp:projects/my-project/secrets/*`;
+- `azure:my-vault/*`.
+
+None are allowed until you list them. A secret is kept in memory for five minutes, so the tag's preview doesn't ask the secret manager on every keystroke.
 
 ## From plugins
 

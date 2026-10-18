@@ -14,6 +14,7 @@ describe('parseConfig()', () => {
       INSOMNIUM_VAR_: 'ignored',
       INSOMNIUM_VALIDATE_SSL: 'false',
       INSOMNIUM_ALLOWED_ENV: 'API_TOKEN, CI_*',
+      INSOMNIUM_ALLOWED_SECRETS: 'op://CI/*',
     })).toEqual({
       collections: ['a.yaml', 'b.json'],
       environment: 'staging',
@@ -24,6 +25,7 @@ describe('parseConfig()', () => {
       variables: { apiKey: 'k3y' },
       validateSSL: false,
       allowedEnvironmentVariables: 'API_TOKEN, CI_*',
+      allowedSecrets: 'op://CI/*',
     });
   });
 
