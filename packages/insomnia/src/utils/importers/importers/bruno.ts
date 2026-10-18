@@ -1,4 +1,5 @@
 import type { AssertionOperator, RequestAssertion } from '../../../network/assertions';
+import { translateDynamicVariables } from '../../../templating/faker-functions';
 import { Converter, Header, ImportRequest, Parameter, UNKNOWN, UNKNOWN_OBJ } from '../entities';
 
 export const id = 'bruno';
@@ -454,5 +455,6 @@ export const convert: Converter = rawData => {
 
   const rootHeaders = (root.headers || []).filter(isEnabled).map(({ name, value }) => ({ name: text(name), value: text(value) }));
   walk(collection.items, collectionFolderId, root.auth?.mode ? root.auth : {}, rootHeaders);
-  return resources;
+  // Bruno takes Postman's dynamic variables too: {{$randomInt}}
+  return translateDynamicVariables(resources);
 };

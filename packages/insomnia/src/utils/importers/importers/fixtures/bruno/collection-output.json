@@ -207,6 +207,10 @@
           "value": "pets-folder"
         },
         {
+          "name": "X-Request-Id",
+          "value": "{% faker 'guid' %}"
+        },
+        {
           "name": "Content-Type",
           "value": "application/json"
         }
