@@ -31,8 +31,9 @@ const access = (object: string, name: string) => (IDENTIFIER.test(name) ? `${obj
 const commentText = (text: string) => text.replace(/\*\//g, '*\\/').trim();
 // text for a // comment: on one line
 const lineCommentText = (text: string) => commentText(text).replace(/[\r\n\u2028\u2029]+/g, ' ');
-// text inside a template literal, as written: no escapes, backticks or \${ of its own
-const templateText = (text: string) => text.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$\{/g, '\\${');
+// text inside a template literal, as written: its backslashes, backticks and
+// every $ escaped, so no ${ can form, even next to the substitutions
+const templateText = (text: string) => text.replace(/[\\`$]/g, character => `\\${character}`);
 
 const unique = (taken: Set<string>, name: string) => {
   let candidate = RESERVED.has(name) ? `${name}Operation` : name;
@@ -187,10 +188,12 @@ export function typescriptClient(spec: Doc): string {
       const jsonType = Object.keys(responseContent).find(type => /json/i.test(type));
       const result = jsonType ? tsType(responseContent[jsonType]?.schema) : Object.keys(responseContent).length ? 'string' : 'void';
 
-      // the path's text as written, with each {parameter} as its value
+      // the path's text as written, with each {parameter} it declares as its value
       const urlPath = path.split(/(\{[^}]+\})/).map(part => {
         const parameter = /^\{([^}]+)\}$/.exec(part);
-        return parameter ? `\${encodeURIComponent(String(${access('request', parameter[1])}))}` : templateText(part);
+        return parameter && parameters.has(`path:${parameter[1]}`)
+          ? `\${encodeURIComponent(String(${access('request', parameter[1])}))}`
+          : templateText(part);
       }).join('');
       const pick = (place: string) => [...parameters.values()].filter(parameter => parameter.in === place)
         .map(parameter => `${key(parameter.name)}: ${access('request', parameter.name)}`).join(', ');
