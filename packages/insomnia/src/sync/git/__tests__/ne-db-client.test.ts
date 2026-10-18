@@ -335,6 +335,57 @@ describe('NeDBClient', () => {
     });
   });
 
+  describe("another workspace's docs", () => {
+    const file = (type: string, id: string) => path.join(GIT_INSOMNIA_DIR, type, `${id}.yml`);
+    const yaml = (doc: object) => YAML.stringify(doc);
+
+    beforeEach(async () => {
+      await models.workspace.create({ _id: 'wrk_2', name: 'theirs' });
+      await models.requestGroup.create({ _id: 'fld_2', parentId: 'wrk_2' });
+      await models.request.create({ _id: 'req_9', parentId: 'fld_2', name: 'theirs' });
+    });
+
+    it("aren't read, so they never reach this repository's index", async () => {
+      const neDbClient = new NeDBClient('wrk_1', DEFAULT_PROJECT_ID);
+      await expect(neDbClient.readFile(file(models.request.type, 'req_9'))).rejects.toThrow(/ENOENT/);
+      await expect(neDbClient.stat(file(models.request.type, 'req_9'))).rejects.toThrow(/ENOENT/);
+      await expect(neDbClient.readFile(file(models.workspace.type, 'wrk_2'))).rejects.toThrow(/ENOENT/);
+      expect((await neDbClient.readFile(file(models.request.type, 'req_1'))).toString()).toContain('req_1');
+    });
+
+    it("aren't replaced or moved here, nor written under, by a pull", async () => {
+      const neDbClient = new NeDBClient('wrk_1', DEFAULT_PROJECT_ID);
+      const theirs = await models.request.getById('req_9');
+      // the same _id, now under this workspace
+      await neDbClient.writeFile(file(models.request.type, 'req_9'), yaml({ ...theirs, parentId: 'wrk_1', name: 'mine now' }));
+      expect(await models.request.getById('req_9')).toMatchObject({ parentId: 'fld_2', name: 'theirs' });
+      // a new doc in one of their folders
+      await neDbClient.writeFile(file(models.request.type, 'req_new'), yaml({ ...theirs, _id: 'req_new' }));
+      expect(await models.request.getById('req_new')).toBeFalsy();
+      // their workspace itself
+      const workspace = await models.workspace.getById('wrk_2');
+      await neDbClient.writeFile(file(models.workspace.type, 'wrk_2'), yaml({ ...workspace, name: 'renamed' }));
+      expect((await models.workspace.getById('wrk_2'))?.name).toBe('theirs');
+    });
+
+    it("still writes this workspace's, and a new doc whose folder comes later in the checkout", async () => {
+      const neDbClient = new NeDBClient('wrk_1', DEFAULT_PROJECT_ID);
+      const mine = await models.request.getById('req_1');
+      await neDbClient.writeFile(file(models.request.type, 'req_1'), yaml({ ...mine, name: 'renamed' }));
+      expect((await models.request.getById('req_1'))?.name).toBe('renamed');
+      await neDbClient.writeFile(file(models.request.type, 'req_later'), yaml({ ...mine, _id: 'req_later', parentId: 'fld_later' }));
+      expect(await models.request.getById('req_later')).toBeTruthy();
+    });
+
+    it("aren't removed", async () => {
+      const neDbClient = new NeDBClient('wrk_1', DEFAULT_PROJECT_ID);
+      await neDbClient.unlink(file(models.request.type, 'req_9'));
+      await neDbClient.unlink(file(models.workspace.type, 'wrk_2'));
+      expect(await models.request.getById('req_9')).toBeTruthy();
+      expect(await models.workspace.getById('wrk_2')).toBeTruthy();
+    });
+  });
+
   describe('unlink()', () => {
     it('removes synced docs but never anything else', async () => {
       const neDbClient = new NeDBClient('wrk_1', DEFAULT_PROJECT_ID);

@@ -110,6 +110,7 @@ export const gitRepoAction: ActionFunction = async ({
         directory: GIT_CLONE_DIR,
         fs: routableFS,
         gitDirectory: GIT_INTERNAL_DIR,
+        workspaceId,
       });
 
       await models.gitRepository.update(gitRepository, {

@@ -81,6 +81,8 @@ interface InitFromCloneOptions {
   fs: git.FsClient;
   gitDirectory: string;
   repoId: string;
+  // the workspace being linked: a repository holding another one is refused
+  workspaceId?: string;
 }
 
 /**
@@ -186,6 +188,7 @@ export class GitVCS {
     directory,
     fs,
     gitDirectory,
+    workspaceId,
   }: InitFromCloneOptions) {
     this._baseOpts = {
       ...this._baseOpts,
@@ -196,12 +199,38 @@ export class GitVCS {
       http: httpClient,
       repoId,
     };
+    // fetched first, and only checked out (written into the workspace) once
+    // it's known to hold this workspace or none
     await git.clone({
       ...this._baseOpts,
       url,
       singleBranch: true,
+      noCheckout: true,
     });
+    const branch = await git.currentBranch({ ...this._baseOpts });
+    const hasCommits = !!branch && await git.resolveRef({ ...this._baseOpts, ref: branch }).then(() => true, () => false);
+    if (!branch || !hasCommits) {
+      // an empty repository: nothing to check out
+      console.log(`[git] Cloned an empty repo to ${gitDirectory} from ${url}`);
+      return;
+    }
+    if (workspaceId) {
+      const held = await this.workspaceIdsAt(branch);
+      if (held.length && !held.includes(workspaceId)) {
+        throw new Error('This repository holds a different workspace, so it can\'t be linked to this one. To open it, clone it from the project instead (Clone Git Repository), which adds it as its own workspace.');
+      }
+    }
+    await git.checkout({ ...this._baseOpts, ref: branch });
     console.log(`[git] Clones repo to ${gitDirectory} from ${url}`);
+  }
+
+  // The _ids of the workspaces a commit holds (a file is named for its doc)
+  async workspaceIdsAt(ref: string) {
+    const files = await git.listFiles({ ...this._baseOpts, ref });
+    const prefix = `${GIT_INSOMNIA_DIR_NAME}/Workspace/`;
+    return files
+      .filter(file => file.startsWith(prefix) && file.endsWith('.yml') && !file.slice(prefix.length).includes('/'))
+      .map(file => file.slice(prefix.length, -'.yml'.length));
   }
 
   isInitializedForRepo(id: string) {

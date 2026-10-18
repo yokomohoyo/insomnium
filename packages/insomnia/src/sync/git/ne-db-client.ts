@@ -49,8 +49,8 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
 // synced documents. Nothing is written if that workspace is missing, ambiguous
 // or already in the app. The workspace is new, so a doc whose _id is already
 // in the app, or whose parents lead outside the repository, is someone else's.
-// (The full clone when the workspace is first opened writes through
-// NeDBClient.writeFile, which does not check ownership yet.)
+// (The full clone when a linked workspace is first opened writes through
+// NeDBClient.writeFile, which keeps to that workspace.)
 export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string): Promise<
   { error: string } | { existingWorkspace: Workspace } | { workspace: Workspace }
 > {
@@ -109,6 +109,24 @@ export class NeDBClient {
     };
   }
 
+  // The workspace a doc's ancestors lead to, or null when they lead nowhere:
+  // in the middle of a checkout a child can arrive before its folder, or the
+  // workspace can be briefly gone, so that isn't anyone else's.
+  async _ownerOf(doc: BaseModel): Promise<string | null> {
+    if (isWorkspace(doc)) {
+      return doc._id;
+    }
+    const ancestors = await db.withAncestors(doc, models.all().filter(model => model.canSync).map(model => model.type));
+    return ancestors.find(isWorkspace)?._id ?? null;
+  }
+
+  // Every type shares one _id keyspace, so a doc can only be read, replaced or
+  // removed through this repository if it isn't another workspace's
+  async _isForeign(doc: BaseModel) {
+    const owner = await this._ownerOf(doc);
+    return owner !== null && owner !== this._workspaceId;
+  }
+
   async readFile(
     filePath: string,
     options?: BufferEncoding | { encoding?: BufferEncoding },
@@ -131,6 +149,10 @@ export class NeDBClient {
     const doc = await db.get(type, id);
 
     if (!doc || doc.isPrivate) {
+      throw this._errMissing(filePath);
+    }
+
+    if (await this._isForeign(doc)) {
       throw this._errMissing(filePath);
     }
 
@@ -185,6 +207,14 @@ export class NeDBClient {
       return;
     }
 
+    // Nothing of another workspace's: not its workspace, not a doc of its
+    // (replacing would move it here), and not a doc under one of its folders
+    const existing = await db.get(doc.type, doc._id);
+    if (await this._isForeign(doc) || (existing && await this._isForeign(existing))) {
+      console.log(`[git] Ignoring ${filePath}: it belongs to another workspace`);
+      return;
+    }
+
     if (isWorkspace(doc)) {
       console.log('[git] setting workspace parent to be that of the active project', { original: doc.parentId, new: this._projectId });
       // Whenever we write a workspace into nedb we should set the parentId to be that of the current project
@@ -213,6 +243,12 @@ export class NeDBClient {
     const doc = await db.get(type, id);
 
     if (!doc) {
+      return;
+    }
+
+    // another workspace's, which this repository never wrote
+    if (await this._isForeign(doc)) {
+      console.log(`[git] Ignoring removal of ${filePath}: it belongs to another workspace`);
       return;
     }
 

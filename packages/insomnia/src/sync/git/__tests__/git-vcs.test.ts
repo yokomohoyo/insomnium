@@ -160,6 +160,23 @@ First commit!
     });
   });
 
+  describe('workspaceIdsAt()', () => {
+    it('reads the workspaces a commit holds from their file names', async () => {
+      const fsClient = MemClient.createClient();
+      await fsClient.promises.mkdir(GIT_INSOMNIA_DIR);
+      await fsClient.promises.mkdir(path.join(GIT_INSOMNIA_DIR, 'Workspace'));
+      await fsClient.promises.mkdir(path.join(GIT_INSOMNIA_DIR, 'Request'));
+      await fsClient.promises.writeFile(path.join(GIT_INSOMNIA_DIR, 'Workspace', 'wrk_abc.yml'), 'x');
+      await fsClient.promises.writeFile(path.join(GIT_INSOMNIA_DIR, 'Request', 'req_1.yml'), 'x');
+      await GitVCS.init({ uri: '', repoId: '', directory: GIT_CLONE_DIR, fs: fsClient });
+      await GitVCS.setAuthor('Karen Brown', 'karen@example.com');
+      await GitVCS.add(path.join(GIT_INSOMNIA_DIR, 'Workspace', 'wrk_abc.yml'));
+      await GitVCS.add(path.join(GIT_INSOMNIA_DIR, 'Request', 'req_1.yml'));
+      await GitVCS.commit('first');
+      expect(await GitVCS.workspaceIdsAt(await GitVCS.getBranch())).toEqual(['wrk_abc']);
+    });
+  });
+
   describe('push()', () => {
     it('should throw an exception when push response contains errors', async () => {
       git.push.mockReturnValue({
