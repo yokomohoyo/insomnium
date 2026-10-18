@@ -37,6 +37,16 @@ test("a request with no auth uses its folder's", async ({ app, page }) => {
   await folderAuth.getByTestId('OneLineEditor').nth(0).locator('.CodeMirror textarea').fill('user');
   await folderAuth.getByTestId('OneLineEditor').nth(1).locator('.CodeMirror textarea').fill('pass');
   await page.screenshot({ path: 'traces/folder-auth-settings.png' });
+  // the editors save 100 ms after the last change
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Escape');
+
+  // both were kept: they're there when the settings open again
+  await folder.getByLabel('Request Group Actions').click();
+  await page.getByRole('menuitemradio', { name: 'Settings' }).click();
+  await expect(folderAuth.getByTestId('OneLineEditor').nth(0)).toContainText('user');
+  await folderAuth.getByTestId('reveal-password-icon').click();
+  await expect(folderAuth.getByTestId('OneLineEditor').nth(1)).toContainText('pass');
   await page.keyboard.press('Escape');
 
   // the Auth tab is the Add Auth dropdown: it opens, then closes

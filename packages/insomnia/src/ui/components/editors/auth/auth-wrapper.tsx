@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, useCallback } from 'react';
+import React, { FC, ReactNode, useCallback, useRef } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import {
@@ -95,7 +95,22 @@ interface StrategiesEditorProps {
 }
 
 // The editors for a list of strategies: a request's, or a folder's
-export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication, onChange, disabled = false, editableTypes, inheritedFrom }) => {
+export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication: given, onChange: save, disabled = false, editableTypes, inheritedFrom }) => {
+  // Edits build on the latest list, not the props of the last render: the
+  // inputs save after a pause, so a quick edit to a second field would
+  // otherwise write the list back without the first. New props, from a save
+  // that landed or from elsewhere, replace it.
+  const latest = useRef(given);
+  const seen = useRef(given);
+  if (seen.current !== given) {
+    seen.current = given;
+    latest.current = given;
+  }
+  const authentication = latest.current;
+  const onChange = (next: RequestAuthenticationStrategy[]) => {
+    latest.current = next;
+    save(next);
+  };
   const strategies = getAuthStrategies(authentication);
 
   if (strategies.length === 0) {
@@ -109,7 +124,7 @@ export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication
           key={`${strategy.type || 'none'}-${index}`}
           strategy={strategy}
           strategyIndex={index}
-          patch={p => onChange(patchAuthStrategy(authentication, index, p))}
+          patch={p => onChange(patchAuthStrategy(latest.current, index, p))}
         >
           <div className="border-bottom pad-bottom">
             <div className="flex flex--center pad-top pad-left pad-right">
@@ -121,14 +136,14 @@ export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication
                   className="margin-left form-control form-control--small flex-1"
                   placeholder="Header name override (defaults to Authorization)"
                   value={strategy.headerName || ''}
-                  onChange={e => onChange(patchAuthStrategy(authentication, index, { headerName: e.target.value || undefined }))}
+                  onChange={e => onChange(patchAuthStrategy(latest.current, index, { headerName: e.target.value || undefined }))}
                   disabled={disabled}
                   title="Override the destination header for this strategy (e.g., X-Goog-IAP-JWT-Assertion)"
                 />
               )}
               <button
                 className="btn btn--super-duper-compact btn--clicky margin-left-xs"
-                onClick={() => onChange(removeAuthStrategy(authentication, index))}
+                onClick={() => onChange(removeAuthStrategy(latest.current, index))}
                 disabled={disabled}
                 title="Remove this auth strategy"
               >
