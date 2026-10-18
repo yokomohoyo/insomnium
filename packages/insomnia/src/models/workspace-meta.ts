@@ -36,6 +36,10 @@ export interface BaseWorkspaceMeta {
   // local and never get exported with a shared workspace.
   bufToken: string;
   githubToken: string;
+  // a folder this collection is kept in step with, as readable files
+  // (main/folder-sync.ts), and the documents it last had there
+  syncFolderPath: string;
+  folderSyncIds: string[];
   // the requests open as tabs, in order (common/open-tabs.ts)
   openRequestIds: string[];
   // a Spectral ruleset file chosen for the document's spec, on this computer
@@ -71,6 +75,8 @@ export function init(): BaseWorkspaceMeta {
     pushSnapshotOnInitialize: false,
     bufToken: '',
     githubToken: '',
+    syncFolderPath: '',
+    folderSyncIds: [],
     openRequestIds: [],
     spectralRulesetPath: '',
   };

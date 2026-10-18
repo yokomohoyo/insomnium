@@ -16,6 +16,7 @@ import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
+import { registerFolderSyncHandlers } from './main/folder-sync';
 import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
 import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
@@ -131,6 +132,7 @@ app.on('ready', async () => {
   registergRPCHandlers();
   registerWebSocketHandlers();
   registerMcpClientHandlers();
+  registerFolderSyncHandlers();
   registerCurlHandlers();
 
   /**
@@ -168,6 +170,9 @@ app.on('ready', async () => {
   windowUtils.init();
   await _launchApp();
   await _initMcpServer();
+  // collections kept in step with folders, as when the app last closed
+  const { restoreFolderSyncs } = await import('./main/folder-sync');
+  restoreFolderSyncs();
 
   // NOTE: could also try to initialize workspace here (?)
 

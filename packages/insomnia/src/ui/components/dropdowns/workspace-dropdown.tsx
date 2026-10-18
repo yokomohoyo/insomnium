@@ -3,6 +3,7 @@ import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-ro
 
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC, getProductName } from '../../../common/constants';
 import { database as db } from '../../../common/database';
+import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import { getWorkspaceLabel } from '../../../common/get-workspace-label';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import { isRequest } from '../../../models/request';
@@ -16,7 +17,7 @@ import { useAIContext } from '../../context/app/ai-context';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 
-import { showError, showModal, showPrompt } from '../modals';
+import { showAlert, showError, showModal, showPrompt } from '../modals';
 import { AskModal } from '../modals/ask-modal';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
 import { configGenerators, showGenerateConfigModal } from '../modals/generate-config-modal';
@@ -119,10 +120,28 @@ export const WorkspaceDropdown: FC = () => {
     dropdownRef.current?.hide();
   }, [activeProject._id, loadingActions]);
 
+  // the folder this collection is kept in step with, as readable files
+  const [syncFolder, setSyncFolder] = useState<string | null>(null);
   const handleDropdownOpen = useCallback(async () => {
     const actionPlugins = await getWorkspaceActions();
     setActionPlugins(actionPlugins);
-  }, []);
+    setSyncFolder(await window.main.folderSync.status({ workspaceId: activeWorkspace._id }));
+  }, [activeWorkspace._id]);
+  const syncToFolder = async () => {
+    const { canceled, filePath } = await selectFileOrFolder({ itemTypes: ['directory'] });
+    if (canceled || !filePath) {
+      return;
+    }
+    try {
+      setSyncFolder(await window.main.folderSync.start({ workspaceId: activeWorkspace._id, folder: filePath }));
+    } catch (err) {
+      showAlert({ title: 'Sync to a Folder', message: err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err) });
+    }
+  };
+  const stopSyncingToFolder = async () => {
+    await window.main.folderSync.stop({ workspaceId: activeWorkspace._id });
+    setSyncFolder(null);
+  };
 
   const handleGenerateConfig = useCallback((label: string) => {
     if (!activeApiSpec) {
@@ -228,6 +247,23 @@ export const WorkspaceDropdown: FC = () => {
               icon={isDocument ? 'bars' : 'file-code'}
               label={isDocument ? 'Convert to Collection' : 'Convert to Design Document'}
               onClick={convert}
+            />
+          </DropdownItem>
+
+          <DropdownItem aria-label={syncFolder ? 'Show the Synced Folder' : 'Sync to a Folder'}>
+            <ItemContent
+              icon="folder-open"
+              label={syncFolder ? 'Show the Synced Folder' : 'Sync to a Folder…'}
+              onClick={() => (syncFolder ? window.shell.showItemInFolder(syncFolder) : syncToFolder())}
+            />
+          </DropdownItem>
+
+          <DropdownItem aria-label="Stop Syncing to the Folder">
+            <ItemContent
+              icon="link-slash"
+              label="Stop Syncing to the Folder"
+              isDisabled={!syncFolder}
+              onClick={stopSyncingToFolder}
             />
           </DropdownItem>
 
