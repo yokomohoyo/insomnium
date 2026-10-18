@@ -9,6 +9,7 @@ import { httpClient } from './http-client';
 import { describeDoc, type DocConflict, isSyncedDoc, type MergeChoice, mergeDoc } from './merge-docs';
 import { mergeLines } from './line-merge';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
+import { sameFile } from './same-file';
 import { sanitizeGitConfig } from './sanitize-git-config';
 import { gitCallbacks } from './utils';
 
@@ -129,6 +130,19 @@ interface BaseOpts {
   onAuth: git.AuthCallback;
   uri: string;
   repoId: string;
+}
+
+// what a pull, merge or switch of branch would write over: changes here that
+// were never committed, to documents (or files) it brings changes to
+export class GitLocalChangesError extends Error {
+  files: string[];
+
+  constructor(doing: string, files: string[], names: string[]) {
+    const listed = names.slice(0, 5).join(', ') + (names.length > 5 ? ` and ${names.length - 5} more` : '');
+    super(`${doing} would overwrite changes that aren't committed yet: ${listed}. Commit them, or undo them, and try again.`);
+    this.name = 'GitLocalChangesError';
+    this.files = files;
+  }
 }
 
 // the documents both sides of a merge changed, with the fields that clash
@@ -468,13 +482,33 @@ export class GitVCS {
   async pull(gitCredentials?: GitCredentials | null, choices: Record<string, MergeChoice> = {}) {
     const branch = await this.getBranch();
     console.log('[git] Pull remote=origin', branch);
+    // git.pull's steps (fetch, merge, check out), with a look before the merge
+    // moves the branch: what came mustn't land on changes never committed
+    const { fetchHead, fetchHeadDescription } = await git.fetch({
+      ...this._baseOpts,
+      ...gitCallbacks(gitCredentials),
+      remote: 'origin',
+      ref: branch,
+      singleBranch: true,
+    });
+    if (!fetchHead) {
+      return;
+    }
+    await this._refuseOverwritingLocalChanges(fetchHead, 'Pulling');
     try {
-      return await this._removingDroppedDocs(() => git.pull({
-        ...this._baseOpts,
-        ...gitCallbacks(gitCredentials),
-        remote: 'origin',
-        singleBranch: true,
-      }));
+      return await this._removingDroppedDocs(async () => {
+        await git.merge({
+          ...this._baseOpts,
+          ours: branch,
+          theirs: fetchHead,
+          message: `Merge ${fetchHeadDescription}`,
+        });
+        await git.checkout({
+          ...this._baseOpts,
+          ref: branch,
+          remote: 'origin',
+        });
+      });
     } catch (err) {
       // a clash a merge of the files' lines can't settle: merge what was
       // fetched a document's fields at a time
@@ -494,6 +528,7 @@ export class GitVCS {
   async mergeByField(theirs: string, choices: Record<string, MergeChoice> = {}) {
     const ours = await this.getBranch();
     console.log(`[git] Merge ${ours} <-- ${theirs}`);
+    await this._refuseOverwritingLocalChanges(theirs, `Merging ${theirs.replace(/^refs\/remotes\/origin\//, '')}`);
     const conflicts: DocConflict[] = [];
     // the synced documents by field; the repository's other files by line, as git would
     const merge = () => git.merge({
@@ -581,7 +616,7 @@ export class GitVCS {
       if (!committed || !content) {
         continue;
       }
-      if ((await git.hashBlob({ object: content })).oid !== committed.oid) {
+      if (!(await sameFile(filepath, content, committed.blob, this.dataDirName))) {
         console.log(`[git] Keeping ${filepath}, removed upstream: it has changes that were not committed`);
         continue;
       }
@@ -608,6 +643,74 @@ export class GitVCS {
       await db.remove(doc, true);
     }
     return result;
+  }
+
+  /**
+   * isomorphic-git can't see the synced docs in the work tree (see
+   * _removingDroppedDocs), so it writes what comes in over changes that were
+   * never committed, where git would refuse. Refuse first, before a merge
+   * moves the branch: for each file theirs adds or changes (since the merge
+   * base, or since HEAD for a switch of branch) that is here neither as
+   * committed nor as it comes. What theirs deletes passes: a doc with changes
+   * here stays (_removingDroppedDocs).
+   */
+  async _refuseOverwritingLocalChanges(theirs: string, doing: string, since: 'base' | 'head' = 'base') {
+    const head = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' }).catch(() => null);
+    const incoming = await git.resolveRef({ ...this._baseOpts, ref: theirs }).catch(() => null);
+    if (!head || !incoming || head === incoming) {
+      return;
+    }
+    let from = head;
+    if (since === 'base') {
+      const [base] = await git.findMergeBase({ ...this._baseOpts, oids: [head, incoming] }).catch(() => []);
+      // a shallow history may not reach one: then all that differs from HEAD
+      from = base || head;
+    }
+    if (from === incoming) {
+      return;
+    }
+
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const changed: [string, string][] = [];
+    await git.walk({
+      ...this._baseOpts,
+      trees: [git.TREE({ ref: from }), git.TREE({ ref: incoming })],
+      map: async (filepath, [before, after]) => {
+        const [was, comes] = [await before?.oid(), await after?.oid()];
+        if (was !== comes && (await after?.type()) === 'blob') {
+          changed.push([filepath, comes as string]);
+        }
+        // a folder that's the same isn't walked
+        return was === comes ? null : true;
+      },
+    });
+
+    const clashes: string[] = [];
+    const names: string[] = [];
+    for (const [filepath, oid] of changed) {
+      const content: Uint8Array | null = await fs.readFile(filepath).catch(() => null);
+      const committed = (await git.readBlob({ ...this._baseOpts, oid: head, filepath }).catch(() => null))?.blob ?? null;
+      if (await sameFile(filepath, content, committed, this.dataDirName)) {
+        continue;
+      }
+      if (await sameFile(filepath, content, (await git.readBlob({ ...this._baseOpts, oid })).blob, this.dataDirName)) {
+        continue;
+      }
+      clashes.push(filepath);
+      const [root, type] = filepath.split('/');
+      const shown = content || committed;
+      if (root === this.dataDirName && shown) {
+        const { name } = describeDoc(Buffer.from(shown).toString());
+        const typeName = models.getModel(type)?.name || type;
+        names.push(`${name || path.basename(filepath, '.yml')} (${typeName}${content ? '' : ', deleted here'})`);
+      } else {
+        names.push(content ? filepath : `${filepath} (deleted here)`);
+      }
+    }
+    if (clashes.length) {
+      console.log(`[git] ${doing} would overwrite changes that were never committed`, clashes);
+      throw new GitLocalChangesError(doing, clashes, names);
+    }
   }
 
   async merge(theirBranch: string) {
@@ -716,6 +819,13 @@ export class GitVCS {
         console.log('[git] Fetch failed', e);
       }
 
+      // the branch as it's checked out: the local one, or else the remote's
+      const target = await git.resolveRef({ ...this._baseOpts, ref: `refs/heads/${branch}` })
+        .catch(() => git.resolveRef({ ...this._baseOpts, ref: `refs/remotes/origin/${branch}` }))
+        .catch(() => null);
+      if (target) {
+        await this._refuseOverwritingLocalChanges(target, `Switching to ${branch}`, 'head');
+      }
       await this._removingDroppedDocs(() => git.checkout({
         ...this._baseOpts,
         ref: branch,

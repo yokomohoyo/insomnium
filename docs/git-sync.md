@@ -29,7 +29,7 @@ The token is saved encrypted with your operating system's keychain: see [Saved c
 The **Git Sync** menu, at the bottom of the sidebar, shows the branch and has:
 
 - **Commit**: lists what changed since the last commit. Under each change, **Changed** lists its fields, from what to what. For headers, parameters and form fields, it says which were added, removed or changed. A change to only the order or timestamps says so. Choose what to stage, write a message, and commit. Changes can also be rolled back from there.
-- **Push** and **Pull**. A pull applies changes made upstream, including requests that were deleted there. A request you changed and haven't committed is kept. When the remote has commits your branch doesn't, a push is turned down: pull them in first, or **Force Push** to replace the remote's branch with yours, which drops the commits you don't have.
+- **Push** and **Pull**. A pull applies changes made upstream, including requests that were deleted there. It never writes over changes you haven't committed. If upstream changed a request you've changed and not committed, the pull stops before changing anything and names the request: commit your change (the pull then merges the two) or undo it, and pull again. A request deleted upstream that you've changed is kept. Switching branches and merging work the same way. When the remote has commits your branch doesn't, a push is turned down: pull them in first, or **Force Push** to replace the remote's branch with yours, which drops the commits you don't have.
 - **Fetch**, to see whether the remote has new commits.
 - **History**: the commits on this branch.
 - **Branches**: create, switch to, merge and delete branches, local and remote.
