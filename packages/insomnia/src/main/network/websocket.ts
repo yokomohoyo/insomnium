@@ -32,6 +32,7 @@ import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
+import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
 import { describeProxy, proxyFor } from './proxy';
 
 export interface WebSocketConnection extends WebSocket {
@@ -104,6 +105,8 @@ interface OpenWebSocketRequestOptions {
   authentication: RequestAuthentication;
   cookieJar: CookieJar;
   initialPayload?: string;
+  // subscribe once connected, with the graphql-transport-ws protocol
+  graphqlSubscription?: GraphqlSubscription;
 }
 const openWebSocketConnection = async (
   _event: Electron.IpcMainInvokeEvent,
@@ -220,7 +223,13 @@ const openWebSocketConnection = async (
       'on': true,
       'global': settings.followRedirects,
     }[request.settingFollowRedirects] ?? true;
-    const protocols = lowerCasedEnabledHeaders['sec-websocket-protocol'];
+    const subscription = options.graphqlSubscription;
+    const protocols = subscription
+      ? withGraphqlProtocol(lowerCasedEnabledHeaders['sec-websocket-protocol'])
+      : lowerCasedEnabledHeaders['sec-websocket-protocol'];
+    if (subscription) {
+      delete lowerCasedEnabledHeaders['sec-websocket-protocol'];
+    }
     // a CONNECT tunnel through an HTTP(S) proxy works for ws and wss alike; the
     // TLS options above still apply, inside it
     const proxy = await proxyFor(url, settings);
@@ -325,7 +334,9 @@ const openWebSocketConnection = async (
         window.webContents.send(readyStateChannel, ws.readyState === WebSocket.OPEN);
       }
 
-      if (options.initialPayload) {
+      if (subscription) {
+        sendPayload(ws, { requestId: options.requestId, payload: connectionInit() });
+      } else if (options.initialPayload) {
         sendPayload(ws, { requestId: options.requestId, payload: options.initialPayload });
       }
     });
@@ -341,6 +352,14 @@ const openWebSocketConnection = async (
       };
 
       eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(messageEvent) + '\n');
+
+      if (subscription) {
+        const { send, done } = graphqlWsReplies(data, subscription);
+        send.forEach(payload => sendPayload(ws, { requestId: options.requestId, payload }));
+        if (done) {
+          ws.close(1000, 'Subscription complete');
+        }
+      }
     });
 
     ws.addEventListener('close', ({ code, reason, wasClean }) => {
