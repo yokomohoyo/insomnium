@@ -12,6 +12,14 @@ export const canDuplicate = true;
 
 export const canSync = true;
 
+// kept only when set, so requests without them sync as before
+export const optionalKeys = ['savedMessages'];
+
+export interface WebSocketSavedMessage {
+  name: string;
+  value: string;
+}
+
 export interface BaseWebSocketRequest {
   name: string;
   description: string;
@@ -25,6 +33,8 @@ export interface BaseWebSocketRequest {
   settingSendCookies: boolean;
   settingFollowRedirects: 'global' | 'on' | 'off';
   segmentParams: RequestSegment[];
+  // messages kept to send again; the editor's draft is a WebSocketPayload
+  savedMessages?: WebSocketSavedMessage[];
 }
 
 export type WebSocketRequest = BaseModel & BaseWebSocketRequest & { type: typeof type };
