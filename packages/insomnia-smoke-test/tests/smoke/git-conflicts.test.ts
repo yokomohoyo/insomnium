@@ -41,15 +41,17 @@ test('a merge where both branches changed a request lets you choose which to kee
   await openBranches();
   await branches.getByPlaceholder('testing-branch').fill('theirs');
   await branches.getByRole('button', { name: 'Create' }).click();
-  await branches.getByRole('button', { name: 'Done' }).click();
+  // a new branch is checked out, and the workspace shown afresh on it
+  await expect(branches).toHaveCount(0);
+  await expect(page.getByTestId('git-dropdown')).toContainText('theirs');
   await setMethod('POST');
   await commit('post');
 
   // and main makes it a PUT
   await openBranches();
   await branches.getByRole('row').filter({ hasText: 'main' }).getByRole('button', { name: 'Checkout' }).click();
-  await expect(branches.getByRole('row').filter({ hasText: '(current)' })).toContainText('main');
-  await branches.getByRole('button', { name: 'Done' }).click();
+  await expect(branches).toHaveCount(0);
+  await expect(page.getByTestId('git-dropdown')).toContainText('main');
   await expect(methodButton).toContainText('GET');
   await setMethod('PUT');
   await commit('put');
