@@ -50,6 +50,8 @@ export function hardenWebContents() {
     if (contents.getType() === 'webview') {
       lockDownWebview(contents);
       if (contents.session === session.fromPartition(VISUALIZER_PARTITION)) {
+        // WebRTC's STUN and TURN traffic goes around webRequest
+        contents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
         contents.on('will-navigate', event => event.preventDefault());
         contents.on('will-frame-navigate', event => {
           if (!isLocal(event.url)) {
