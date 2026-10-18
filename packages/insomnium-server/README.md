@@ -6,7 +6,13 @@ It reads and sends; it can't change the collection, its environments or auth.
 
 ## Run it
 
-Build the image from the repository root:
+Each release publishes the image, tagged with its version and `latest`:
+
+```sh
+docker pull ghcr.io/yokomohoyo/insomnium-server:latest
+```
+
+Or build it from the repository root:
 
 ```sh
 docker build -f packages/insomnium-server/Dockerfile -t insomnium-server .
@@ -15,18 +21,21 @@ docker build -f packages/insomnium-server/Dockerfile -t insomnium-server .
 Export a collection from Insomnium (or use an Insomnia v4/v5 export, or a Postman collection), and run:
 
 ```sh
+TOKEN="$(openssl rand -base64 32)"
 docker run -p 8080:8080 \
   -v "$PWD/collection.yaml:/data/collection.yaml:ro" \
-  -e INSOMNIUM_MCP_TOKEN="$(openssl rand -base64 32)" \
+  -e INSOMNIUM_MCP_TOKEN="$TOKEN" \
   -e INSOMNIUM_ALLOWED_HOSTS="api.internal.example.com,*.staging.example.com" \
   -e INSOMNIUM_VAR_apiKey="$API_KEY" \
-  insomnium-server --collection /data/collection.yaml --env staging
+  ghcr.io/yokomohoyo/insomnium-server --collection /data/collection.yaml --env staging
 ```
 
-Then point an MCP client at `http://<host>:8080/mcp` with the header `Authorization: Bearer <token>`. For Claude Code:
+The container runs as the `node` user (uid 1000), so the collection file has to be readable by it.
+
+Then point an MCP client at `http://<host>:8080/mcp` with the header `Authorization: Bearer $TOKEN`. For Claude Code:
 
 ```sh
-claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Authorization: Bearer <token>"
+claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Authorization: Bearer $TOKEN"
 ```
 
 ## Options

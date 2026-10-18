@@ -51,6 +51,8 @@ resources:
     headers: [{ name: X-Secret, value: '{{ secret }}' }]
   - { _id: req_blocked, _type: request, parentId: wrk_smoke, name: blocked, method: GET, url: 'http://example.com/' }
 `);
+// the image runs as node (uid 1000), not as whoever made the 0700 temp dir
+fs.chmodSync(dir, 0o755);
 
 const env = {
   INSOMNIUM_MCP_TOKEN: token,
@@ -64,7 +66,7 @@ if (mode === '--bundle') {
   server = spawn(process.execPath, [target, '--collection', path.join(dir, 'collection.yaml'), ...args], { env: { ...process.env, ...env }, stdio: 'inherit' });
 } else {
   const envArgs = Object.entries(env).flatMap(([name, value]) => ['-e', `${name}=${value}`]);
-  execFileSync('docker', ['run', '-d', '--rm', '--name', 'insomnium-server-smoke', '--network', 'host', '-v', `${dir}:/data:ro`, ...envArgs, target, '--collection', '/data/collection.yaml', ...args], { stdio: 'inherit' });
+  execFileSync('docker', ['run', '-d', '--name', 'insomnium-server-smoke', '--network', 'host', '-v', `${dir}:/data:ro`, ...envArgs, target, '--collection', '/data/collection.yaml', ...args], { stdio: 'inherit' });
 }
 
 let failed = false;
