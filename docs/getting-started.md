@@ -53,6 +53,10 @@ Like a collection's, they have a base environment and sub environments. Each col
 
 From the lowest to the highest, a request's variables come from: the global base environment, the global sub environment in use, the collection's base environment, its sub environment, its folders, and then the [runner](testing.md)'s data row and the variables its [pre-request script](scripts.md) set.
 
+## History
+
+**History**, in the sidebar, lists the latest responses from every collection, newest first. Filter them by request, URL, folder or collection, and open one to see it with its request. A request's own past responses are in the response pane's history menu.
+
 ## Cookies
 
 Each collection has a cookie jar. Responses' `Set-Cookie` headers go into it, and matching cookies are sent with later requests. **Cookies** in the sidebar edits it, and a request's settings can turn sending or storing them off.
