@@ -74,6 +74,7 @@ export function registerSendTool(server: McpServer) {
             statusCode: stored.statusCode,
             statusMessage: stored.statusMessage,
             elapsedTime: stored.elapsedTime,
+            ...(stored.timings ? { timings: stored.timings } : {}),
             url: stored.url,
             error: stored.error,
             ...(results ? {

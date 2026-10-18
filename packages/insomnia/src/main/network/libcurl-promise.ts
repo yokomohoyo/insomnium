@@ -17,7 +17,7 @@ import { AUTH_AWS_IAM, AUTH_DIGEST, AUTH_NETRC, AUTH_NTLM, CONTENT_TYPE_FORM_DAT
 import { describeByteSize, hasAuthHeader } from '../../common/misc';
 import { ClientCertificate } from '../../models/client-certificate';
 import { getAuthStrategies, RequestHeader } from '../../models/request';
-import { ResponseHeader } from '../../models/response';
+import { ResponseHeader, ResponseTimings } from '../../models/response';
 import type { AssertionResult } from '../../network/assertions';
 import { getCaBundle } from './ca-bundle';
 import { buildMultipart } from './multipart';
@@ -79,6 +79,20 @@ export interface CurlRequestOutput {
   responseBodyPath?: string;
 }
 
+const getTimings = (curl: Curl): ResponseTimings | undefined => {
+  try {
+    const ms = (info: Parameters<Curl['getInfo']>[0]) => Math.max(0, Number(curl.getInfo(info)) || 0) * 1000;
+    return {
+      dns: ms(Curl.info.NAMELOOKUP_TIME),
+      connect: ms(Curl.info.CONNECT_TIME),
+      tls: ms(Curl.info.APPCONNECT_TIME),
+      firstByte: ms(Curl.info.STARTTRANSFER_TIME),
+    };
+  } catch (err) {
+    return undefined;
+  }
+};
+
 export interface ResponsePatch {
   bodyCompression?: 'zip' | null;
   bodyPath?: string;
@@ -86,6 +100,7 @@ export interface ResponsePatch {
   bytesRead?: number;
   contentType?: string;
   elapsedTime: number;
+  timings?: ResponseTimings;
   environmentId?: string | null;
   error?: string;
   headers?: ResponseHeader[];
@@ -206,10 +221,12 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
     // NOTE: legacy write end callback
     curl.on('end', () => responseBodyWriteStream.end());
     curl.on('end', async (_1: any, _2: any, rawHeaders: Buffer) => {
+      const timings = getTimings(curl);
       const patch = {
         bytesContent: responseBodyBytes,
         bytesRead: curl.getInfo(Curl.info.SIZE_DOWNLOAD) as number,
         elapsedTime: curl.getInfo(Curl.info.TOTAL_TIME) as number * 1000,
+        ...(timings ? { timings } : {}),
         url: curl.getInfo(Curl.info.EFFECTIVE_URL) as string,
       };
       curl.close();
