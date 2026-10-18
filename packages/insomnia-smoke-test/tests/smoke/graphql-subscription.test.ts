@@ -32,7 +32,7 @@ test('a WebSocket request subscribes with GraphQL, and shows each event @ci', as
   await expect(page.getByTestId('request-pane')).toContainText('subscription PetAdded');
 
   await page.getByRole('button', { name: 'Connect' }).click();
-  const responsePane = page.getByTestId('response-pane');
+  const responsePane = page.getByTestId('response-pane').first();
   // the server's events, for the variables rendered from the environment
   await expect(responsePane).toContainText('"name":"Fido"');
   await expect(responsePane).toContainText('"species":"cat"');
