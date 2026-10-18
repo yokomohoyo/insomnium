@@ -51,6 +51,11 @@ const main: Window['main'] = {
   takeSnapshot: () => ipcRenderer.invoke('takeSnapshot'),
   restoreSnapshot: name => ipcRenderer.invoke('restoreSnapshot', name),
   showSnapshotsFolder: () => ipcRenderer.invoke('showSnapshotsFolder'),
+  mockServer: {
+    start: options => ipcRenderer.invoke('mockServer.start', options),
+    stop: workspaceId => ipcRenderer.invoke('mockServer.stop', workspaceId),
+    status: workspaceId => ipcRenderer.invoke('mockServer.status', workspaceId),
+  },
   authorizeUserInWindow: options => ipcRenderer.invoke('authorizeUserInWindow', options),
   spectralRun: options => ipcRenderer.invoke('spectralRun', options),
   runScript: options => ipcRenderer.invoke('runScript', options),

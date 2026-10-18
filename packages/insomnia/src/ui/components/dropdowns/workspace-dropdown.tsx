@@ -20,6 +20,7 @@ import { showError, showPrompt } from '../modals';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
 import { configGenerators, showGenerateConfigModal } from '../modals/generate-config-modal';
 import { ImportModal } from '../modals/import-modal';
+import { MockServerModal } from '../modals/mock-server-modal';
 import { RunnerModal } from '../modals/runner-modal';
 import { WorkspaceDuplicateModal } from '../modals/workspace-duplicate-modal';
 import { WorkspaceSettingsModal } from '../modals/workspace-settings-modal';
@@ -44,6 +45,7 @@ export const WorkspaceDropdown: FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
+  const [isMockServerOpen, setIsMockServerOpen] = useState(false);
   const workspaceName = activeWorkspace.name;
   const projectName = activeProject.name ?? getProductName();
   const fetcher = useFetcher();
@@ -164,6 +166,14 @@ export const WorkspaceDropdown: FC = () => {
             />
           </DropdownItem>
 
+          <DropdownItem aria-label='Mock Server'>
+            <ItemContent
+              icon="server"
+              label="Mock Server"
+              onClick={() => setIsMockServerOpen(true)}
+            />
+          </DropdownItem>
+
           <DropdownItem aria-label='Import'>
             <ItemContent
               icon="file-import"
@@ -208,6 +218,9 @@ export const WorkspaceDropdown: FC = () => {
         </DropdownSection>
 
       </Dropdown>
+      {isMockServerOpen && (
+        <MockServerModal workspace={activeWorkspace} onHide={() => setIsMockServerOpen(false)} />
+      )}
       {isRunnerOpen && (
         <RunnerModal
           parentId={activeWorkspace._id}

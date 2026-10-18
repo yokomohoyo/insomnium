@@ -1,11 +1,15 @@
 // insomnium-server: Insomnium's MCP tools without the app, for a container
-// deployed next to the APIs an agent should test; and `run`, the collection
-// runner for CI. See packages/insomnium-server.
+// deployed next to the APIs an agent should test; `run`, the collection
+// runner for CI; and `mock`, a collection's mock server. See
+// packages/insomnium-server.
 import fs from 'node:fs';
 
+import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
+import { startMockServer } from '../mock/mock-server';
 import { jsonReport, junitReport } from '../network/run-files';
 import { runRequests } from '../network/runner';
 import { parseConfig, ServerConfig, USAGE } from './config';
+import { MOCK_USAGE, MockConfig, parseMockConfig } from './mock';
 import { formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
 import { loadWorkspaces, startServer } from './server';
@@ -70,6 +74,41 @@ async function run(argv: string[]) {
   return summary.requests.failed ? 1 : 0;
 }
 
+async function mock(argv: string[]) {
+  if (argv.includes('--help')) {
+    console.log(MOCK_USAGE);
+    return;
+  }
+  let config: MockConfig;
+  try {
+    config = parseMockConfig(argv, process.env);
+  } catch (err) {
+    console.error(`${(err as Error).message}\n\n${MOCK_USAGE}`);
+    process.exit(2);
+  }
+
+  // a mock answers; it never sends (a {% response %} tag in an example would)
+  const log = console.log;
+  console.log = console.info = console.debug = () => {};
+  const workspaces = await loadWorkspaces({ collections: config.collections, variables: {}, validateSSL: true, allowedHosts: [], allowedEnvironmentVariables: '' });
+  for (const workspace of workspaces) {
+    for (const { request, examples } of await loadMockRoutes(workspace)) {
+      log(`[mock] ${request.method} ${mockPathOf(request.url)}  ${request.name} (${examples.length} ${examples.length === 1 ? 'example' : 'examples'})`);
+    }
+  }
+  const server = await startMockServer({
+    workspaceIds: workspaces.map(workspace => workspace._id),
+    port: config.port,
+    host: config.host,
+    onRequest: entry => log(`[mock] ${entry.method} ${entry.path} ${entry.status}  ${entry.exampleName ? `${entry.requestName} · ${entry.exampleName}` : entry.note || ''}`.trimEnd()),
+  });
+  log(`[mock] answering at ${server.url}`);
+
+  const stop = () => server.close().then(() => process.exit(0));
+  process.on('SIGTERM', stop);
+  process.on('SIGINT', stop);
+}
+
 async function serve(argv: string[]) {
   if (argv.includes('--help')) {
     console.log(USAGE);
@@ -98,6 +137,9 @@ async function main() {
   const argv = process.argv.slice(2);
   if (argv[0] === 'run') {
     process.exit(await run(argv.slice(1)));
+  }
+  if (argv[0] === 'mock') {
+    return mock(argv.slice(1));
   }
   await serve(argv);
 }
