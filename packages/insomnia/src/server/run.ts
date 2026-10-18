@@ -62,18 +62,26 @@ const wholeNumber = (option: string, value: string, min: number) => {
   return number;
 };
 
-export const parseRunConfig = (argv: string[], env: Record<string, string | undefined>): RunConfig => {
-  const config: RunConfig = {
-    collections: [],
-    delay: 0,
-    bail: false,
-    allowedHosts: (env.INSOMNIUM_ALLOWED_HOSTS || '*').split(',').map(host => host.trim().toLowerCase()).filter(Boolean),
+// what sends may do, from the environment: run's and load's
+export const sendingEnvironment = (env: Record<string, string | undefined>) => {
+  const allowedHosts = (env.INSOMNIUM_ALLOWED_HOSTS || '*').split(',').map(host => host.trim().toLowerCase()).filter(Boolean);
+  return {
+    allowedHosts: allowedHosts.length ? allowedHosts : ['*'],
     variables: Object.fromEntries(Object.entries(env)
       .filter((entry): entry is [string, string] => entry[0].startsWith(VAR_PREFIX) && entry[0].length > VAR_PREFIX.length && entry[1] !== undefined)
       .map(([name, value]) => [name.slice(VAR_PREFIX.length), value])),
     validateSSL: env.INSOMNIUM_VALIDATE_SSL !== 'false',
     allowedEnvironmentVariables: env.INSOMNIUM_ALLOWED_ENV || '',
     allowedSecrets: env.INSOMNIUM_ALLOWED_SECRETS || '',
+  };
+};
+
+export const parseRunConfig = (argv: string[], env: Record<string, string | undefined>): RunConfig => {
+  const config: RunConfig = {
+    collections: [],
+    delay: 0,
+    bail: false,
+    ...sendingEnvironment(env),
   };
 
   for (let index = 0; index < argv.length; index++) {
@@ -120,9 +128,6 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
 
   if (!config.collections.length) {
     throw new Error('Give at least one --collection');
-  }
-  if (!config.allowedHosts.length) {
-    config.allowedHosts = ['*'];
   }
   return config;
 };

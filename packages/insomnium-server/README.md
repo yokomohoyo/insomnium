@@ -105,6 +105,43 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 `INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL`, `INSOMNIUM_ALLOWED_ENV` and the proxy variables work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 
+## Load test a collection
+
+`load` load tests a collection's HTTP requests: each virtual user sends them in order, again and again, until the time is up, as the app's runner does in **Load test** mode. It prints the latency percentiles, throughput and failures, and exits 1 when a threshold is broken (2 when the test can't start). A request fails when it can't be sent, answers 400 or above, or fails an assertion. Responses aren't kept.
+
+```sh
+docker run --rm -e INSOMNIUM_VAR_apiKey="$API_KEY" -v "$PWD:/work" -w /work \
+  ghcr.io/yokomohoyo/insomnium-server load --collection api.yaml --env staging \
+  --users 20 --duration 1m --ramp-up 10s --max-p95 300 --max-errors 1
+```
+
+```
+Request      Sent   Failed      Mean       p50       p90       p95       p99       Max
+List pets    4212        0   41.2 ms     38 ms     55 ms     63 ms     91 ms    240 ms
+Get pet      4207        3   12.9 ms     11 ms     18 ms     22 ms     40 ms    185 ms
+All          8419        3     27 ms     19 ms     49 ms     56 ms     82 ms    240 ms
+
+8419 requests in 60.0 s from 20 users · 140.3/s · 3 failed (0.04%)
+Status codes: 200 × 8416, 503 × 3
+  ✗ 3 × HTTP 503
+```
+
+| | |
+|---|---|
+| `--collection <file>` | A collection to load test, in any format Import takes; repeat for more. |
+| `--folder <name>` | Only that folder's requests: its name, or its path. |
+| `--env <name>` | The sub environment to send with. |
+| `--users <n>` | Virtual users, 1 to 100 (default 5). |
+| `--duration <time>` | How long: `30s`, `2m`, `500ms` (default 30s, at most 60m). |
+| `--ramp-up <time>` | Start the users one after another over this long. |
+| `--think-time <time>` | Each user's wait after each request. |
+| `--max-p95 <ms>` | Fail when the 95th percentile latency is over this. |
+| `--max-p99 <ms>` | Fail when the 99th percentile latency is over this. |
+| `--max-errors <percent>` | Fail when more than this percentage of requests fail, such as `1` or `0.5`. |
+| `--json <file>` | Write the results as JSON. |
+
+The environment variables work as they do for `run`. Ctrl+C stops the test early and still prints the results. Load test only APIs you're allowed to.
+
 ## Mock a collection
 
 `mock` answers as a collection's requests would, with their examples (saved responses), for a front end or tests to call instead of the real API. See the [mock server docs](../../docs/mock-server.md) for how it matches.

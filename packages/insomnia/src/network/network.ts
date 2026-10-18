@@ -221,7 +221,9 @@ export const responseTransform = async (patch: ResponsePatch, environmentId: str
   return finished;
 };
 
-const transformedResponse = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>, scriptContext: AfterResponseContext = {}) => {
+// the response with its plugin hooks, assertions and after-response script, as
+// responseTransform without the console: a load test sends too many for it
+export const transformedResponse = async (patch: ResponsePatch, environmentId: string | null, renderedRequest: RenderedRequest, context: Record<string, any>, scriptContext: AfterResponseContext = {}) => {
   const response: ResponsePatch = {
     ...patch,
     // important for filter by responses
