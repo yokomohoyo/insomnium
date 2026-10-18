@@ -132,6 +132,9 @@ interface BaseOpts {
   repoId: string;
 }
 
+// git's own depth for all of a history (--unshallow): past any there is
+const ALL_HISTORY = 2147483647;
+
 // what a pull, merge or switch of branch would write over: changes here that
 // were never committed, to documents (or files) it brings changes to
 export class GitLocalChangesError extends Error {
@@ -487,6 +490,7 @@ export class GitVCS {
     const { fetchHead, fetchHeadDescription } = await git.fetch({
       ...this._baseOpts,
       ...gitCallbacks(gitCredentials),
+      ...await this._fetchDepth(),
       remote: 'origin',
       ref: branch,
       singleBranch: true,
@@ -725,43 +729,42 @@ export class GitVCS {
 
   async fetch({
     singleBranch,
-    depth,
     credentials,
-    relative = false,
   }: {
     singleBranch: boolean;
-    depth?: number;
     credentials?: GitCredentials | null;
-    relative?: boolean;
   }) {
     console.log('[git] Fetch remote=origin');
     return git.fetch({
       ...this._baseOpts,
       ...gitCallbacks(credentials),
+      ...await this._fetchDepth(),
       singleBranch,
       remote: 'origin',
-      relative,
-      depth,
       prune: true,
       pruneTags: true,
-
     });
   }
 
+  /**
+   * A fetch brings all the history it's missing. One to a depth leaves the
+   * oldest commit it got without its parents (listed in the git dir's shallow
+   * file), and a pull's merge then can't find where the two sides parted.
+   * Fetches up to 0.4.0 went to a depth of 1 (every five minutes, and before
+   * each pull), so a repository they left so is deepened all the way, as
+   * git's --unshallow does.
+   */
+  async _fetchDepth(): Promise<{ depth?: number }> {
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const gitdir = this._baseOpts.gitdir || path.join(this._baseOpts.dir, '.git');
+    const shallow = await fs.readFile(path.join(gitdir, 'shallow'), 'utf8').catch(() => '');
+    return String(shallow).trim() ? { depth: ALL_HISTORY } : {};
+  }
+
+  // the history here, which a fetch or pull brings the remote's into
   async log(input: {depth?: number} = {}) {
     const { depth = 35 } = input;
     try {
-      const remoteOriginURI = await this.getRemoteOriginURI();
-      if (remoteOriginURI) {
-        await git.fetch({
-          ...this._baseOpts,
-          remote: 'origin',
-          depth,
-          singleBranch: true,
-          tags: false,
-        });
-      }
-
       return await git.log({ ...this._baseOpts, depth });
     } catch (error: unknown) {
       if (error instanceof git.Errors.NotFoundError) {
@@ -808,8 +811,8 @@ export class GitVCS {
           // Try to fetch the branch from the remote if it doesn't exist locally;
           await git.fetch({
             ...this._baseOpts,
+            ...await this._fetchDepth(),
             remote: 'origin',
-            depth: 1,
             ref: branch,
             singleBranch: true,
             tags: false,
