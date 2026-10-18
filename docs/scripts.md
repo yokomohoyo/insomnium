@@ -103,6 +103,24 @@ A test passes if its function returns, or its promise resolves, and fails with t
 
 `insomnia.expect.fail(message)` fails at once.
 
+## Visualize a response
+
+An after-response script can show the response its own way, as a table or a chart, in the response's **Visualize** tab. `insomnia.visualizer.set(template, data)` (or `pm.visualizer.set`, as in Postman) takes a [Handlebars](https://handlebarsjs.com) template and the data to fill it with:
+
+```js
+const template = `
+  <table>
+    <tr><th>Name</th><th>Email</th></tr>
+    {{#each users}}<tr><td>{{name}}</td><td>{{email}}</td></tr>{{/each}}
+  </table>`;
+
+insomnia.visualizer.set(template, { users: insomnia.response.json() });
+```
+
+Scripts in the template get the data with `pm.getData((error, data) => …)`. `insomnia.visualizer.clear()` removes what was set.
+
+A visualization can't reach the network: not to send the response anywhere, and not to load a library either. Put the scripts and styles it needs in the template. The template and data together can be up to 1 MB.
+
 ## Imported scripts
 
 Scripts from [Postman, and from Insomnia's v4 and v5 exports](import-export.md), are imported as the requests' scripts. A collection's or folder's scripts, which those apps run before each request's, are copied into each request under them, each part in a function of its own. A Postman API call Insomnium doesn't have yet, such as `pm.sendRequest`, fails with a `TypeError` and its line.

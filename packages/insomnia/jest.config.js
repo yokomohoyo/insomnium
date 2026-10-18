@@ -17,6 +17,8 @@ module.exports = {
   verbose: true,
   moduleNameMapper: {
     '\\.(css|less|png|svg)$': '<rootDir>/src/__mocks__/dummy.ts',
+    // a file's text, as vite gives it
+    '\\?raw$': '<rootDir>/src/__mocks__/raw.ts',
     'styled-components': path.join(__dirname, '../../node_modules/styled-components'),
     'jsonpath-plus': path.join(__dirname, '../../node_modules/jsonpath-plus/dist/index-node-cjs.cjs'),
   },
