@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
-test('assertions are saved with the request and checked on send', async ({ app, page }) => {
+test('assertions are saved with the request and checked on send @ci', async ({ app, page }) => {
   const requestPane = page.getByTestId('request-pane');
   const responsePane = page.getByTestId('response-pane');
 

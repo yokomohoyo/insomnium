@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
-test('quick switcher opens a request by name, and Ctrl+Tab goes back', async ({ app, page }) => {
+test('quick switcher opens a request by name, and Ctrl+Tab goes back @ci', async ({ app, page }) => {
   const requestPane = page.getByTestId('request-pane');
 
   // the app opens in My Collection; import the smoke requests into it

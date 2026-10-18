@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
+import { junitReport, parseDataFile } from '../../network/run-files';
 import type { RunResult, RunSummary } from '../../network/runner';
-import { formatResult, formatSummary, junitReport } from '../report';
-import { parseDataFile, parseRunConfig, selectRequests } from '../run';
+import { formatResult, formatSummary } from '../report';
+import { parseRunConfig, selectRequests } from '../run';
 
 describe('parseRunConfig()', () => {
   it('reads the options, and allows any host unless told otherwise', () => {
@@ -106,6 +107,7 @@ describe('reports', () => {
     assertions: { total: 2, failed: 1 },
     elapsedTime: 1500,
     bailed: false,
+    stopped: false,
   };
 
   it('prints a line per request, its assertions, and a summary', () => {

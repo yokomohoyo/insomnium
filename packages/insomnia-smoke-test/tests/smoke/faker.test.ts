@@ -8,7 +8,7 @@ const collection = JSON.stringify({
   item: [{ name: 'pet by guid', request: { method: 'GET', url: 'http://127.0.0.1:4010/pets/{{$guid}}' } }],
 });
 
-test("Postman's dynamic variables import as faker tags and render on send", async ({ app, page }) => {
+test("Postman's dynamic variables import as faker tags and render on send @ci", async ({ app, page }) => {
   const requestPane = page.getByTestId('request-pane');
   const responsePane = page.getByTestId('response-pane');
 

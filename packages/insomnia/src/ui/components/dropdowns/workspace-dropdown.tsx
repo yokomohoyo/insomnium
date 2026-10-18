@@ -20,6 +20,7 @@ import { showError, showPrompt } from '../modals';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
 import { configGenerators, showGenerateConfigModal } from '../modals/generate-config-modal';
 import { ImportModal } from '../modals/import-modal';
+import { RunnerModal } from '../modals/runner-modal';
 import { WorkspaceDuplicateModal } from '../modals/workspace-duplicate-modal';
 import { WorkspaceSettingsModal } from '../modals/workspace-settings-modal';
 
@@ -42,6 +43,7 @@ export const WorkspaceDropdown: FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isRunnerOpen, setIsRunnerOpen] = useState(false);
   const workspaceName = activeWorkspace.name;
   const projectName = activeProject.name ?? getProductName();
   const fetcher = useFetcher();
@@ -154,6 +156,14 @@ export const WorkspaceDropdown: FC = () => {
         </DropdownItem>
         <DropdownSection aria-label='Meta section'>
 
+          <DropdownItem aria-label='Run Collection'>
+            <ItemContent
+              icon="play"
+              label="Run Collection"
+              onClick={() => setIsRunnerOpen(true)}
+            />
+          </DropdownItem>
+
           <DropdownItem aria-label='Import'>
             <ItemContent
               icon="file-import"
@@ -198,6 +208,13 @@ export const WorkspaceDropdown: FC = () => {
         </DropdownSection>
 
       </Dropdown>
+      {isRunnerOpen && (
+        <RunnerModal
+          parentId={activeWorkspace._id}
+          name={activeWorkspaceName}
+          onHide={() => setIsRunnerOpen(false)}
+        />
+      )}
       {isDuplicateModalOpen && (
         <WorkspaceDuplicateModal
           onHide={() => setIsDuplicateModalOpen(false)}

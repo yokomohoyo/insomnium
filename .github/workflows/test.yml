@@ -103,7 +103,7 @@ jobs:
   E2E:
     # Playwright UI tests against the built app. Not a required check yet: most
     # specs predate the current UI (the app opens in My Collection now) and are
-    # brought back one at a time, so only the ones listed here run.
+    # brought back one at a time: those that run here have @ci in their title.
     runs-on: macos-latest
     steps:
       - name: Checkout branch
@@ -124,7 +124,7 @@ jobs:
 
       - name: Playwright
         working-directory: packages/insomnia-smoke-test
-        run: npx playwright test --project=Smoke tests/smoke/event-stream.test.ts tests/smoke/quick-switcher.test.ts tests/smoke/assertions.test.ts tests/smoke/faker.test.ts tests/smoke/env-tag.test.ts tests/smoke/bruno-import.test.ts tests/smoke/folder-auth.test.ts
+        run: npx playwright test --project=Smoke --grep @ci
         env:
           BUNDLE: build
 

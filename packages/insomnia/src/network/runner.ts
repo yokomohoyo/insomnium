@@ -49,6 +49,8 @@ export interface RunOptions {
   // stop at the first request that fails
   bail?: boolean;
   onResult?: (result: RunResult) => void;
+  // stops the run before its next request
+  signal?: AbortSignal;
 }
 
 export interface RunSummary {
@@ -58,6 +60,8 @@ export interface RunSummary {
   assertions: { total: number; failed: number };
   elapsedTime: number;
   bailed: boolean;
+  // stopped by its signal
+  stopped: boolean;
 }
 
 // The HTTP requests under a workspace or folder, in the sidebar's (manual) order
@@ -92,7 +96,7 @@ export async function sendForRun(request: Request, { environmentId, iterationDat
 }
 
 export async function runRequests(requests: RunnableRequest[], options: RunOptions = {}): Promise<RunSummary> {
-  const { environmentId, data, delay = 0, bail = false, onResult } = options;
+  const { environmentId, data, delay = 0, bail = false, onResult, signal } = options;
   const iterations = Math.max(1, options.iterations ?? (data?.length || 1));
   const started = Date.now();
   const results: RunResult[] = [];
@@ -103,6 +107,9 @@ export async function runRequests(requests: RunnableRequest[], options: RunOptio
     for (const [index, { request, folders }] of requests.entries()) {
       if (delay > 0 && (iteration > 1 || index > 0)) {
         await sleep(delay);
+      }
+      if (signal?.aborted) {
+        break run;
       }
       const base = { iteration, requestId: request._id, name: request.name, folders, method: request.method };
       let result: RunResult;
@@ -141,5 +148,6 @@ export async function runRequests(requests: RunnableRequest[], options: RunOptio
     assertions: { total: assertions.length, failed: assertions.filter(assertion => !assertion.passed).length },
     elapsedTime: Date.now() - started,
     bailed,
+    stopped: !!signal?.aborted,
   };
 }
