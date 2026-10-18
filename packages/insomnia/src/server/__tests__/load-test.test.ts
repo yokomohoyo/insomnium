@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { summarizeLoad } from '../../network/load-stats';
-import { formatLoadSummary, parseDuration, parseLoadConfig } from '../load';
+import { formatLoadSummary, parseDuration, parseLoadConfig } from '../load-test';
 
 describe('insomnium-server load', () => {
   it('reads its options', () => {

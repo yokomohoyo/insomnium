@@ -11,7 +11,7 @@ import { runLoadTest } from '../network/load-test';
 import { jsonReport, junitReport } from '../network/run-files';
 import { runRequests } from '../network/runner';
 import { parseConfig, ServerConfig, USAGE } from './config';
-import { formatLoadSummary, LOAD_USAGE, LoadConfig, parseLoadConfig } from './load';
+import { formatLoadSummary, LOAD_USAGE, LoadConfig, parseLoadConfig } from './load-test';
 import { MOCK_USAGE, MockConfig, parseMockConfig } from './mock';
 import { formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
