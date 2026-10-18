@@ -157,6 +157,22 @@ describe('FolderSync', () => {
     expect((await models.request.getById(requestId))?.url).toBe('https://shop.example.com/fixed');
   });
 
+  it("leaves a file broken while the app was closed, and writes no copy of it", async () => {
+    write('Orders/List orders.yaml', 'type: Request
+name: [broken
+');
+
+    const reopened = new FolderSync(workspaceId, root);
+    await reopened.start();
+    reopened.stop();
+
+    expect(await models.request.getById(requestId)).toBeTruthy();
+    expect(read('Orders/List orders.yaml')).toBe('type: Request
+name: [broken
+');
+    expect(fs.readdirSync(path.join(root, 'Orders')).sort()).toEqual(['List orders.yaml', '_folder.yaml']);
+  });
+
   it('takes in a file without an _id once, under its own name', async () => {
     write('Orders/scratch.yaml', 'type: Request\nname: Refund\nurl: https://shop.example.com/refunds\n');
 
