@@ -28,17 +28,13 @@ interface GitCredentialsBase {
   password: string;
 }
 
+// A repository set up with a GitHub or GitLab sign-in, which Insomnium no
+// longer offers, keeps its token so; git sends it as each host expects
+// (utils.ts). https://isomorphic-git.org/docs/en/authentication.html
 interface GitCredentialsOAuth {
-  /**
-   * Supported OAuth formats.
-   * This is needed by isomorphic-git to be able to push/pull using an oauth2 token.
-   * https://isomorphic-git.org/docs/en/authentication.html
-   */
   oauth2format?: 'github' | 'gitlab';
   username: string;
   token: string;
-  // GitLab's, to get a new token when this one expires
-  refreshToken?: string;
 }
 
 export type GitCredentials = GitCredentialsBase | GitCredentialsOAuth;

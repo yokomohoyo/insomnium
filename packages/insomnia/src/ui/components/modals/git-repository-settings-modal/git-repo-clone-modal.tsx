@@ -1,9 +1,9 @@
-import React, { Key, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { docsGitSync } from '../../../../common/documentation';
-import type { GitRepository, OauthProviderName } from '../../../../models/git-repository';
+import type { GitRepository } from '../../../../models/git-repository';
 import { Link } from '../../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
 import { ModalBody } from '../../base/modal-body';
@@ -14,8 +14,6 @@ import { ErrorBoundary } from '../../error-boundary';
 import { HelpTooltip } from '../../help-tooltip';
 import { showAlert } from '..';
 import { CustomRepositorySettingsFormGroup } from './custom-repository-settings-form-group';
-import { GitHubRepositorySetupFormGroup } from './github-repository-settings-form-group';
-import { GitLabRepositorySetupFormGroup } from './gitlab-repository-settings-form-group';
 
 const TabPill = styled.div({
   display: 'flex',
@@ -28,7 +26,6 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
   const modalRef = useRef<ModalHandle>(null);
   const cloneGitRepositoryFetcher = useFetcher();
 
-  const [selectedTab, setTab] = useState<OauthProviderName>('github');
 
   useEffect(() => {
     modalRef.current?.show();
@@ -87,8 +84,6 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
         <ErrorBoundary>
           <Tabs
             aria-label="Git repository settings tabs"
-            selectedKey={selectedTab}
-            onSelectionChange={(key: Key) => setTab(key as OauthProviderName)}
           >
 
             <TabItem key='custom' title={<TabPill><i className="fa fa-code-fork" /> Git</TabPill>}>
@@ -106,7 +101,7 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
           <button className="btn" onClick={() => modalRef.current?.hide()}>
             Cancel
           </button>
-          <button type="submit" disabled={isSubmitting} form={selectedTab} className="btn" data-testid="git-repository-settings-modal__sync-btn">
+          <button type="submit" disabled={isSubmitting} form="custom" className="btn" data-testid="git-repository-settings-modal__sync-btn">
             Clone
           </button>
         </div>

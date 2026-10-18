@@ -13,9 +13,6 @@ import {
 interface EnvOptions {
   INSOMNIA_DATA_PATH: string;
   INSOMNIA_API_URL: string;
-  INSOMNIA_APP_WEBSITE_URL: string;
-  INSOMNIA_GITHUB_API_URL: string;
-  INSOMNIA_GITLAB_API_URL: string;
 }
 
 export const test = baseTest.extend<{
@@ -27,9 +24,6 @@ export const test = baseTest.extend<{
     const options: EnvOptions = {
       INSOMNIA_DATA_PATH: randomDataPath(),
       INSOMNIA_API_URL: webServerUrl + '/api',
-      INSOMNIA_APP_WEBSITE_URL: webServerUrl + '/website',
-      INSOMNIA_GITHUB_API_URL: webServerUrl + '/github-api/graphql',
-      INSOMNIA_GITLAB_API_URL: webServerUrl + '/gitlab-api',
     };
 
     const electronApp = await playwright._electron.launch({

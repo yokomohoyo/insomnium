@@ -2,7 +2,6 @@ import { database as db } from '../common/database';
 import type { GitCredentials, GitDataDirName } from '../sync/git/git-vcs';
 import type { BaseModel } from './index';
 
-export type OauthProviderName = 'gitlab' | 'github' | 'custom';
 
 export type GitRepository = BaseModel & BaseGitRepository;
 
