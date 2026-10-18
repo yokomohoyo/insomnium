@@ -9,6 +9,7 @@ test('a repository on this computer commits, and says what changed in each reque
   await page.locator('input[name="authorName"]').fill('Kim');
   await page.locator('input[name="authorEmail"]').fill('kim@example.com');
   await page.getByTestId('git-repository-settings-modal__sync-btn').click();
+  await page.getByTestId('git-repository-settings-modal__sync-btn-close').click();
 
   const gitMenu = page.getByTestId('git-dropdown').locator('button');
   await gitMenu.click();
