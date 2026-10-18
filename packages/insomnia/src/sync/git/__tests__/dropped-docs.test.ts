@@ -51,10 +51,7 @@ const pullDeleting = async (...drop: string[]) => {
   const tree = await treeWithout(head, drop);
   const incoming = await git.writeCommit({ ...opts(), commit: { message: 'incoming\n', tree: tree!, parent: [head], author, committer: author } });
   await git.writeRef({ ...opts(), ref: 'refs/heads/incoming', value: incoming });
-  jest.spyOn(git, 'pull').mockImplementation(async ({ fs, dir, gitdir }) => {
-    await git.merge({ fs, dir, gitdir, ours: 'main', theirs: 'incoming', author });
-    await git.checkout({ fs, dir, gitdir, ref: 'main' });
-  });
+  jest.spyOn(git, 'fetch').mockResolvedValue({ defaultBranch: 'main', fetchHead: incoming, fetchHeadDescription: 'incoming' });
   await GitVCS.pull();
 };
 
