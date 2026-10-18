@@ -271,21 +271,28 @@ const withNotes = (docs: string | undefined, request: BrunoRequest = {}, keptAss
 
 // A request's own variables come first in Bruno, before the folder's and the
 // environment's. Insomnium has no request variables, so they're put in place.
-const withRequestVariables = <T>(value: T, values: Record<string, string>): T => {
-  if (!Object.keys(values).length) {
-    return value;
-  }
+const withRequestVariables = <T>(value: T, values: Record<string, string>): T => !Object.keys(values).length ? value : mapStrings(value, text =>
+  text.replace(/{{\s*([\w.-]+)\s*}}/g, (match, variable) => Object.prototype.hasOwnProperty.call(values, variable) ? values[variable] : match));
+
+// Bruno reads the OS environment with {{process.env.NAME}}; Insomnium's env
+// tag does, for the names allowed in Preferences. Descriptions, which hold the
+// scripts, keep theirs.
+const withEnvTags = <T>(value: T): T => mapStrings(value, text =>
+  text.replace(/{{\s*process\.env\.([A-Za-z_][\w.-]*)\s*}}/g, (_match, variable) => `{% env '${variable}' %}`), 'description');
+
+// Every string in a value, all the way down, but under the key left out
+function mapStrings<T>(value: T, map: (text: string) => string, skip?: string): T {
   if (typeof value === 'string') {
-    return value.replace(/{{\s*([\w.-]+)\s*}}/g, (match, variable) => Object.prototype.hasOwnProperty.call(values, variable) ? values[variable] : match) as T;
+    return map(value) as T;
   }
   if (Array.isArray(value)) {
-    return value.map(item => withRequestVariables(item, values)) as T;
+    return value.map(item => mapStrings(item, map, skip)) as T;
   }
   if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, withRequestVariables(item, values)])) as T;
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, key === skip ? item : mapStrings(item, map, skip)])) as T;
   }
   return value;
-};
+}
 
 // The editor pairs segment params with the URL's :name segments by position,
 // through an id ending in `ending<index>` (request-segment-editor.tsx)
@@ -329,6 +336,10 @@ const importEnvironments = (environments: UNKNOWN[], defaults: Record<string, st
     ...(typeof environment.color === 'string' ? { color: environment.color } : {}),
   }));
 
+// Bruno takes Postman's dynamic variables too, {{$randomInt}}, and the OS
+// environment
+const translated = (resources: ImportRequest[]) => withEnvTags(translateDynamicVariables(resources));
+
 export const convert: Converter = rawData => {
   let collection: UNKNOWN;
   try {
@@ -339,11 +350,11 @@ export const convert: Converter = rawData => {
 
   // An environment export: a file of them, a list, or one
   if (collection?.info?.type === 'bruno-environment' && Array.isArray(collection.environments) && collection.environments.every(isEnvironment)) {
-    return importEnvironments(collection.environments, {});
+    return translated(importEnvironments(collection.environments, {}));
   }
   const list = Array.isArray(collection) ? collection : [collection];
   if (list.length && list.every(isLoneEnvironment)) {
-    return importEnvironments(list, {});
+    return translated(importEnvironments(list, {}));
   }
 
   if (
@@ -455,6 +466,5 @@ export const convert: Converter = rawData => {
 
   const rootHeaders = (root.headers || []).filter(isEnabled).map(({ name, value }) => ({ name: text(name), value: text(value) }));
   walk(collection.items, collectionFolderId, root.auth?.mode ? root.auth : {}, rootHeaders);
-  // Bruno takes Postman's dynamic variables too: {{$randomInt}}
-  return translateDynamicVariables(resources);
+  return translated(resources);
 };

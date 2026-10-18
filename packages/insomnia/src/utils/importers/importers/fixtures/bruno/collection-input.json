@@ -173,7 +173,7 @@
           "multipartForm": [],
           "file": []
         },
-        "auth": { "mode": "apikey", "apikey": { "key": "X-Api-Key", "value": "{{apiKey}}", "placement": "header" } }
+        "auth": { "mode": "apikey", "apikey": { "key": "X-Api-Key", "value": "{{process.env.API_KEY}}", "placement": "header" } }
       }
     },
     {
