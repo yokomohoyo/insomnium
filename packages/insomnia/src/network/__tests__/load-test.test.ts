@@ -11,7 +11,7 @@ import { listRunnableRequests } from '../runner';
 
 // a load test sends more than the mocked ids go around (uuid itself is ES modules)
 jest.mock('uuid', () => {
-  const { randomUUID } = require('node:crypto');
+  const { randomUUID } = jest.requireActual<typeof import('node:crypto')>('node:crypto');
   return { v1: randomUUID, v4: randomUUID };
 });
 
