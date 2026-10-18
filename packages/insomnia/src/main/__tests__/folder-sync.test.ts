@@ -158,18 +158,15 @@ describe('FolderSync', () => {
   });
 
   it("leaves a file broken while the app was closed, and writes no copy of it", async () => {
-    write('Orders/List orders.yaml', 'type: Request
-name: [broken
-');
+    const broken = 'type: Request\nname: [broken\n';
+    write('Orders/List orders.yaml', broken);
 
     const reopened = new FolderSync(workspaceId, root);
     await reopened.start();
     reopened.stop();
 
     expect(await models.request.getById(requestId)).toBeTruthy();
-    expect(read('Orders/List orders.yaml')).toBe('type: Request
-name: [broken
-');
+    expect(read('Orders/List orders.yaml')).toBe(broken);
     expect(fs.readdirSync(path.join(root, 'Orders')).sort()).toEqual(['List orders.yaml', '_folder.yaml']);
   });
 
