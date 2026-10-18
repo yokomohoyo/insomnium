@@ -81,7 +81,7 @@ export const AssertionsEditor: FC = () => {
                 <input
                   type="text"
                   aria-label="Expected"
-                  placeholder="value or {{ variable }}"
+                  placeholder={assertion.operator === 'matchesSchema' ? 'a JSON Schema, such as {"type": "object", "required": ["id"]}' : 'value or {{ variable }}'}
                   value={assertion.value || ''}
                   onChange={event => change(assertion.id, { value: event.currentTarget.value })}
                 />
