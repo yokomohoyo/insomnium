@@ -1,7 +1,9 @@
 import { describe, expect, it } from '@jest/globals';
+import Ajv from 'ajv';
 import YAML from 'yaml';
 
 import { collectionFiles, folderDocs, type SyncDoc } from '../layout';
+import { folderSchema } from '../schema';
 
 const docs: SyncDoc[] = [
   { _id: 'wrk_1', type: 'Workspace', parentId: 'proj_1', name: 'Shop', description: 'The shop', scope: 'collection', modified: 5, created: 1 },
@@ -35,7 +37,7 @@ describe('collectionFiles()', () => {
     });
     // no timestamps, and the first lines say what it is
     expect(files.get('insomnium.yaml')).not.toContain('modified');
-    expect(files.get('Orders/Create order.yaml')!.split('\n').slice(0, 3)).toEqual(['_id: req_1', 'type: Request', 'name: Create order']);
+    expect(files.get('Orders/Create order.yaml')!.split('\n').slice(0, 4)).toEqual(['# yaml-language-server: $schema=../.insomnium/folder.schema.json', '_id: req_1', 'type: Request', 'name: Create order']);
     expect(JSON.stringify([...files.values()])).not.toContain('secret');
   });
 
@@ -46,6 +48,24 @@ describe('collectionFiles()', () => {
     expect(files.get('Long.yaml')).toContain(`description: ${description}\n`);
     // and other YAML is written as before
     expect(YAML.stringify({ description })).not.toContain(`description: ${description}\n`);
+  });
+});
+
+describe('the folder schema', () => {
+  it('takes every file a collection is written as, and each names it', () => {
+    const validate = new Ajv({ strict: false }).compile(folderSchema);
+    for (const [path, content] of collectionFiles(docs)) {
+      expect(content.split('\n')[0]).toBe(`# yaml-language-server: $schema=${'../'.repeat(path.split('/').length - 1)}.insomnium/folder.schema.json`);
+      expect({ path, valid: validate(YAML.parse(content)), errors: validate.errors }).toEqual({ path, valid: true, errors: null });
+    }
+  });
+
+  it('catches a mistake in a file written by hand', () => {
+    const validate = new Ajv({ strict: false }).compile(folderSchema);
+    expect(validate({ type: 'Request', headers: [{ value: 'no name' }] })).toBe(false);
+    expect(validate({ type: 'Reqeust' })).toBe(false);
+    expect(validate({ name: 'no type' })).toBe(false);
+    expect(validate({ type: 'Environment', data: { base_url: 'https://api.example.com' } })).toBe(true);
   });
 });
 
