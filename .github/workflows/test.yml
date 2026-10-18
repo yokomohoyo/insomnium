@@ -100,6 +100,42 @@ jobs:
         env:
           BUNDLE: build
 
+  E2E:
+    # Playwright UI tests against the built app. Not a required check yet: most
+    # specs predate the current UI (the app opens in My Collection now) and are
+    # brought back one at a time, so only the ones listed here run.
+    runs-on: macos-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Build app
+        run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-build
+
+      - name: Playwright
+        working-directory: packages/insomnia-smoke-test
+        run: npx playwright test --project=Smoke tests/smoke/event-stream.test.ts
+        env:
+          BUNDLE: build
+
+      - name: Upload traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-${{ github.run_number }}
+          path: packages/insomnia-smoke-test/traces
+          retention-days: 7
+
   Package:
     # Catches electron-builder/native-dep regressions before they hit a release
     # branch. macOS only — windows/linux artifacts still build on release/**.
