@@ -85,7 +85,8 @@ describe('CaptureProxy', () => {
 
   it('lets the oldest bodies go past its budget, and lists without bodies', async () => {
     await proxy.stop();
-    proxy = new CaptureProxy(() => {}, 100);
+    // room for one exchange: its request and its echoed response
+    proxy = new CaptureProxy(() => {}, 200);
     proxyPort = (await proxy.start(0))!;
     await viaProxy(proxyPort, `http://127.0.0.1:${targetPort}/first`, 'POST', 'a'.repeat(60));
     await viaProxy(proxyPort, `http://127.0.0.1:${targetPort}/second`, 'POST', 'b'.repeat(60));
