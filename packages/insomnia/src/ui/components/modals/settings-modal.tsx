@@ -12,6 +12,7 @@ import { ImportExport } from '../settings/import-export';
 import { McpAutomation } from '../settings/mcp-automation';
 import { ProtoTokens } from '../settings/proto-tokens';
 import { Shortcuts } from '../settings/shortcuts';
+import { Snapshots } from '../settings/snapshots';
 import { ThemePanel } from '../settings/theme-panel';
 import { showModal } from './index';
 import { Plugins } from '../settings/plugins';
@@ -60,6 +61,7 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
           <TabItem key="data" title="Data">
             <PanelContainer className="pad">
               <ImportExport hideSettingsModal={() => modalRef.current?.hide()} />
+              <Snapshots />
             </PanelContainer>
           </TabItem>
           <TabItem key="themes" title="Themes">

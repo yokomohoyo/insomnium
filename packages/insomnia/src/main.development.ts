@@ -17,6 +17,7 @@ import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
 import { registerWebSocketHandlers } from './main/network/websocket';
+import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
 import { checkIfRestartNeeded } from './main/squirrel-startup';
 import { hardenWebContents, lockDownSession } from './main/web-hardening';
 import * as windowUtils from './main/window-utils';
@@ -155,9 +156,12 @@ app.on('ready', async () => {
   }
 
   // Init some important things first
+  // a restore asked for last launch swaps the database before anything opens it
+  await restorePendingSnapshot();
   await backupDataIfVersionChanged();
   await database.init(models.types(), { credentialKeys: safeStorageKeyWrapper, onCredentialStorageChange: announceCredentialStorage });
   await _createModelInstances();
+  scheduleSnapshots();
 
   windowUtils.init();
   await _launchApp();

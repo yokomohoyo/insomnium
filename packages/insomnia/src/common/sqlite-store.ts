@@ -128,6 +128,11 @@ export class SqliteStore {
     this.prepare('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)').run(key, value);
   }
 
+  // A consistent copy of the open database, written to a new file
+  snapshotTo(file: string): void {
+    this.db.exec(`VACUUM INTO '${file.replace(/'/g, "''")}'`);
+  }
+
   attachGuard(guard: CredentialGuard | null): void {
     this.guard = guard;
   }
