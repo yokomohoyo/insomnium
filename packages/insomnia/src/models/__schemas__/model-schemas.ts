@@ -66,6 +66,7 @@ export const gitRepositorySchema: Schema<GitRepository> = {
   uri: () => '',
   needsFullClone: () => false,
   uriNeedsMigration: () => true,
+  dataDir: () => undefined,
 };
 
 export const environmentModelSchema: Schema<Environment> = {

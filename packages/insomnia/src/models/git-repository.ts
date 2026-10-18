@@ -1,5 +1,5 @@
 import { database as db } from '../common/database';
-import type { GitCredentials } from '../sync/git/git-vcs';
+import type { GitCredentials, GitDataDirName } from '../sync/git/git-vcs';
 import type { BaseModel } from './index';
 
 export type OauthProviderName = 'gitlab' | 'github' | 'custom';
@@ -15,6 +15,8 @@ export const prefix = 'git';
 export const canDuplicate = false;
 
 export const canSync = false;
+
+export const optionalKeys = ['dataDir'];
 
 export function init(): BaseGitRepository {
   return {
@@ -38,6 +40,9 @@ export interface BaseGitRepository {
     email: string;
   };
   uriNeedsMigration: boolean;
+  // where the repository keeps the app's data when it isn't .insomnium: in
+  // .insomnia, for a repository from Insomnia
+  dataDir?: GitDataDirName;
 }
 
 export const isGitRepository = (model: Pick<BaseModel, 'type'>): model is GitRepository => (

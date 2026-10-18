@@ -72,6 +72,7 @@ interface InitOptions {
   gitCredentials?: GitCredentials | null;
   uri?: string;
   repoId: string;
+  dataDirName?: GitDataDirName;
 }
 
 interface InitFromCloneOptions {
@@ -83,6 +84,7 @@ interface InitFromCloneOptions {
   repoId: string;
   // the workspace being linked: a repository holding another one is refused
   workspaceId?: string;
+  dataDirName?: GitDataDirName;
 }
 
 /**
@@ -94,11 +96,25 @@ interface InitFromCloneOptions {
  */
 export const GIT_CLONE_DIR = '.';
 export const GIT_INSOMNIA_DIR_NAME = '.insomnium';
+// Where Insomnia (and Insomnium before its rename) keeps a repository's data.
+// A repository cloned with its data there keeps it there, so it can still be
+// shared with Insomnia users.
+export const GIT_INSOMNIA_LEGACY_DIR_NAME = '.insomnia';
+export const GIT_DATA_DIR_NAMES = [GIT_INSOMNIA_DIR_NAME, GIT_INSOMNIA_LEGACY_DIR_NAME] as const;
+export type GitDataDirName = typeof GIT_DATA_DIR_NAMES[number];
 // Absolute, so no work-tree path (always relative to GIT_CLONE_DIR) can name
 // it: a repository file at git/config must not land in the real git config.
 // fsClient joins it under the repo folder, the same place on disk as before.
 export const GIT_INTERNAL_DIR = '/git';
 export const GIT_INSOMNIA_DIR = path.join(GIT_CLONE_DIR, GIT_INSOMNIA_DIR_NAME);
+
+// The _ids of the workspaces among a commit's files (a file is named for its doc)
+const workspaceIdsIn = (files: string[], dataDirName: string) => {
+  const prefix = `${dataDirName}/Workspace/`;
+  return files
+    .filter(file => file.startsWith(prefix) && file.endsWith('.yml') && !file.slice(prefix.length).includes('/'))
+    .map(file => file.slice(prefix.length, -'.yml'.length));
+};
 
 interface BaseOpts {
   dir: string;
@@ -119,7 +135,11 @@ export class GitVCS {
 
   initializedRepoId = '';
 
-  async init({ directory, fs, gitDirectory, gitCredentials, uri = '', repoId }: InitOptions) {
+  // the repository's folder for the app's data, at its root
+  dataDirName: GitDataDirName = GIT_INSOMNIA_DIR_NAME;
+
+  async init({ directory, fs, gitDirectory, gitCredentials, uri = '', repoId, dataDirName = GIT_INSOMNIA_DIR_NAME }: InitOptions) {
+    this.dataDirName = dataDirName;
     this._baseOpts = {
       ...this._baseOpts,
       dir: directory,
@@ -189,7 +209,9 @@ export class GitVCS {
     fs,
     gitDirectory,
     workspaceId,
+    dataDirName = GIT_INSOMNIA_DIR_NAME,
   }: InitFromCloneOptions) {
+    this.dataDirName = dataDirName;
     this._baseOpts = {
       ...this._baseOpts,
       ...gitCallbacks(gitCredentials),
@@ -214,8 +236,13 @@ export class GitVCS {
       console.log(`[git] Cloned an empty repo to ${gitDirectory} from ${url}`);
       return;
     }
+    const files = await git.listFiles({ ...this._baseOpts, ref: branch });
+    const held = workspaceIdsIn(files, dataDirName);
+    const elsewhere = GIT_DATA_DIR_NAMES.find(dir => dir !== dataDirName && workspaceIdsIn(files, dir).length);
+    if (!held.length && elsewhere) {
+      throw new Error(`This repository keeps its data in ${elsewhere}, so it can't be linked to this workspace. To open it, clone it from the project instead (Clone Git Repository).`);
+    }
     if (workspaceId) {
-      const held = await this.workspaceIdsAt(branch);
       if (held.length && !held.includes(workspaceId)) {
         throw new Error('This repository holds a different workspace, so it can\'t be linked to this one. To open it, clone it from the project instead (Clone Git Repository), which adds it as its own workspace.');
       }
@@ -224,13 +251,9 @@ export class GitVCS {
     console.log(`[git] Clones repo to ${gitDirectory} from ${url}`);
   }
 
-  // The _ids of the workspaces a commit holds (a file is named for its doc)
+  // The _ids of the workspaces a commit holds
   async workspaceIdsAt(ref: string) {
-    const files = await git.listFiles({ ...this._baseOpts, ref });
-    const prefix = `${GIT_INSOMNIA_DIR_NAME}/Workspace/`;
-    return files
-      .filter(file => file.startsWith(prefix) && file.endsWith('.yml') && !file.slice(prefix.length).includes('/'))
-      .map(file => file.slice(prefix.length, -'.yml'.length));
+    return workspaceIdsIn(await git.listFiles({ ...this._baseOpts, ref }), this.dataDirName);
   }
 
   isInitializedForRepo(id: string) {
@@ -241,7 +264,7 @@ export class GitVCS {
     console.log('[git] List files');
     const repositoryFiles = await git.listFiles({ ...this._baseOpts });
     const insomniaFiles = repositoryFiles
-      .filter(file => file.startsWith(GIT_INSOMNIA_DIR_NAME))
+      .filter(file => file.startsWith(`${this.dataDirName}/`))
       .map(convertToOsSep);
     return insomniaFiles;
   }
@@ -461,7 +484,7 @@ export class GitVCS {
     const dropped = new Map<string, BaseModel>();
     for (const filepath of before) {
       const [root, type, fileName, ...rest] = filepath.split('/');
-      if (root !== GIT_INSOMNIA_DIR_NAME || !fileName || rest.length) {
+      if (root !== this.dataDirName || !fileName || rest.length) {
         continue;
       }
       if (type === models.workspace.type) {

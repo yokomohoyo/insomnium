@@ -7,7 +7,7 @@ import * as models from '../../models';
 import { BaseModel } from '../../models';
 import { isWorkspace, Workspace, WorkspaceScopeKeys } from '../../models/workspace';
 import { resetKeys } from '../ignore-keys';
-import { GIT_INSOMNIA_DIR, GIT_INSOMNIA_DIR_NAME } from './git-vcs';
+import { GIT_CLONE_DIR, GIT_DATA_DIR_NAMES, GIT_INSOMNIA_DIR_NAME, GitDataDirName } from './git-vcs';
 import parseGitPath from './parse-git-path';
 import Stat from './stat';
 import { SystemError } from './system-error';
@@ -22,17 +22,30 @@ export const isGitSyncedType = (type: string | null) => !!type && models.getMode
 const carriesOtherPrefix = (doc: BaseModel) =>
   typeof doc._id !== 'string' || models.all().some(model => model.type !== doc.type && doc._id.startsWith(`${model.prefix}_`));
 
+// The folder a cloned repository keeps a workspace in: Insomnium's, or else
+// Insomnia's (a repository from Insomnia, or from Insomnium before its rename)
+export async function clonedDataDir(fsClient: PromiseFsClient): Promise<GitDataDirName | null> {
+  const rootDirs: string[] = await fsClient.promises.readdir(GIT_CLONE_DIR);
+  for (const dataDirName of GIT_DATA_DIR_NAMES) {
+    if (rootDirs.includes(dataDirName) && (await fsClient.promises.readdir(path.join(GIT_CLONE_DIR, dataDirName))).includes(models.workspace.type)) {
+      return dataDirName;
+    }
+  }
+  return null;
+}
+
 // The documents a cloned repository may add, held to the same rules as
 // NeDBClient.writeFile: a synced type, in its type's folder, named by its _id,
 // which does not carry another type's prefix.
-export async function readClonedDocs(fsClient: PromiseFsClient) {
+export async function readClonedDocs(fsClient: PromiseFsClient, dataDirName: GitDataDirName = GIT_INSOMNIA_DIR_NAME) {
   const docs: BaseModel[] = [];
-  for (const type of await fsClient.promises.readdir(GIT_INSOMNIA_DIR)) {
+  const dataDir = path.join(GIT_CLONE_DIR, dataDirName);
+  for (const type of await fsClient.promises.readdir(dataDir)) {
     if (!isGitSyncedType(type)) {
       console.log(`[git] Ignoring ${type} in the cloned repository`);
       continue;
     }
-    const typeDir = path.join(GIT_INSOMNIA_DIR, type);
+    const typeDir = path.join(dataDir, type);
     for (const fileName of await fsClient.promises.readdir(typeDir)) {
       const doc: BaseModel | null = YAML.parse((await fsClient.promises.readFile(path.join(typeDir, fileName))).toString());
       if (!doc || doc.type !== type || `${doc._id}.yml` !== fileName || carriesOtherPrefix(doc)) {
@@ -51,10 +64,10 @@ export async function readClonedDocs(fsClient: PromiseFsClient) {
 // in the app, or whose parents lead outside the repository, is someone else's.
 // (The full clone when a linked workspace is first opened writes through
 // NeDBClient.writeFile, which keeps to that workspace.)
-export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string): Promise<
+export async function importClonedDocs(fsClient: PromiseFsClient, projectId: string, dataDirName: GitDataDirName = GIT_INSOMNIA_DIR_NAME): Promise<
   { error: string } | { existingWorkspace: Workspace } | { workspace: Workspace }
 > {
-  const docs = await readClonedDocs(fsClient);
+  const docs = await readClonedDocs(fsClient, dataDirName);
   const workspaces = docs.filter(isWorkspace);
   if (workspaces.length !== 1) {
     return { error: workspaces.length ? 'Multiple workspaces found in repository. Expected one.' : 'No workspaces found in repository' };
@@ -93,19 +106,22 @@ export async function importClonedDocs(fsClient: PromiseFsClient, projectId: str
 export class NeDBClient {
   _workspaceId: string;
   _projectId: string;
+  // the repository's folder for the app's data (see GitVCS.dataDirName)
+  _dataDirName: GitDataDirName;
 
-  constructor(workspaceId: string, projectId: string) {
+  constructor(workspaceId: string, projectId: string, dataDirName: GitDataDirName = GIT_INSOMNIA_DIR_NAME) {
     if (!workspaceId) {
       throw new Error('Cannot use NeDBClient without workspace ID');
     }
 
     this._workspaceId = workspaceId;
     this._projectId = projectId;
+    this._dataDirName = dataDirName;
   }
 
-  static createClient(workspaceId: string, projectId: string): PromiseFsClient {
+  static createClient(workspaceId: string, projectId: string, dataDirName: GitDataDirName = GIT_INSOMNIA_DIR_NAME): PromiseFsClient {
     return {
-      promises: new NeDBClient(workspaceId, projectId),
+      promises: new NeDBClient(workspaceId, projectId, dataDirName),
     };
   }
 
@@ -182,7 +198,7 @@ export class NeDBClient {
     filePath = path.normalize(filePath);
     const { root, id, type } = parseGitPath(filePath);
 
-    if (root !== GIT_INSOMNIA_DIR_NAME) {
+    if (root !== this._dataDirName) {
       console.log(`[git] Ignoring external file ${filePath}`);
       return;
     }
@@ -262,7 +278,7 @@ export class NeDBClient {
     let otherFolders: string[] = [];
 
     if (root === null && id === null && type === null) {
-      otherFolders = [GIT_INSOMNIA_DIR_NAME];
+      otherFolders = [this._dataDirName];
     } else if (id === null && type === null) {
       otherFolders = [
         models.workspace.type,
