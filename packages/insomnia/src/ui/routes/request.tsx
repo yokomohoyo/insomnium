@@ -163,6 +163,32 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
       name: 'New Event Stream',
     }))._id;
   }
+  // a streamed chat completion: an Event Stream request to the AI assistant's
+  // endpoint, or Ollama's, without its key (requests are exported and synced)
+  if (requestType === 'LLM') {
+    const settings = await models.settings.getOrCreate();
+    const base = (settings.aiBaseUrl || '').trim().replace(/\/+$/, '') || 'http://localhost:11434/v1';
+    activeRequestId = (await models.request.create({
+      parentId: parentId || workspaceId,
+      name: 'New LLM Request',
+      method: METHOD_POST,
+      url: `${base}/chat/completions`,
+      headers: [
+        { name: 'User-Agent', value: `insomnium/${version}` },
+        { name: 'Accept', value: CONTENT_TYPE_EVENT_STREAM },
+        { name: 'Content-Type', value: CONTENT_TYPE_JSON },
+      ],
+      body: {
+        mimeType: CONTENT_TYPE_JSON,
+        text: JSON.stringify({
+          model: settings.aiModel || 'llama3.2',
+          stream: true,
+          stream_options: { include_usage: true },
+          messages: [{ role: 'user', content: 'Say hello in five words.' }],
+        }, null, 2),
+      },
+    }))._id;
+  }
   if (requestType === 'MCP') {
     activeRequestId = (await models.mcpRequest.create({
       parentId: parentId || workspaceId,

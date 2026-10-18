@@ -1,10 +1,11 @@
 import fs from 'fs';
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { parseServerSentEvents, readLlmStream } from '../../../common/llm-stream';
 import { getSetCookieHeaders } from '../../../common/misc';
-import { CurlEvent } from '../../../main/network/curl';
+import { CurlEvent, CurlMessageEvent } from '../../../main/network/curl';
 import { ResponseTimelineEntry } from '../../../main/network/libcurl-promise';
 import { WebSocketEvent } from '../../../main/network/websocket';
 import { Response } from '../../../models/response';
@@ -23,6 +24,7 @@ import { TimeTag } from '../tags/time-tag';
 import { ResponseCookiesViewer } from '../viewers/response-cookies-viewer';
 import { ResponseErrorViewer } from '../viewers/response-error-viewer';
 import { ResponseHeadersViewer } from '../viewers/response-headers-viewer';
+import { LlmStreamViewer } from '../viewers/llm-stream-viewer';
 import { ResponseTimelineViewer } from '../viewers/response-timeline-viewer';
 import { EventLogView } from './event-log-view';
 import { EventView } from './event-view';
@@ -165,6 +167,17 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
     };
   }, [response.timelinePath, events.length]);
 
+  // a model's streamed reply, when the stream is one
+  const llmStream = useMemo(() => {
+    if (protocol !== 'curl') {
+      return null;
+    }
+    const inOrder = [...allEvents].sort((a, b) => a.timestamp - b.timestamp);
+    const chunks = inOrder.filter((event): event is CurlMessageEvent => event.type === 'message' && typeof event.data === 'string')
+      .map(event => ({ data: event.data, timestamp: event.timestamp }));
+    return chunks.length ? readLlmStream(parseServerSentEvents(chunks), inOrder.find(event => event.type === 'open')?.timestamp ?? inOrder[0]?.timestamp) : null;
+  }, [allEvents, protocol]);
+
   const cookieHeaders = getSetCookieHeaders(response.headers);
   return (
     <Pane type="response">
@@ -179,6 +192,17 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
         />
       </PaneHeader>
       <Tabs aria-label="Curl response pane tabs">
+        {[
+        // only for a stream from a language model
+        ...(llmStream ? [
+          <TabItem key="llm" title="LLM">
+            <PanelContainer>
+              <ErrorBoundary key={response._id} errorClassName="font-error pad text-center">
+                <LlmStreamViewer stream={llmStream} />
+              </ErrorBoundary>
+            </PanelContainer>
+          </TabItem>,
+        ] : []),
         <TabItem key="events" title="Events">
           <PaneBodyContent>
             {response.error ? <ResponseErrorViewer url={response.url} error={response.error} />
@@ -247,7 +271,7 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
                 )}
               </>}
           </PaneBodyContent>
-        </TabItem>
+        </TabItem>,
         <TabItem
           key="headers"
           title={
@@ -264,7 +288,7 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
               <ResponseHeadersViewer headers={response.headers} />
             </ErrorBoundary>
           </PanelContainer>
-        </TabItem>
+        </TabItem>,
         <TabItem
           key="cookies"
           title={
@@ -285,14 +309,15 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
               />
             </ErrorBoundary>
           </PanelContainer>
-        </TabItem>
+        </TabItem>,
         <TabItem key="timeline" title="Timeline">
           <ResponseTimelineViewer
             key={response._id}
             timeline={timeline}
             pinToBottom={true}
           />
-        </TabItem>
+        </TabItem>,
+        ]}
       </Tabs>
     </ Pane>
   );

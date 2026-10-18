@@ -29,3 +29,9 @@ Sent to the model: your description, and the names of the active environments' v
 In **Git Sync → Commit**, **Suggest a Message** writes a message for the changes you've chosen to commit (or all of them, if none are chosen yet). Edit it as you like before committing.
 
 Sent to the model: the names of the changed requests, folders and environments, and which of their fields changed (with the names of added or removed headers and parameters). Not the values.
+
+## Test a model's API
+
+To try a model's API itself, choose **LLM Request** in a collection's **+** menu. It's an Event Stream request: a streamed chat completion to the AI assistant's endpoint (or Ollama's, when it isn't set up), with a JSON body to edit. The key isn't copied into it, since requests are exported and synced; add it under **Auth** as a Bearer token, from an environment variable such as `{{ api_key }}`.
+
+When a response streams a model's reply, the **LLM** tab puts it together as it arrives, and shows the model, the tokens it used, how long the first token took, the whole reply's time and tokens a second, and why it stopped. It reads OpenAI-compatible chat completions (OpenAI, Ollama, LM Studio, vLLM, OpenRouter and Gemini's), OpenAI's Responses API, and Anthropic's Messages API, with a reasoning model's thinking apart from its reply. To compare models, duplicate the request and change `model`.

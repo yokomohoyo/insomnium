@@ -77,6 +77,25 @@ app.post('/v1/chat/completions', (request, response) => {
     response.status(401).json({ error: { message: 'Incorrect API key provided' } });
     return;
   }
+  // streamed, as models stream: a chunk a word, then the reason it stopped and the usage
+  if (request.body.stream) {
+    response.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache' });
+    const model = request.body.model;
+    const chunk = (payload: object) => `data: ${JSON.stringify({ id: 'chatcmpl-2', object: 'chat.completion.chunk', model, ...payload })}\n\n`;
+    const words = ['Hello', ' from', ' the', ' fake', ' model.'];
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index < words.length) {
+        response.write(chunk({ choices: [{ index: 0, delta: { content: words[index++] }, finish_reason: null }] }));
+        return;
+      }
+      clearInterval(timer);
+      response.write(chunk({ choices: [{ index: 0, delta: {}, finish_reason: 'stop' }] }));
+      response.write(chunk({ choices: [], usage: { prompt_tokens: 12, completion_tokens: 5, total_tokens: 17 } }));
+      response.end('data: [DONE]\n\n');
+    }, 50);
+    return;
+  }
   const [first] = request.body.messages || [];
   const content = String(first?.content).includes('description of an HTTP request')
     ? '```json\n' + JSON.stringify({ name: 'Pet two', method: 'GET', url: '{{ base_url }}/pets/2', headers: [{ name: 'Accept', value: 'application/json' }] }) + '\n```'

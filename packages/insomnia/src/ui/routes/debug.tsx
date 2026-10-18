@@ -611,6 +611,16 @@ export const Debug: FC = () => {
           }),
       },
       {
+        id: 'LLM Request',
+        name: 'LLM Request',
+        icon: 'plus-circle',
+        action: () =>
+          createRequest({
+            requestType: 'LLM',
+            parentId: workspaceId,
+          }),
+      },
+      {
         id: 'From Curl',
         name: 'From Curl',
         icon: 'terminal',
