@@ -1,5 +1,10 @@
 import type { Faker } from '@faker-js/faker';
 
+// a picture in the category, from loremflickr.com, as faker's urlLoremFlickr
+// gave (deprecated in faker 10, which has no categories otherwise)
+const categoryImage = (category: string) => (faker: Faker) =>
+  `https://loremflickr.com/640/480/${category}?lock=${faker.number.int({ min: 1, max: 1_000_000 })}`;
+
 // Postman's dynamic variables ({{$randomFullName}}), by the names Kong
 // Insomnia's faker tag also takes ({% faker 'randomFullName' %}), so either
 // tool's collections render here. Each returns what Postman documents for it.
@@ -48,18 +53,18 @@ export const fakerFunctions: Record<string, (faker: Faker) => string> = {
 
   randomAvatarImage: faker => faker.image.avatar(),
   randomImageUrl: faker => faker.image.url(),
-  randomAbstractImage: faker => faker.image.urlLoremFlickr({ category: 'abstract' }),
-  randomAnimalsImage: faker => faker.image.urlLoremFlickr({ category: 'animals' }),
-  randomBusinessImage: faker => faker.image.urlLoremFlickr({ category: 'business' }),
-  randomCatsImage: faker => faker.image.urlLoremFlickr({ category: 'cats' }),
-  randomCityImage: faker => faker.image.urlLoremFlickr({ category: 'city' }),
-  randomFoodImage: faker => faker.image.urlLoremFlickr({ category: 'food' }),
-  randomNightlifeImage: faker => faker.image.urlLoremFlickr({ category: 'nightlife' }),
-  randomFashionImage: faker => faker.image.urlLoremFlickr({ category: 'fashion' }),
-  randomPeopleImage: faker => faker.image.urlLoremFlickr({ category: 'people' }),
-  randomNatureImage: faker => faker.image.urlLoremFlickr({ category: 'nature' }),
-  randomSportsImage: faker => faker.image.urlLoremFlickr({ category: 'sports' }),
-  randomTransportImage: faker => faker.image.urlLoremFlickr({ category: 'transport' }),
+  randomAbstractImage: categoryImage('abstract'),
+  randomAnimalsImage: categoryImage('animals'),
+  randomBusinessImage: categoryImage('business'),
+  randomCatsImage: categoryImage('cats'),
+  randomCityImage: categoryImage('city'),
+  randomFoodImage: categoryImage('food'),
+  randomNightlifeImage: categoryImage('nightlife'),
+  randomFashionImage: categoryImage('fashion'),
+  randomPeopleImage: categoryImage('people'),
+  randomNatureImage: categoryImage('nature'),
+  randomSportsImage: categoryImage('sports'),
+  randomTransportImage: categoryImage('transport'),
   randomImageDataUri: faker => faker.image.dataUri(),
 
   randomBankAccount: faker => faker.finance.accountNumber(8),
