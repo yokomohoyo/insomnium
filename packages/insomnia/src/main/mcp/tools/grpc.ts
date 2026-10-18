@@ -1,4 +1,4 @@
-import { makeGenericClientConstructor, Metadata } from '@grpc/grpc-js';
+import { makeGenericClientConstructor, Metadata, type StatusObject } from '@grpc/grpc-js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
@@ -10,6 +10,7 @@ import { parseGrpcUrl } from '../../../network/grpc/parse-grpc-url';
 import { checkRequestPolicy } from '../../../network/request-policy';
 import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../../network/grpc-credentials';
+import { type GrpcMetadata, plainMetadata } from '../../network/grpc-metadata';
 import { makeGrpcClient } from '../../network/proxy';
 import { assertSafeHeaders, findWorkspaceForRequest } from './util';
 
@@ -80,6 +81,27 @@ interface GrpcResult {
   responses?: any[];
   status?: any;
   error?: any;
+  // the response's initial metadata, and its trailers
+  headers?: GrpcMetadata;
+  trailers?: GrpcMetadata;
+}
+
+// A unary or client-streaming call's outcome, settled on its status (which
+// grpc-js emits just after the callback) so its headers and trailers come too
+export function withStatus(settle: (value: GrpcResult) => void) {
+  let outcome: GrpcResult = { ok: false };
+  let headers: GrpcMetadata | undefined;
+  return {
+    callback: (err: any, response: any) => {
+      outcome = err ? { ok: false, error: { code: err.code, details: err.details, message: err.message } } : { ok: true, response };
+    },
+    watch: (call: { on: (event: string, listener: (value: any) => void) => unknown }) => {
+      call.on('metadata', (received: Metadata) => {
+        headers = plainMetadata(received);
+      });
+      call.on('status', (status: StatusObject) => settle({ ...outcome, ...(headers ? { headers } : {}), trailers: plainMetadata(status.metadata) }));
+    },
+  };
 }
 
 // Settle a gRPC call exactly once, with a backstop timer so a server that goes
@@ -197,18 +219,16 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   try {
     if (methodType === 'unary') {
       result = await settleWithBackstop(timeoutMs, timedOut, settle => {
-        client.makeUnaryRequest(
+        const outcome = withStatus(settle);
+        outcome.watch(client.makeUnaryRequest(
           method.path,
           method.requestSerialize,
           method.responseDeserialize,
           firstBody,
           metadata,
           { deadline },
-          (err: any, response: any) => {
-            if (err) settle({ ok: false, error: { code: err.code, details: err.details, message: err.message } });
-            else settle({ ok: true, response });
-          },
-        );
+          outcome.callback,
+        ));
       });
     } else if (methodType === 'server') {
       const responses: any[] = [];
@@ -248,17 +268,16 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
         });
     } else if (methodType === 'client') {
       result = await settleWithBackstop(timeoutMs, timedOut, settle => {
+        const outcome = withStatus(settle);
         const call = client.makeClientStreamRequest(
           method.path,
           method.requestSerialize,
           method.responseDeserialize,
           metadata,
           { deadline },
-          (err: any, response: any) => {
-            if (err) settle({ ok: false, error: { code: err.code, details: err.details, message: err.message } });
-            else settle({ ok: true, response });
-          },
+          outcome.callback,
         );
+        outcome.watch(call);
         for (const m of messages!) (call as any).write(m);
         (call as any).end();
       });
@@ -318,6 +337,8 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
         responseCount: result.responses?.length,
         truncated: result.status?.truncated || false,
         error: result.error,
+        headers: result.headers,
+        trailers: result.trailers,
       }, null, 2),
     }],
     isError: !result.ok,
