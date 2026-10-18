@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
-import installPlugin, { containsYarnErrors } from '../main/install-plugin';
+import installPlugin, { containsYarnErrors, installPluginFromFile, pluginInstallOptions } from '../main/install-plugin';
 
 // Output captured from bin/yarn-standalone.js (yarn 1.15.2) run with the same
 // arguments install-plugin.ts uses.
@@ -185,6 +185,96 @@ describe('install.js', () => {
     it('should install a plugin when electron exits non-zero after yarn succeeded', async () => {
       add = { exitCode: 1, stdout: ADD_DEPRECATED_STDOUT, stderr: ADD_DEPRECATED_STDERR };
       await expect(installPlugin('insomnia-plugin-request')).resolves.toBeUndefined();
+    });
+
+    it('should look up and install from the registry, through the proxy, it is given', async () => {
+      await installPlugin('insomnia-plugin-request', { registry: 'https://npm.example.com', proxy: 'http://proxy.example.com:3128' });
+
+      const calls = jest.mocked(childProcess.execFile).mock.calls.map(call => call[1] as string[]);
+      expect(calls).toHaveLength(2);
+      for (const args of calls) {
+        expect(args).toEqual(expect.arrayContaining(['--registry', 'https://npm.example.com', '--proxy', 'http://proxy.example.com:3128', '--https-proxy', 'http://proxy.example.com:3128']));
+      }
+    });
+  });
+
+  describe('installPluginFromFile', () => {
+    let dataPath: string;
+    let tarball: string;
+    let packageJson: object;
+
+    beforeEach(() => {
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      dataPath = mkdtempSync(path.join(os.tmpdir(), 'insomnia-install-plugin-'));
+      process.env['INSOMNIA_DATA_PATH'] = dataPath;
+      // @ts-expect-error -- not part of the electron mock
+      electron.app.getAppPath = () => '/app';
+      tarball = path.join(dataPath, 'insomnia-plugin-local-1.0.0.tgz');
+      writeFileSync(tarball, '');
+      packageJson = { name: 'insomnia-plugin-local', version: '1.0.0', insomnia: { name: 'local' } };
+
+      // yarn add file:…tgz, laid out as yarn does: the package, its dependencies, and it in package.json
+      jest.spyOn(childProcess, 'execFile').mockImplementation(((_file: string, args: string[], options: { cwd: string }, callback: Function) => {
+        mkdirSync(path.join(options.cwd, 'insomnia-plugin-local'));
+        writeFileSync(path.join(options.cwd, 'insomnia-plugin-local', 'package.json'), JSON.stringify(packageJson));
+        mkdirSync(path.join(options.cwd, 'left-pad'));
+        writeFileSync(path.join(options.cwd, 'package.json'), JSON.stringify({ dependencies: { 'insomnia-plugin-local': args[3] } }));
+        callback(null, ADD_DEPRECATED_STDOUT, '');
+        return {} as childProcess.ChildProcess;
+      }) as any);
+    });
+
+    afterEach(() => {
+      delete process.env['INSOMNIA_DATA_PATH'];
+      rmSync(dataPath, { recursive: true, force: true });
+      jest.restoreAllMocks();
+    });
+
+    it('should install a plugin from a package tarball, without looking it up', async () => {
+      await expect(installPluginFromFile(tarball, { registry: 'https://npm.example.com' })).resolves.toBe('insomnia-plugin-local');
+
+      const pluginDir = path.join(dataPath, 'plugins', 'insomnia-plugin-local');
+      expect(existsSync(path.join(pluginDir, 'package.json'))).toBe(true);
+      expect(existsSync(path.join(pluginDir, 'node_modules', 'left-pad'))).toBe(true);
+      const [[, args]] = jest.mocked(childProcess.execFile).mock.calls as unknown as [string, string[]][];
+      expect(args.slice(2, 4)).toEqual(['add', `file:${tarball}`]);
+      expect(args).toEqual(expect.arrayContaining(['--registry', 'https://npm.example.com']));
+    });
+
+    it('should refuse a package that is not a plugin, and a file that is not a tarball', async () => {
+      packageJson = { name: 'left-pad', version: '1.0.0' };
+      await expect(installPluginFromFile(tarball)).rejects.toThrow('isn\'t a plugin: its package.json has no "insomnia" key');
+      expect(existsSync(path.join(dataPath, 'plugins', 'left-pad'))).toBe(false);
+
+      writeFileSync(path.join(dataPath, 'plugin.zip'), '');
+      await expect(installPluginFromFile(path.join(dataPath, 'plugin.zip'))).rejects.toThrow('plugin.zip isn\'t a package tarball (.tgz)');
+    });
+  });
+
+  describe('pluginInstallOptions', () => {
+    const settings = { pluginRegistry: '', proxyEnabled: false, httpProxy: '', httpsProxy: '', noProxy: '', useSystemProxy: false };
+
+    it('should use the registry and proxy from Preferences', async () => {
+      expect(await pluginInstallOptions(settings)).toEqual({});
+      expect(await pluginInstallOptions({ ...settings, pluginRegistry: ' https://npm.example.com/ ', proxyEnabled: true, httpsProxy: 'proxy.example.com:3128' }))
+        .toEqual({ registry: 'https://npm.example.com', proxy: 'http://proxy.example.com:3128' });
+      // the bypass list applies to the registry
+      expect(await pluginInstallOptions({ ...settings, pluginRegistry: 'https://npm.example.com', proxyEnabled: true, httpsProxy: 'proxy.example.com:3128', noProxy: 'example.com' }))
+        .toEqual({ registry: 'https://npm.example.com' });
+    });
+
+    it('should use the environment proxy when asked to use the system one', async () => {
+      expect(await pluginInstallOptions({ ...settings, useSystemProxy: true }, { HTTPS_PROXY: 'http://corp-proxy:8080' })).toEqual({ proxy: 'http://corp-proxy:8080' });
+    });
+
+    it('should go direct rather than through a proxy yarn cannot use', async () => {
+      jest.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(await pluginInstallOptions({ ...settings, proxyEnabled: true, httpsProxy: 'socks5://proxy.example.com:1080' })).toEqual({});
+    });
+
+    it('should refuse a registry that is not a web address', async () => {
+      await expect(pluginInstallOptions({ ...settings, pluginRegistry: 'file:///etc' })).rejects.toThrow('The plugin registry has to be an http:// or https:// address');
+      await expect(pluginInstallOptions({ ...settings, pluginRegistry: 'npm.example.com' })).rejects.toThrow('has to be an http:// or https:// address');
     });
   });
 });

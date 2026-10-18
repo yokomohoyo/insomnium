@@ -8,10 +8,15 @@ Plugins add template tags, change requests before they're sent or responses as t
 
 In **Preferences → Plugins**:
 
-- Enter a package's npm name and **Install Plugin**. This needs the npm registry.
-- Or, offline, **Reveal Plugins Folder** and put the plugin's folder (with its `package.json`) in it, then **Reload Plugins** (Ctrl+Shift+R, or ⌘+Shift+R).
+- Enter a package's npm name and **Install Plugin**. **Find Plugins on npm** searches for them.
+- Or **Install from File…** and choose a package tarball, as `npm pack` makes (`insomnia-plugin-example-1.0.0.tgz`). Its dependencies come from the registry, unless the package bundles them, so a plugin without dependencies (or with them bundled) installs offline.
+- Or **Reveal Plugins Folder** and put the plugin's folder (with its `package.json`) in it, then **Reload Plugins** (Ctrl+Shift+R, or ⌘+Shift+R).
 
 Turn a plugin off with its checkbox in the list, without removing it.
+
+**Registry** sets where Install Plugin gets packages from, such as a mirror or your company's own registry, instead of the npm registry. Installs go through the proxy set under **General → Network Proxy**, like requests do.
+
+**Other plugin folders** loads plugins from folders of your own as well, such as one you're writing a plugin in. Separate them with `;` on Windows or `:` elsewhere, or put one on each line.
 
 A link like `insomnia://plugins/install?name=insomnia-plugin-example` offers to install that plugin.
 

@@ -1,4 +1,4 @@
-import { cp, mkdir, mkdtemp, readdir, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 
 import childProcess from 'child_process';
 import * as electron from 'electron';
@@ -6,6 +6,8 @@ import { app } from 'electron';
 import path from 'path';
 
 import { isDevelopment } from '../common/constants';
+import type { Settings } from '../models/settings';
+import { describeProxy, proxyFor } from './network/proxy';
 import { assertValidPackageSpec } from './validate-package-spec';
 
 interface InsomniaPlugin {
@@ -40,56 +42,101 @@ interface InsomniaPlugin {
   };
 }
 
-export default async function(lookupName: string) {
-  return new Promise<void>(async (resolve, reject) => {
-    let info: InsomniaPlugin | null = null;
-
-    try {
-      assertValidPackageSpec(lookupName);
-      info = await _isInsomniaPlugin(lookupName);
-      // Get actual module name without version suffixes and things
-      const moduleName = info.name;
-      const pluginDir = path.join(process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData'), 'plugins', moduleName);
-
-      // Make plugin directory
-      await mkdir(pluginDir, { recursive: true });
-
-      // Download the module
-      const request = electron.net.request(info.dist.tarball);
-      request.on('error', err => {
-        reject(new Error(`Failed to make plugin request ${info?.dist.tarball}: ${err.message}`));
-      });
-
-      const { tmpDir } = await _installPluginToTmpDir(lookupName);
-      console.log(`[plugins] Moving plugin from ${tmpDir} to ${pluginDir}`);
-
-      // Move entire module to plugins folder
-      await cp(path.join(tmpDir, moduleName), pluginDir, { recursive: true, verbatimSymlinks: true });
-
-      // Move each dependency into node_modules folder
-      const pluginModulesDir = path.join(pluginDir, 'node_modules');
-      await mkdir(pluginModulesDir, { recursive: true });
-
-      for (const filename of await readdir(tmpDir)) {
-        const src = path.join(tmpDir, filename);
-        const file = await stat(src);
-        if (filename === moduleName || !file.isDirectory()) {
-          continue;
-        }
-
-        const dest = path.join(pluginModulesDir, filename);
-        await cp(src, dest, { recursive: true, verbatimSymlinks: true });
-      }
-    } catch (err) {
-      reject(err);
-      return;
-    }
-
-    resolve();
-  });
+// Where installs come from: the npm registry, or another set in Preferences (a
+// mirror, or a company's own), through the proxy requests go through
+export interface PluginInstallOptions {
+  registry?: string;
+  proxy?: string;
 }
 
-async function _isInsomniaPlugin(lookupName: string) {
+const DEFAULT_REGISTRY = 'https://registry.npmjs.org';
+
+type InstallSettings = Pick<Settings, 'pluginRegistry' | 'proxyEnabled' | 'httpProxy' | 'httpsProxy' | 'noProxy' | 'useSystemProxy'>;
+
+const isWebAddress = (value: string) => {
+  try {
+    return ['http:', 'https:'].includes(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+};
+
+export async function pluginInstallOptions(settings: InstallSettings, env?: Record<string, string | undefined>): Promise<PluginInstallOptions> {
+  const registry = (settings.pluginRegistry || '').trim().replace(/\/+$/, '');
+  if (registry && !isWebAddress(registry)) {
+    throw new Error(`The plugin registry has to be an http:// or https:// address, not ${JSON.stringify(registry)}`);
+  }
+  const proxy = await proxyFor(registry || DEFAULT_REGISTRY, settings, env);
+  const usable = proxy && /^https?:/i.test(proxy) ? proxy : null;
+  if (proxy && !usable) {
+    console.warn(`[plugins] Installing directly: yarn can only go through an HTTP proxy, not ${describeProxy(proxy)}`);
+  }
+  return {
+    ...(registry ? { registry } : {}),
+    ...(usable ? { proxy: usable } : {}),
+  };
+}
+
+// yarn's flags for them
+export const yarnNetworkArgs = ({ registry, proxy }: PluginInstallOptions) => [
+  ...(registry ? ['--registry', registry] : []),
+  ...(proxy ? ['--proxy', proxy, '--https-proxy', proxy] : []),
+];
+
+const pluginsDir = () => path.join(process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData'), 'plugins');
+
+export default async function installPlugin(lookupName: string, options: PluginInstallOptions = {}) {
+  assertValidPackageSpec(lookupName);
+  const info = await _isInsomniaPlugin(lookupName, options);
+  const { tmpDir } = await _installPluginToTmpDir(lookupName, options);
+  // the actual module name, without a version
+  await _movePlugin(tmpDir, info.name);
+}
+
+// A plugin from a package tarball on this computer (npm pack's .tgz), to
+// install without the registry. Its dependencies still come from the
+// registry, unless it bundles them.
+export async function installPluginFromFile(file: string, options: PluginInstallOptions = {}) {
+  const tarball = path.resolve(file);
+  if (!/\.(tgz|tar\.gz)$/i.test(tarball) || !(await stat(tarball)).isFile()) {
+    throw new Error(`${path.basename(tarball)} isn't a package tarball (.tgz)`);
+  }
+  const { tmpDir } = await _installPluginToTmpDir(`file:${tarball}`, options, path.basename(tarball));
+  const manifest = JSON.parse(await readFile(path.join(tmpDir, 'package.json'), 'utf8'));
+  const [moduleName] = Object.keys(manifest.dependencies || {});
+  const pluginJson = moduleName ? JSON.parse(await readFile(path.join(tmpDir, moduleName, 'package.json'), 'utf8')) : null;
+  if (!pluginJson?.hasOwnProperty('insomnia')) {
+    throw new Error(`${path.basename(tarball)} isn't a plugin: its package.json has no "insomnia" key`);
+  }
+  await _movePlugin(tmpDir, moduleName);
+  return moduleName as string;
+}
+
+async function _movePlugin(tmpDir: string, moduleName: string) {
+  const pluginDir = path.join(pluginsDir(), moduleName);
+  await mkdir(pluginDir, { recursive: true });
+  console.log(`[plugins] Moving plugin from ${tmpDir} to ${pluginDir}`);
+
+  // Move entire module to plugins folder
+  await cp(path.join(tmpDir, moduleName), pluginDir, { recursive: true, verbatimSymlinks: true });
+
+  // Move each dependency into node_modules folder
+  const pluginModulesDir = path.join(pluginDir, 'node_modules');
+  await mkdir(pluginModulesDir, { recursive: true });
+
+  for (const filename of await readdir(tmpDir)) {
+    const src = path.join(tmpDir, filename);
+    const file = await stat(src);
+    if (filename === moduleName || !file.isDirectory()) {
+      continue;
+    }
+
+    const dest = path.join(pluginModulesDir, filename);
+    await cp(src, dest, { recursive: true, verbatimSymlinks: true });
+  }
+}
+
+async function _isInsomniaPlugin(lookupName: string, options: PluginInstallOptions) {
   return new Promise<InsomniaPlugin>((resolve, reject) => {
     console.log('[plugins] Fetching module info from npm');
     // shell:false (default) - args are passed verbatim to the child, so
@@ -102,6 +149,7 @@ async function _isInsomniaPlugin(lookupName: string) {
         'info',
         lookupName,
         '--json',
+        ...yarnNetworkArgs(options),
       ],
       {
         timeout: 5 * 60 * 1000,
@@ -159,10 +207,10 @@ async function _isInsomniaPlugin(lookupName: string) {
   });
 }
 
-async function _installPluginToTmpDir(lookupName: string) {
+async function _installPluginToTmpDir(lookupName: string, options: PluginInstallOptions, label = lookupName) {
   return new Promise<{ tmpDir: string }>(async (resolve, reject) => {
     // mkdtemp: atomic, unguessable name - avoids tmp symlink races.
-    const safeName = lookupName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    const safeName = label.replace(/[^a-zA-Z0-9_.-]/g, '_');
     const tmpDir = await mkdtemp(path.join(electron.app.getPath('temp'), `${safeName}-`));
     // Write a dummy package.json so that yarn doesn't traverse up the directory tree
     await writeFile(path.join(tmpDir, 'package.json'), JSON.stringify({ license: 'ISC', workspaces: [] }), 'utf-8');
@@ -185,6 +233,7 @@ async function _installPluginToTmpDir(lookupName: string) {
         '--production',
         '--no-progress',
         '--ignore-workspace-root-check',
+        ...yarnNetworkArgs(options),
       ],
       {
         timeout: 5 * 60 * 1000,
