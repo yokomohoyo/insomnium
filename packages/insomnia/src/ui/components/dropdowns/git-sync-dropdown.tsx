@@ -64,9 +64,11 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
   const loadingFetch = gitFetchFetcher.state === 'loading';
   const loadingStatus = gitStatusFetcher.state === 'loading';
 
+  // a repository on this computer only has no remote: no push, pull or fetch
+  const hasRemote = Boolean(gitRepository?.uri);
+
   useEffect(() => {
     if (
-      gitRepository?.uri &&
       gitRepository?._id &&
       gitRepoDataFetcher.state === 'idle' &&
       !gitRepoDataFetcher.data
@@ -79,15 +81,14 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
     }
   }, [
     gitRepoDataFetcher,
-    gitRepository?.uri,
     gitRepository?._id,
     organizationId,
     projectId,
     workspaceId,
   ]);
 
-  // Only fetch the repo status if we have a repo uri and we don't have the status already
-  const shouldFetchGitRepoStatus = Boolean(gitRepository?.uri && gitRepository?._id && gitStatusFetcher.state === 'idle' && !gitStatusFetcher.data && gitRepoDataFetcher.data);
+  // Only fetch the repo status if we have a repo and we don't have the status already
+  const shouldFetchGitRepoStatus = Boolean(gitRepository?._id && gitStatusFetcher.state === 'idle' && !gitStatusFetcher.data && gitRepoDataFetcher.data);
 
   useEffect(() => {
     if (shouldFetchGitRepoStatus) {
@@ -171,7 +172,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
     gitPushFetcher.state === 'loading' ||
     gitPullFetcher.state === 'loading';
 
-  const isSynced = Boolean(gitRepository?.uri && gitRepoDataFetcher.data && !('errors' in gitRepoDataFetcher.data));
+  const isSynced = Boolean(gitRepository?._id && gitRepoDataFetcher.data && !('errors' in gitRepoDataFetcher.data));
 
   const { branches, branch: currentBranch } =
     gitRepoDataFetcher.data && 'branches' in gitRepoDataFetcher.data
@@ -181,7 +182,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
   let dropdown: React.ReactNode = null;
   const { revalidate } = useRevalidator();
 
-  const currentBranchActions = [
+  const branchActions = [
     {
       id: 1,
       icon: 'check',
@@ -233,7 +234,12 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
     },
   ];
 
+  const currentBranchActions = branchActions.filter(action => hasRemote || !['Pull', 'Push', 'Fetch'].includes(String(action.label)));
+
   useInterval(() => {
+    if (!hasRemote) {
+      return;
+    }
     gitFetchFetcher.submit(
       {},
       {
