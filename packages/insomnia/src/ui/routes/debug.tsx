@@ -595,6 +595,16 @@ export const Debug: FC = () => {
           }),
       },
       {
+        id: 'MCP Request',
+        name: 'MCP Request',
+        icon: 'plus-circle',
+        action: () =>
+          createRequest({
+            requestType: 'MCP',
+            parentId: workspaceId,
+          }),
+      },
+      {
         id: 'From Curl',
         name: 'From Curl',
         icon: 'terminal',
@@ -911,6 +921,11 @@ export const Debug: FC = () => {
                           WS
                         </span>
                       )}
+                      {isMcpRequest(item.doc) && (
+                        <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
+                          MCP
+                        </span>
+                      )}
                       {isGrpcRequest(item.doc) && (
                         <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center method-grpc justify-center">
                           gRPC
@@ -990,6 +1005,11 @@ export const Debug: FC = () => {
                         {isWebSocketRequest(item.doc) && (
                           <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center info justify-center">
                             WS
+                          </span>
+                        )}
+                        {isMcpRequest(item.doc) && (
+                          <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
+                            MCP
                           </span>
                         )}
                         {isGrpcRequest(item.doc) && (

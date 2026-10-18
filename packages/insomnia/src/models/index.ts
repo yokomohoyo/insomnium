@@ -3,6 +3,7 @@ import {
   EXPORT_TYPE_COOKIE_JAR,
   EXPORT_TYPE_ENVIRONMENT,
   EXPORT_TYPE_GRPC_REQUEST,
+  EXPORT_TYPE_MCP_REQUEST,
   EXPORT_TYPE_PROTO_DIRECTORY,
   EXPORT_TYPE_PROTO_FILE,
   EXPORT_TYPE_REQUEST,
@@ -23,6 +24,7 @@ import * as _environment from './environment';
 import * as _gitRepository from './git-repository';
 import * as _grpcRequest from './grpc-request';
 import * as _grpcRequestMeta from './grpc-request-meta';
+import * as _mcpRequest from './mcp-request';
 import * as _oAuth2Token from './o-auth-2-token';
 import * as _pluginData from './plugin-data';
 import * as _project from './project';
@@ -87,6 +89,7 @@ export const grpcRequestMeta = _grpcRequestMeta;
 export const webSocketPayload = _webSocketPayload;
 export const responseExample = _responseExample;
 export const webSocketRequest = _webSocketRequest;
+export const mcpRequest = _mcpRequest;
 export const webSocketResponse = _webSocketResponse;
 export const workspace = _workspace;
 export const workspaceMeta = _workspaceMeta;
@@ -127,6 +130,7 @@ export function all() {
     webSocketRequest,
     webSocketResponse,
     responseExample,
+    mcpRequest,
   ] as const;
 }
 
@@ -220,6 +224,7 @@ export const MODELS_BY_EXPORT_TYPE: Record<string, any> = {
   [EXPORT_TYPE_WEBSOCKET_PAYLOAD]: webSocketPayload,
   [EXPORT_TYPE_RESPONSE_EXAMPLE]: responseExample,
   [EXPORT_TYPE_WEBSOCKET_REQUEST]: webSocketRequest,
+  [EXPORT_TYPE_MCP_REQUEST]: mcpRequest,
   [EXPORT_TYPE_GRPC_REQUEST]: grpcRequest,
   [EXPORT_TYPE_REQUEST_GROUP]: requestGroup,
   [EXPORT_TYPE_UNIT_TEST_SUITE]: unitTestSuite,

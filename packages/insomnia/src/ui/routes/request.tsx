@@ -23,6 +23,7 @@ import { isRequestMeta, RequestMeta } from '../../models/request-meta';
 import { RequestVersion } from '../../models/request-version';
 import { Response } from '../../models/response';
 import type { ResponseExample } from '../../models/response-example';
+import { isMcpRequestId, McpRequest } from '../../models/mcp-request';
 import { isWebSocketRequestId, WebSocketRequest } from '../../models/websocket-request';
 import { WebSocketResponse } from '../../models/websocket-response';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest } from '../../network/network';
@@ -31,6 +32,14 @@ import { guard } from '../../utils/guard';
 
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
 import { CreateRequestType } from '../hooks/use-request';
+
+export interface McpRequestLoaderData {
+  activeRequest: McpRequest;
+  activeRequestMeta: RequestMeta;
+  activeResponse: null;
+  responses: [];
+  requestVersions: [];
+}
 
 export interface WebSocketRequestLoaderData {
   activeRequest: WebSocketRequest;
@@ -56,7 +65,7 @@ export interface RequestLoaderData {
   examples?: ResponseExample[];
 }
 
-export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData> => {
+export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData | McpRequestLoaderData> => {
   const { organizationId, projectId, requestId, workspaceId } = params;
   guard(requestId, 'Request ID is required');
   guard(workspaceId, 'Workspace ID is required');
@@ -80,6 +89,10 @@ export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderD
   }
   const activeRequestMeta = await models.requestMeta.updateOrCreateByParentId(requestId, { lastActive: Date.now() });
   guard(activeRequestMeta, 'Request meta not found');
+  // its results stay in the pane, rather than a response history
+  if (isMcpRequestId(requestId)) {
+    return { activeRequest, activeRequestMeta, activeResponse: null, responses: [], requestVersions: [] } as McpRequestLoaderData;
+  }
   const { filterResponsesByEnv } = await models.settings.getOrCreate();
 
   const responseModelName = isWebSocketRequestId(requestId) ? 'webSocketResponse' : 'response';
@@ -146,6 +159,12 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
         { name: 'Accept', value: CONTENT_TYPE_EVENT_STREAM },
       ],
       name: 'New Event Stream',
+    }))._id;
+  }
+  if (requestType === 'MCP') {
+    activeRequestId = (await models.mcpRequest.create({
+      parentId: parentId || workspaceId,
+      name: 'New MCP Request',
     }))._id;
   }
   if (requestType === 'WebSocket') {

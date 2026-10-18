@@ -18,6 +18,7 @@ import { GrpcRequest } from '../../models/grpc-request';
 import { GrpcRequestMeta } from '../../models/grpc-request-meta';
 import { sortProjects } from '../../models/helpers/project';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
+import type { McpRequest } from '../../models/mcp-request';
 import { isRemoteProject, Project } from '../../models/project';
 import { Request } from '../../models/request';
 import { isRequestGroup, RequestGroup } from '../../models/request-group';
@@ -54,7 +55,7 @@ export interface WorkspaceLoaderData {
   collection: Collection;
 }
 export interface Child {
-  doc: Request | GrpcRequest | WebSocketRequest | RequestGroup;
+  doc: Request | GrpcRequest | WebSocketRequest | McpRequest | RequestGroup;
   children: Child[];
   collapsed: boolean;
   hidden: boolean;
@@ -149,7 +150,8 @@ export const workspaceLoader: LoaderFunction = async ({
   const reqGroups = await database.find(models.requestGroup.type, { parentId: { $in: listOfParentIds } });
   const grpcReqs = await database.find(models.grpcRequest.type, { parentId: { $in: listOfParentIds } }) as GrpcRequest[];
   const wsReqs = await database.find(models.webSocketRequest.type, { parentId: { $in: listOfParentIds } });
-  const allRequests = [...reqs, ...reqGroups, ...grpcReqs, ...wsReqs] as (Request | RequestGroup | GrpcRequest | WebSocketRequest)[];
+  const mcpReqs = await database.find(models.mcpRequest.type, { parentId: { $in: listOfParentIds } });
+  const allRequests = [...reqs, ...reqGroups, ...grpcReqs, ...wsReqs, ...mcpReqs] as (Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest)[];
 
   const requestMetas = await database.find(models.requestMeta.type, { parentId: { $in: reqs.map(r => r._id) } });
   const grpcRequestMetas = await database.find(models.grpcRequestMeta.type, { parentId: { $in: grpcReqs.map(r => r._id) } });
