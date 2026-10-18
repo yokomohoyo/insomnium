@@ -514,6 +514,9 @@ export class GitVCS {
       if (err instanceof git.Errors.MergeConflictError && conflicts.length) {
         throw new GitConflictsError(conflicts);
       }
+      if (err instanceof git.Errors.MergeNotSupportedError) {
+        throw new Error("Something was deleted on one side and changed on the other, which can't be merged yet. Undo the delete or the change on one side, commit, and merge again.");
+      }
       throw err;
     }
     await this._removingDroppedDocs(() => git.checkout({
