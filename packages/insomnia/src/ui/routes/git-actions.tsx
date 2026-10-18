@@ -328,6 +328,8 @@ type CloneGitActionResult =
     errors?: string[];
   };
 
+const INVALID_URI = "That isn't a repository address: use its https:// address, or an SSH one such as git@github.com:org/repo.git";
+
 export function parseGitToHttpsURL(s: string) {
   // try to convert any git URL to https URL
   let parsed = fromUrl(s)?.https({ noGitPlus: true }) || '';
@@ -365,7 +367,11 @@ export const cloneGitRepoAction: ActionFunction = async ({
   // URI
   const uri = formData.get('uri');
   guard(typeof uri === 'string', 'URI is required');
-  repoSettingsPatch.uri = parseGitToHttpsURL(uri);
+  try {
+    repoSettingsPatch.uri = parseGitToHttpsURL(uri);
+  } catch {
+    return { errors: [INVALID_URI] };
+  }
   // Author
   const authorName = formData.get('authorName');
   guard(typeof authorName === 'string', 'Author name is required');
@@ -509,7 +515,11 @@ export const updateGitRepoAction: ActionFunction = async ({
   // URI
   const uri = formData.get('uri');
   guard(typeof uri === 'string', 'URI is required');
-  repoSettingsPatch.uri = parseGitToHttpsURL(uri);
+  try {
+    repoSettingsPatch.uri = parseGitToHttpsURL(uri);
+  } catch {
+    return { errors: [INVALID_URI] };
+  }
 
   // Author
   const authorName = formData.get('authorName');

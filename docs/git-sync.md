@@ -5,12 +5,14 @@ Git Sync keeps a collection or design document in a Git repository you host anyw
 ## Connect a collection
 
 1. Open the collection, and click **Git Sync** at the bottom of the sidebar, then **Setup Git Sync**.
-2. Enter the repository's URL, the name and email for your commits, your username, and an **authentication token**: a personal access token from your Git host, with read and write access to the repository. The dialog links to the instructions for GitHub, GitLab and Bitbucket.
+2. Enter the repository's URL, the name and email for your commits, your username, and an **authentication token**: a personal access token from your Git host, with read and write access to the repository. The dialog links to the instructions for GitHub, GitLab, Bitbucket and Azure DevOps. If another repository on the same host is already set up, pick its saved sign-in instead of entering it again.
 3. **Sync**. Insomnium fetches the repository. An empty one is ready for your first commit.
 
 A repository holds one collection. Linking a collection to a repository that already holds a different one is refused: clone that one instead.
 
-Git Sync talks HTTPS. An SSH URL (`git@github.com:org/repo.git`) is changed to its `https://` form, and the token is used to sign in.
+Git Sync talks HTTPS. An SSH address (`git@github.com:org/repo.git` or `ssh://…`) is changed to its `https://` form, and the token is used to sign in.
+
+A public repository can be cloned and pulled without signing in: leave the username and token empty. Pushing to it needs them.
 
 The token is saved encrypted with your operating system's keychain: see [Saved credentials](../README.md#saved-credentials).
 
