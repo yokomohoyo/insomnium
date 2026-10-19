@@ -12,9 +12,16 @@ describe('pullRequestUrl()', () => {
     expect(pullRequestUrl('https://bitbucket.org/acme/pets.git', 'x')).toBe('https://bitbucket.org/acme/pets/pull-requests/new?source=x');
   });
 
+  it('opens the same page for an SSH address', () => {
+    expect(pullRequestUrl('git@github.com:acme/pets.git', 'x')).toBe('https://github.com/acme/pets/compare/x?expand=1');
+    expect(pullRequestUrl('ssh://git@gitlab.acme.com:2222/acme/pets.git', 'x')).toBe('https://gitlab.acme.com/acme/pets/-/merge_requests/new?merge_request%5Bsource_branch%5D=x');
+    // an alias from ~/.ssh/config isn't a web address
+    expect(pullRequestUrl('work:acme/pets.git', 'x')).toBeUndefined();
+  });
+
   it('has none for other hosts, other schemes, or no branch', () => {
     expect(pullRequestUrl('https://git.example.com/acme/pets.git', 'x')).toBeUndefined();
-    expect(pullRequestUrl('ssh://github.com/acme/pets.git', 'x')).toBeUndefined();
+    expect(pullRequestUrl('file:///srv/acme/pets.git', 'x')).toBeUndefined();
     expect(pullRequestUrl('', 'x')).toBeUndefined();
     expect(pullRequestUrl('https://github.com/acme/pets.git', '')).toBeUndefined();
   });

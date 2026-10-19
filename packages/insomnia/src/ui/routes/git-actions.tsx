@@ -34,6 +34,7 @@ import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-d
 import parseGitPath from '../../sync/git/parse-git-path';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
 import { shallowClone } from '../../sync/git/shallow-clone';
+import { isSshUrl } from '../../sync/git/ssh-url';
 import {
   addDotGit,
 } from '../../sync/git/utils';
@@ -338,6 +339,16 @@ type CloneGitActionResult =
 
 const INVALID_URI = "That isn't a repository address: use its https:// address, or an SSH one such as git@github.com:org/repo.git";
 
+// An SSH address, connected to over SSH (main/git-ssh) unless its https:// form
+// was chosen: its key settings, in place of a username and token
+const overSsh = (uri: string, formData: FormData) => isSshUrl(uri) && formData.get('transport') !== 'https';
+const sshCredentialsFrom = (formData: FormData) => ({
+  username: '',
+  password: '',
+  sshKey: String(formData.get('sshKey') || '').trim(),
+  sshPassphrase: String(formData.get('sshPassphrase') || ''),
+});
+
 export function parseGitToHttpsURL(s: string) {
   // try to convert any git URL to https URL
   let parsed = fromUrl(s)?.https({ noGitPlus: true }) || '';
@@ -375,8 +386,9 @@ export const cloneGitRepoAction: ActionFunction = async ({
   // URI
   const uri = formData.get('uri');
   guard(typeof uri === 'string', 'URI is required');
+  const ssh = overSsh(uri, formData);
   try {
-    repoSettingsPatch.uri = parseGitToHttpsURL(uri);
+    repoSettingsPatch.uri = ssh ? uri.trim() : parseGitToHttpsURL(uri);
   } catch {
     return { errors: [INVALID_URI] };
   }
@@ -392,15 +404,19 @@ export const cloneGitRepoAction: ActionFunction = async ({
   };
 
   // Git Credentials
-  const token = formData.get('token');
-  guard(typeof token === 'string', 'Token is required');
-  const username = formData.get('username');
-  guard(typeof username === 'string', 'Username is required');
+  if (ssh) {
+    repoSettingsPatch.credentials = sshCredentialsFrom(formData);
+  } else {
+    const token = formData.get('token');
+    guard(typeof token === 'string', 'Token is required');
+    const username = formData.get('username');
+    guard(typeof username === 'string', 'Username is required');
 
-  repoSettingsPatch.credentials = {
-    password: token,
-    username,
-  };
+    repoSettingsPatch.credentials = {
+      password: token,
+      username,
+    };
+  }
 
   repoSettingsPatch.needsFullClone = true;
   repoSettingsPatch.uri = addDotGit(repoSettingsPatch.uri);
@@ -509,9 +525,12 @@ export const updateGitRepoAction: ActionFunction = async ({
   // sent for an existing repository leaves its address as it is
   const uri = formData.get('uri');
   guard(typeof uri === 'string', 'URI is required');
+  // a repository's address, or the one it already has
+  const existing = gitRepositoryId ? await models.gitRepository.getById(gitRepositoryId) : null;
+  const ssh = overSsh(uri.trim() || existing?.uri || '', formData);
   if (uri.trim()) {
     try {
-      repoSettingsPatch.uri = parseGitToHttpsURL(uri.trim());
+      repoSettingsPatch.uri = ssh ? uri.trim() : parseGitToHttpsURL(uri.trim());
     } catch {
       return { errors: [INVALID_URI] };
     }
@@ -529,15 +548,19 @@ export const updateGitRepoAction: ActionFunction = async ({
   };
 
   // Git Credentials
-  const token = formData.get('token');
-  guard(typeof token === 'string', 'Token is required');
-  const username = formData.get('username');
-  guard(typeof username === 'string', 'Username is required');
+  if (ssh) {
+    repoSettingsPatch.credentials = sshCredentialsFrom(formData);
+  } else {
+    const token = formData.get('token');
+    guard(typeof token === 'string', 'Token is required');
+    const username = formData.get('username');
+    guard(typeof username === 'string', 'Username is required');
 
-  repoSettingsPatch.credentials = {
-    password: token,
-    username,
-  };
+    repoSettingsPatch.credentials = {
+      password: token,
+      username,
+    };
+  }
 
   if (gitRepositoryId) {
     const repo = await models.gitRepository.getById(gitRepositoryId);

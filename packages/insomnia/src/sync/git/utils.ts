@@ -1,6 +1,7 @@
 import { AuthCallback, AuthFailureCallback, AuthSuccessCallback, GitAuth, MessageCallback } from 'isomorphic-git';
 
 import type { GitCredentials } from './git-vcs';
+import { SSH_KEY_HEADER, SSH_PASSPHRASE_HEADER } from './ssh-url';
 
 export const addDotGit = (url: string): string => (url.endsWith('.git') ? url : `${url}.git`);
 
@@ -61,9 +62,18 @@ export const getOauth2FormatName = (credentials?: GitCredentials | null): 'githu
   return;
 };
 
+// an SSH key's settings, which ride with each request to the main process (http-client.ts drops them for HTTP)
+const sshHeaders = (credentials?: GitCredentials | null) => {
+  if (!credentials || !('sshKey' in credentials) || !credentials.sshKey) {
+    return {};
+  }
+  return { headers: { [SSH_KEY_HEADER]: credentials.sshKey, [SSH_PASSPHRASE_HEADER]: credentials.sshPassphrase || '' } };
+};
+
 export const gitCallbacks = (credentials?: GitCredentials | null) => ({
   onMessage,
   onAuthFailure,
   onAuthSuccess,
   onAuth: onAuth(credentials ?? undefined),
+  ...sshHeaders(credentials),
 });

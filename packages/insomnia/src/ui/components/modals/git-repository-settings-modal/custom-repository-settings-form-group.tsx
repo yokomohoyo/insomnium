@@ -4,12 +4,14 @@ import { docsGitAccessToken } from '../../../../common/documentation';
 import * as models from '../../../../models';
 import { GitRepository } from '../../../../models/git-repository';
 import { gitHostOf, savedGitSignIns, type SavedGitSignIn } from '../../../../sync/git/saved-sign-ins';
+import { isSshUrl } from '../../../../sync/git/ssh-url';
 import { Link } from '../../base/link';
 import { HelpTooltip } from '../../help-tooltip';
 
 export interface Props {
   gitRepository?: GitRepository | null;
-  onSubmit: (args: Partial<GitRepository>) => void;
+  // transport: for an SSH address, ssh (with SSH keys) or https (its https:// form, with a token)
+  onSubmit: (args: Partial<GitRepository> & { transport?: 'ssh' | 'https' }) => void;
 }
 
 export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
@@ -33,6 +35,11 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
   }, []);
   const host = gitHostOf(typedUri);
   const onHost = uri ? [] : signIns.filter(signIn => signIn.host === host);
+  // an SSH address connects over SSH, unless its https:// form (and a token) is chosen
+  const isSsh = isSshUrl(typedUri);
+  const [transport, setTransport] = useState<'ssh' | 'https'>('ssh');
+  const overSsh = isSsh && transport === 'ssh';
+  const sshCredentials = credentials && 'sshKey' in credentials ? credentials : { sshKey: '', sshPassphrase: '' };
 
   return (
     <form
@@ -43,7 +50,13 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
         const formData = new FormData(event.currentTarget);
         onSubmit({
           uri: formData.get('uri') as string || '',
-          credentials: {
+          transport: isSsh ? transport : undefined,
+          credentials: overSsh ? {
+            username: '',
+            token: '',
+            sshKey: formData.get('sshKey') as string || '',
+            sshPassphrase: formData.get('sshPassphrase') as string || '',
+          } : {
             username: formData.get('username') as string || '',
             token: formData.get('token') as string || '',
           },
@@ -58,7 +71,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
         <label>
           Git URI
           <HelpTooltip className="space-left">
-            The repository's https:// address. An SSH address, such as git@github.com:org/repo.git, works too: Git Sync uses its https:// form. Leave it empty for a repository on this computer only, with commits, branches and history; add an address here later to push it.
+            The repository's address: https://, or SSH, such as git@github.com:org/repo.git, which connects with your SSH keys (or, if you choose, with a token over its https:// form). Leave it empty for a repository on this computer only, with commits, branches and history; add an address here later to push it.
           </HelpTooltip>
           <input
             type="text"
@@ -71,7 +84,23 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
           />
         </label>
       </div>
-      {onHost.length > 0 && (
+      {isSsh && (
+        <div className="form-control form-control--outlined">
+          <label>
+            Connect With
+            <select
+              name="transport"
+              value={transport}
+              disabled={Boolean(uri)}
+              onChange={event => setTransport(event.currentTarget.value === 'https' ? 'https' : 'ssh')}
+            >
+              <option value="ssh">SSH, with my SSH keys</option>
+              <option value="https">HTTPS, with a token (the address's https:// form)</option>
+            </select>
+          </label>
+        </div>
+      )}
+      {!overSsh && onHost.length > 0 && (
         <div className="form-control form-control--outlined">
           <label>
             Saved sign-in for {host}
@@ -121,6 +150,41 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
           </label>
         </div>
       </div>
+      {overSsh ? (
+        <>
+          <div className="form-row">
+            <div className="form-control form-control--outlined">
+              <label>
+                SSH Key File <span className="faint">(optional)</span>
+                <HelpTooltip className="space-left">
+                  Your SSH agent's keys are tried first, then this file, then the IdentityFile your ~/.ssh/config names for the host, then ~/.ssh/id_ed25519, id_ecdsa and id_rsa. Host aliases in ~/.ssh/config work as the address's host.
+                </HelpTooltip>
+                <input
+                  type="text"
+                  name="sshKey"
+                  placeholder="~/.ssh/id_ed25519"
+                  disabled={Boolean(uri)}
+                  defaultValue={sshCredentials.sshKey || ''}
+                />
+              </label>
+            </div>
+            <div className="form-control form-control--outlined">
+              <label>
+                Passphrase <span className="faint">(for that file, if it has one)</span>
+                <input
+                  type="password"
+                  name="sshPassphrase"
+                  disabled={Boolean(uri)}
+                  defaultValue={sshCredentials.sshPassphrase || ''}
+                />
+              </label>
+            </div>
+          </div>
+          <p className="faint txt-sm no-margin-top">
+            The first time Insomnium connects to a host, it shows the host key's fingerprint and asks before trusting it, unless your known_hosts has it already.
+          </p>
+        </>
+      ) : (<>
       <div className="form-row">
         <div className="form-control form-control--outlined">
           <label>
@@ -169,6 +233,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
       <p className="faint txt-sm no-margin-top">
         For a public repository you only clone and pull from, the username and token can be left empty.
       </p>
+      </>)}
     </form>
   );
 };

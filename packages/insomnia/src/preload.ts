@@ -112,6 +112,7 @@ const main: Window['main'] = {
   trackSegmentEvent: options => ipcRenderer.send('trackSegmentEvent', options),
   trackPageView: options => ipcRenderer.send('trackPageView', options),
   axiosRequest: options => ipcRenderer.invoke('axiosRequest', options),
+  gitSshRequest: request => ipcRenderer.invoke('gitSshRequest', request),
   insomniaFetch: options => ipcRenderer.invoke('insomniaFetch', options),
   showContextMenu: options => ipcRenderer.send('show-context-menu', options),
   webUtilsGetPathForFile: (file: File) => webUtils.getPathForFile(file),
