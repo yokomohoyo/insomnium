@@ -2,6 +2,7 @@ import fs from 'fs';
 
 import * as models from '../../models/index';
 import type { ResponseHeader } from '../../models/response';
+import { RESPONSE_DATA } from '../sandbox/protocol';
 
 interface MaybeResponse {
   parentId?: string;
@@ -20,6 +21,8 @@ export function init(response?: MaybeResponse) {
   }
 
   return {
+    // the response as data, for a plugin in its sandbox (plugins/sandbox/client.ts)
+    [RESPONSE_DATA]: response,
     response: {
       // TODO: Make this work. Right now it doesn't because _id is
       // not generated in network.js

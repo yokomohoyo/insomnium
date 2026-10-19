@@ -1,6 +1,7 @@
-import * as misc from '../../common/misc';
+import { filterHeaders } from '../../common/filter-headers';
 import type { RenderedRequest } from '../../common/render';
 import type { RequestBody } from '../../models/request';
+import { REQUEST_DATA } from '../sandbox/protocol';
 export function filterParameters<T extends { name: string; value: string }>(
   parameters: T[],
   name: string,
@@ -89,7 +90,7 @@ export function init(
     },
 
     getHeader(name: string) {
-      const headers = misc.filterHeaders(renderedRequest.headers, name);
+      const headers = filterHeaders(renderedRequest.headers, name);
 
       if (headers.length) {
         // Use the last header if there are multiple of the same
@@ -112,12 +113,12 @@ export function init(
     },
 
     removeHeader(name: string) {
-      const headers = misc.filterHeaders(renderedRequest.headers, name);
+      const headers = filterHeaders(renderedRequest.headers, name);
       renderedRequest.headers = renderedRequest.headers.filter(h => !headers.includes(h));
     },
 
     setHeader(name: string, value: string) {
-      const header = misc.filterHeaders(renderedRequest.headers, name)[0];
+      const header = filterHeaders(renderedRequest.headers, name)[0];
 
       if (header) {
         header.value = value;
@@ -127,7 +128,7 @@ export function init(
     },
 
     addHeader(name: string, value: string) {
-      const header = misc.filterHeaders(renderedRequest.headers, name)[0];
+      const header = filterHeaders(renderedRequest.headers, name)[0];
 
       if (!header) {
         renderedRequest.headers.push({
@@ -287,5 +288,7 @@ export function init(
 
   return {
     request,
+    // the request as data, for a plugin in its sandbox (plugins/sandbox/client.ts)
+    [REQUEST_DATA]: { renderedRequest, renderedContext, readOnly },
   };
 }

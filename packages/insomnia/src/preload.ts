@@ -95,6 +95,24 @@ const main: Window['main'] = {
   setNativeTheme: source => ipcRenderer.send('setNativeTheme', source),
   installPlugin: options => ipcRenderer.invoke('installPlugin', options),
   installPluginFromFile: file => ipcRenderer.invoke('installPluginFromFile', file),
+  // a plugin without full access, in its sandbox: the port to it (main/plugin-sandbox.ts)
+  openPluginSandbox: ({ directory, name }) => new Promise((resolve, reject) => {
+    const id = `${name}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+    const listener = (event: Electron.IpcRendererEvent, data: { id: string; error?: string }) => {
+      if (data.id !== id) {
+        return;
+      }
+      ipcRenderer.removeListener('plugin-sandbox:port', listener);
+      if (data.error || !event.ports[0]) {
+        reject(new Error(data.error || 'The plugin sandbox did not start'));
+      } else {
+        resolve({ id, port: event.ports[0] });
+      }
+    };
+    ipcRenderer.on('plugin-sandbox:port', listener);
+    ipcRenderer.send('plugin-sandbox:open', { id, directory, name });
+  }),
+  closePluginSandbox: id => ipcRenderer.send('plugin-sandbox:close', id),
   curlRequest: options => ipcRenderer.invoke('curlRequest', options),
   cancelCurlRequest: options => ipcRenderer.send('cancelCurlRequest', options),
   writeFile: options => ipcRenderer.invoke('writeFile', options),
