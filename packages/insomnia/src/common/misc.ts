@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import zlib from 'zlib';
 
 import { DEBOUNCE_MILLIS } from './constants';
+import { filterHeaders } from './filter-headers';
 
 const ESCAPE_REGEX_MATCH = /[-[\]/{}()*+?.\\^$|]/g;
 
@@ -11,20 +12,8 @@ interface Header {
   value: string;
 }
 
-export function filterHeaders<T extends { name: string; value: string }>(headers: T[], name?: string): T[] {
-  if (!Array.isArray(headers) || !name || typeof name !== 'string') {
-    return [];
-  }
-
-  return headers.filter(header => {
-    // Never match against invalid headers
-    if (!header || !header.name || typeof header.name !== 'string') {
-      return false;
-    }
-
-    return header.name.toLowerCase() === name.toLowerCase();
-  });
-}
+// (in a module of its own, which the plugin sandbox can have without Node)
+export { filterHeaders } from './filter-headers';
 
 export function hasContentTypeHeader<T extends Header>(headers: T[]) {
   return filterHeaders(headers, 'content-type').length > 0;

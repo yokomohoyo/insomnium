@@ -297,17 +297,17 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                       </button>
                     )}
                   </div>
-                  <h2>Actions</h2>
-                  <div className="form-control form-control--padded">
+                  <h2 className="mt-[--padding-lg]">Actions</h2>
+                  <div className="form-control form-control--padded flex flex-wrap items-center gap-[--padding-sm]">
                     <PromptButton
                       onClick={_handleRemoveWorkspace}
-                      className="width-auto btn btn--clicky inline-block"
+                      className="width-auto btn btn--clicky"
                     >
                       <i className="fa fa-trash-o" /> Delete
                     </PromptButton>
                     <PromptButton
                       onClick={_handleClearAllResponses}
-                      className="width-auto btn btn--clicky inline-block space-left"
+                      className="width-auto btn btn--clicky"
                     >
                       <i className="fa fa-trash-o" /> Clear All Responses
                     </PromptButton>

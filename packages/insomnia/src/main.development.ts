@@ -17,6 +17,7 @@ import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
 import { registerFolderSyncHandlers } from './main/folder-sync';
+import { registerPluginSandboxHandlers } from './main/plugin-sandbox';
 import { registerGitSshHandlers } from './main/git-ssh';
 import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
@@ -136,6 +137,7 @@ app.on('ready', async () => {
   registerWebSocketHandlers();
   registerMcpClientHandlers();
   registerFolderSyncHandlers();
+  registerPluginSandboxHandlers();
   registerGitSshHandlers();
   registerCurlHandlers();
 

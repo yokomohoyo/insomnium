@@ -1,4 +1,6 @@
+import crypto from 'crypto';
 import esbuild from 'esbuild';
+import fs from 'fs';
 import { builtinModules } from 'module';
 import path from 'path';
 
@@ -68,7 +70,38 @@ export default async function build(options: Options) {
     define: env,
     external,
   });
-  return Promise.all([main, preload, protoWorker]);
+  // The page plugins without full access run in (main/plugin-sandbox.ts), its
+  // script inline and allowed by its hash, and the page's preload
+  const pluginHost = esbuild.build({
+    entryPoints: ['./src/plugins/sandbox/host-page.ts'],
+    bundle: true,
+    platform: 'browser',
+    format: 'iife',
+    target: 'es2022',
+    write: false,
+  }).then(({ outputFiles: [script] }) => {
+    const code = script.text.replace(/<\/script/gi, '<\\/script');
+    const hash = crypto.createHash('sha256').update(code).digest('base64');
+    fs.mkdirSync(outdir, { recursive: true });
+    fs.writeFileSync(path.join(outdir, 'plugin-host.html'), [
+      '<!doctype html>',
+      '<html><head><meta charset="utf-8">',
+      `<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-${hash}' 'unsafe-eval'">`,
+      '<title>Plugin</title></head><body>',
+      `<script>${code}</script>`,
+      '</body></html>',
+      '',
+    ].join('\n'));
+  });
+  const pluginHostPreload = esbuild.build({
+    entryPoints: ['./src/plugins/sandbox/host-preload.ts'],
+    outfile: path.join(outdir, 'plugin-host-preload.js'),
+    bundle: true,
+    platform: 'node',
+    format: 'cjs',
+    external: ['electron'],
+  });
+  return Promise.all([main, preload, protoWorker, pluginHost, pluginHostPreload]);
 }
 
 // Build if ran as a cli script

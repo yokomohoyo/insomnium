@@ -43,6 +43,8 @@ export interface MainBridgeAPI {
   installPlugin: (lookupName: string) => Promise<void>;
   // a package tarball's path; resolves with the plugin's name
   installPluginFromFile: (file: string) => Promise<string>;
+  openPluginSandbox: (options: { directory: string; name: string }) => Promise<{ id: string; port: MessagePort }>;
+  closePluginSandbox: (id: string) => void;
   writeFile: (options: { path: string; content: string }) => Promise<string>;
   cancelCurlRequest: typeof cancelCurlRequest;
   curlRequest: typeof curlRequest;

@@ -9,6 +9,7 @@ import {
 } from '../../../common/constants';
 import { docsPlugins } from '../../../common/documentation';
 import { selectFileOrFolder } from '../../../common/select-file-or-folder';
+import * as models from '../../../models';
 import { createPlugin } from '../../../plugins/create';
 import type { Plugin } from '../../../plugins/index';
 import { getPlugins } from '../../../plugins/index';
@@ -18,7 +19,8 @@ import { RootLoaderData } from '../../routes/root';
 import { CopyButton } from '../base/copy-button';
 import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';
-import { showAlert, showPrompt } from '../modals';
+import { showAlert, showModal, showPrompt } from '../modals';
+import { AskModal } from '../modals/ask-modal';
 import { Button } from '../themed-button';
 import { TextSetting } from './text-setting';
 interface State {
@@ -64,10 +66,39 @@ export const Plugins: FC = () => {
   }
   const patchSettings = useSettingsPatcher();
 
+  // a plugin with full access runs with Node.js, as the app does; others in a sandbox
+  const setFullAccess = async (plugin: Plugin, fullAccess: boolean) => {
+    const apply = async () => {
+      setState(state => ({ ...state, isRefreshingPlugins: true }));
+      const { pluginConfig } = await models.settings.getOrCreate();
+      await models.settings.patch({ pluginConfig: { ...pluginConfig, [plugin.name]: { ...plugin.config, fullAccess } } });
+      await refreshPlugins();
+    };
+    if (!fullAccess) {
+      return apply();
+    }
+    showModal(AskModal, {
+      title: `Allow ${plugin.name} full access?`,
+      message: (
+        <div>
+          <p>With full access, the plugin runs with Node.js, as Insomnium itself does: it can read and change any of your files, run programs, and send anything anywhere, including the requests, tokens and responses it sees.</p>
+          <p>Allow it only if you trust the plugin and whoever publishes it.</p>
+        </div>
+      ),
+      yesText: 'Allow Full Access',
+      noText: 'Cancel',
+      onDone: async yes => {
+        if (yes) {
+          await apply();
+        }
+      },
+    });
+  };
+
   return (
     <div>
       <p className="notice info no-margin-top">
-        A plugin runs with the same access as the app: it can read your files and reach the network. Install only plugins you trust. See the{' '}
+        Plugins run in a sandbox: without Node.js, so they can't read your files or run programs, and without the network, so what they see stays here. A plugin that needs more can be allowed full access, which is the app's own. See the{' '}
         <Link href={docsPlugins}>documentation</Link>.
       </p>
       {plugins.length === 0 ? (
@@ -79,6 +110,7 @@ export const Plugins: FC = () => {
               <th>Enable?</th>
               <th>Name</th>
               <th>Version</th>
+              <th>Access</th>
               <th>Folder</th>
             </tr>
           </thead>
@@ -107,12 +139,30 @@ export const Plugins: FC = () => {
                         {plugin.description}
                       </HelpTooltip>
                     )}
+                    {plugin.loadError && (
+                      <div className="txt-sm warning" data-testid="plugin-load-error">
+                        {plugin.needsNode
+                          ? `It needs Node.js (its ${plugin.needsNode} module), which sandboxed plugins don't have. Allow it full access if you trust it.`
+                          : `It didn't load: ${plugin.loadError}`}
+                      </div>
+                    )}
                   </td>
                   <td>
                     {plugin.version}
                     <a className="space-left" href={link} title={link}>
                       <i className="fa fa-external-link-square" />
                     </a>
+                  </td>
+                  <td className="no-wrap">
+                    <label className="flex items-center gap-1" title={plugin.config.fullAccess ? 'Runs with Node.js, as the app does' : 'Runs in a sandbox, without Node.js or the network'}>
+                      <input
+                        type="checkbox"
+                        checked={!!plugin.config.fullAccess}
+                        disabled={isRefreshingPlugins}
+                        onChange={event => setFullAccess(plugin, event.currentTarget.checked)}
+                      />
+                      {plugin.config.fullAccess ? 'Full access' : 'Sandboxed'}
+                    </label>
                   </td>
                   <td
                     className="no-wrap"

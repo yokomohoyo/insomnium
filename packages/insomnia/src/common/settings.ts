@@ -89,6 +89,8 @@ export type SettingsOfType<MatchType> = NonNullable<{
 
 export interface PluginConfig {
   disabled: boolean;
+  // runs with Node.js, as the app does, rather than in a sandbox (plugins/sandbox)
+  fullAccess?: boolean;
 }
 
 export type PluginConfigMap = Record<string, PluginConfig>;

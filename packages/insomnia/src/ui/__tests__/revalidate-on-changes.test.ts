@@ -32,8 +32,13 @@ const settled = (router: Router) => new Promise<void>(resolve => {
   const unsubscribe = router.subscribe(() => setTimeout(check));
   setTimeout(check);
 });
-const until = async (ready: () => unknown) => {
+// gives up before the test's timeout, so that a failure doesn't leave it looking
+const until = async (ready: () => unknown, milliseconds = 2000) => {
+  const deadline = Date.now() + milliseconds;
   while (!ready()) {
+    if (Date.now() > deadline) {
+      throw new Error('never ready');
+    }
     await new Promise(resolve => setTimeout(resolve, 1));
   }
 };
@@ -115,7 +120,7 @@ describe('revalidating on database changes', () => {
     stop();
   });
 
-  it('revalidates what changed during a fetcher load once it has finished', async () => {
+  it("doesn't wait for a fetcher's load, which the revalidation loads again", async () => {
     const { router, state } = await window();
     const db = fakeDatabase();
     const stop = revalidateOnDatabaseChanges(router, db);
@@ -124,11 +129,35 @@ describe('revalidating on database changes', () => {
     await until(() => state.finishLoad);
     const during = state.loads;
     db.emit('Workspace');
-    expect(state.loads).toBe(during);
+    await until(() => state.loads > during);
     state.finishLoad!();
     await settled(router);
 
     expect(state.loads).toBe(during + 1);
+    // done, and dropped from the state as finished fetchers are
+    expect(router.state.fetchers.get('load')?.state).not.toBe('loading');
+    stop();
+  });
+
+  it("isn't held up by a closed dialog's load that a revalidation interrupted", async () => {
+    const { router, state } = await window();
+    const db = fakeDatabase();
+    const stop = revalidateOnDatabaseChanges(router, db);
+
+    // a dialog's fetcher, loading when the dialog closes, and a revalidation
+    // then, which leaves it 'loading' for good (React Router 7 does)
+    router.fetch('dialog', 'root', '/slow');
+    await until(() => state.finishLoad);
+    router.deleteFetcher('dialog');
+    router.revalidate();
+    await until(() => router.state.revalidation === 'idle');
+    expect(router.state.fetchers.get('dialog')?.state).toBe('loading');
+
+    const before = state.loads;
+    db.emit('Request');
+    await until(() => state.loads > before);
+    await until(() => router.state.revalidation === 'idle');
+    expect(state.loads).toBe(before + 1);
     stop();
   });
 });

@@ -10,9 +10,14 @@ export const REVALIDATE_TYPES = new Set([
   'GrpcRequest', 'WebSocketRequest', 'McpRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
 ]);
 
-// A window's navigation, or a fetcher's load or action, under way
+// A window's navigation, or a fetcher's action (submitting, then loading what
+// it changed), under way. Not a fetcher's plain load: a revalidation loads it
+// again with the rest. And a dialog's, whose component has gone, can stay
+// 'loading' for good once a revalidation interrupts it, as React Router
+// neither loads it again nor drops it, which would hold every change back.
 const busy = (router: Router) =>
-  router.state.navigation.state !== 'idle' || [...router.state.fetchers.values()].some(fetcher => fetcher.state !== 'idle');
+  router.state.navigation.state !== 'idle'
+  || [...router.state.fetchers.values()].some(fetcher => fetcher.state === 'submitting' || (fetcher.state === 'loading' && fetcher.formMethod !== undefined));
 
 /**
  * Revalidates a window's routes when the database changes what they show (an

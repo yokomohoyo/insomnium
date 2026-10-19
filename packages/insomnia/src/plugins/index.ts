@@ -15,6 +15,7 @@ import type { Workspace } from '../models/workspace';
 import type { PluginTemplateTag } from '../templating/extensions/index';
 import { showError } from '../ui/components/modals/index';
 import type { PluginTheme } from './misc';
+import { closeSandboxes, loadSandboxedPlugin } from './sandbox/client';
 import themes from './themes';
 
 export interface Module {
@@ -35,6 +36,12 @@ export interface Plugin {
   directory: string;
   config: PluginConfig;
   module: Module;
+  // in a sandbox, without Node.js (plugins/sandbox); one with full access isn't
+  sandboxed?: boolean;
+  // why the plugin didn't load, shown in Preferences → Plugins
+  loadError?: string;
+  // the Node.js module it asked for, which needs full access
+  needsNode?: string;
 }
 interface InternalProperties {
   plugin: Plugin;
@@ -141,32 +148,51 @@ async function _traversePluginPath(
           continue;
         }
 
-        // Delete `require` cache if plugin has been required before
-        for (const p of Object.keys(global.require.cache)) {
-          if (p.indexOf(modulePath) === 0) {
-            delete global.require.cache[p];
-          }
-        }
-
-        const pluginJson = global.require(packageJSONPath);
+        const pluginJson = JSON.parse(fs.readFileSync(packageJSONPath, 'utf8'));
 
         // Not an Insomnium plugin because it doesn't have the package.json['insomnia']
         if (!pluginJson.hasOwnProperty('insomnia')) {
           continue;
         }
 
-        // Delete require cache entry and re-require
-        const module = global.require(modulePath);
+        const config: PluginConfig = allConfigs.hasOwnProperty(pluginJson.name)
+          ? allConfigs[pluginJson.name]
+          : { disabled: false };
+        let module: Module = {};
+        let loadError: string | undefined;
+        let needsNode: string | undefined;
+        if (config.fullAccess) {
+          // Delete `require` cache if plugin has been required before, and re-require
+          for (const p of Object.keys(global.require.cache)) {
+            if (p.indexOf(modulePath) === 0) {
+              delete global.require.cache[p];
+            }
+          }
+          module = global.require(modulePath);
+        } else if (process.type !== 'renderer') {
+          // the main process (MCP sends) loads only plugins with full access: a
+          // sandbox is the app's window's
+          continue;
+        } else if (!config.disabled) {
+          try {
+            module = await loadSandboxedPlugin(modulePath, pluginJson.name);
+          } catch (err) {
+            loadError = err instanceof Error ? err.message : String(err);
+            needsNode = (err as { nodeModule?: string }).nodeModule;
+            console.warn(`[plugin] ${pluginJson.name} didn't load in its sandbox`, err);
+          }
+        }
 
         pluginMap[pluginJson.name] = {
           name: pluginJson.name,
           description: pluginJson.description || pluginJson.insomnia.description || '',
           version: pluginJson.version || 'unknown',
           directory: modulePath || '',
-          config: allConfigs.hasOwnProperty(pluginJson.name)
-            ? allConfigs[pluginJson.name]
-            : { disabled: false },
-          module: module,
+          config,
+          module,
+          sandboxed: !config.fullAccess,
+          loadError,
+          needsNode,
         };
         console.log(`[plugin] Loaded ${modulePath}`);
       } catch (err) {
@@ -194,6 +220,9 @@ export const pluginFolders = (value: string, delimiter = path.delimiter, home = 
 export async function getPlugins(force = false): Promise<Plugin[]> {
   if (force) {
     plugins = null;
+    if (process.type === 'renderer') {
+      closeSandboxes();
+    }
   }
 
   if (!plugins) {
