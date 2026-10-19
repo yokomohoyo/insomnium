@@ -65,11 +65,13 @@ export const duplicateFlowAction: ActionFunction = async ({ params }) => {
   return redirect(`${flowsPath(params)}/${copy._id}`);
 };
 
-export const deleteFlowAction: ActionFunction = async ({ params }) => {
+export const deleteFlowAction: ActionFunction = async ({ request, params }) => {
   const flow = await models.flow.getById(params.flowId || '');
   guard(flow, 'Flow not found');
+  // the flow open in the window, which goes with it if it's this one
+  const open = (await request.formData()).get('open');
   await models.flow.remove(flow);
-  return redirect(flowsPath(params));
+  return open === flow._id ? redirect(flowsPath(params)) : null;
 };
 
 const FlowPane: FC = () => {
@@ -153,7 +155,7 @@ const FlowsRoute: FC = () => {
                         icon="trash-o"
                         withPrompt
                         className="danger"
-                        onClick={() => actionFetcher.submit({}, { method: 'post', action: `${base}/${flow._id}/delete` })}
+                        onClick={() => actionFetcher.submit({ open: selectedId || '' }, { method: 'post', action: `${base}/${flow._id}/delete` })}
                       />
                     </DropdownItem>
                   </Dropdown>

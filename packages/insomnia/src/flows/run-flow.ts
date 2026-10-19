@@ -175,8 +175,9 @@ export async function runFlow(graph: FlowGraph, runner: FlowRunner, { onStep, si
         report({ nodeId, kind, status: branch, message: result.message });
       } else if (kind === 'setVariable') {
         const name = (data.name || '').trim();
-        if (!/^[A-Za-z_][\w-]*$/.test(name)) {
-          throw new Error(t('Give the variable a name: letters, digits, _ and -.'));
+        // as {{ name }} reads it: a '-' would be a minus
+        if (!/^[A-Za-z_]\w*$/.test(name)) {
+          throw new Error(t('Give the variable a name: letters, digits and _, not starting with a digit.'));
         }
         let value: string | undefined;
         if (!data.source || data.source === 'value') {

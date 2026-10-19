@@ -333,7 +333,7 @@
   "Git URI": "Git URI",
   "Git repository settings tabs": "Git 仓库设置标签页",
   "GitHub personal access token": "GitHub 个人访问令牌",
-  "Give the variable a name: letters, digits, _ and -.": "请为变量命名：字母、数字、_ 和 -。",
+  "Give the variable a name: letters, digits and _, not starting with a digit.": "请为变量命名：字母、数字和 _，不能以数字开头。",
   "Global Base Environment": "全局基础环境",
   "Global Environments": "全局环境",
   "Global environments": "全局环境",

@@ -36,6 +36,21 @@ describe('isInsomniaV4Import()', () => {
 describe('importRaw()', () => {
   beforeEach(globalBeforeEach);
 
+  it('leaves out a type it does not know, as a later version may export, and imports the rest', async () => {
+    const content = JSON.stringify({
+      _type: 'export',
+      __export_format: 4,
+      resources: [
+        { _id: 'wrk_1', _type: 'workspace', parentId: null, name: 'Later', scope: 'collection' },
+        { _id: 'req_1', _type: 'request', parentId: 'wrk_1', name: 'pet', method: 'GET', url: 'http://127.0.0.1/pets/1' },
+        { _id: 'xyz_1', _type: 'something_from_later', parentId: 'wrk_1', name: 'unknown' },
+      ],
+    });
+    const scanResult = await importUtil.scanResources({ content });
+    expect(scanResult.errors).toEqual([]);
+    expect(scanResult.requests?.map(({ name }) => name)).toEqual(['pet']);
+  });
+
   it('should import a curl request to a new workspace', async () => {
     const fixturePath = path.join(__dirname, '..', '__fixtures__', 'curl', 'complex-input.sh');
     const content = fs.readFileSync(fixturePath, 'utf8').toString();

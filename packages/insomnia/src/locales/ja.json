@@ -333,7 +333,7 @@
   "Git URI": "Git URI",
   "Git repository settings tabs": "Git リポジトリ設定のタブ",
   "GitHub personal access token": "GitHub 個人用アクセス トークン",
-  "Give the variable a name: letters, digits, _ and -.": "変数に名前を付けてください (英字、数字、_、-)。",
+  "Give the variable a name: letters, digits and _, not starting with a digit.": "変数に名前を付けてください (英字、数字、_。数字で始めることはできません)。",
   "Global Base Environment": "グローバル ベース環境",
   "Global Environments": "グローバル環境",
   "Global environments": "グローバル環境",

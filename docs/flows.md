@@ -6,13 +6,13 @@ Flows are under **Flows** at the top of a collection or design document, beside 
 
 ## Drawing a flow
 
-**New Flow** makes one with its **Flow Start**, where it begins. Select a step and add the next one with the buttons above the canvas: it goes after the step selected, joined to it by an arrow. You can also draw an arrow from the dot on a step's right edge to another step, drag steps around, and delete the selected one with Delete or Backspace (the Flow Start stays).
+**New Flow** makes one with its **Flow Start**, where it begins. Select a step and add the next one with the buttons above the canvas: it goes after the step selected, joined to it by an arrow when that step has a free way out. You can also draw an arrow from the dot on a step's right edge to another step, drag steps around, and delete the selected one with Delete or Backspace (the Flow Start stays).
 
 Each step's settings are beside the canvas when it's selected:
 
 - **Request** sends one of the collection's HTTP requests, as Send does: with its scripts, its assertions, cookies and the active environment. Its response is kept in its history, as a sent response is.
 - **Condition** checks the last response, as an [assertion](testing.md) does: its status code, a header, its body, a JSON path or its time. A condition has two ways out: **Yes** when the check holds, **No** when it doesn't. A way with no arrow ends the flow there.
-- **Set Variable** gives a variable a value: text (which can use `{{ variables }}` and tags), or a part of the last response, such as the JSON path `$.token`. The requests after it can use it as `{{ token }}`, over the environment's variables, as the runner's data rows are.
+- **Set Variable** gives a variable a value: text (which can use `{{ variables }}` and tags), or a part of the last response, such as the JSON path `$.token`. Its name is letters, digits and `_`. The requests after it can use it as `{{ token }}`, over the environment's variables, as the runner's data rows are.
 - **Delay** waits, up to ten minutes.
 
 Every step but a condition has one way out. An arrow can go back to an earlier step, to poll: a flow that goes round more than 1,000 steps is stopped.
@@ -21,7 +21,7 @@ Every step but a condition has one way out. An arrow can go back to an earlier s
 
 **Run Flow** runs it from the Flow Start, and **Stop** stops it. Each step is outlined as it runs: green when it passed (or its condition held), amber for a condition that didn't, and red where the flow failed. **Last Run** lists the steps in order, with each request's status, time and size and each condition's check, and then the variables the flow set.
 
-A flow fails at a step that can't run: a request that couldn't be sent, a condition before any response, or a step with nothing chosen. It doesn't fail because a condition didn't hold: that's what its No way is for. To fail a run on a response, give the request [assertions](testing.md), and check them with a condition on its status, or use the collection runner.
+A flow fails at a step that can't run: a request that couldn't be sent, a condition before any response, or a step with nothing chosen. It doesn't fail because a condition didn't hold: that's what its No way is for. A flow doesn't check a request's [assertions](testing.md) (they're checked and kept with its response, as on Send); the collection runner reports them.
 
 ## Saving and sharing
 

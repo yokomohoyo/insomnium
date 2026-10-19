@@ -333,7 +333,7 @@
   "Git URI": "URI Git",
   "Git repository settings tabs": "Onglets des paramètres du dépôt Git",
   "GitHub personal access token": "Jeton d'accès personnel GitHub",
-  "Give the variable a name: letters, digits, _ and -.": "Donnez un nom à la variable : lettres, chiffres, _ et -.",
+  "Give the variable a name: letters, digits and _, not starting with a digit.": "Donnez un nom à la variable : lettres, chiffres et _, sans commencer par un chiffre.",
   "Global Base Environment": "Environnement de base global",
   "Global Environments": "Environnements globaux",
   "Global environments": "Environnements globaux",

@@ -233,24 +233,32 @@ const Editor: FC<{ flow: Flow; requests: FlowRequest[] }> = ({ flow, requests })
   const runningRef = useRef<AbortController | null>(null);
   const requestsById = useMemo(() => new Map(requests.map(request => [request._id, request])), [requests]);
 
-  // saved a moment after each change, and before a run or leaving
+  // saved a moment after each change to the graph, and before a run or leaving.
+  // React Flow also reports a node's size and selection as changes: those
+  // aren't saved, so a flow only looked at isn't modified (and Git Sync
+  // doesn't see a change)
   const latest = useRef({ nodes, edges });
   latest.current = { nodes, edges };
+  const saved = useRef(JSON.stringify(fromCanvas(initial.nodes, initial.edges)));
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
   const save = useCallback(async () => {
     if (pending.current) {
       clearTimeout(pending.current);
       pending.current = null;
     }
+    const graph = fromCanvas(latest.current.nodes, latest.current.edges);
+    const text = JSON.stringify(graph);
+    if (text === saved.current) {
+      return;
+    }
     const current = await models.flow.getById(flow._id);
     if (current) {
-      await models.flow.update(current, { graph: fromCanvas(latest.current.nodes, latest.current.edges) });
+      saved.current = text;
+      await models.flow.update(current, { graph });
     }
   }, [flow._id]);
-  const first = useRef(true);
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
+    if (JSON.stringify(fromCanvas(nodes, edges)) === saved.current) {
       return;
     }
     if (pending.current) {

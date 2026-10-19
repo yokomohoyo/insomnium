@@ -75,6 +75,7 @@ describe('runFlow', () => {
     expect((await runFlow(graph(node('r', 'request')), { send })).message).toBe('Choose the request it sends.');
     expect((await runFlow(graph(node('c', 'condition', { source: 'status', operator: 'equals', value: '200' })), { send })).message).toContain('no response yet');
     expect((await runFlow(graph(node('v', 'setVariable', { name: 'two words' })), { send })).message).toContain('Give the variable a name');
+    expect((await runFlow(graph(node('v', 'setVariable', { name: 'my-token' })), { send })).message).toContain('Give the variable a name');
   });
 
   it('polls round a loop, and gives up on one that never ends', async () => {
