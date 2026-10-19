@@ -14,10 +14,24 @@ export const hasGit = spawnSync('git', ['--version']).status === 0;
 
 const publicKey = (text: string) => utils.parseKey(text) as ParsedKey;
 
+// An ed25519 key pair, as ssh2 makes them. About one in three hundred comes out
+// a byte short (its key's leading zero dropped), and ssh2 can't read it back, so
+// one that won't parse is made again.
+export function keyPair(options?: Parameters<typeof utils.generateKeyPairSync>[1]) {
+  for (;;) {
+    const pair = utils.generateKeyPairSync('ed25519', options);
+    const parsedPublic = utils.parseKey(pair.public);
+    const parsedPrivate = utils.parseKey(pair.private, options?.passphrase);
+    if (!(parsedPublic instanceof Error) && !(parsedPrivate instanceof Error)) {
+      return pair;
+    }
+  }
+}
+
 export async function startSshGitServer() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-ssh-remote-'));
-  const hostKeys = utils.generateKeyPairSync('ed25519');
-  const clientKeys = utils.generateKeyPairSync('ed25519');
+  const hostKeys = keyPair();
+  const clientKeys = keyPair();
   const allowed = [publicKey(clientKeys.public)];
   const accepted: string[] = [];
 
