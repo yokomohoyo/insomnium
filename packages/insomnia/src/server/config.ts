@@ -39,9 +39,14 @@ ${GIT_USAGE}`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
 
+// the longest a timer waits, 2^31 - 1 ms, in whole seconds (about 24 days):
+// setInterval runs one that's longer at once, and again every millisecond
+export const MAX_PULL_INTERVAL = 2147483;
+
 export const parseConfig = (argv: string[], env: Record<string, string | undefined>): ServerConfig => {
   const sources = emptySources(env);
-  let pullInterval = Number(env.INSOMNIUM_PULL_INTERVAL ?? 300);
+  // (set but empty is unset)
+  let pullInterval = Number(env.INSOMNIUM_PULL_INTERVAL || 300);
   let environment: string | undefined;
   let host = env.INSOMNIUM_HOST || '127.0.0.1';
   let port = Number(env.INSOMNIUM_PORT || 8080);
@@ -77,8 +82,8 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
   }
 
   requireSources(sources);
-  if (!Number.isInteger(pullInterval) || pullInterval < 0) {
-    throw new Error('--pull-interval must be a whole number of seconds (0 for none)');
+  if (!Number.isInteger(pullInterval) || pullInterval < 0 || pullInterval > MAX_PULL_INTERVAL) {
+    throw new Error(`--pull-interval must be a whole number of seconds, up to ${MAX_PULL_INTERVAL} (0 for none)`);
   }
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error('The port must be a number from 1 to 65535');

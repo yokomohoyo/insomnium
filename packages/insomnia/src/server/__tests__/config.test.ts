@@ -35,9 +35,19 @@ describe('parseConfig()', () => {
     expect(parseConfig(['--collection', 'a.yaml'], env)).toMatchObject({ host: '127.0.0.1', port: 8080, validateSSL: true, variables: {}, allowedEnvironmentVariables: '' });
   });
 
+  it('updates the repositories every 300 s unless told otherwise, as often as a timer can wait', () => {
+    const pullInterval = (argv: string[], value?: string) => parseConfig(['--repo', 'r', ...argv], { ...env, INSOMNIUM_PULL_INTERVAL: value }).pullInterval;
+    expect(pullInterval([])).toBe(300);
+    expect(pullInterval([], '')).toBe(300);
+    expect(pullInterval([], '0')).toBe(0);
+    expect(pullInterval(['--pull-interval', '2147483'])).toBe(2147483);
+  });
+
   it.each([
     ['no collection', [], env, /--collection or --repo/],
     ['a bad pull interval', ['--repo', 'r', '--pull-interval', '-1'], env, /--pull-interval/],
+    ['a pull interval longer than a timer waits', ['--repo', 'r', '--pull-interval', '2147484'], env, /--pull-interval/],
+    ['a bad pull interval from the environment', ['--repo', 'r'], { ...env, INSOMNIUM_PULL_INTERVAL: 'often' }, /--pull-interval/],
     ['an option without its value', ['--collection'], env, /needs a value/],
     ['an unknown option', ['--collection', 'a', '--verbose'], env, /Unknown option --verbose/],
     ['a bad port', ['--collection', 'a', '--port', '70000'], env, /port/],

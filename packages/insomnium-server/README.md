@@ -53,7 +53,7 @@ docker run -p 8080:8080 \
 `--repo` takes:
 
 - **An http(s) URL**, which the server clones. For a private repository, set `INSOMNIUM_GIT_TOKEN` to a token that can read it (a GitHub fine-grained token with read-only Contents, say), and `INSOMNIUM_GIT_USERNAME` if the host needs a particular username. SSH remotes can't be cloned; mount a checkout instead.
-- **A directory** with a checkout of the repository, kept current by something else: a mounted volume, a sidecar that pulls, a CI checkout. The server reads it again every `--pull-interval`.
+- **A directory** with a checkout of the repository, kept current by something else: a mounted volume, a sidecar that pulls, a CI checkout. The server reads it again every `--pull-interval`: its own folders and regular files, not links, and no file over 10 MB.
 
 The repository's `.insomnium` folder (or `.insomnia`, from Insomnia) is read the way the app reads a clone, so it holds one workspace. `INSOMNIUM_VAR_*` values apply over the repository's environment after every update. `run`, `load` and `mock` take `--repo` too, and read the repository once.
 
@@ -64,7 +64,7 @@ The repository's `.insomnium` folder (or `.insomnia`, from Insomnia) is read the
 | `--collection <file>` | A collection to load; repeat for more. |
 | `--repo <url or directory>` | A Git Sync repository to serve (see above); repeat for more. |
 | `--branch <name>` | The branch of the repositories to clone; the remote's default otherwise. |
-| `--pull-interval <seconds>` | How often to update the repositories (`INSOMNIUM_PULL_INTERVAL`, default 300); 0 for never. |
+| `--pull-interval <seconds>` | How often to update the repositories (`INSOMNIUM_PULL_INTERVAL`, default 300, at most 2147483); 0 for never. |
 | `--env <name>` | The sub environment to send with. |
 | `--host`, `--port` | Where to listen (`INSOMNIUM_HOST`, `INSOMNIUM_PORT`; the image uses `0.0.0.0:8080`). |
 | `INSOMNIUM_MCP_TOKEN` | **Required**, 32+ characters. Clients send it as a bearer token. |
