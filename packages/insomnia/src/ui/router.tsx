@@ -26,7 +26,6 @@ import { guard } from '../utils/guard';
 import { AppLoadingIndicator } from './components/app-loading-indicator';
 import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
-import { shouldOrganizationsRevalidate } from './routes/organization';
 import Root from './routes/root';
 
 const Project = lazy(() => import('./routes/project'));
@@ -727,22 +726,6 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
                           (
                             await import('./routes/actions')
                           ).createNewProjectAction(...args),
-                      },
-                      {
-                        path: ':projectId/remote-collections',
-                        loader: async (...args) =>
-                          (
-                            await import('./routes/remote-collections')
-                          ).remoteCollectionsLoader(...args),
-                        children: [
-                          {
-                            path: 'pull',
-                            action: async (...args) =>
-                              (
-                                await import('./routes/remote-collections')
-                              ).pullRemoteCollectionAction(...args),
-                          },
-                        ],
                       },
                     ],
                   },

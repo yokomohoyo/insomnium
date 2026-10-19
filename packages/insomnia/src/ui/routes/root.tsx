@@ -63,7 +63,7 @@ import { useSettingsPatcher } from '../hooks/use-request';
 import Modals from './modals';
 
 import { WorkspaceLoaderData } from './workspace';
-import { defaultOrganization } from '../../models/organization';
+import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 
 /**** ><> ↑ --------- Hooks and Containers */
 
@@ -84,7 +84,6 @@ const Root = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { settings } = useLoaderData() as RootLoaderData;
-  const organizations = [defaultOrganization];
 
   const workspaceData = useRouteLoaderData(
     ':workspaceId'
@@ -300,7 +299,7 @@ const Root = () => {
             </header>
             <div className="[grid-area:Navbar] overflow-hidden">
               <nav className="flex flex-col items-center place-content-stretch gap-[--padding-md] w-full h-full overflow-y-auto py-[--padding-md]">
-              <TooltipTrigger key={organizations[0]._id}>
+              <TooltipTrigger>
                     <Link>
                       <NavLink
                         className={({ isActive }) =>
@@ -325,7 +324,7 @@ const Root = () => {
 }
                       }
 
-                      return `/organization/${organizations[0]._id}`;
+                      return `/organization/${DEFAULT_ORGANIZATION_ID}`;
 
                         })()}
                       >
@@ -338,7 +337,7 @@ const Root = () => {
                       offset={8}
                       className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
                     >
-                  <span>{organizations[0].name}</span>
+                  <span>Projects</span>
                     </Tooltip>
                   </TooltipTrigger>
 

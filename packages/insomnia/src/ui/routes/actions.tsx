@@ -13,15 +13,13 @@ import { spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import * as models from '../../models';
 import { getById, update } from '../../models/helpers/request-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
-import { DEFAULT_PROJECT_ID, isRemoteProject } from '../../models/project';
+import { DEFAULT_PROJECT_ID } from '../../models/project';
 import { isRequest, Request } from '../../models/request';
 import { isRequestGroup, isRequestGroupId } from '../../models/request-group';
 import { UnitTest } from '../../models/unit-test';
 import { isCollection, Workspace } from '../../models/workspace';
 import { WorkspaceMeta } from '../../models/workspace-meta';
 import { getSendRequestCallback } from '../../network/unit-test-feature';
-import { initializeLocalBackendProjectAndMarkForSync } from '../../sync/vcs/initialize-backend-project';
-import { getVCS } from '../../sync/vcs/vcs';
 import { guard } from '../../utils/guard';
 
 // Project
@@ -51,11 +49,6 @@ export const renameProjectAction: ActionFunction = async ({
   const project = await models.project.getById(projectId);
 
   guard(project, 'Project not found');
-
-  guard(
-    !isRemoteProject(project),
-    'Cannot rename remote project',
-  );
 
   await models.project.update(project, { name });
 
@@ -116,15 +109,6 @@ export const createNewWorkspaceAction: ActionFunction = async ({
   const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
 
   await database.flushChanges(flushId);
-  // if (session.isLoggedIn() && isRemoteProject(project) && !workspaceMeta.gitRepositoryId) {
-  //   const vcs = getVCS();
-  //   if (vcs) {
-  //     await initializeLocalBackendProjectAndMarkForSync({
-  //       vcs,
-  //       workspace,
-  //     });
-  //   }
-  // }
 
   return redirect(
     `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/${workspace.scope === 'collection' ? ACTIVITY_DEBUG : ACTIVITY_SPEC
@@ -153,18 +137,6 @@ export const deleteWorkspaceAction: ActionFunction = async ({
   await models.stats.incrementDeletedRequestsForDescendents(workspace);
   await models.workspace.remove(workspace);
 
-  try {
-    const vcs = getVCS();
-    if (vcs) {
-      const backendProject = await vcs._getBackendProjectByRootDocument(workspace._id);
-      await vcs._removeProject(backendProject);
-
-      console.log({ projectsLOCAL: await vcs.localBackendProjects() });
-    }
-  } catch (err) {
-    console.warn('Failed to remove project from VCS', err);
-  }
-  console.log(`redirecting to /organization/${organizationId}/project/${projectId}`);
   return redirect(`/organization/${organizationId}/project/${projectId}`);
 };
 
@@ -209,19 +181,6 @@ export const duplicateWorkspaceAction: ActionFunction = async ({ request, params
   await models.environment.getOrCreateForParentId(newWorkspace._id);
   await models.cookieJar.getOrCreateForParentId(newWorkspace._id);
   await models.workspaceMeta.getOrCreateByParentId(newWorkspace._id);
-
-  try {
-    // Mark for sync if logged in and in the expected project
-    const vcs = getVCS();
-    // if (session.isLoggedIn() && vcs && isRemoteProject(duplicateToProject)) {
-    //   await initializeLocalBackendProjectAndMarkForSync({
-    //     vcs: vcs.newInstance(),
-    //     workspace: newWorkspace,
-    //   });
-    // }
-  } catch (e) {
-    console.warn('Failed to initialize local backend project', e);
-  }
 
   return redirect(
     `/organization/${organizationId}/project/${projectId}/workspace/${newWorkspace._id}/${newWorkspace.scope === 'collection' ? ACTIVITY_DEBUG : ACTIVITY_SPEC

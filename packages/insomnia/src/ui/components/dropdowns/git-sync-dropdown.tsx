@@ -1,11 +1,10 @@
 import classnames from 'classnames';
 import React, { FC, Fragment, useEffect, useRef, useState } from 'react';
-import { useFetcher, useParams, useRevalidator } from 'react-router-dom';
+import { useFetcher, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
 import { docsGitSync } from '../../../common/documentation';
 import { GitRepository } from '../../../models/git-repository';
-import { deleteGitRepository } from '../../../models/helpers/git-repository-operations';
 import { pullRequestUrl } from '../../../sync/git/pull-request-url';
 import { getOauth2FormatName } from '../../../sync/git/utils';
 import {
@@ -32,16 +31,14 @@ import { GitConflictsModal } from '../modals/git-conflicts-modal';
 import { GitLogModal } from '../modals/git-log-modal';
 import { GitRepositorySettingsModal } from '../modals/git-repository-settings-modal';
 import { GitStagingModal } from '../modals/git-staging-modal';
-import { Button } from '../themed-button';
 import { Tooltip } from '../tooltip';
 
 interface Props {
   gitRepository: GitRepository | null;
   className?: string;
-  isInsomniaSyncEnabled: boolean;
 }
 
-export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomniaSyncEnabled }) => {
+export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
   const { organizationId, projectId, workspaceId } = useParams() as {
     organizationId: string;
     projectId: string;
@@ -218,7 +215,6 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
       : { branches: [], branch: '' };
 
   let dropdown: React.ReactNode = null;
-  const { revalidate } = useRevalidator();
 
   const branchActions = [
     {
@@ -357,41 +353,6 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
           }
         >
           <DropdownSection
-            items={isInsomniaSyncEnabled ? [{
-              value: 'Use Insomnia Sync',
-              id: 'use-insomnia-sync',
-            }] : []}
-          >
-            {item => (
-              <DropdownItem
-                key={item.id}
-                textValue='Use Insomnia Sync'
-                aria-label='Use Insomnia Sync'
-              >
-                <Button
-                  variant='contained'
-                  bg='surprise'
-                  onClick={async () => {
-                    if (gitRepository) {
-                      await deleteGitRepository(gitRepository);
-                      revalidate();
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 'var(--padding-sm)',
-                    margin: '0 var(--padding-sm)',
-                  }}
-                >
-                  <i className="fa fa-cloud" /> Use Insomnia Sync
-                </Button>
-              </DropdownItem>
-            )}
-          </DropdownSection>
-          <DropdownSection
             title={
               <span>
                 Git Sync
@@ -519,40 +480,6 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository, isInsomni
             </DropdownButton>
           }
         >
-          <DropdownSection
-            items={isInsomniaSyncEnabled ? [{
-              value: 'Use Insomnia Sync',
-              id: 'use-insomnia-sync',
-            }] : []}
-          >
-            {item => (
-              <DropdownItem
-                key={item.id}
-                aria-label='Use Insomnia Sync'
-              >
-                <Button
-                  variant='contained'
-                  bg='surprise'
-                  onClick={async () => {
-                    if (gitRepository) {
-                      await deleteGitRepository(gitRepository);
-                      revalidate();
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 'var(--padding-sm)',
-                    margin: '0 var(--padding-sm)',
-                  }}
-                >
-                  <i className="fa fa-cloud" /> Use Insomnia Sync
-                </Button>
-              </DropdownItem>
-            )}
-          </DropdownSection>
           <DropdownSection
             title={
               <span>

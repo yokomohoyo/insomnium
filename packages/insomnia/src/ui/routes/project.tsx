@@ -12,7 +12,6 @@ import {
   Popover,
   SearchField,
   Select,
-  SelectValue,
 } from 'react-aria-components';
 import {
   LoaderFunction,
@@ -40,14 +39,9 @@ import { ApiSpec } from '../../models/api-spec';
 import { CaCertificate } from '../../models/ca-certificate';
 import { ClientCertificate } from '../../models/client-certificate';
 import { sortProjects } from '../../models/helpers/project';
-import {
-  DEFAULT_ORGANIZATION_ID,
-  defaultOrganization,
-  Organization,
-} from '../../models/organization';
+import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import {
   DEFAULT_PROJECT_ID,
-  isRemoteProject,
   Project,
 } from '../../models/project';
 import { isDesign, Workspace } from '../../models/workspace';
@@ -58,7 +52,7 @@ import { ProjectDropdown } from '../components/dropdowns/project-dropdown';
 import { WorkspaceCardDropdown } from '../components/dropdowns/workspace-card-dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
 import { Icon } from '../components/icon';
-import { showAlert, showPrompt } from '../components/modals';
+import { showPrompt } from '../components/modals';
 import { GitRepositoryCloneModal } from '../components/modals/git-repository-settings-modal/git-repo-clone-modal';
 import { ImportModal } from '../components/modals/import-modal';
 import { EmptyStatePane } from '../components/panes/project-empty-state-pane';
@@ -109,21 +103,8 @@ export const indexLoader: LoaderFunction = async ({ params }) => {
     }
   }
 
-  if (models.organization.DEFAULT_ORGANIZATION_ID === organizationId) {
-    const localProjects = (await models.project.all()).filter(
-      proj => !isRemoteProject(proj)
-    );
-    if (localProjects[0]._id) {
-      return redirect(
-        `/organization/${organizationId}/project/${localProjects[0]._id}`
-      );
-    }
-  } else {
-    const projectId = organizationId;
-    return redirect(`/organization/${organizationId}/project/${projectId}`);
-  }
-
-  return;
+  const [first] = sortProjects(await models.project.all());
+  return redirect(`/organization/${DEFAULT_ORGANIZATION_ID}/project/${first?._id || DEFAULT_PROJECT_ID}`);
 };
 
 export interface ProjectLoaderData {
@@ -134,7 +115,6 @@ export interface ProjectLoaderData {
   projectsCount: number;
   activeProject: Project;
   projects: Project[];
-  organization: Organization;
 }
 
 export const loader: LoaderFunction = async ({
@@ -158,7 +138,6 @@ export const loader: LoaderFunction = async ({
       (await models.project.create({
         _id: DEFAULT_PROJECT_ID,
         name: getProductName(),
-        remoteId: null,
       }));
   }
   guard(project, 'Project was not found');
@@ -273,26 +252,14 @@ export const loader: LoaderFunction = async ({
 
   const allProjects = await models.project.all();
 
-  const organizationProjects =
-    organizationId === DEFAULT_ORGANIZATION_ID
-      ? allProjects.filter(proj => !isRemoteProject(proj))
-      : [project];
-
-  const projects = sortProjects(organizationProjects).filter(p =>
+  const projects = sortProjects(allProjects).filter(p =>
     p.name.toLowerCase().includes(projectName.toLowerCase())
   );
 
   return {
-    organization:
-      organizationId === DEFAULT_ORGANIZATION_ID
-        ? defaultOrganization
-        : {
-            _id: organizationId,
-            name: projects[0].name,
-          },
     workspaces,
     projects,
-    projectsCount: organizationProjects.length,
+    projectsCount: allProjects.length,
     activeProject: project,
     allFilesCount: workspacesWithMetaData.length,
     documentsCount: workspacesWithMetaData.filter(
@@ -309,7 +276,6 @@ const ProjectRoute: FC = () => {
     workspaces,
     activeProject,
     projects,
-    organization,
     allFilesCount,
     collectionsCount,
     documentsCount,
@@ -320,8 +286,6 @@ const ProjectRoute: FC = () => {
     organizationId: string;
     projectId: string;
   };
-
-  const organizations = [defaultOrganization];
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [isGitRepositoryCloneModalOpen, setIsGitRepositoryCloneModalOpen] =
@@ -349,7 +313,7 @@ const ProjectRoute: FC = () => {
             scope: 'collection',
           },
           {
-            action: `/organization/${organization._id}/project/${activeProject._id}/workspace/new`,
+            action: `/organization/${organizationId}/project/${activeProject._id}/workspace/new`,
             method: 'post',
           }
         );
@@ -371,7 +335,7 @@ const ProjectRoute: FC = () => {
             scope: 'design',
           },
           {
-            action: `/organization/${organization._id}/project/${activeProject._id}/workspace/new`,
+            action: `/organization/${organizationId}/project/${activeProject._id}/workspace/new`,
             method: 'post',
           }
         );
@@ -467,57 +431,11 @@ const ProjectRoute: FC = () => {
           className="new-sidebar"
           renderPageSidebar={
             <div className="flex flex-1 flex-col overflow-hidden divide-solid divide-y divide-[--hl-md]">
-              <div className="p-[--padding-sm]">
-                <Select
-                  aria-label="Organizations"
-                  onSelectionChange={id => {
-                    navigate(`/organization/${id}`);
-                  }}
-                  selectedKey={organizationId}
-                  items={organizations}
-                >
-                  <Button className="px-4 py-1 flex flex-1 items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm">
-                    <SelectValue<Organization> className="flex truncate items-center justify-center gap-2">
-                      {({ selectedItem }) => {
-                        return selectedItem?.name;
-                      }}
-                    </SelectValue>
-                    <Icon icon="caret-down" />
-                  </Button>
-                  <Popover className="min-w-max">
-                    <ListBox<Organization> className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none">
-                      {item => (
-                        <Item
-                          id={item._id}
-                          key={item._id}
-                          className="flex gap-2 px-[--padding-md] aria-selected:font-bold items-center text-[--color-font] h-[--line-height-xs] w-full text-md whitespace-nowrap bg-transparent hover:bg-[--hl-sm] disabled:cursor-not-allowed focus:bg-[--hl-xs] focus:outline-none transition-colors"
-                          aria-label={item.name}
-                          textValue={item.name}
-                          value={item}
-                        >
-                          {({ isSelected }) => (
-                            <Fragment>
-                              <span>{item.name}</span>
-                              {isSelected && (
-                                <Icon
-                                  icon="check"
-                                  className="text-[--color-success] justify-self-end"
-                                />
-                              )}
-                            </Fragment>
-                          )}
-                        </Item>
-                      )}
-                    </ListBox>
-                  </Popover>
-                </Select>
-              </div>
               <div className="flex flex-col flex-1">
                 <Heading className="p-[--padding-sm] uppercase text-xs">
                   Projects ({projectsCount})
                 </Heading>
-                {organizationId === DEFAULT_ORGANIZATION_ID && (
-                  <div className="flex justify-between gap-1 p-[--padding-sm]">
+                <div className="flex justify-between gap-1 p-[--padding-sm]">
                     <SearchField
                       aria-label="Projects filter"
                       className="group relative flex-1"
@@ -542,40 +460,24 @@ const ProjectRoute: FC = () => {
 
                     <Button
                       onPress={() => {
-                        if (activeProject.remoteId) {
-                          showAlert({
-                            title: 'This capability is coming soon',
-                            okLabel: 'Close',
-                            message: (
-                              <div>
-                                <p>
-                                  At the moment it is not possible to create more
-                                  cloud projects within a team in Insomnium.
-                                </p>
-                                <p>🚀 This feature is coming soon!</p>
-                              </div>
+                        const defaultValue = `My ${strings.project.singular}`;
+                        showPrompt({
+                          title: `Create New ${strings.project.singular}`,
+                          submitName: 'Create',
+                          placeholder: defaultValue,
+                          defaultValue,
+                          selectText: true,
+                          onComplete: async name =>
+                            createNewProjectFetcher.submit(
+                              {
+                                name,
+                              },
+                              {
+                                action: `/organization/${organizationId}/project/new`,
+                                method: 'post',
+                              }
                             ),
-                          });
-                        } else {
-                          const defaultValue = `My ${strings.project.singular}`;
-                          showPrompt({
-                            title: `Create New ${strings.project.singular}`,
-                            submitName: 'Create',
-                            placeholder: defaultValue,
-                            defaultValue,
-                            selectText: true,
-                            onComplete: async name =>
-                              createNewProjectFetcher.submit(
-                                {
-                                  name,
-                                },
-                                {
-                                  action: `/organization/${organizationId}/project/new`,
-                                  method: 'post',
-                                }
-                              ),
-                          });
-                        }
+                        });
                       }}
                       aria-label="Create new Project"
                       className="flex items-center justify-center h-full aspect-square aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
@@ -583,7 +485,6 @@ const ProjectRoute: FC = () => {
                       <Icon icon="plus-circle" />
                     </Button>
                   </div>
-                )}
 
                 <GridList
                   aria-label="Projects"
@@ -612,11 +513,7 @@ const ProjectRoute: FC = () => {
                       >
                         <div className="flex select-none outline-none group-aria-selected:text-[--color-font] relative group-hover:bg-[--hl-xs] group-focus:bg-[--hl-sm] transition-colors gap-2 px-4 items-center h-[--line-height-xs] w-full overflow-hidden text-[--hl]">
                           <span className="group-aria-selected:bg-[--color-surprise] transition-colors top-0 left-0 absolute h-full w-[2px] bg-transparent" />
-                          <Icon
-                            icon={
-                              isRemoteProject(item) ? 'globe-americas' : 'laptop'
-                            }
-                          />
+                          <Icon icon="laptop" />
                           <span className="truncate">{item.name}</span>
                           <span className="flex-1" />
                           {item._id !== DEFAULT_PROJECT_ID && <ProjectDropdown organizationId={organizationId} project={item} />}
