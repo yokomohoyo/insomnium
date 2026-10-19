@@ -106,7 +106,8 @@ export async function startGitServer() {
         }
         runGit(upstream, 'add', '-A');
         runGit(upstream, 'commit', '-q', '-m', commitMessage);
-        runGit(upstream, 'push', '-q', 'origin', 'main');
+        // by full name: a test may add a tag named main
+        runGit(upstream, 'push', '-q', 'origin', 'HEAD:refs/heads/main');
       };
       push(files, message);
       return {
@@ -114,7 +115,7 @@ export async function startGitServer() {
         push,
         tag: (tag: string, tagMessage?: string) => {
           runGit(upstream, 'tag', ...(tagMessage ? ['-a', '-m', tagMessage] : []), tag);
-          runGit(upstream, 'push', '-q', 'origin', tag);
+          runGit(upstream, 'push', '-q', 'origin', `refs/tags/${tag}`);
         },
         tags: () => runGit(path.join(root, `${name}.git`), 'tag', '-l').split('\n').filter(Boolean),
       };

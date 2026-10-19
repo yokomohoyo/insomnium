@@ -115,6 +115,50 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
     });
   });
 
+  describe('a tag named as a branch', () => {
+    it('pulls into the branch, not the tag', async () => {
+      // the remote's tag, on the first commit, comes here with the pull
+      remote.tag('main');
+      const first = await head();
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      pushUpstream([{ ...request, name: 'list all pets' }], 'rename');
+
+      await GitVCS.pull(null);
+
+      expect(await GitVCS.getBranch()).toBe('main');
+      expect(await git.resolveRef({ ...GitVCS._baseOpts, ref: 'refs/tags/main' })).toBe(first);
+      const [merge, ...rest] = await messages();
+      expect(merge).toMatch(/^Merge/);
+      expect(rest.sort()).toEqual(['add pet', 'first', 'rename']);
+      expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets' });
+    });
+
+    it('rebases onto the branch, and switches to it, not the tag', async () => {
+      await GitVCS.createTag('feature');
+      const first = await head();
+      await GitVCS.branch('feature', true);
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      await GitVCS.checkout('main');
+      await rename('req_1', 'list all pets');
+      await commitHere('rename', 'req_1');
+
+      expect(await GitVCS.rebase('feature')).toEqual({ rebased: 1 });
+      expect(await messages()).toEqual(['rename', 'add pet', 'first']);
+      expect(await GitVCS.getBranch()).toBe('main');
+
+      await GitVCS.checkout('feature');
+      expect(await GitVCS.getBranch()).toBe('feature');
+      expect(await git.resolveRef({ ...GitVCS._baseOpts, ref: 'refs/tags/feature' })).toBe(first);
+    });
+
+    it("won't make a tag named as a branch", async () => {
+      await expect(GitVCS.createTag('main')).rejects.toThrow("There's a branch named main");
+      expect(await GitVCS.listTags()).toEqual([]);
+    });
+  });
+
   describe('stashes', () => {
     it('keeps changes and new documents aside, then brings them back', async () => {
       await rename('req_1', 'list all pets');
