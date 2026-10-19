@@ -50,14 +50,30 @@ jobs:
       - name: Resolve target tag
         id: tag
         shell: bash
+        env:
+          TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          TAG="${{ github.event.release.tag_name || github.event.inputs.tag }}"
+          # a dry run (unsigned, uploading nothing) can build a commit; a release only a tag
+          if [[ "$DRY_RUN" == "true" && "$TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "ref=$TAG" >> "$GITHUB_OUTPUT"
+          elif [[ "$TAG" =~ ^[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
+            echo "ref=refs/tags/$TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::That isn't a release tag's name (or, for a dry run, a commit's full SHA)"
+            exit 1
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Checkout tag
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.tag.outputs.tag }}
+          # a tag: a branch or a pull request's head isn't built (and signed) as
+          # a release, whichever ref the run was started from
+          ref: ${{ steps.tag.outputs.ref }}
+          # npm ci runs install scripts in this job, which holds the signing
+          # token: no git credentials left in .git/config
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v7
@@ -122,7 +138,8 @@ jobs:
       - name: Decide on signing (Windows)
         if: matrix.os == 'windows-latest'
         shell: bash
-        run: echo "SIGN_WINDOWS=${{ vars.SIGNPATH_ORGANIZATION_ID != '' }}" >> "$GITHUB_ENV"
+        # a dry run isn't signed: it can build a commit that isn't a release
+        run: echo "SIGN_WINDOWS=${{ vars.SIGNPATH_ORGANIZATION_ID != '' && !inputs.dry_run }}" >> "$GITHUB_ENV"
 
       # Windows packages in two passes so Insomnium.exe can be signed before the
       # installers embed it: electron-builder rewrites the exe's asar-integrity
