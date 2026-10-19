@@ -5,9 +5,8 @@ import { useRouteLoaderData } from 'react-router-dom';
 import { getProductName } from '../../../common/constants';
 import { docsImportExport } from '../../../common/documentation';
 import { exportAllToFile } from '../../../common/export';
-import { getWorkspaceLabel } from '../../../common/get-workspace-label';
 import { t } from '../../../common/i18n';
-import { strings } from '../../../common/strings';
+import { isDesign } from '../../../models/workspace';
 import { ProjectLoaderData } from '../../routes/project';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
@@ -69,22 +68,22 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
                 aria-label={t('Choose Export Type')}
                 title={t('Choose Export Type')}
               >
-                <DropdownItem aria-label={t('Export the "{name}" {type}', { name: workspaceData.activeWorkspace.name, type: getWorkspaceLabel(workspaceData.activeWorkspace).singular })}>
+                <DropdownItem aria-label={(isDesign(workspaceData.activeWorkspace) ? t('Export the "{name}" document', { name: workspaceData.activeWorkspace.name }) : t('Export the "{name}" collection', { name: workspaceData.activeWorkspace.name }))}>
                   <ItemContent
                     icon="home"
-                    label={t('Export the "{name}" {type}', { name: workspaceData.activeWorkspace.name, type: getWorkspaceLabel(workspaceData.activeWorkspace).singular })}
+                    label={(isDesign(workspaceData.activeWorkspace) ? t('Export the "{name}" document', { name: workspaceData.activeWorkspace.name }) : t('Export the "{name}" collection', { name: workspaceData.activeWorkspace.name }))}
                     onClick={() => setIsExportModalOpen(true)}
                   />
                 </DropdownItem>
-                <DropdownItem aria-label={t('Export files from the "{name}" {type}', { name: projectName, type: strings.project.singular })}>
+                <DropdownItem aria-label={t('Export files from the "{name}" project', { name: projectName })}>
                   <ItemContent
                     icon="empty"
-                    label={t('Export files from the "{name}" {type}', { name: projectName, type: strings.project.singular })}
+                    label={t('Export files from the "{name}" project', { name: projectName })}
                     onClick={handleExportAllToFile}
                   />
                 </DropdownItem>
               </DropdownSection>
-            </Dropdown>) : (<Button onClick={handleExportAllToFile}>{t('Export files from the "{name}" {type}', { name: projectName, type: strings.project.singular })}</Button>)
+            </Dropdown>) : (<Button onClick={handleExportAllToFile}>{t('Export files from the "{name}" project', { name: projectName })}</Button>)
           }
           &nbsp;&nbsp;
           <Button
@@ -96,7 +95,7 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
             onClick={() => setIsImportModalOpen(true)}
           >
             <i className="fa fa-file-import" />
-            {t('Import to the "{name}" {type}', { name: projectName, type: strings.project.singular })}
+            {t('Import to the "{name}" project', { name: projectName })}
           </Button>
         </div>
       </div>
