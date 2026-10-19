@@ -11,6 +11,7 @@ import { mergeLines } from './line-merge';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
 import { sameFile } from './same-file';
 import { sanitizeGitConfig } from './sanitize-git-config';
+import { filesAt, mergeFile, readText, type TreeFile, writeFiles } from './trees';
 import { gitCallbacks } from './utils';
 
 export interface GitAuthor {
@@ -65,6 +66,26 @@ export interface GitLogEntry {
   };
   payload: string;
 }
+
+export interface GitTag {
+  name: string;
+  // the commit it's on
+  oid: string;
+  // an annotated tag's message, or '' for a lightweight one
+  message: string;
+}
+
+export interface GitStash {
+  id: string;
+  message: string;
+  // seconds, as a commit's
+  timestamp: number;
+  branch: string;
+  files: string[];
+}
+
+// a stash is a commit on the one it was made from, with the changes, kept here
+const STASH_REFS = 'refs/insomnium/stash';
 
 interface InitOptions {
   directory: string;
@@ -480,7 +501,8 @@ export class GitVCS {
     }
   }
 
-  async pull(gitCredentials?: GitCredentials | null, choices: Record<string, MergeChoice> = {}) {
+  // rebase: this branch's own commits go on top of what came, in place of a merge
+  async pull(gitCredentials?: GitCredentials | null, choices: Record<string, MergeChoice> = {}, rebase = false) {
     const branch = await this.getBranch();
     console.log('[git] Pull remote=origin', branch);
     // git.pull's steps (fetch, merge, check out), with a look before the merge
@@ -495,6 +517,10 @@ export class GitVCS {
     });
     if (!fetchHead) {
       return;
+    }
+    await this._followTags(gitCredentials);
+    if (rebase) {
+      return this.rebase(`refs/remotes/origin/${branch}`, choices, 'Pulling');
     }
     await this._refuseOverwritingLocalChanges(fetchHead, 'Pulling');
     try {
@@ -725,6 +751,261 @@ export class GitVCS {
     });
   }
 
+  async _commitTimes() {
+    const author = await this.getAuthor();
+    const now = { timestamp: Math.floor(Date.now() / 1000), timezoneOffset: new Date().getTimezoneOffset() };
+    return { ...now, name: author.name || 'Insomnium', email: author.email || '' };
+  }
+
+  async listTags(): Promise<GitTag[]> {
+    const names = await git.listTags({ ...this._baseOpts });
+    const tags = await Promise.all(names.map(async name => {
+      const oid = await git.resolveRef({ ...this._baseOpts, ref: `refs/tags/${name}` });
+      // an annotated tag is an object of its own, which points at the commit
+      const annotated = await git.readTag({ ...this._baseOpts, oid }).catch(() => null);
+      return annotated
+        ? { name, oid: annotated.tag.object, message: annotated.tag.message.trim() }
+        : { name, oid, message: '' };
+    }));
+    return tags.sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }));
+  }
+
+  // a tag on the current commit; one with a message is annotated, as git tag -a makes
+  async createTag(name: string, message = '') {
+    console.log(`[git] Tag ${name}`);
+    const object = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' });
+    if (message.trim()) {
+      const tagger = await this._commitTimes();
+      await git.annotatedTag({ ...this._baseOpts, ref: name, object, message: message.trim(), tagger });
+    } else {
+      await git.tag({ ...this._baseOpts, ref: name, object });
+    }
+  }
+
+  async pushTag(name: string, gitCredentials?: GitCredentials | null) {
+    console.log(`[git] Push tag ${name}`);
+    const ref = `refs/tags/${name}`;
+    const result = await git.push({ ...this._baseOpts, ...gitCallbacks(gitCredentials), remote: 'origin', ref, remoteRef: ref });
+    const error = result.refs?.[ref]?.error;
+    if (error) {
+      throw new Error(`The remote refused the tag: ${error}`);
+    }
+  }
+
+  // here, and on the remote too when it's been pushed there
+  async deleteTag(name: string, { remote, gitCredentials }: { remote?: boolean; gitCredentials?: GitCredentials | null } = {}) {
+    console.log(`[git] Delete tag ${name}${remote ? ' (and on the remote)' : ''}`);
+    if (remote) {
+      const ref = `refs/tags/${name}`;
+      await git.push({ ...this._baseOpts, ...gitCallbacks(gitCredentials), remote: 'origin', ref, remoteRef: ref, delete: true });
+    }
+    await git.deleteTag({ ...this._baseOpts, ref: name });
+  }
+
+  _gitdir() {
+    return this._baseOpts.gitdir || path.join(this._baseOpts.dir, '.git');
+  }
+
+  /**
+   * Keeps these files' uncommitted changes (null content: deleted here) in a
+   * stash, a commit on HEAD that no branch has, to be applied later. Undoing
+   * them in the app is left to the caller, which knows which were added.
+   */
+  async stash(files: string[], message: string) {
+    const head = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' });
+    const branch = await this.getBranch();
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const tree = await filesAt(this._baseOpts, head);
+    for (const file of files) {
+      const content: Uint8Array | null = await fs.readFile(path.join(this._baseOpts.dir, file)).catch(() => null);
+      if (content === null) {
+        tree.delete(file);
+      } else {
+        tree.set(file, { oid: await git.writeBlob({ ...this._baseOpts, blob: content }), mode: tree.get(file)?.mode || '100644' });
+      }
+    }
+    const when = await this._commitTimes();
+    const oid = await git.writeCommit({
+      ...this._baseOpts,
+      commit: {
+        message: `${message.trim() || `Changes on ${branch}`}\n\nbranch: ${branch}\n`,
+        tree: await writeFiles(this._baseOpts, tree),
+        parent: [head],
+        author: when,
+        committer: when,
+      },
+    });
+    const id = String(Date.now());
+    await git.writeRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}`, value: oid });
+    console.log(`[git] Stashed ${files.length} files as ${id}`);
+    return id;
+  }
+
+  // newest first
+  async listStashes(): Promise<GitStash[]> {
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const ids: string[] = await fs.readdir(path.join(this._gitdir(), STASH_REFS)).catch(() => []);
+    const stashes = await Promise.all(ids.map(async id => {
+      const oid = await git.resolveRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}` }).catch(() => null);
+      if (!oid) {
+        return null;
+      }
+      const { commit } = await git.readCommit({ ...this._baseOpts, oid });
+      const [message, ...rest] = commit.message.split('\n');
+      const branch = rest.find(line => line.startsWith('branch: '))?.slice('branch: '.length) || '';
+      const files = await this._changedBetween(commit.parent[0], oid);
+      return { id, message, timestamp: commit.committer.timestamp, branch, files: files.map(([file]) => file) };
+    }));
+    return stashes.filter((stash): stash is GitStash => !!stash).sort((a, b) => Number(b.id) - Number(a.id));
+  }
+
+  // the files that differ between two commits, with their blobs on each side
+  async _changedBetween(from: string, to: string) {
+    const [before, after] = [await filesAt(this._baseOpts, from), await filesAt(this._baseOpts, to)];
+    const changed: [string, TreeFile | undefined, TreeFile | undefined][] = [];
+    for (const file of new Set([...before.keys(), ...after.keys()])) {
+      if (before.get(file)?.oid !== after.get(file)?.oid) {
+        changed.push([file, before.get(file), after.get(file)]);
+      }
+    }
+    return changed;
+  }
+
+  /**
+   * Brings a stash's changes back into the app, merged three ways with what's
+   * here now: the commit it was made on is the base, so a document changed
+   * since, here or by a pull, keeps those changes too. A clash a choice doesn't
+   * settle throws a GitConflictsError and nothing is written. drop: the stash
+   * goes once applied (git stash pop).
+   */
+  async applyStash(id: string, { drop = false, choices = {} }: { drop?: boolean; choices?: Record<string, MergeChoice> } = {}) {
+    const ref = `${STASH_REFS}/${id}`;
+    const oid = await git.resolveRef({ ...this._baseOpts, ref });
+    const { commit } = await git.readCommit({ ...this._baseOpts, oid });
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const writes: [string, string | null][] = [];
+    const conflicts: DocConflict[] = [];
+    for (const [file, before, stashed] of await this._changedBetween(commit.parent[0], oid)) {
+      const filepath = path.join(this._baseOpts.dir, file);
+      const here: Uint8Array | null = await fs.readFile(filepath).catch(() => null);
+      const result = mergeFile(
+        file,
+        await readText(this._baseOpts, before?.oid),
+        here === null ? null : Buffer.from(here).toString(),
+        await readText(this._baseOpts, stashed?.oid),
+        choices[file],
+      );
+      if ('conflict' in result) {
+        conflicts.push(result.conflict);
+      } else {
+        writes.push([file, result.merged]);
+      }
+    }
+    if (conflicts.length) {
+      throw new GitConflictsError(conflicts);
+    }
+    for (const [file, content] of writes) {
+      const filepath = path.join(this._baseOpts.dir, file);
+      if (content === null) {
+        await fs.unlink(filepath).catch(() => {});
+      } else {
+        await fs.mkdir(path.dirname(filepath)).catch(() => {});
+        await fs.writeFile(filepath, content);
+      }
+    }
+    console.log(`[git] Applied stash ${id} (${writes.length} files)`);
+    if (drop) {
+      await this.dropStash(id);
+    }
+  }
+
+  async dropStash(id: string) {
+    await git.deleteRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}` });
+  }
+
+  /**
+   * Replays this branch's own commits, since it parted from onto, on top of
+   * onto, one at a time, as git rebase does: each commit's changes merge three
+   * ways (a document by its fields) into what's there. The new commits are
+   * made first, and the branch moves only once all of them are, so a clash
+   * leaves everything as it was: a GitConflictsError lists the clashes of every
+   * commit, and choices (by file) settle them for the next try.
+   */
+  async rebase(onto: string, choices: Record<string, MergeChoice> = {}, doing = `Rebasing onto ${onto.replace(/^refs\/remotes\//, '')}`) {
+    const branch = await this.getBranch();
+    const head = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' });
+    const upstream = await git.resolveRef({ ...this._baseOpts, ref: onto });
+    const [base] = await git.findMergeBase({ ...this._baseOpts, oids: [head, upstream] });
+    if (!base) {
+      throw new Error(`${branch} and ${onto} have no history in common to rebase on.`);
+    }
+    if (base === upstream) {
+      // onto is in this branch's history already
+      return { rebased: 0 };
+    }
+
+    const commits: { oid: string; commit: git.CommitObject }[] = [];
+    for (let oid = head; oid !== base;) {
+      const { commit } = await git.readCommit({ ...this._baseOpts, oid });
+      if (commit.parent.length !== 1) {
+        throw new Error(`${branch} has a merge commit (${oid.slice(0, 7)}) since it parted from ${onto}, which a rebase can't replay: merge instead.`);
+      }
+      commits.unshift({ oid, commit });
+      oid = commit.parent[0];
+    }
+
+    await this._refuseOverwritingLocalChanges(upstream, doing);
+    let tip = upstream;
+    const files = await filesAt(this._baseOpts, upstream);
+    const conflicts = new Map<string, DocConflict>();
+    const committer = await this._commitTimes();
+    for (const { oid, commit } of commits) {
+      for (const [file, before, after] of await this._changedBetween(commit.parent[0], oid)) {
+        const there = files.get(file);
+        if (there?.oid === after?.oid) {
+          continue;
+        }
+        let next: TreeFile | undefined = after;
+        if (there?.oid !== before?.oid) {
+          const result = mergeFile(
+            file,
+            await readText(this._baseOpts, before?.oid),
+            await readText(this._baseOpts, there?.oid),
+            await readText(this._baseOpts, after?.oid),
+            // ours, in a rebase, is the branch's own commit: theirs is what it goes onto
+            choices[file] && (choices[file] === 'ours' ? 'theirs' : 'ours'),
+          );
+          if ('conflict' in result) {
+            // the commit's side of it is the user's: shown as theirs, so flipped
+            const { conflict } = result;
+            conflicts.set(file, { ...conflict, fields: conflict.fields.map(field => ({ ...field, ours: field.theirs, theirs: field.ours })) });
+            continue;
+          }
+          next = result.merged === null ? undefined : { oid: await git.writeBlob({ ...this._baseOpts, blob: Buffer.from(result.merged) }), mode: (after || before || there)?.mode || '100644' };
+        }
+        if (next) {
+          files.set(file, next);
+        } else {
+          files.delete(file);
+        }
+      }
+      tip = await git.writeCommit({
+        ...this._baseOpts,
+        commit: { ...commit, parent: [tip], tree: await writeFiles(this._baseOpts, files), committer: { ...commit.committer, timestamp: committer.timestamp, timezoneOffset: committer.timezoneOffset } },
+      });
+    }
+    if (conflicts.size) {
+      throw new GitConflictsError([...conflicts.values()]);
+    }
+
+    console.log(`[git] Rebased ${commits.length} commits of ${branch} onto ${onto}`);
+    await this._removingDroppedDocs(async () => {
+      await git.writeRef({ ...this._baseOpts, ref: `refs/heads/${branch}`, value: tip, force: true });
+      await git.checkout({ ...this._baseOpts, ref: branch, remote: 'origin' });
+    });
+    return { rebased: commits.length };
+  }
+
   async fetch({
     singleBranch,
     credentials,
@@ -733,15 +1014,46 @@ export class GitVCS {
     credentials?: GitCredentials | null;
   }) {
     console.log('[git] Fetch remote=origin');
-    return git.fetch({
+    const result = await git.fetch({
       ...this._baseOpts,
       ...gitCallbacks(credentials),
       ...await this._fetchDepth(),
       singleBranch,
       remote: 'origin',
       prune: true,
-      pruneTags: true,
+      // (not pruneTags, which deletes every tag here, the unpushed ones too)
     });
+    await this._followTags(credentials);
+    return result;
+  }
+
+  /**
+   * isomorphic-git writes no tags on a fetch of one branch, which is the only
+   * kind the app makes. So the remote's tags on commits here are added, as
+   * git's own fetch follows them: an annotated tag's object comes with a fetch
+   * of its own. One here already is kept, as git does.
+   */
+  async _followTags(gitCredentials?: GitCredentials | null) {
+    try {
+      const remote = await this.getRemote('origin');
+      if (!remote?.url) {
+        return;
+      }
+      const has = (oid: string) => git.readObject({ ...this._baseOpts, oid, format: 'deflated' }).then(() => true, () => false);
+      const serverTags = await git.listServerRefs({ ...this._baseOpts, ...gitCallbacks(gitCredentials), url: remote.url, prefix: 'refs/tags/', peelTags: true });
+      for (const { ref, oid, peeled } of serverTags) {
+        const here = await git.resolveRef({ ...this._baseOpts, ref }).then(() => true, () => false);
+        if (ref.endsWith('^{}') || here || !(await has(peeled || oid))) {
+          continue;
+        }
+        if (!(await has(oid))) {
+          await git.fetch({ ...this._baseOpts, ...gitCallbacks(gitCredentials), remote: 'origin', ref, singleBranch: true });
+        }
+        await git.writeRef({ ...this._baseOpts, ref, value: oid });
+      }
+    } catch (err) {
+      console.warn("[git] Could not fetch the remote's tags", err);
+    }
   }
 
   /**

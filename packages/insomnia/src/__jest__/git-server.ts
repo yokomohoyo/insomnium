@@ -72,6 +72,10 @@ export interface GitRemote {
   url: string;
   // commits these files (null removes one) to main, and pushes
   push(files: Record<string, string | null>, message: string): void;
+  // tags the newest commit (annotated, with a message), and pushes the tag
+  tag(name: string, message?: string): void;
+  // the tags the server has
+  tags(): string[];
 }
 
 export async function startGitServer() {
@@ -85,6 +89,8 @@ export async function startGitServer() {
     createRepo(files: Record<string, string>, message = 'first'): GitRemote {
       const name = `repo-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       runGit(root, 'init', '-q', '--bare', '--initial-branch=main', `${name}.git`);
+      // pushes over http, which git http-backend takes only from a signed-in user otherwise
+      runGit(path.join(root, `${name}.git`), 'config', 'http.receivepack', 'true');
       const upstream = path.join(root, name);
       runGit(root, 'clone', '-q', `${name}.git`, name);
       runGit(upstream, 'checkout', '-q', '-B', 'main');
@@ -103,7 +109,15 @@ export async function startGitServer() {
         runGit(upstream, 'push', '-q', 'origin', 'main');
       };
       push(files, message);
-      return { url: `http://127.0.0.1:${port}/${name}.git`, push };
+      return {
+        url: `http://127.0.0.1:${port}/${name}.git`,
+        push,
+        tag: (tag: string, tagMessage?: string) => {
+          runGit(upstream, 'tag', ...(tagMessage ? ['-a', '-m', tagMessage] : []), tag);
+          runGit(upstream, 'push', '-q', 'origin', tag);
+        },
+        tags: () => runGit(path.join(root, `${name}.git`), 'tag', '-l').split('\n').filter(Boolean),
+      };
     },
     async close() {
       await new Promise(resolve => server.close(resolve));
