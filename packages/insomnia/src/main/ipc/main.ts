@@ -82,6 +82,16 @@ export interface MainBridgeAPI {
     status: (workspaceId: string) => Promise<MockServerStatus | null>;
   };
 }
+// a plugin installed in place of one of its name is new code: it starts
+// sandboxed, whatever the one before was allowed
+async function revokeFullAccess(name: string) {
+  const { pluginConfig } = await models.settings.getOrCreate();
+  const config = pluginConfig?.[name];
+  if (config?.fullAccess) {
+    await models.settings.patch({ pluginConfig: { ...pluginConfig, [name]: { ...config, fullAccess: false, fullAccessDirectory: undefined } } });
+  }
+}
+
 export function registerMainHandlers() {
   ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
     return insomniaFetch(options);
@@ -146,11 +156,13 @@ export function registerMainHandlers() {
   ipcMain.handle('ai.models', () => aiModels());
 
   ipcMain.handle('installPlugin', async (_, lookupName: string) => {
-    return installPlugin(lookupName, await pluginInstallOptions(await models.settings.getOrCreate()));
+    await revokeFullAccess(await installPlugin(lookupName, await pluginInstallOptions(await models.settings.getOrCreate())));
   });
 
   ipcMain.handle('installPluginFromFile', async (_, file: string) => {
-    return installPluginFromFile(file, await pluginInstallOptions(await models.settings.getOrCreate()));
+    const name = await installPluginFromFile(file, await pluginInstallOptions(await models.settings.getOrCreate()));
+    await revokeFullAccess(name);
+    return name;
   });
 
   ipcMain.on('restart', () => {

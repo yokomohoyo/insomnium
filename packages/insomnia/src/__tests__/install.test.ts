@@ -150,7 +150,7 @@ describe('install.js', () => {
 
     it('should install a plugin when yarn prints deprecation warnings', async () => {
       add.stderr = ADD_DEPRECATED_STDERR;
-      await expect(installPlugin('insomnia-plugin-request')).resolves.toBeUndefined();
+      await expect(installPlugin('insomnia-plugin-request')).resolves.toBe('insomnia-plugin-request');
       const pluginDir = path.join(dataPath, 'plugins', 'insomnia-plugin-request');
       expect(existsSync(path.join(pluginDir, 'package.json'))).toBe(true);
       expect(existsSync(path.join(pluginDir, 'node_modules', 'tough-cookie'))).toBe(true);
@@ -159,12 +159,12 @@ describe('install.js', () => {
 
     it('should install a plugin when yarn prints peer dependency and node warnings', async () => {
       add.stderr = ADD_PEER_STDERR + NODE_WARNING_STDERR;
-      await expect(installPlugin('insomnia-plugin-request')).resolves.toBeUndefined();
+      await expect(installPlugin('insomnia-plugin-request')).resolves.toBe('insomnia-plugin-request');
     });
 
     it('should install a plugin when yarn info prints a warning', async () => {
       info.stderr = INFO_LICENSE_STDERR;
-      await expect(installPlugin('insomnia-plugin-request')).resolves.toBeUndefined();
+      await expect(installPlugin('insomnia-plugin-request')).resolves.toBe('insomnia-plugin-request');
     });
 
     it('should report a package that does not exist', async () => {
@@ -184,7 +184,7 @@ describe('install.js', () => {
 
     it('should install a plugin when electron exits non-zero after yarn succeeded', async () => {
       add = { exitCode: 1, stdout: ADD_DEPRECATED_STDOUT, stderr: ADD_DEPRECATED_STDERR };
-      await expect(installPlugin('insomnia-plugin-request')).resolves.toBeUndefined();
+      await expect(installPlugin('insomnia-plugin-request')).resolves.toBe('insomnia-plugin-request');
     });
 
     it('should look up and install from the registry, through the proxy, it is given', async () => {

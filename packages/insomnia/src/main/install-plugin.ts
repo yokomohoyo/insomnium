@@ -6,7 +6,6 @@ import { app } from 'electron';
 import path from 'path';
 
 import { isDevelopment } from '../common/constants';
-import * as models from '../models';
 import type { Settings } from '../models/settings';
 import { describeProxy, proxyFor } from './network/proxy';
 import { assertValidPackageSpec } from './validate-package-spec';
@@ -92,6 +91,7 @@ export default async function installPlugin(lookupName: string, options: PluginI
   const { tmpDir } = await _installPluginToTmpDir(lookupName, options);
   // the actual module name, without a version
   await _movePlugin(tmpDir, info.name);
+  return info.name as string;
 }
 
 // A plugin from a package tarball on this computer (npm pack's .tgz), to
@@ -113,18 +113,7 @@ export async function installPluginFromFile(file: string, options: PluginInstall
   return moduleName as string;
 }
 
-// a plugin installed in place of one of its name is new code: it starts
-// sandboxed, whatever the one before was allowed
-async function revokeFullAccess(moduleName: string) {
-  const { pluginConfig } = await models.settings.getOrCreate();
-  const config = pluginConfig?.[moduleName];
-  if (config?.fullAccess) {
-    await models.settings.patch({ pluginConfig: { ...pluginConfig, [moduleName]: { ...config, fullAccess: false, fullAccessDirectory: undefined } } });
-  }
-}
-
 async function _movePlugin(tmpDir: string, moduleName: string) {
-  await revokeFullAccess(moduleName);
   const pluginDir = path.join(pluginsDir(), moduleName);
   await mkdir(pluginDir, { recursive: true });
   console.log(`[plugins] Moving plugin from ${tmpDir} to ${pluginDir}`);
