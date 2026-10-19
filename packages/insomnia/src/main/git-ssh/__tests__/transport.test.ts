@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -17,6 +18,7 @@ import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR, type GitCred
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
 import { routableFSClient } from '../../../sync/git/routable-fs-client';
+import { remoteUrlFor } from '../../../sync/git/ssh-url';
 import { knownHostsLine } from '../known-hosts';
 import { gitSshRequest, type SshEnvironment } from '../transport';
 
@@ -103,6 +105,17 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
     expect(server.accepted.every(user => user === 'git')).toBe(true);
   });
 
+  it('takes a pack that comes in many pieces', async () => {
+    trustServer();
+    write('id_ed25519', server.clientKey);
+    // random, so it doesn't compress: many of the channel's packets
+    const description = crypto.randomBytes(400_000).toString('hex');
+    const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace), [file(request)]: YAML.stringify({ ...request, description }) });
+
+    await clone(remote.url);
+    expect((await models.request.getById('req_1'))?.description).toBe(description);
+  });
+
   it("won't connect to a host that isn't trusted", async () => {
     write('id_ed25519', server.clientKey);
     askToTrust.mockResolvedValue(false);
@@ -157,5 +170,20 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
 
     write('id_ed25519', keyPair().private);
     await expect(clone(remote.url)).rejects.toThrow(`didn't accept the keys tried (${path.join(sshDir(), 'id_ed25519')})`);
+  });
+});
+
+describe('gitSshRequest', () => {
+  it('refuses a repository path that starts with -, before connecting', async () => {
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-ssh-home-'));
+    const askToTrust = jest.fn<SshEnvironment['askToTrust']>();
+    const url = `${remoteUrlFor('git@127.0.0.1:-oops/api.git')}/info/refs?service=git-upload-pack`;
+    try {
+      await expect(gitSshRequest({ url, method: 'GET', headers: {} }, { home, agents: [], appKnownHostsFile: path.join(home, 'known_hosts'), askToTrust }))
+        .rejects.toThrow('The repository path -oops/api.git starts with "-"');
+      expect(askToTrust).not.toHaveBeenCalled();
+    } finally {
+      fs.rmSync(home, { recursive: true, force: true });
+    }
   });
 });

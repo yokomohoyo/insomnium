@@ -118,6 +118,10 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
   if (!target || !address) {
     throw new Error(`Not an SSH remote: ${request.url}`);
   }
+  // the remote command would take it as an option; git refuses such a path too
+  if (address.path.startsWith('-')) {
+    throw new Error(`The repository path ${address.path} starts with "-", which git doesn't take as a path.`);
+  }
   const sshDir = path.join(env.home, '.ssh');
   const config = hostConfig(readText(path.join(sshDir, 'config')) || '', address.host, env.home);
   const host = config.hostName || address.host;
@@ -205,19 +209,23 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
     client.exec(`${service} ${quoted(repoPath)}`, (err, stream) => (err ? reject(err) : resolve(stream)));
   });
   return new Promise((resolve, reject) => {
-    let output = Buffer.alloc(0);
+    // the advertisement, joined as it comes to find its end; what follows it
+    // (a pack, which can be large) is kept in pieces and joined once
+    let advertisement = Buffer.alloc(0);
+    const rest: Buffer[] = [];
     let errors = '';
     let advertised = -1;
     channel.stderr.on('data', (chunk: Buffer) => {
       errors += chunk.toString();
     });
     channel.on('data', (chunk: Buffer) => {
-      output = Buffer.concat([output, chunk]);
       if (advertised !== -1) {
+        rest.push(chunk);
         return;
       }
+      advertisement = Buffer.concat([advertisement, chunk]);
       try {
-        advertised = flushEnd(output);
+        advertised = flushEnd(advertisement);
       } catch (err) {
         channel.close();
         return reject(err);
@@ -225,6 +233,8 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
       if (advertised === -1) {
         return;
       }
+      rest.push(advertisement.subarray(advertised));
+      advertisement = advertisement.subarray(0, advertised);
       if (body) {
         channel.end(body);
       } else {
@@ -237,7 +247,7 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
         return reject(new Error(errors.trim() || `${service} ended before listing the repository's refs${code ? ` (exit ${code})` : ''}`));
       }
       if (body) {
-        const result = output.subarray(advertised);
+        const result = Buffer.concat(rest);
         if (!result.length && errors.trim()) {
           return reject(new Error(errors.trim()));
         }
@@ -248,7 +258,7 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
         statusCode: 200,
         statusMessage: 'OK',
         headers: { 'content-type': `application/x-${service}-advertisement` },
-        body: Buffer.concat([head, output.subarray(0, advertised)]),
+        body: Buffer.concat([head, advertisement]),
       });
     });
   });
