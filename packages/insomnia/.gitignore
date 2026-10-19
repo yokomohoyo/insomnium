@@ -8,3 +8,5 @@ src/proto-worker.min.js
 src/proto-worker.min.js.map
 src/preload.js
 src/preload.js.map
+src/plugin-host.html
+src/plugin-host-preload.js
