@@ -1,6 +1,7 @@
 import classnames from 'classnames';
 import React, { forwardRef, ReactNode, useImperativeHandle, useRef, useState } from 'react';
 
+import { t } from '../../../common/i18n';
 import { Modal, ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -48,7 +49,7 @@ export const PromptModal = forwardRef<PromptModalHandle, ModalProps>((_, ref) =>
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [state, setState] = useState<State>({
-    title: 'Not Set',
+    title: t('Not Set'),
     hints: [],
     defaultValue: '',
     submitName: '',
@@ -183,7 +184,7 @@ export const PromptModal = forwardRef<PromptModalHandle, ModalProps>((_, ref) =>
       <ModalFooter>
         <div className="margin-left faint italic txt-sm">{hint ? `* ${hint}` : ''}</div>
         <button className="btn" onClick={handleSubmit}>
-          {submitName || 'Submit'}
+          {submitName || t('Submit')}
         </button>
       </ModalFooter>
     </Modal>

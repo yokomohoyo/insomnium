@@ -4,6 +4,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
 import { docsGitSync } from '../../../common/documentation';
+import { t } from '../../../common/i18n';
 import { GitRepository } from '../../../models/git-repository';
 import { pullRequestUrl } from '../../../sync/git/pull-request-url';
 import { getOauth2FormatName } from '../../../sync/git/utils';
@@ -124,10 +125,10 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     if (gitPushFetcher.data?.rejected) {
       // pulling merges theirs; a force push replaces the remote's branch with this one
       showModal(AskModal, {
-        title: 'Push Rejected',
-        message: `${errors.join('\n')} Pull to merge them first, or force push to replace the remote's branch with yours, dropping its commits you don't have.`,
-        yesText: 'Force Push',
-        noText: 'Cancel',
+        title: t('Push Rejected'),
+        message: `${errors.join('\n')} ${t("Pull to merge them first, or force push to replace the remote's branch with yours, dropping its commits you don't have.")}`,
+        yesText: t('Force Push'),
+        noText: t('Cancel'),
         onDone: async (isYes: boolean) => {
           if (isYes) {
             handlePush({ force: true });
@@ -138,7 +139,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     }
     if (errors.length > 0) {
       showAlert({
-        title: 'Push Failed',
+        title: t('Push Failed'),
         message: errors.join('\n'),
       });
     }
@@ -153,7 +154,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     const errors = [...gitRepoDataErrors];
     if (errors.length > 0) {
       showAlert({
-        title: 'Loading of Git Repository Failed',
+        title: t('Loading of Git Repository Failed'),
         message: errors.join('\n'),
       });
     }
@@ -163,7 +164,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     const errors = [...(gitPullFetcher.data?.errors ?? [])];
     if (errors.length > 0) {
       showAlert({
-        title: 'Pull Failed',
+        title: t('Pull Failed'),
         message: errors.join('\n'),
       });
     }
@@ -179,7 +180,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     const errors = [...(gitCheckoutFetcher.data?.errors ?? [])];
     if (errors.length > 0) {
       showAlert({
-        title: 'Checkout Failed',
+        title: t('Checkout Failed'),
         message: errors.join('\n'),
       });
     }
@@ -226,14 +227,16 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     {
       id: 1,
       icon: 'check',
-      label: 'Commit',
+      name: 'Commit',
+      label: t('Commit'),
       onClick: () => setIsGitStagingModalOpen(true),
     },
     {
       id: 2,
       stayOpenAfterClick: true,
       icon: loadingPull ? 'refresh fa-spin' : 'cloud-download',
-      label: 'Pull',
+      name: 'Pull',
+      label: t('Pull'),
       onClick: async () => {
         setPullRebases(false);
         gitPullFetcher.submit(
@@ -249,7 +252,8 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
       id: 7,
       stayOpenAfterClick: true,
       icon: loadingPull ? 'refresh fa-spin' : 'cloud-download',
-      label: 'Pull with Rebase',
+      name: 'Pull with Rebase',
+      label: t('Pull with Rebase'),
       onClick: async () => {
         setPullRebases(true);
         gitPullFetcher.submit(
@@ -265,20 +269,23 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
       id: 3,
       stayOpenAfterClick: true,
       icon: loadingPush ? 'refresh fa-spin' : 'cloud-upload',
-      label: 'Push',
+      name: 'Push',
+      label: t('Push'),
       onClick: () => handlePush({ force: false }),
     },
     {
       id: 4,
       icon: 'clock-o',
-      label: <span>History</span>,
+      name: 'History',
+      label: <span>{t('History')}</span>,
       onClick: () => setIsGitLogModalOpen(true),
     },
     {
       id: 5,
       stayOpenAfterClick: true,
       icon: loadingFetch ? 'refresh fa-spin' : 'refresh',
-      label: 'Fetch',
+      name: 'Fetch',
+      label: t('Fetch'),
       onClick: () => {
         gitFetchFetcher.submit(
           {},
@@ -294,11 +301,11 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
   // the host's page to propose this branch's changes, where it's known
   const pullRequestPage = hasRemote && currentBranch ? pullRequestUrl(gitRepository?.uri || '', currentBranch) : undefined;
   const currentBranchActions = [
-    ...branchActions.filter(action => hasRemote || !['Pull', 'Pull with Rebase', 'Push', 'Fetch'].includes(String(action.label))),
+    ...branchActions.filter(action => hasRemote || !['Pull', 'Pull with Rebase', 'Push', 'Fetch'].includes(action.name)),
     ...(pullRequestPage ? [{
       id: 6,
       icon: 'code-pull-request',
-      label: 'Create Pull Request',
+      label: t('Create Pull Request'),
       onClick: () => window.main.openInBrowser(pullRequestPage),
     }] : []),
   ];
@@ -318,7 +325,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
 
   const status = gitStatusFetcher.data?.status;
 
-  const commitToolTipMsg = status?.localChanges ? 'Local changes made' : 'No local changes made';
+  const commitToolTipMsg = status?.localChanges ? t('Local changes made') : t('No local changes made');
 
   if (isSynced) {
     dropdown = (
@@ -380,32 +387,32 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
               <span>
                 Git Sync
                 <HelpTooltip>
-                  Sync and collaborate with Git{' '}
+                  {t('Sync and collaborate with Git')}{' '}
                   <Link href={docsGitSync}>
                     <span className="no-wrap">
                       <br />
-                      Documentation <i className="fa fa-external-link" />
+                      {t('Documentation')} <i className="fa fa-external-link" />
                     </span>
                   </Link>
                 </HelpTooltip>
               </span>
             }
           >
-            <DropdownItem textValue="Settings">
+            <DropdownItem textValue={t('Settings')}>
               <ItemContent
                 icon="wrench"
-                label="Repository Settings"
+                label={t('Repository Settings')}
                 onClick={() => {
                   setIsGitRepoSettingsModalOpen(true);
                 }}
               />
             </DropdownItem>
 
-            <DropdownItem textValue="Branches">
+            <DropdownItem textValue={t('Branches')}>
               {currentBranch && (
                 <ItemContent
                   icon="code-fork"
-                  label="Branches"
+                  label={t('Branches')}
                   onClick={() => {
                     setIsGitBranchesModalOpen(true);
                   }}
@@ -413,21 +420,21 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
               )}
             </DropdownItem>
 
-            <DropdownItem textValue="Tags">
+            <DropdownItem textValue={t('Tags')}>
               {currentBranch && (
                 <ItemContent
                   icon="tags"
-                  label="Tags"
+                  label={t('Tags')}
                   onClick={() => setIsGitTagsModalOpen(true)}
                 />
               )}
             </DropdownItem>
 
-            <DropdownItem textValue="Stashes">
+            <DropdownItem textValue={t('Stashes')}>
               {currentBranch && (
                 <ItemContent
                   icon="archive"
-                  label="Stashes"
+                  label={t('Stashes')}
                   onClick={() => setIsGitStashesModalOpen(true)}
                 />
               )}
@@ -435,7 +442,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
           </DropdownSection>
 
           <DropdownSection
-            title="Branches"
+            title={t('Branches')}
             items={currentBranch ? branches.map(b => ({ branch: b })) : []}
           >
             {({ branch }) => {
@@ -528,21 +535,21 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
               <span>
                 Git Sync
                 <HelpTooltip>
-                  Sync and collaborate with Git{' '}
+                  {t('Sync and collaborate with Git')}{' '}
                   <Link href={docsGitSync}>
                     <span className="no-wrap">
                       <br />
-                      Documentation <i className="fa fa-external-link" />
+                      {t('Documentation')} <i className="fa fa-external-link" />
                     </span>
                   </Link>
                 </HelpTooltip>
               </span>
             }
           >
-            <DropdownItem textValue="Settings">
+            <DropdownItem textValue={t('Settings')}>
               <ItemContent
                 icon="wrench"
-                label="Setup Git Sync"
+                label={t('Setup Git Sync')}
                 onClick={() => {
                   setIsGitRepoSettingsModalOpen(true);
                 }}
@@ -596,8 +603,8 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
       )}
       {pullConflictsOpen && gitPullFetcher.data?.conflicts && (
         <GitConflictsModal
-          theirs="the remote"
-          actionLabel={pullRebases ? 'Rebase' : 'Merge'}
+          theirs={t('the remote')}
+          actionLabel={pullRebases ? t('Rebase') : t('Merge')}
           conflicts={gitPullFetcher.data.conflicts}
           onResolve={choices => gitPullFetcher.submit({ choices: JSON.stringify(choices), ...(pullRebases ? { rebase: 'true' } : {}) }, {
             action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,

@@ -1,5 +1,6 @@
 import React, { forwardRef, ReactNode, useImperativeHandle, useRef, useState } from 'react';
 
+import { t } from '../../../common/i18n';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -44,13 +45,13 @@ export const AlertModal = forwardRef<AlertModalHandle, ModalProps>((_, ref) => {
   const { message, title, addCancel, okLabel } = state;
   return (
     <Modal ref={modalRef} skinny>
-      <ModalHeader>{title || 'Uh Oh!'}</ModalHeader>
+      <ModalHeader>{title || t('Uh Oh!')}</ModalHeader>
       <ModalBody className="wide pad">{message}</ModalBody>
       <ModalFooter>
         <div>
           {addCancel ? (
             <button className="btn" onClick={() => modalRef.current?.hide()}>
-              Cancel
+              {t('Cancel')}
             </button>
           ) : null}
           <button
@@ -62,7 +63,7 @@ export const AlertModal = forwardRef<AlertModalHandle, ModalProps>((_, ref) => {
               }
             }}
           >
-            {okLabel || 'Ok'}
+            {okLabel || t('Ok')}
           </button>
         </div>
       </ModalFooter>

@@ -4,6 +4,7 @@ import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { cleanCommitMessage, commitPrompt } from '../../../common/ai-prompts';
+import { t } from '../../../common/i18n';
 import { strings } from '../../../common/strings';
 import * as models from '../../../models';
 import type { DocDiff } from '../../../sync/git/doc-diff';
@@ -75,7 +76,7 @@ export const GitStagingModal: FC<ModalProps> = ({
   useEffect(() => {
     if (errors && errors?.length > 0) {
       showAlert({
-        title: 'Push Failed',
+        title: t('Push Failed'),
         message: errors.join('\n'),
       });
     }
@@ -100,7 +101,7 @@ export const GitStagingModal: FC<ModalProps> = ({
       });
       setMessage(cleanCommitMessage(reply));
     } catch (err) {
-      showAlert({ title: 'Suggest a Message', message: (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') });
+      showAlert({ title: t('Suggest a Message'), message: (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '') });
     }
     setSuggesting(false);
   };
@@ -108,7 +109,7 @@ export const GitStagingModal: FC<ModalProps> = ({
   return (
     <OverlayContainer>
       <Modal onHide={onHide} ref={modalRef}>
-        <ModalHeader>Commit Changes</ModalHeader>
+        <ModalHeader>{t('Commit Changes')}</ModalHeader>
         <ModalBody className="wide pad">
           <gitCommitFetcher.Form
             id="git-staging-form"
@@ -135,7 +136,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                   <textarea
                     rows={3}
                     required
-                    placeholder="A descriptive message to describe changes made"
+                    placeholder={t('A descriptive message to describe changes made')}
                     name="message"
                     value={message}
                     onChange={event => setMessage(event.currentTarget.value)}
@@ -147,17 +148,17 @@ export const GitStagingModal: FC<ModalProps> = ({
                       type="button"
                       className="btn btn--micro btn--outlined"
                       disabled={isSuggesting}
-                      title="Sends the names of the changed items and their changed fields, not their values"
+                      title={t('Sends the names of the changed items and their changed fields, not their values')}
                       onClick={suggestMessage}
                     >
                       <i className={`fa ${isSuggesting ? 'fa-spinner fa-spin' : 'fa-wand-magic-sparkles'} space-right`} />
-                      Suggest a Message
+                      {t('Suggest a Message')}
                     </button>
                   </div>
                 )}
                 {modifiedChanges.length > 0 && (
                   <div className="pad-top">
-                    <strong>Modified Objects</strong>
+                    <strong>{t('Modified Objects')}</strong>
                     <PromptButton
                       className="btn pull-right btn--micro"
                       onClick={e => {
@@ -173,7 +174,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                         }
                       }}
                     >
-                      Rollback All
+                      {t('Rollback All')}
                     </PromptButton>
                     <table className="table--fancy table--outlined margin-top-sm">
                       <thead>
@@ -193,10 +194,10 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   indeterminate={!checkAllModified}
                                 />
                               </span>{' '}
-                              name
+                              {t('name')}
                             </label>
                           </th>
-                          <th className="text-right">Description</th>
+                          <th className="text-right">{t('Description')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -215,14 +216,14 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   value={item.path}
                                   name="paths"
                                 />{' '}
-                                {statusNames?.[item.path] || 'n/a'}
+                                {statusNames?.[item.path] || t('n/a')}
                               </label>
                               <ChangedFields diff={item.diff} />
                             </td>
                             <td className="text-right">
                               {item.editable && (
                                 <Tooltip
-                                  message={item.added ? 'Delete' : 'Rollback'}
+                                  message={item.added ? t('Delete') : t('Rollback')}
                                 >
                                   <button
                                     className="btn btn--micro space-right"
@@ -263,7 +264,7 @@ export const GitStagingModal: FC<ModalProps> = ({
 
                 {unversionedChanges.length > 0 && (
                   <div className="pad-top">
-                    <strong>Unversioned Objects</strong>
+                    <strong>{t('Unversioned Objects')}</strong>
                     <PromptButton
                       className="btn pull-right btn--micro"
                       onClick={e => {
@@ -279,7 +280,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                         }
                       }}
                     >
-                      Delete All
+                      {t('Delete All')}
                     </PromptButton>
                     <table className="table--fancy table--outlined margin-top-sm">
                       <thead>
@@ -299,10 +300,10 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   indeterminate={!checkAllUnversioned}
                                 />
                               </span>{' '}
-                              name
+                              {t('name')}
                             </label>
                           </th>
-                          <th className="text-right">Description</th>
+                          <th className="text-right">{t('Description')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -323,13 +324,13 @@ export const GitStagingModal: FC<ModalProps> = ({
                                     : {})}
                                   defaultChecked={item.staged}
                                 />{' '}
-                                {statusNames?.[item.path] || 'n/a'}
+                                {statusNames?.[item.path] || t('n/a')}
                               </label>
                             </td>
                             <td className="text-right">
                               {item.editable && (
                                 <Tooltip
-                                  message={item.added ? 'Delete' : 'Rollback'}
+                                  message={item.added ? t('Delete') : t('Rollback')}
                                 >
                                   <button
                                     className="btn btn--micro space-right"
@@ -375,7 +376,7 @@ export const GitStagingModal: FC<ModalProps> = ({
               <div className="txt-sm faint italic">
                 {isLoadingGitChanges ? <>
                   <i className="fa fa-spinner fa-spin space-right" />
-                  Loading changes...</> : errors && errors?.length > 0 ? "network error.." : hasDone ? "Commited. Ready to push" : 'No new changes to commit.'}
+                  {t('Loading changes...')}</> : errors && errors?.length > 0 ? t('network error..') : hasDone ? t('Commited. Ready to push') : t('No new changes to commit.')}
               </div>
             )}
           </gitCommitFetcher.Form>
@@ -386,7 +387,7 @@ export const GitStagingModal: FC<ModalProps> = ({
           </div>
           <div>
             <button className="btn" onClick={() => modalRef.current?.hide()}>
-              Close
+              {t('Close')}
             </button>
             <button
               type="submit"
@@ -395,7 +396,7 @@ export const GitStagingModal: FC<ModalProps> = ({
               disabled={gitCommitFetcher.state !== 'idle' || !hasChanges}
             >
               <i className={`fa ${gitCommitFetcher.state === 'idle' ? 'fa-check' : 'fa-spinner fa-spin'} space-right`} />
-              Commit
+              {t('Commit')}
             </button>
           </div>
         </ModalFooter>
@@ -412,18 +413,18 @@ const ChangedFields = ({ diff }: { diff?: DocDiff }) => {
     return null;
   }
   if (!diff.changes.length) {
-    return <div className="txt-sm faint">Only its order or timestamps changed</div>;
+    return <div className="txt-sm faint">{t('Only its order or timestamps changed')}</div>;
   }
   return (
     <details className="txt-sm" data-testid="changed-fields">
-      <summary className="faint">Changed: {diff.changes.map(change => change.field).join(', ')}</summary>
+      <summary className="faint">{t('Changed: {fields}', { fields: diff.changes.map(change => change.field).join(', ') })}</summary>
       <ul className="no-margin">
         {diff.changes.map(change => (
           <li key={change.field} className="selectable">
             <code>{change.field}</code>{' '}
             {change.detail ?? (
               <>
-                <span className="danger">{change.before ?? '(none)'}</span> → <span className="success">{change.after ?? '(none)'}</span>
+                <span className="danger">{change.before ?? t('(none)')}</span> → <span className="success">{change.after ?? t('(none)')}</span>
               </>
             )}
           </li>
@@ -438,27 +439,27 @@ const OperationTooltip = ({ item }: { item: Item }) => {
     item.type === models.workspace.type ? strings.document.singular : item.type;
   if (item.status.includes('added')) {
     return (
-      <Tooltip message="Added">
+      <Tooltip message={t('Added')}>
         <i className="fa fa-plus-circle success" /> {type}
       </Tooltip>
     );
   }
   if (item.status.includes('modified')) {
     return (
-      <Tooltip message="Modified">
+      <Tooltip message={t('Modified')}>
         <i className="fa fa-plus-circle faded" /> {type}
       </Tooltip>
     );
   }
   if (item.status.includes('deleted')) {
     return (
-      <Tooltip message="Deleted">
+      <Tooltip message={t('Deleted')}>
         <i className="fa fa-minus-circle danger" /> {type}
       </Tooltip>
     );
   }
   return (
-    <Tooltip message="Unknown">
+    <Tooltip message={t('Unknown')}>
       <i className="fa fa-question-circle info" /> {type}
     </Tooltip>
   );

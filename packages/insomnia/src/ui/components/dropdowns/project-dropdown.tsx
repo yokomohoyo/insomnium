@@ -9,6 +9,7 @@ import {
 } from 'react-aria-components';
 import { useFetcher } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import {
   Project,
 } from '../../../models/project';
@@ -33,13 +34,13 @@ export const ProjectDropdown: FC<Props> = ({ project, organizationId }) => {
   }[] = [
     {
       id: 'settings',
-      name: 'Settings',
+      name: t('Settings'),
       icon: 'gear',
       action: () => setIsProjectSettingsModalOpen(true),
     },
     {
       id: 'delete',
-      name: 'Delete',
+      name: t('Delete'),
       icon: 'trash',
       action: projectId =>
         deleteProjectFetcher.submit(
@@ -55,14 +56,14 @@ export const ProjectDropdown: FC<Props> = ({ project, organizationId }) => {
     <Fragment>
       <MenuTrigger>
         <Button
-          aria-label="Project Actions"
+          aria-label={t('Project Actions')}
           className="opacity-0 items-center hover:opacity-100 focus:opacity-100 data-[pressed]:opacity-100 flex group-focus:opacity-100 group-hover:opacity-100 justify-center h-6 aspect-square aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
         >
           <Icon icon="caret-down" />
         </Button>
         <Popover className="min-w-max">
           <Menu
-            aria-label="Project Actions Menu"
+            aria-label={t('Project Actions Menu')}
             selectionMode="single"
             onAction={key => {
               projectActionList.find(({ id }) => key === id)?.action(project._id);

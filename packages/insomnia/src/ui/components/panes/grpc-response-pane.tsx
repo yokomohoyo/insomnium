@@ -1,5 +1,6 @@
 import React, { FunctionComponent, useEffect, useRef } from 'react';
 
+import { t } from '../../../common/i18n';
 import { GrpcMessage, GrpcRequestState } from '../../routes/debug';
 import { TabItem, Tabs } from '../base/tabs';
 import { CodeEditor } from '../codemirror/code-editor';
@@ -32,8 +33,8 @@ const MetadataTable: FunctionComponent<{ label: string; metadata?: GrpcMetadata 
         <table className="table--fancy table--striped table--compact">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Value</th>
+              <th>{t('Name')}</th>
+              <th>{t('Value')}</th>
             </tr>
           </thead>
           <tbody>
@@ -45,7 +46,7 @@ const MetadataTable: FunctionComponent<{ label: string; metadata?: GrpcMetadata 
             ))}
           </tbody>
         </table>
-      ) : <p className="faint">None</p>}
+      ) : <p className="faint">{t('None')}</p>}
     </section>
   );
 };
@@ -53,8 +54,8 @@ const MetadataTable: FunctionComponent<{ label: string; metadata?: GrpcMetadata 
 // The response's headers (its initial metadata) and trailers
 const GrpcMetadataView: FunctionComponent<Props> = ({ grpcState }) => (
   <div className="tall scrollable">
-    <MetadataTable label="Headers" metadata={grpcState.headers} />
-    <MetadataTable label="Trailers" metadata={grpcState.status?.metadata} />
+    <MetadataTable label={t('Headers')} metadata={grpcState.headers} />
+    <MetadataTable label={t('Trailers')} metadata={grpcState.status?.metadata} />
   </div>
 );
 
@@ -66,10 +67,10 @@ const GrpcUnaryResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
       <GrpcPaneHeader grpcState={grpcState} />
       <PaneBody>
         {hasResponse(grpcState)
-          ? (<Tabs aria-label="Grpc tabbed messages tabs" isNested>
+          ? (<Tabs aria-label={t('Grpc tabbed messages tabs')} isNested>
             {[
               ...grpcState.responseMessages.map((m, index) => (
-                <TabItem key={m.id} title={`Response ${index + 1}`}>
+                <TabItem key={m.id} title={t('Response {number}', { number: index + 1 })}>
                   <CodeEditor
                     id="grpc-response"
                     defaultValue={m.text}
@@ -79,7 +80,7 @@ const GrpcUnaryResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
                     autoPrettify
                   />
                 </TabItem>)),
-              <TabItem key="metadata" title="Metadata">
+              <TabItem key="metadata" title={t('Metadata')}>
                 <GrpcMetadataView grpcState={grpcState} />
               </TabItem>,
             ]}
@@ -109,7 +110,7 @@ const GrpcStreamingResponseHeader: FunctionComponent<{ message: GrpcMessage }> =
         paddingTop: "2px",
       }}
     >
-      Received at: <Timestamp time={message.created} />
+      {t('Received at:')} <Timestamp time={message.created} />
     </div>
   );
 };
@@ -125,8 +126,8 @@ const GrpcStreamingResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
     <Pane type="response">
       <GrpcPaneHeader grpcState={grpcState} />
       <PaneBody>
-        <Tabs aria-label="Grpc streaming response tabs" isNested>
-          <TabItem key="messages" title="Messages">
+        <Tabs aria-label={t('Grpc streaming response tabs')} isNested>
+          <TabItem key="messages" title={t('Messages')}>
             <div style={{ height: "100%", overflow:"scroll" }}>
               {grpcState.responseMessages.map(m => (
                 <div key={m.id} style={{ borderBottom: `1px solid ${BORDER_COLOR}` }}>
@@ -145,7 +146,7 @@ const GrpcStreamingResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
                 <div ref={messagesBottom} />
             </div>
           </TabItem>
-          <TabItem key="metadata" title="Metadata">
+          <TabItem key="metadata" title={t('Metadata')}>
             <GrpcMetadataView grpcState={grpcState} />
           </TabItem>
         </Tabs>

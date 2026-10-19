@@ -1,5 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
+import { t } from '../../../common/i18n';
 import * as models from '../../../models/index';
 import { RequestGroup } from '../../../models/request-group';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
@@ -43,7 +44,7 @@ export const EnvironmentEditModal = forwardRef<EnvironmentEditModalHandle, Modal
   };
   return (
     <Modal ref={modalRef} tall {...props}>
-      <ModalHeader>Environment Overrides (JSON Format)</ModalHeader>
+      <ModalHeader>{t('Environment Overrides (JSON Format)')}</ModalHeader>
       <ModalBody noScroll className="pad-top-sm">
         <EnvironmentEditor
           ref={environmentEditorRef}
@@ -69,10 +70,10 @@ export const EnvironmentEditModal = forwardRef<EnvironmentEditModalHandle, Modal
       </ModalBody>
       <ModalFooter>
         <div className="margin-left italic txt-sm">
-          * Used to override data in the global environment
+          {t('* Used to override data in the global environment')}
         </div>
         <button className="btn" onClick={() => modalRef.current?.hide()}>
-          Close
+          {t('Close')}
         </button>
       </ModalFooter>
     </Modal >

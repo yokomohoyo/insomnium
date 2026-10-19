@@ -4,6 +4,7 @@ import { Button, Item, Menu, MenuTrigger, Popover } from 'react-aria-components'
 import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { exportHarRequest } from '../../../common/har';
+import { t } from '../../../common/i18n';
 import { toKebabCase } from '../../../common/misc';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import { PlatformKeyCombinations } from '../../../common/settings';
@@ -73,10 +74,10 @@ export const RequestActionsDropdown = ({
     }
 
     showPrompt({
-      title: 'Duplicate Request',
+      title: t('Duplicate Request'),
       defaultValue: request.name,
-      submitName: 'Create',
-      label: 'New Name',
+      submitName: t('Create'),
+      label: t('New Name'),
       selectText: true,
       onComplete: (name: string) => requestFetcher.submit({ name },
         {
@@ -103,7 +104,7 @@ export const RequestActionsDropdown = ({
       });
     } catch (error) {
       showError({
-        title: 'Plugin Action Failed',
+        title: t('Plugin Action Failed'),
         error,
       });
     }
@@ -132,19 +133,19 @@ export const RequestActionsDropdown = ({
       }
     } catch (err) {
       showModal(AlertModal, {
-        title: 'Could not generate cURL',
-        message: err instanceof Error ? err.message : 'Unknown error',
+        title: t('Could not generate cURL'),
+        message: err instanceof Error ? err.message : t('Unknown error'),
       });
     }
   };
 
   const handleRename = () => {
     showPrompt({
-      title: 'Rename Request',
+      title: t('Rename Request'),
       defaultValue: request.name,
-      submitName: 'Rename',
+      submitName: t('Rename'),
       selectText: true,
-      label: 'Name',
+      label: t('Name'),
       onComplete: name => patchRequest(request._id, { name }),
     });
   };
@@ -173,13 +174,13 @@ export const RequestActionsDropdown = ({
     action: () => void;
   }[] = canGenerateCode ? [{
     id: 'GenerateCode',
-    name: 'Generate Code',
+    name: t('Generate Code'),
     action: generateCode,
     icon: 'code',
     hint: hotKeyRegistry.request_showGenerateCodeEditor,
   }, {
     id: 'CopyAsCurl',
-    name: 'Copy as cURL',
+    name: t('Copy as cURL'),
     action: copyAsCurl,
     icon: 'copy',
   }] : [];
@@ -193,25 +194,25 @@ export const RequestActionsDropdown = ({
   }[] = [
       {
         id: 'Duplicate',
-        name: 'Duplicate',
+        name: t('Duplicate'),
       action: handleDuplicateRequest,
         icon: 'copy',
       },
       {
         id: 'Rename',
-        name: 'Rename',
+        name: t('Rename'),
         action: handleRename,
         icon: 'edit',
       },
       {
         id: 'Delete',
-        name: 'Delete',
+        name: t('Delete'),
         action: deleteRequest,
         icon: 'trash',
       },
       {
         id: 'Pin',
-        name: isPinned ? 'Unpin' : 'Pin',
+        name: isPinned ? t('Unpin') : t('Pin'),
         action: togglePin,
         icon: 'thumbtack',
       },
@@ -224,7 +225,7 @@ export const RequestActionsDropdown = ({
       })),
       {
         id: 'Settings',
-        name: 'Settings',
+        name: t('Settings'),
         icon: 'gear',
         hint: hotKeyRegistry.request_showSettings,
         action: () => {
@@ -238,14 +239,14 @@ export const RequestActionsDropdown = ({
     <MenuTrigger onOpenChange={isOpen => isOpen && onOpen()}>
       <Button
         data-testid={`Dropdown-${toKebabCase(request.name)}`}
-        aria-label="Request Actions"
+        aria-label={t('Request Actions')}
         className="opacity-0 items-center hover:opacity-100 focus:opacity-100 data-[pressed]:opacity-100 flex group-focus:opacity-100 group-hover:opacity-100 justify-center h-6 aspect-square aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
       >
         <Icon icon="caret-down" />
       </Button>
       <Popover className="min-w-max">
         <Menu
-          aria-label="Request Actions Menu"
+          aria-label={t('Request Actions Menu')}
           selectionMode="single"
           onAction={key =>
             requestActionList.find(({ id }) => key === id)?.action()

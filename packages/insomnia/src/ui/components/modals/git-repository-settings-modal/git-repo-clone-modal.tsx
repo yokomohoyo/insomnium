@@ -3,6 +3,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { docsGitSync } from '../../../../common/documentation';
+import { t } from '../../../../common/i18n';
 import type { GitRepository } from '../../../../models/git-repository';
 import { Link } from '../../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
@@ -64,7 +65,7 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
       const errorMessage = errors.map(e => e instanceof Error ? e.message : typeof e === 'string' && e).join(', ');
 
       showAlert({
-        title: 'Error Cloning Repository',
+        title: t('Error Cloning Repository'),
         message: errorMessage,
       });
     }
@@ -73,17 +74,17 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
   return (
     <Modal ref={modalRef} {...props}>
       <ModalHeader>
-        Clone Repository{' '}
+        {t('Clone Repository')}{' '}
         <HelpTooltip>
-          Sync and collaborate with Git
+          {t('Sync and collaborate with Git')}
           <br />
-          <Link href={docsGitSync}>Documentation {<i className="fa fa-external-link-square" />}</Link>
+          <Link href={docsGitSync}>{t('Documentation')} {<i className="fa fa-external-link-square" />}</Link>
         </HelpTooltip>
       </ModalHeader>
       <ModalBody>
         <ErrorBoundary>
           <Tabs
-            aria-label="Git repository settings tabs"
+            aria-label={t('Git repository settings tabs')}
           >
 
             <TabItem key='custom' title={<TabPill><i className="fa fa-code-fork" /> Git</TabPill>}>
@@ -99,10 +100,10 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
       <ModalFooter>
         <div>
           <button className="btn" onClick={() => modalRef.current?.hide()}>
-            Cancel
+            {t('Cancel')}
           </button>
           <button type="submit" disabled={isSubmitting} form="custom" className="btn" data-testid="git-repository-settings-modal__sync-btn">
-            Clone
+            {t('Clone')}
           </button>
         </div>
       </ModalFooter>

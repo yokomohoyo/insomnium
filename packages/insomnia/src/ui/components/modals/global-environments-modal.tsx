@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRevalidator } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import * as models from '../../../models';
 import type { Environment } from '../../../models/environment';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
@@ -97,24 +98,24 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
   return (
     <OverlayContainer>
       <Modal ref={modalRef} wide tall onHide={onHide}>
-        <ModalHeader>Global Environments</ModalHeader>
+        <ModalHeader>{t('Global Environments')}</ModalHeader>
         <ModalBody noScroll className="env-modal">
           <div className="env-modal__sidebar">
-            <ul aria-label="Global environments" className="list-none m-0 p-0">
+            <ul aria-label={t('Global environments')} className="list-none m-0 p-0">
               {environments.map(environment => (
                 <li
                   key={environment._id}
                   className={classnames('env-modal__sidebar-item', { 'env-modal__sidebar-item--active': environment._id === selectedId })}
                 >
                   <button onClick={() => choose(environment._id)}>
-                    {environment === base ? 'Global Base Environment' : environment.name}
-                    {environment._id === activeId && <span className="faint space-left">(in use)</span>}
+                    {environment === base ? t('Global Base Environment') : environment.name}
+                    {environment._id === activeId && <span className="faint space-left">{t('(in use)')}</span>}
                   </button>
                 </li>
               ))}
             </ul>
             <button className="btn btn--compact" onClick={add}>
-              <i className="fa fa-plus space-right" /> Add Sub Environment
+              <i className="fa fa-plus space-right" /> {t('Add Sub Environment')}
             </button>
           </div>
           <div className="env-modal__main">
@@ -122,18 +123,18 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
               {selected && selected !== base ? (
                 <input
                   key={selected._id}
-                  aria-label="Environment name"
+                  aria-label={t('Environment name')}
                   className="wide"
                   defaultValue={selected.name}
                   onBlur={event => event.currentTarget.value.trim() && event.currentTarget.value !== selected.name && update(selected, { name: event.currentTarget.value.trim() })}
                 />
               ) : (
-                <h1>Global Base Environment</h1>
+                <h1>{t('Global Base Environment')}</h1>
               )}
               {selected && selected !== base && (
                 <>
                   <button className="btn btn--clicky space-left" disabled={selected._id === activeId} onClick={() => use(selected._id)}>
-                    Use in This Collection
+                    {t('Use in This Collection')}
                   </button>
                   <PromptButton className="btn btn--clicky space-left" onClick={() => remove(selected)}>
                     <i className="fa fa-trash-o" />
@@ -145,10 +146,10 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
             <div className="flex flex-col min-h-0 h-full">
               <p className="faint txt-sm pad-left pad-right">
                 {selected === base
-                  ? `Variables for every collection in ${projectName}. A collection's own environments override them.`
-                  : 'Over the global base environment, for the collections that use it.'}
+                  ? t("Variables for every collection in {project}. A collection's own environments override them.", { project: projectName })
+                  : t('Over the global base environment, for the collections that use it.')}
                 {activeId && selected === base && (
-                  <button className="btn btn--super-compact space-left" onClick={() => use(null)}>Use No Global Sub Environment</button>
+                  <button className="btn btn--super-compact space-left" onClick={() => use(null)}>{t('Use No Global Sub Environment')}</button>
                 )}
               </p>
               <div className="env-modal__editor flex-1 min-h-0" style={{ height: 'auto' }}>
@@ -166,7 +167,7 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
         </ModalBody>
         <ModalFooter>
           <button className="btn" onClick={close}>
-            Close
+            {t('Close')}
           </button>
         </ModalFooter>
       </Modal>

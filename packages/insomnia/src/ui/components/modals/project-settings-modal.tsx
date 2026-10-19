@@ -2,7 +2,7 @@ import React, { FC, useEffect, useRef } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
-import { strings } from '../../../common/strings';
+import { t } from '../../../common/i18n';
 import { Project } from '../../../models/project';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -26,16 +26,16 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
     <OverlayContainer>
       <Modal onHide={onHide} ref={modalRef}>
         <ModalHeader key={`header::${project._id}`}>
-          {strings.project.singular} Settings{' '}
+          {t('Project Settings')}{' '}
           <div className="txt-sm selectable faint monospace">{project._id}</div>
         </ModalHeader>
         <ModalBody key={`body::${project._id}`} className="pad">
           <div className="form-control form-control--outlined">
             <label>
-              Name
+              {t('Name')}
               <input
                 type="text"
-                placeholder={`My ${strings.project.singular}`}
+                placeholder={t('My Project')}
                 defaultValue={project.name}
                 onChange={e => {
                   submit(
@@ -51,7 +51,7 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
               />
             </label>
           </div>
-          <h2 className="mt-[--padding-lg]">Actions</h2>
+          <h2 className="mt-[--padding-lg]">{t('Actions')}</h2>
           <div className="form-control form-control--padded flex flex-wrap items-center gap-[--padding-sm]">
             <PromptButton
               onClick={() =>
@@ -62,7 +62,7 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
               }
               className="width-auto btn btn--clicky"
             >
-              <i className="fa fa-trash-o" /> Delete
+              <i className="fa fa-trash-o" /> {t('Delete')}
             </PromptButton>
           </div>
         </ModalBody>

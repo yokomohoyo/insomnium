@@ -15,6 +15,7 @@ import {
   getContentTypeName,
   METHOD_POST,
 } from '../../../common/constants';
+import { t } from '../../../common/i18n';
 import { Request, RequestBody, RequestHeader, RequestParameter } from '../../../models/request';
 import { deconstructQueryStringToParams } from '../../../utils/url/querystring';
 
@@ -55,8 +56,8 @@ export const ContentTypeDropdown: FC = () => {
 
     if (!isEmpty && !willPreserveText && !willPreserveForm) {
       await showModal(AlertModal, {
-        title: 'Switch Body Type?',
-        message: 'Current body will be lost. Are you sure you want to continue?',
+        title: t('Switch Body Type?'),
+        message: t('Current body will be lost. Are you sure you want to continue?'),
         addCancel: true,
       });
     }
@@ -78,20 +79,20 @@ export const ContentTypeDropdown: FC = () => {
 
   return (
     <Dropdown
-      aria-label='Change Body Type'
+      aria-label={t('Change Body Type')}
       triggerButton={
         <DropdownButton>
-          {hasMimeType ? getContentTypeName(body.mimeType) : 'Body'}
+          {hasMimeType ? getContentTypeName(body.mimeType) : t('Body')}
           {numBodyParams ? <span className="bubble space-left">{numBodyParams}</span> : null}
           <i className="fa fa-caret-down space-left" />
         </DropdownButton>
       }
     >
       <DropdownSection
-        aria-label='Structured Type Section'
+        aria-label={t('Structured Type Section')}
         title={
           <span>
-            <i className="fa fa-bars" /> Structured
+            <i className="fa fa-bars" /> {t('Structured')}
           </span>
         }
       >
@@ -119,10 +120,10 @@ export const ContentTypeDropdown: FC = () => {
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Text Type Section'
+        aria-label={t('Text Type Section')}
         title={
           <span>
-            <i className="fa fa-code" /> Text
+            <i className="fa fa-code" /> {t('Text')}
           </span>
         }
       >
@@ -171,10 +172,10 @@ export const ContentTypeDropdown: FC = () => {
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Other Type Section'
+        aria-label={t('Other Type Section')}
         title={
           <span>
-            <i className="fa fa-ellipsis-h" /> Other
+            <i className="fa fa-ellipsis-h" /> {t('Other')}
           </span>
         }
       >
@@ -185,10 +186,10 @@ export const ContentTypeDropdown: FC = () => {
             onClick={() => handleChangeMimeType(CONTENT_TYPE_FILE)}
           />
         </DropdownItem>
-        <DropdownItem aria-label="No Body">
+        <DropdownItem aria-label={t('No Body')}>
           <ItemContent
             icon={getIcon(EMPTY_MIME_TYPE)}
-            label="No Body"
+            label={t('No Body')}
             onClick={() => handleChangeMimeType(EMPTY_MIME_TYPE)}
           />
         </DropdownItem>

@@ -27,6 +27,7 @@ import {
 /**** ><> ↑ --------- Imports */
 
 import { isDevelopment } from '../../common/constants';
+import { t } from '../../common/i18n';
 import * as models from '../../models';
 
 import { Settings } from '../../models/settings';
@@ -136,14 +137,14 @@ const Root = () => {
 
           case 'insomnia://plugins/install':
             showModal(AskModal, {
-              title: 'Plugin Install',
+              title: t('Plugin Install'),
               message: (
                 <>
-                  Do you want to install <code>{params.name}</code>? A plugin runs with the same access as the app: it can read your files and reach the network. Install only plugins you trust.
+                  Do you want to install <code>{params.name}</code>? {t('It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.')}
                 </>
               ),
-              yesText: 'Install',
-              noText: 'Cancel',
+              yesText: t('Install'),
+              noText: t('Cancel'),
               onDone: async (isYes: boolean) => {
                 if (isYes) {
                   try {
@@ -151,8 +152,8 @@ const Root = () => {
                     showModal(SettingsModal, { tab: TAB_INDEX_PLUGINS });
                   } catch (err) {
                     showError({
-                      title: 'Plugin Install',
-                      message: 'Failed to install plugin',
+                      title: t('Plugin Install'),
+                      message: t('Failed to install plugin'),
                       error: err.message,
                     });
                   }
@@ -168,14 +169,14 @@ const Root = () => {
             // outside the plugins directory.
             assertValidThemeName(parsedTheme.name);
             showModal(AskModal, {
-              title: 'Install Theme',
+              title: t('Install Theme'),
               message: (
                 <>
                   Do you want to install <code>{parsedTheme.displayName}</code>?
                 </>
               ),
-              yesText: 'Install',
-              noText: 'Cancel',
+              yesText: t('Install'),
+              noText: t('Cancel'),
               onDone: async (isYes: boolean) => {
                 if (isYes) {
                   const mainJsContent = `module.exports.themes = [${JSON.stringify(
@@ -286,7 +287,7 @@ const Root = () => {
                               } no-underline transition-colors text-center outline-none min-w-[4rem] uppercase text-[--color-font] text-xs px-[--padding-xs] py-[--padding-xxs] rounded-full`
                             }
                           >
-                            {item}
+                            {item === 'spec' ? t('spec') : item === 'debug' ? t('debug') : t('test')}
                           </NavLink>
                         ))}
                       </nav>
@@ -337,7 +338,7 @@ const Root = () => {
                       offset={8}
                       className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
                     >
-                  <span>Projects</span>
+                  <span>{t('Projects')}</span>
                     </Tooltip>
                   </TooltipTrigger>
 
@@ -354,14 +355,14 @@ const Root = () => {
                   className="px-4 py-1 h-full flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] text-[--color-font] text-xs hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all"
                   onPress={showSettingsModal}
                 >
-                  <Icon icon="gear" /> Preferences
+                  <Icon icon="gear" /> {t('Preferences')}
                 </Button>
                 <Tooltip
                   placement="top"
                   offset={8}
                   className="border flex items-center gap-2 select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
                 >
-                  Preferences
+                  {t('Preferences')}
                   <Hotkey
                     keyBindings={
                       settings.hotKeyRegistry.preferences_showGeneral
@@ -375,7 +376,7 @@ const Root = () => {
                 className="px-4 py-1 h-full flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] text-[--color-font] text-xs hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all"
                 onPress={() => setConsoleOpen(!isConsoleOpen)}
               >
-                <Icon icon="terminal" /> Console
+                <Icon icon="terminal" /> {t('Console')}
               </Button>
               </div>
               <Link>
@@ -383,7 +384,7 @@ const Root = () => {
                 <a
                   className="flex focus:outline-none focus:underline gap-1 items-center text-xs text-[--color-font] px-[--padding-md]"
                 >
-                  a 100% local and privacy-focus fork of Insomnia <Icon className="text-white" icon="heart" />
+                  {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-white" icon="heart" />
                 </a>
               </Link>
             </div>

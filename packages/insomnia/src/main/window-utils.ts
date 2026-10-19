@@ -16,6 +16,7 @@ import {
   MNEMONIC_SYM,
 } from '../common/constants';
 import { docsBase } from '../common/documentation';
+import { menuLabel } from '../common/i18n';
 import * as log from '../common/log';
 import LocalStorage from './local-storage';
 
@@ -140,11 +141,21 @@ export function createWindow() {
     }
   });
 
+  createMenu();
+  windows.add(newWindow);
+  return newWindow;
+}
+
+// a menu label in the app's language; & marks its mnemonic, which macOS doesn't show
+const label = (text: string, values?: Record<string, string | number>) => menuLabel(text, MNEMONIC_SYM === '&', values);
+
+// The application menu, in the app's language: made again when that changes
+export function createMenu() {
   const applicationMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}Application`,
+    label: label('&Application'),
     submenu: [
       {
-        label: `${MNEMONIC_SYM}Preferences`,
+        label: label('&Preferences'),
         click: function(_menuItem, window) {
           if (!(window instanceof BrowserWindow)) {
             return;
@@ -154,7 +165,7 @@ export function createWindow() {
         },
       },
       {
-        label: `${MNEMONIC_SYM}Changelog`,
+        label: label('&Changelog'),
         click: function(_menuItem, window) {
           if (!(window instanceof BrowserWindow)) {
             return;
@@ -181,7 +192,7 @@ export function createWindow() {
         type: 'separator',
       },
       {
-        label: `${MNEMONIC_SYM}Quit`,
+        label: label('&Quit'),
         accelerator: 'CmdOrCtrl+Q',
         click: () => app.quit(),
       },
@@ -189,15 +200,15 @@ export function createWindow() {
   };
 
   const editMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}Edit`,
+    label: label('&Edit'),
     submenu: [
       {
-        label: `${MNEMONIC_SYM}Undo`,
+        label: label('&Undo'),
         accelerator: 'CmdOrCtrl+Z',
         role: 'undo',
       },
       {
-        label: `${MNEMONIC_SYM}Redo`,
+        label: label('&Redo'),
         accelerator: 'Shift+CmdOrCtrl+Z',
         role: 'redo',
       },
@@ -205,22 +216,22 @@ export function createWindow() {
         type: 'separator',
       },
       {
-        label: `Cu${MNEMONIC_SYM}t`,
+        label: label('Cu&t'),
         accelerator: 'CmdOrCtrl+X',
         role: 'cut',
       },
       {
-        label: `${MNEMONIC_SYM}Copy`,
+        label: label('&Copy'),
         accelerator: 'CmdOrCtrl+C',
         role: 'copy',
       },
       {
-        label: `${MNEMONIC_SYM}Paste`,
+        label: label('&Paste'),
         accelerator: 'CmdOrCtrl+V',
         role: 'paste',
       },
       {
-        label: `Select ${MNEMONIC_SYM}All`,
+        label: label('Select &All'),
         accelerator: 'CmdOrCtrl+A',
         role: 'selectAll',
       },
@@ -228,29 +239,29 @@ export function createWindow() {
   };
 
   const viewMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}View`,
+    label: label('&View'),
     submenu: [
       {
-        label: `Toggle ${MNEMONIC_SYM}Full Screen`,
+        label: label('Toggle &Full Screen'),
         role: 'togglefullscreen',
       },
       {
-        label: `${MNEMONIC_SYM}Actual Size`,
+        label: label('&Actual Size'),
         accelerator: 'CmdOrCtrl+0',
         click: setZoom(() => 1),
       },
       {
-        label: `Zoom ${MNEMONIC_SYM}In`,
+        label: label('Zoom &In'),
         accelerator: 'CmdOrCtrl+=',
         click: setZoom(zoom => zoom * 1.2),
       },
       {
-        label: `Zoom ${MNEMONIC_SYM}Out`,
+        label: label('Zoom &Out'),
         accelerator: 'CmdOrCtrl+-',
         click: setZoom(zoom => zoom * 0.8),
       },
       {
-        label: 'Specific Zoom Level',
+        label: label('Specific Zoom Level'),
         submenu: [25, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 500].map(item => ({
           label: `${item}%`,
           click: setZoom(() => item / 100),
@@ -260,7 +271,7 @@ export function createWindow() {
         type: 'separator',
       },
       {
-        label: `Resize to ${MNEMONIC_SYM}Small (qHD 540)`,
+        label: label('Resize to &Small (qHD 540)'),
         click: () =>
           newWindow?.setBounds({
             width: 960,
@@ -268,7 +279,7 @@ export function createWindow() {
           }),
       },
       {
-        label: `Resize to Defaul${MNEMONIC_SYM}t (HD 720)`,
+        label: label('Resize to Defaul&t (HD 720)'),
         click: () =>
           newWindow?.setBounds({
             width: DEFAULT_WIDTH,
@@ -276,7 +287,7 @@ export function createWindow() {
           }),
       },
       {
-        label: `Resize to ${MNEMONIC_SYM}Large (FHD 1080)`,
+        label: label('Resize to &Large (FHD 1080)'),
         click: () =>
           newWindow?.setBounds({
             width: 1920,
@@ -287,7 +298,7 @@ export function createWindow() {
         type: 'separator',
       },
       {
-        label: 'Toggle Sidebar',
+        label: label('Toggle Sidebar'),
         click: () => {
           const w = BrowserWindow.getFocusedWindow();
 
@@ -299,7 +310,7 @@ export function createWindow() {
         },
       },
       {
-        label: `Toggle ${MNEMONIC_SYM}DevTools`,
+        label: label('Toggle &DevTools'),
         accelerator: 'Alt+CmdOrCtrl+I',
         click: () => {
           const window = BrowserWindow.getFocusedWindow();
@@ -313,23 +324,23 @@ export function createWindow() {
   };
 
   const windowMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}Window`,
+    label: label('&Window'),
     role: 'window',
     submenu: [
       {
-        label: `${MNEMONIC_SYM}New`,
+        label: label('&New'),
         click: () => {
           createWindow();
         },
       },
       {
-        label: `${MNEMONIC_SYM}Minimize`,
+        label: label('&Minimize'),
         role: 'minimize',
       },
       // @ts-expect-error -- TSCONVERSION missing in official electron types
       ...(isMac() ? [
         {
-          label: `${MNEMONIC_SYM}Close`,
+          label: label('&Close'),
           role: 'close',
         },
       ]
@@ -338,12 +349,12 @@ export function createWindow() {
   };
 
   const helpMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}Help`,
+    label: label('&Help'),
     role: 'help',
     id: 'help',
     submenu: [
       {
-        label: `${MNEMONIC_SYM}Help and Support`,
+        label: label('&Help and Support'),
         ...(isMac() ? {} : { accelerator: 'F1' }),
         click: () => {
           const { protocol } = new URL(docsBase);
@@ -354,7 +365,7 @@ export function createWindow() {
         },
       },
       {
-        label: `${MNEMONIC_SYM}Keyboard Shortcuts`,
+        label: label('&Keyboard Shortcuts'),
         accelerator: 'CmdOrCtrl+Shift+?',
         click: (_menuItem, w) => {
           if (!(w instanceof BrowserWindow)) {
@@ -368,14 +379,14 @@ export function createWindow() {
         type: 'separator',
       },
       {
-        label: `Show App ${MNEMONIC_SYM}Data Folder`,
+        label: label('Show App &Data Folder'),
         click: () => {
           const directory = process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData');
           shell.showItemInFolder(directory);
         },
       },
       {
-        label: `Show App ${MNEMONIC_SYM}Logs Folder`,
+        label: label('Show App &Logs Folder'),
         click: () => {
           const directory = log.getLogDirectory();
           shell.showItemInFolder(directory);
@@ -385,14 +396,14 @@ export function createWindow() {
         type: 'separator',
       },
       {
-        label: 'Show Open Source Licenses',
+        label: label('Show Open Source Licenses'),
         click: () => {
           const licensePath = path.resolve(app.getAppPath(), '../opensource-licenses.txt');
           shell.openPath(licensePath);
         },
       },
       {
-        label: 'Show Software License',
+        label: label('Show Software License'),
         click: () => {
           // eslint-disable-next-line no-restricted-properties
           shell.openExternal(getLicenseURL());
@@ -436,7 +447,7 @@ export function createWindow() {
     // @ts-expect-error -- TSCONVERSION type splitting
     applicationMenu.submenu?.unshift(
       {
-        label: `A${MNEMONIC_SYM}bout ${getProductName()}`,
+        label: label('A&bout {name}', { name: getProductName() }),
         click: aboutMenuClickHandler,
       },
       {
@@ -449,18 +460,18 @@ export function createWindow() {
       type: 'separator',
     },
     {
-      label: `${MNEMONIC_SYM}About`,
+      label: label('&About'),
       click: aboutMenuClickHandler,
     });
   }
 
   const developerMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}Developer`,
+    label: label('&Developer'),
     // @ts-expect-error -- TSCONVERSION missing in official electron types
     position: 'before=help',
     submenu: [
       {
-        label: `${MNEMONIC_SYM}Reload`,
+        label: label('&Reload'),
         accelerator: 'Shift+F5',
         click: () => {
           const window = BrowserWindow.getFocusedWindow();
@@ -470,7 +481,7 @@ export function createWindow() {
         },
       },
       {
-        label: `Take ${MNEMONIC_SYM}Screenshot`,
+        label: label('Take &Screenshot'),
         click: function() {
           // @ts-expect-error -- TSCONVERSION not accounted for in the electron types to provide a function
           newWindow?.capturePage(image => {
@@ -481,7 +492,7 @@ export function createWindow() {
         },
       },
       {
-        label: `${MNEMONIC_SYM}Clear a model`,
+        label: label('&Clear a model'),
         click: function(_menuItem, window) {
           if (window instanceof BrowserWindow) {
             window.webContents.send('clear-model');
@@ -489,7 +500,7 @@ export function createWindow() {
         },
       },
       {
-        label: `Clear ${MNEMONIC_SYM}all models`,
+        label: label('Clear &all models'),
         click: function(_menuItem, window) {
           if (window instanceof BrowserWindow) {
             window.webContents.send('clear-all-models');
@@ -497,11 +508,11 @@ export function createWindow() {
         },
       },
       {
-        label: `R${MNEMONIC_SYM}estart`,
+        label: label('R&estart'),
         click: window?.main.restart,
       },
       {
-        label: `Set window for ${MNEMONIC_SYM}FHD Screenshot`,
+        label: label('Set window for &FHD Screenshot'),
         click: () => {
           newWindow?.setBounds({
             width: 1920,
@@ -513,10 +524,10 @@ export function createWindow() {
     ],
   };
   const toolsMenu: MenuItemConstructorOptions = {
-    label: `${MNEMONIC_SYM}Tools`,
+    label: label('&Tools'),
     submenu: [
       {
-        label: `${MNEMONIC_SYM}Reload Plugins`,
+        label: label('&Reload Plugins'),
         click: () => {
           const w = BrowserWindow.getFocusedWindow();
 
@@ -532,10 +543,10 @@ export function createWindow() {
   const template: MenuItemConstructorOptions[] = [];
   template.push(applicationMenu);
   template.push({
-    label: `${MNEMONIC_SYM}File`,
+    label: label('&File'),
     submenu: [
       {
-        label: `${MNEMONIC_SYM}New Window`,
+        label: label('&New Window'),
         click: () => {
           createWindow();
         },
@@ -553,8 +564,6 @@ export function createWindow() {
   }
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-  windows.add(newWindow);
-  return newWindow;
 }
 
 async function showUnresponsiveModal() {

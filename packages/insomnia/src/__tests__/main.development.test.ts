@@ -25,6 +25,7 @@ jest.mock('electron', () => {
     getPath: () => '/tmp',
     setAsDefaultProtocolClient: () => true,
     requestSingleInstanceLock: () => mockGotLock,
+    getLocale: () => 'en-US',
     quit: () => mockStartupSteps.push('quit'),
   });
   const ipcMain = Object.assign(new EventEmitter(), { handle: () => {} });
@@ -61,7 +62,7 @@ jest.mock('../network/o-auth-2/redact', () => ({ redactStoredTokenResponses: asy
 jest.mock('../main/squirrel-startup', () => ({ checkIfRestartNeeded: () => false }));
 jest.mock('../main/web-hardening', () => ({ hardenWebContents: () => {}, lockDownSession: () => {} }));
 jest.mock('../main/mcp/server', () => ({ getRunningMcpServer: () => null }));
-jest.mock('../main/window-utils', () => ({ init: () => {}, getOrCreateWindow: () => mockWindow }));
+jest.mock('../main/window-utils', () => ({ init: () => {}, getOrCreateWindow: () => mockWindow, createMenu: () => {} }));
 jest.mock('../models/index', () => ({
   types: () => [],
   stats: { get: async () => ({}) },

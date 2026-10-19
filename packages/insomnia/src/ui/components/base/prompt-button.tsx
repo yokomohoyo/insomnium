@@ -8,6 +8,8 @@ import React, {
   useState,
 } from 'react';
 
+import { t } from '../../../common/i18n';
+
 type PromptStateEnum = 'default' | 'ask' | 'done';
 
 interface Props<T> {
@@ -24,8 +26,8 @@ interface Props<T> {
 export const PromptButton = <T, >({
   onClick,
   disabled,
-  confirmMessage = 'Click to confirm',
-  doneMessage = 'Done',
+  confirmMessage = t('Click to confirm'),
+  doneMessage = t('Done'),
   tabIndex,
   title,
   className,
@@ -110,7 +112,7 @@ interface PromptMessageProps {
 const PromptMessage: FunctionComponent<PromptMessageProps> = ({ promptState, confirmMessage, doneMessage, children }) => {
   if (promptState === 'ask') {
     return (
-      <span className='warning' title='Click again to confirm'>
+      <span className='warning' title={t('Click again to confirm')}>
         <i className='fa fa-exclamation-circle' />
         {confirmMessage && (
           <span className='space-left'>{confirmMessage}</span>

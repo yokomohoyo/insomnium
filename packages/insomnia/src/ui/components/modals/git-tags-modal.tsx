@@ -2,6 +2,7 @@ import React, { FC, useEffect, useRef } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { GitTagResult, GitTagsLoaderData } from '../../routes/git-actions';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -32,7 +33,7 @@ export const GitTagsModal: FC<ModalProps> = ({ onHide }) => {
       return;
     }
     if (tagFetcher.data.errors?.length) {
-      showAlert({ title: 'Tag Failed', message: tagFetcher.data.errors.join('\n') });
+      showAlert({ title: t('Tag Failed'), message: tagFetcher.data.errors.join('\n') });
     }
     tagsFetcher.load(action);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- once a tag action is done
@@ -44,26 +45,26 @@ export const GitTagsModal: FC<ModalProps> = ({ onHide }) => {
   return (
     <OverlayContainer>
       <Modal ref={modalRef} onHide={onHide}>
-        <ModalHeader><i className="fa fa-tags space-right" />Tags</ModalHeader>
+        <ModalHeader><i className="fa fa-tags space-right" />{t('Tags')}</ModalHeader>
         <ModalBody className="pad">
           <tagFetcher.Form method="post" action={action} data-testid="git-tag-form">
             <input type="hidden" name="intent" value="create" />
             <div className="form-row">
               <div className="form-control form-control--outlined">
                 <label>
-                  New Tag
+                  {t('New Tag')}
                   <input type="text" autoFocus name="name" required placeholder="v1.0.0" />
                 </label>
               </div>
               <div className="form-control form-control--outlined">
                 <label>
-                  Message <span className="faint">(optional: makes it annotated)</span>
-                  <input type="text" name="message" placeholder="The first release" />
+                  {t('Message')} <span className="faint">{t('(optional: makes it annotated)')}</span>
+                  <input type="text" name="message" placeholder={t('The first release')} />
                 </label>
               </div>
               <div className="form-control form-control--no-label width-auto">
                 <button disabled={tagFetcher.state !== 'idle' || !head} type="submit" className="btn btn--clicky">
-                  <i className="fa fa-plus space-right" /> Tag {head.slice(0, 7)}
+                  <i className="fa fa-plus space-right" /> {t('Tag {commit}', { commit: head.slice(0, 7) })}
                 </button>
               </div>
             </div>
@@ -73,14 +74,14 @@ export const GitTagsModal: FC<ModalProps> = ({ onHide }) => {
             <table className="table--fancy table--outlined">
               <thead>
                 <tr>
-                  <th className="text-left">Tag</th>
-                  <th className="text-left">Commit</th>
+                  <th className="text-left">{t('Tag')}</th>
+                  <th className="text-left">{t('Commit')}</th>
                   <th className="text-right">&nbsp;</th>
                 </tr>
               </thead>
               <tbody>
                 {tags.length === 0 && (
-                  <tr><td colSpan={3} className="faint">{tagsFetcher.state === 'idle' ? 'No tags yet' : 'Loading…'}</td></tr>
+                  <tr><td colSpan={3} className="faint">{tagsFetcher.state === 'idle' ? t('No tags yet') : t('Loading…')}</td></tr>
                 )}
                 {tags.map(tag => (
                   <tr key={tag.name} data-testid="git-tag">
@@ -88,27 +89,27 @@ export const GitTagsModal: FC<ModalProps> = ({ onHide }) => {
                       <strong>{tag.name}</strong>
                       {tag.message && <div className="txt-sm faint">{tag.message}</div>}
                     </td>
-                    <td className="monospace txt-sm">{tag.oid.slice(0, 7)}{tag.oid === head ? <span className="faint"> (current)</span> : null}</td>
+                    <td className="monospace txt-sm">{tag.oid.slice(0, 7)}{tag.oid === head ? <span className="faint"> {t('(current)')}</span> : null}</td>
                     <td className="text-right no-wrap">
                       {hasRemote && (
                         <button className="btn btn--micro btn--outlined space-left" onClick={() => submit({ intent: 'push', name: tag.name })}>
-                          Push
+                          {t('Push')}
                         </button>
                       )}
                       <PromptButton
                         className="btn btn--micro btn--outlined space-left"
-                        doneMessage="Deleted"
+                        doneMessage={t('Deleted')}
                         onClick={() => submit({ intent: 'delete', name: tag.name })}
                       >
-                        Delete
+                        {t('Delete')}
                       </PromptButton>
                       {hasRemote && (
                         <PromptButton
                           className="btn btn--micro btn--outlined space-left"
-                          doneMessage="Deleted"
+                          doneMessage={t('Deleted')}
                           onClick={() => submit({ intent: 'delete', name: tag.name, remote: 'true' })}
                         >
-                          Delete Here and on the Remote
+                          {t('Delete Here and on the Remote')}
                         </PromptButton>
                       )}
                     </td>
@@ -121,7 +122,7 @@ export const GitTagsModal: FC<ModalProps> = ({ onHide }) => {
         <ModalFooter>
           <div>
             <button className="btn" onClick={() => modalRef.current?.hide()}>
-              Done
+              {t('Done')}
             </button>
           </div>
         </ModalFooter>

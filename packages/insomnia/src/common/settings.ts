@@ -131,6 +131,8 @@ export interface Settings {
   showVariableSourceAndValue: boolean;
   /** Unsafe legacy renegotiation and lenient TLS shutdown, for old servers */
   legacyTls: boolean;
+  // the app's language (common/i18n.ts): a code, or '' for the OS's
+  language: string;
   lightTheme: string;
   lineWrapping?: boolean;
   maxHistoryResponses: number;

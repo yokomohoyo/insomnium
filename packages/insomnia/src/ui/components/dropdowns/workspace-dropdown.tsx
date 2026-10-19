@@ -4,7 +4,7 @@ import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-ro
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC, getProductName } from '../../../common/constants';
 import { database as db } from '../../../common/database';
 import { selectFileOrFolder } from '../../../common/select-file-or-folder';
-import { getWorkspaceLabel } from '../../../common/get-workspace-label';
+import { t } from '../../../common/i18n';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import { isRequest } from '../../../models/request';
 import { isRequestGroup } from '../../../models/request-group';
@@ -73,10 +73,10 @@ export const WorkspaceDropdown: FC = () => {
       return;
     }
     showModal(AskModal, {
-      title: 'Convert to Collection',
-      message: `"${activeWorkspaceName}" keeps its requests and tests. Its spec is put aside, and comes back if you convert it to a design document again.`,
-      yesText: 'Convert',
-      noText: 'Cancel',
+      title: t('Convert to Collection'),
+      message: t('"{name}" keeps its requests and tests. Its spec is put aside, and comes back if you convert it to a design document again.', { name: activeWorkspaceName }),
+      yesText: t('Convert'),
+      noText: t('Cancel'),
       onDone: async (isYes: boolean) => {
         if (isYes) {
           submit();
@@ -113,7 +113,7 @@ export const WorkspaceDropdown: FC = () => {
       });
     } catch (err) {
       showError({
-        title: 'Plugin Action Failed',
+        title: t('Plugin Action Failed'),
         error: err,
       });
     }
@@ -136,7 +136,7 @@ export const WorkspaceDropdown: FC = () => {
     try {
       setSyncFolder(await window.main.folderSync.start({ workspaceId: activeWorkspace._id, folder: filePath }));
     } catch (err) {
-      showAlert({ title: 'Sync to a Folder', message: err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err) });
+      showAlert({ title: t('Sync to a Folder'), message: err instanceof Error ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') : String(err) });
     }
   };
   const stopSyncingToFolder = async () => {
@@ -158,7 +158,7 @@ export const WorkspaceDropdown: FC = () => {
     <>
       <Dropdown
         dataTestId='workspace-dropdown'
-        aria-label="Workspace Dropdown"
+        aria-label={t('Workspace Dropdown')}
         ref={dropdownRef}
         closeOnSelect={false}
         className="wide workspace-dropdown"
@@ -178,24 +178,24 @@ export const WorkspaceDropdown: FC = () => {
           </DropdownButton>
         }
       >
-        <DropdownItem aria-label='Duplicate'>
+        <DropdownItem aria-label={t('Duplicate')}>
           <ItemContent
-            label="Duplicate"
+            label={t('Duplicate')}
             icon="copy"
             onClick={() => setIsDuplicateModalOpen(true)}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Rename'>
+        <DropdownItem aria-label={t('Rename')}>
           <ItemContent
-            label="Rename"
+            label={t('Rename')}
             icon="pen-to-square"
             onClick={() => {
               showPrompt({
-                title: `Rename ${getWorkspaceLabel(activeWorkspace).singular}`,
+                title: isDocument ? t('Rename Document') : t('Rename Collection'),
                 defaultValue: activeWorkspaceName,
-                submitName: 'Rename',
+                submitName: t('Rename'),
                 selectText: true,
-                label: 'Name',
+                label: t('Name'),
                 onComplete: name =>
                   fetcher.submit(
                     { name, workspaceId: activeWorkspace._id },
@@ -209,84 +209,84 @@ export const WorkspaceDropdown: FC = () => {
             }}
           />
         </DropdownItem>
-        <DropdownSection aria-label='Meta section'>
+        <DropdownSection aria-label={t('Meta section')}>
 
-          <DropdownItem aria-label='Run Collection'>
+          <DropdownItem aria-label={t('Run Collection')}>
             <ItemContent
               icon="play"
-              label="Run Collection"
+              label={t('Run Collection')}
               onClick={() => setIsRunnerOpen(true)}
             />
           </DropdownItem>
 
-          <DropdownItem aria-label='Mock Server'>
+          <DropdownItem aria-label={t('Mock Server')}>
             <ItemContent
               icon="server"
-              label="Mock Server"
+              label={t('Mock Server')}
               onClick={() => setIsMockServerOpen(true)}
             />
           </DropdownItem>
 
-          <DropdownItem aria-label='Capture Traffic'>
+          <DropdownItem aria-label={t('Capture Traffic')}>
             <ItemContent
               icon="satellite-dish"
-              label="Capture Traffic…"
+              label={t('Capture Traffic…')}
               onClick={() => setIsCaptureOpen(true)}
             />
           </DropdownItem>
 
-          <DropdownItem aria-label='Import'>
+          <DropdownItem aria-label={t('Import')}>
             <ItemContent
               icon="file-import"
-              label="Import"
+              label={t('Import')}
               onClick={() => setIsImportModalOpen(true)}
             />
           </DropdownItem>
 
-        <DropdownItem aria-label='Export'>
+        <DropdownItem aria-label={t('Export')}>
           <ItemContent
             icon="file-export"
-            label="Export"
+            label={t('Export')}
             onClick={() => setIsExportModalOpen(true)}
           />
         </DropdownItem>
 
-          <DropdownItem aria-label={isDocument ? 'Convert to Collection' : 'Convert to Design Document'}>
+          <DropdownItem aria-label={isDocument ? t('Convert to Collection') : t('Convert to Design Document')}>
             <ItemContent
               icon={isDocument ? 'bars' : 'file-code'}
-              label={isDocument ? 'Convert to Collection' : 'Convert to Design Document'}
+              label={isDocument ? t('Convert to Collection') : t('Convert to Design Document')}
               onClick={convert}
             />
           </DropdownItem>
 
-          <DropdownItem aria-label={syncFolder ? 'Show the Synced Folder' : 'Sync to a Folder'}>
+          <DropdownItem aria-label={syncFolder ? t('Show the Synced Folder') : t('Sync to a Folder')}>
             <ItemContent
               icon="folder-open"
-              label={syncFolder ? 'Show the Synced Folder' : 'Sync to a Folder…'}
+              label={syncFolder ? t('Show the Synced Folder') : t('Sync to a Folder…')}
               onClick={() => (syncFolder ? window.shell.showItemInFolder(syncFolder) : syncToFolder())}
             />
           </DropdownItem>
 
-          <DropdownItem aria-label="Stop Syncing to the Folder">
+          <DropdownItem aria-label={t('Stop Syncing to the Folder')}>
             <ItemContent
               icon="link-slash"
-              label="Stop Syncing to the Folder"
+              label={t('Stop Syncing to the Folder')}
               isDisabled={!syncFolder}
               onClick={stopSyncingToFolder}
             />
           </DropdownItem>
 
-          <DropdownItem aria-label="Settings">
+          <DropdownItem aria-label={t('Settings')}>
             <ItemContent
               icon="wrench"
-              label="Settings"
+              label={t('Settings')}
               onClick={() => setIsSettingsModalOpen(true)}
             />
           </DropdownItem>
         </DropdownSection>
         <DropdownSection
-          aria-label='Plugins Section'
-          title="Plugins"
+          aria-label={t('Plugins Section')}
+          title={t('Plugins')}
         >
           {actionPlugins.map((p: WorkspaceAction) => (
             <DropdownItem

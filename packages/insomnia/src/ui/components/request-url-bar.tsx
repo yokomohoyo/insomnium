@@ -4,6 +4,7 @@ import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import { useInterval } from 'react-use';
 import styled from 'styled-components';
 
+import { t } from '../../common/i18n';
 import { RENDER_PURPOSE_SEND } from '../../common/render';
 import * as models from '../../models';
 import { isEventStreamRequest } from '../../models/request';
@@ -131,10 +132,10 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
         return;
       }
       showAlert({
-        title: 'Unexpected Request Failure',
+        title: t('Unexpected Request Failure'),
         message: (
           <div>
-            <p>The request failed due to an unhandled error:</p>
+            <p>{t('The request failed due to an unhandled error:')}</p>
             <code className="wide selectable">
               <pre>{err.message}</pre>
             </code>
@@ -168,7 +169,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
   const handleSendDropdownHide = useCallback(() => {
     buttonRef.current?.blur();
   }, []);
-  const buttonText = isEventStreamRequest(activeRequest) ? 'Connect' : (downloadPath ? 'Download' : 'Send');
+  const buttonText = isEventStreamRequest(activeRequest) ? t('Connect') : (downloadPath ? t('Download') : t('Send'));
   const { url, method } = activeRequest;
   const isEventStreamOpen = useReadyState({ requestId: activeRequest._id, protocol: 'curl' });
   const isCancellable = currentInterval || currentTimeout || isEventStreamOpen;
@@ -210,7 +211,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
               setCurrentTimeout(undefined);
             }}
           >
-            {isEventStreamRequest(activeRequest) ? 'Disconnect' : 'Cancel'}
+            {isEventStreamRequest(activeRequest) ? t('Disconnect') : t('Cancel')}
           </button>
         ) : (<>
             <button
@@ -224,7 +225,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
               key="dropdown"
               className="tall"
               ref={dropdownRef}
-              aria-label="Request Options"
+              aria-label={t('Request Options')}
               onClose={handleSendDropdownHide}
               closeOnSelect={false}
               triggerButton={
@@ -237,32 +238,32 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
               }
             >
               <DropdownSection
-                aria-label="Basic Section"
-                title="Basic"
+                aria-label={t('Basic Section')}
+                title={t('Basic')}
               >
                 <DropdownItem aria-label="send-now">
-                  <ItemContent icon="arrow-circle-o-right" label="Send Now" hint={hotKeyRegistry.request_send} onClick={sendOrConnect} />
+                  <ItemContent icon="arrow-circle-o-right" label={t('Send Now')} hint={hotKeyRegistry.request_send} onClick={sendOrConnect} />
                 </DropdownItem>
-                <DropdownItem aria-label='Show CURL code, etc'>
+                <DropdownItem aria-label={t('Show CURL code, etc')}>
                   <ItemContent
                     icon="code"
-                    label="Show CURL code, etc"
+                    label={t('Show CURL code, etc')}
                     onClick={() => showModal(GenerateCodeModal, { request: activeRequest })}
                   />
                 </DropdownItem>
               </DropdownSection>
               <DropdownSection
-                aria-label="Advanced Section"
-                title="Advanced"
+                aria-label={t('Advanced Section')}
+                title={t('Advanced')}
               >
-                <DropdownItem aria-label='Send After Delay'>
+                <DropdownItem aria-label={t('Send After Delay')}>
                   <ItemContent
                     icon="clock-o"
-                    label="Send After Delay"
+                    label={t('Send After Delay')}
                     onClick={() => showPrompt({
                       inputType: 'decimal',
-                      title: 'Send After Delay',
-                      label: 'Delay in seconds',
+                      title: t('Send After Delay'),
+                      label: t('Delay in seconds'),
                       defaultValue: '3',
                       onComplete: seconds => {
                         setCurrentTimeout(+seconds * 1000);
@@ -270,16 +271,16 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
                     })}
                   />
                 </DropdownItem>
-                <DropdownItem aria-label='Repeat on Interval'>
+                <DropdownItem aria-label={t('Repeat on Interval')}>
                   <ItemContent
                     icon="repeat"
-                    label="Repeat on Interval"
+                    label={t('Repeat on Interval')}
                     onClick={() => showPrompt({
                       inputType: 'decimal',
-                      title: 'Send on Interval',
-                      label: 'Interval in seconds',
+                      title: t('Send on Interval'),
+                      label: t('Interval in seconds'),
                       defaultValue: '3',
-                      submitName: 'Start',
+                      submitName: t('Start'),
                       onComplete: seconds => {
                         setCurrentInterval(+seconds * 1000);
                       },
@@ -287,22 +288,22 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
                   />
                 </DropdownItem>
                 {downloadPath
-                  ? (<DropdownItem aria-label='Stop Auto-Download'>
+                  ? (<DropdownItem aria-label={t('Stop Auto-Download')}>
                     <ItemContent
                       icon="stop-circle"
-                      label="Stop Auto-Download"
+                      label={t('Stop Auto-Download')}
                       withPrompt
                       onClick={() => patchRequestMeta(activeRequest._id, { downloadPath: null })}
                     />
                   </DropdownItem>)
-                  : (<DropdownItem aria-label='Download After Send'>
+                  : (<DropdownItem aria-label={t('Download After Send')}>
                     <ItemContent
                       icon="download"
-                      label="Download After Send"
+                      label={t('Download After Send')}
                       onClick={async () => {
                         const { canceled, filePaths } = await window.dialog.showOpenDialog({
-                          title: 'Select Download Location',
-                          buttonLabel: 'Select',
+                          title: t('Select Download Location'),
+                          buttonLabel: t('Select'),
                           properties: ['openDirectory'],
                         });
                         if (canceled) {
@@ -312,8 +313,8 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
                       }}
                     />
                   </DropdownItem>)}
-                <DropdownItem aria-label='Send And Download'>
-                  <ItemContent icon="download" label="Send And Download" onClick={() => sendOrConnect(true)} />
+                <DropdownItem aria-label={t('Send And Download')}>
+                  <ItemContent icon="download" label={t('Send And Download')} onClick={() => sendOrConnect(true)} />
                 </DropdownItem>
               </DropdownSection>
             </Dropdown>)}

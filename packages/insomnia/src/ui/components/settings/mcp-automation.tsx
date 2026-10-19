@@ -1,6 +1,7 @@
 import React, { FC, useCallback, useEffect, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { useSettingsPatcher } from '../../hooks/use-request';
 import { RootLoaderData } from '../../routes/root';
 import { BooleanSetting } from './boolean-setting';
@@ -36,7 +37,7 @@ export const McpAutomation: FC = () => {
   const sseUrl = effectivePort > 0 ? `http://${HOST}:${effectivePort}/sse` : `http://${HOST}:<starting...>/sse`;
   const claudeCmd = token && effectivePort > 0
     ? `claude mcp add --transport sse insomnium ${sseUrl} --header "Authorization: Bearer ${token}"`
-    : '(enable the server to get a one-line install command)';
+    : t('(enable the server to get a one-line install command)');
 
   const copy = useCallback((label: string, value: string) => {
     navigator.clipboard.writeText(value).catch(() => { });
@@ -55,33 +56,32 @@ export const McpAutomation: FC = () => {
   return (
     <div>
       <p className="faint italic margin-bottom-sm">
-        Expose this Insomnium instance as a Model Context Protocol server so MCP-aware tools
-        (Claude Code, etc.) can list, inspect, and run your saved requests. Loopback-only;
-        Bearer-token gated. Disabled by default.
+        {t('Expose this Insomnium instance as a Model Context Protocol server so MCP-aware tools (Claude Code, etc.) can list, inspect, and run your saved requests.')}{' '}
+        {t('Loopback-only; Bearer-token gated.')} {t('Disabled by default.')}
       </p>
 
       <BooleanSetting
-        label="Enable MCP automation server"
+        label={t('Enable MCP automation server')}
         setting="mcpEnabled"
-        help="When on, Insomnium runs an HTTP+SSE server on 127.0.0.1 for MCP clients such as coding agents: they can list and send your requests, run collections, and add or change requests, folders and environments."
+        help={t('When on, Insomnium runs an HTTP+SSE server on 127.0.0.1 for MCP clients such as coding agents: they can list and send your requests, run collections, and add or change requests, folders and environments.')}
       />
 
       <NumberSetting
-        label="Port"
+        label={t('Port')}
         setting="mcpPort"
         min={0}
         max={65535}
-        help="0 = let the OS pick a free port. Set a fixed port to make the connection URL stable across restarts."
+        help={t('0 = let the OS pick a free port. Set a fixed port to make the connection URL stable across restarts.')}
       />
 
       <div className="form-control form-control--outlined margin-top-sm">
         <label>
-          Auth token
+          {t('Auth token')}
           <div className="row no-wrap">
             <input
               readOnly
               type="text"
-              value={token || '(not yet generated — enable the server)'}
+              value={token || t('(not yet generated — enable the server)')}
               style={{ fontFamily: 'monospace' }}
             />
             <button
@@ -89,10 +89,10 @@ export const McpAutomation: FC = () => {
               disabled={!token}
               onClick={() => copy('token', token)}
             >
-              {copied === 'token' ? 'Copied' : 'Copy'}
+              {copied === 'token' ? t('Copied') : t('Copy')}
             </button>
             <button className="btn btn--clicky space-left" onClick={regenerateToken}>
-              Regenerate
+              {t('Regenerate')}
             </button>
           </div>
         </label>
@@ -100,7 +100,7 @@ export const McpAutomation: FC = () => {
 
       <div className="form-control form-control--outlined margin-top-sm">
         <label>
-          Connection URL
+          {t('Connection URL')}
           <div className="row no-wrap">
             <input
               readOnly
@@ -113,7 +113,7 @@ export const McpAutomation: FC = () => {
               disabled={effectivePort <= 0}
               onClick={() => copy('url', sseUrl)}
             >
-              {copied === 'url' ? 'Copied' : 'Copy'}
+              {copied === 'url' ? t('Copied') : t('Copy')}
             </button>
           </div>
         </label>
@@ -121,7 +121,7 @@ export const McpAutomation: FC = () => {
 
       <div className="form-control form-control--outlined margin-top-sm">
         <label>
-          Claude Code install command
+          {t('Claude Code install command')}
           <div className="row no-wrap">
             <input
               readOnly
@@ -134,7 +134,7 @@ export const McpAutomation: FC = () => {
               disabled={!token || effectivePort <= 0}
               onClick={() => copy('cmd', claudeCmd)}
             >
-              {copied === 'cmd' ? 'Copied' : 'Copy'}
+              {copied === 'cmd' ? t('Copied') : t('Copy')}
             </button>
           </div>
         </label>

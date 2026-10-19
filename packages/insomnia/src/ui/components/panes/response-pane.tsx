@@ -5,6 +5,7 @@ import React, { FC, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { PREVIEW_MODE_SOURCE } from '../../../common/constants';
+import { t } from '../../../common/i18n';
 import { getSetCookieHeaders } from '../../../common/misc';
 import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
@@ -85,8 +86,8 @@ export const ResponsePane: FC<Props> = ({
     const { contentType } = activeResponse;
     const extension = mimeExtension(contentType) || 'unknown';
     const { canceled, filePath: outputPath } = await window.dialog.showSaveDialog({
-      title: 'Save Response Body',
-      buttonLabel: 'Save',
+      title: t('Save Response Body'),
+      buttonLabel: t('Save'),
       defaultPath: `${activeRequest.name.replace(/ +/g, '_')}-${Date.now()}.${extension}`,
     });
 
@@ -97,7 +98,7 @@ export const ResponsePane: FC<Props> = ({
     const body = models.response.getBodyStream(activeResponse);
     let error: Error | null;
     if (!body || typeof body === 'string') {
-      error = new Error('the response body could not be read');
+      error = new Error(t('the response body could not be read'));
     } else if (prettify && contentType.includes('json')) {
       // Prettifying needs the whole body in memory
       error = await text(body).then(
@@ -109,8 +110,8 @@ export const ResponsePane: FC<Props> = ({
     }
     if (error) {
       showError({
-        title: 'Save Failed',
-        message: `Failed to save to ${outputPath}: ${error.message}`,
+        title: t('Save Failed'),
+        message: t('Failed to save to {path}: {error}', { path: outputPath, error: error.message }),
         error,
       });
     }
@@ -148,7 +149,7 @@ export const ResponsePane: FC<Props> = ({
         </PaneHeader>
       )}
       <Tabs
-        aria-label="Response pane tabs"
+        aria-label={t('Response pane tabs')}
       >
         {[
         <TabItem
@@ -182,7 +183,7 @@ export const ResponsePane: FC<Props> = ({
           key="headers"
           title={
             <>
-              Headers
+              {t('Headers')}
               {activeResponse.headers.length > 0 && (
                 <span className="bubble">{activeResponse.headers.length}</span>
               )}
@@ -199,7 +200,7 @@ export const ResponsePane: FC<Props> = ({
           key="cookies"
           title={
             <>
-              Cookies
+              {t('Cookies')}
               {cookieHeaders.length ? (
                 <span className="bubble">{cookieHeaders.length}</span>
               ) : null}
@@ -220,7 +221,7 @@ export const ResponsePane: FC<Props> = ({
           key="tests"
           title={
             <>
-              Tests
+              {t('Tests')}
               {assertionResults.length > 0 && (
                 <span className={`bubble ${assertionResults.every(result => result.passed) ? 'success' : 'danger'}`}>
                   {assertionResults.filter(result => result.passed).length}/{assertionResults.length}
@@ -237,13 +238,13 @@ export const ResponsePane: FC<Props> = ({
         </TabItem>,
         // only for a response a script visualized
         ...(activeResponse.visualization ? [
-          <TabItem key="visualize" title="Visualize">
+          <TabItem key="visualize" title={t('Visualize')}>
             <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
               <ResponseVisualizer visualization={activeResponse.visualization} />
             </ErrorBoundary>
           </TabItem>,
         ] : []),
-        <TabItem key="timeline" title="Timeline">
+        <TabItem key="timeline" title={t('Timeline')}>
           <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
             <ResponseTimelineViewer
               key={activeResponse._id}

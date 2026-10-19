@@ -51,6 +51,7 @@ export function init(): BaseSettings {
     httpProxy: '',
     httpsProxy: '',
     legacyTls: false,
+    language: '',
     lightTheme: getAppDefaultLightTheme(),
     maxHistoryResponses: 20,
     maxRedirects: 10,

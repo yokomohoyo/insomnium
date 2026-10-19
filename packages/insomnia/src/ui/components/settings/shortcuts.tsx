@@ -8,6 +8,7 @@ import {
   keyboardShortcutDescriptions,
   newDefaultRegistry,
 } from '../../../common/hotkeys';
+import { t } from '../../../common/i18n';
 import { HotKeyRegistry, KeyboardShortcut, KeyCombination } from '../../../common/settings';
 import { useSettingsPatcher } from '../../hooks/use-request';
 import { RootLoaderData } from '../../routes/root';
@@ -34,7 +35,7 @@ export const Shortcuts: FC = () => {
       <div className="row-spaced margin-bottom-xs">
         <div>
           <PromptButton className="btn btn--clicky" onClick={() => patchSettings({ hotKeyRegistry: newDefaultRegistry() })}>
-            Reset all
+            {t('Reset all')}
           </PromptButton>
         </div>
       </div>
@@ -46,7 +47,7 @@ export const Shortcuts: FC = () => {
 
             return (
               <tr key={keyboardShortcut}>
-                <td style={{ verticalAlign: 'middle' }}>{keyboardShortcutDescriptions[keyboardShortcut]}</td>
+                <td style={{ verticalAlign: 'middle' }}>{t(keyboardShortcutDescriptions[keyboardShortcut])}</td>
                 <td className="text-right">
                   {keyCombosForThisPlatform.map((keyComb: KeyCombination, index: number) => {
                     return (
@@ -58,7 +59,7 @@ export const Shortcuts: FC = () => {
                 </td>
                 <td className="text-right options" style={{ verticalAlign: 'middle' }}>
                   <Dropdown
-                    aria-label='Select a mode'
+                    aria-label={t('Select a mode')}
                     closeOnSelect={false}
                     triggerButton={
                       <DropdownButton
@@ -72,10 +73,10 @@ export const Shortcuts: FC = () => {
                       </DropdownButton>
                     }
                   >
-                    <DropdownItem aria-label='Add keyboard shortcut'>
+                    <DropdownItem aria-label={t('Add keyboard shortcut')}>
                       <ItemContent
                         icon="plus-circle"
-                        label="Add keyboard shortcut"
+                        label={t('Add keyboard shortcut')}
                         onClick={() =>
                           showModal(
                             AddKeyCombinationModal,
@@ -92,8 +93,8 @@ export const Shortcuts: FC = () => {
                       />
                     </DropdownItem>
                     <DropdownSection
-                      aria-label='Remove existing section'
-                      title='Remove existing'
+                      aria-label={t('Remove existing section')}
+                      title={t('Remove existing')}
                     >
                       {
                       /* Dropdown items to remove key combinations. */
@@ -127,11 +128,11 @@ export const Shortcuts: FC = () => {
                       }
                     </DropdownSection>
 
-                    <DropdownSection aria-label='Reset keyboard shortcuts section'>
-                      <DropdownItem aria-label='Reset keyboard shortcuts'>
+                    <DropdownSection aria-label={t('Reset keyboard shortcuts section')}>
+                      <DropdownItem aria-label={t('Reset keyboard shortcuts')}>
                         <ItemContent
                           icon="empty"
-                          label="Reset keyboard shortcuts"
+                          label={t('Reset keyboard shortcuts')}
                           withPrompt
                           onClick={() => {
                             hotKeyRegistry[keyboardShortcut] = newDefaultRegistry()[keyboardShortcut];
