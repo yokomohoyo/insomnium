@@ -36,7 +36,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
     modalRef.current?.show();
   }, []);
 
-  const onSubmit = (gitRepositoryPatch: Partial<GitRepository>) => {
+  const onSubmit = (gitRepositoryPatch: Partial<GitRepository> & { transport?: 'ssh' | 'https' }) => {
     const {
       author,
       credentials,

@@ -16,6 +16,7 @@ import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopC
 import * as models from '../../models';
 import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
+import type { GitSshRequest, GitSshResponse } from '../git-ssh/transport';
 import { checkForNewRelease } from '../release-check';
 import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
 import { CurlBridgeAPI } from '../network/curl';
@@ -56,6 +57,8 @@ export interface MainBridgeAPI {
   trackSegmentEvent: (options: { event: string; properties?: Record<string, unknown> }) => void;
   trackPageView: (options: { name: string }) => void;
   axiosRequest: typeof axiosRequest;
+  // one of isomorphic-git's requests of an SSH remote (main/git-ssh)
+  gitSshRequest: (request: GitSshRequest) => Promise<GitSshResponse>;
   insomniaFetch: typeof insomniaFetch;
   showContextMenu: (options: { key: string }) => void;
   webUtilsGetPathForFile: (file: File) => string;

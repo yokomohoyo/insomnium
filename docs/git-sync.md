@@ -10,7 +10,15 @@ Git Sync keeps a collection or design document in a Git repository you host anyw
 
 A repository holds one collection. Linking a collection to a repository that already holds a different one is refused: clone that one instead.
 
-Git Sync talks HTTPS. An SSH address (`git@github.com:org/repo.git` or `ssh://…`) is changed to its `https://` form, and the token is used to sign in.
+### Over SSH
+
+An SSH address, such as `git@github.com:org/repo.git` or `ssh://git@git.example.com:2222/org/repo.git`, connects over SSH with your SSH keys, as `git` does: no token needed.
+
+- **Keys**: your SSH agent's are tried first (`SSH_AUTH_SOCK` on macOS and Linux; on Windows the OpenSSH agent service, then Pageant). Then a **SSH Key File** you name in the repository's settings, with its passphrase if it has one. Then the `IdentityFile` your `~/.ssh/config` names for the host, then `~/.ssh/id_ed25519`, `id_ecdsa` and `id_rsa`. A key with a passphrase works through the agent, or as the repository's key file.
+- **`~/.ssh/config`**: a `Host` alias works as the address's host, with its `HostName`, `User`, `Port` and `IdentityFile`. So `work:org/repo.git`, with a `Host work` block, connects the way `git` would.
+- **Host keys**: the host's key is checked against `~/.ssh/known_hosts`. A host not in it is shown with its key's fingerprint, and Insomnium asks before trusting it. Compare the fingerprint with the ones your host publishes ([GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints), [GitLab](https://docs.gitlab.com/user/gitlab_com/#ssh-host-keys-fingerprints), [Bitbucket](https://support.atlassian.com/bitbucket-cloud/docs/configure-ssh-and-two-step-verification/)). Insomnium keeps the hosts you trust in its own list and leaves your `known_hosts` as it is. A host whose key isn't the one trusted for it is refused, as `ssh` refuses it: someone may be in between.
+
+To use the address's `https://` form and a token instead, choose **HTTPS** under **Connect With**.
 
 A public repository can be cloned and pulled without signing in: leave the username and token empty. Pushing to it needs them.
 
@@ -70,6 +78,7 @@ Insomnia 12.6 and later can also keep a collection in a repository as Insomnia v
 
 ## Not yet
 
-- SSH keys, and signing in through GitHub or GitLab in the browser.
+- Signing in through GitHub or GitLab in the browser.
+- SSH host certificates (`@cert-authority` in known_hosts), and `~/.ssh/config`'s `Match` blocks and `Include`.
 - Merging a request deleted on one side and changed on the other. Undo one of the two, commit, and merge again.
 - Opening a folder that's already checked out on your computer. [Folder Sync](folder-sync.md) can keep a collection in one, as readable files.

@@ -1,7 +1,14 @@
 // The page that starts a pull (or merge) request for a branch, on the hosts
 // whose address for it is known: GitHub (and GitHub Enterprise), GitLab (and
-// self-hosted GitLab) and Bitbucket Cloud. Other hosts get none.
+// self-hosted GitLab) and Bitbucket Cloud, for an https:// or SSH address.
+// Other hosts get none.
+import { parseSshUrl } from './ssh-url';
+
 export function pullRequestUrl(repositoryUri: string, branch: string): string | undefined {
+  const ssh = parseSshUrl(repositoryUri);
+  if (ssh) {
+    return pullRequestUrl(`https://${ssh.host}/${ssh.path.replace(/^[/~]+/, '')}`, branch);
+  }
   let url: URL;
   try {
     url = new URL(repositoryUri);
