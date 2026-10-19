@@ -763,7 +763,10 @@ export class GitVCS {
   async log(input: {depth?: number} = {}) {
     const { depth = 35 } = input;
     try {
-      return await git.log({ ...this._baseOpts, depth });
+      // isomorphic-git walks both of a merge's parents, so a commit they share
+      // comes up once for each
+      const seen = new Set<string>();
+      return (await git.log({ ...this._baseOpts, depth })).filter(entry => !seen.has(entry.oid) && !!seen.add(entry.oid));
     } catch (error: unknown) {
       if (error instanceof git.Errors.NotFoundError) {
         return [];
