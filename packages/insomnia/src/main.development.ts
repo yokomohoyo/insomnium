@@ -279,13 +279,16 @@ const _launchApp = async () => {
 async function _createModelInstances() {
   await models.stats.get();
   const settings = await models.settings.getOrCreate();
-  setLanguage(settings.language, app.getLocale());
+  setLanguage(settings.language, systemLanguage());
   // the window's frame and menu bar match the theme from the start (a plugin's
   // theme, once the window has loaded it)
   nativeTheme.themeSource = nativeThemeSourceFor(builtInThemes.find(({ name }) => name === settings.theme), settings.autoDetectColorScheme);
 }
 
 // the menus in the language Preferences sets (the window reloads in it itself)
+// the OS's language, or INSOMNIUM_LANGUAGE's (the E2E tests start in English)
+const systemLanguage = () => process.env.INSOMNIUM_LANGUAGE || app.getLocale();
+
 function _followLanguage() {
   database.onChange(async (changes: any[]) => {
     if (!changes.some(([, doc]: any) => doc?.type === models.settings.type)) {
@@ -293,8 +296,12 @@ function _followLanguage() {
     }
     const before = currentLanguage();
     const { language } = await models.settings.getOrCreate();
-    if (setLanguage(language, app.getLocale()) !== before) {
+    if (setLanguage(language, systemLanguage()) !== before) {
       windowUtils.createMenu();
+      // every window, not only the one it was chosen in
+      for (const window of windowUtils.appWindows()) {
+        window.webContents.reload();
+      }
     }
   });
 }

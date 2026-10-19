@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { database } from '../common/database';
+import { env as processEnv } from 'node:process';
+
 import { setLanguage } from '../common/i18n';
 import * as models from '../models';
 import { initNewOAuthSession } from '../network/o-auth-2/get-token';
@@ -70,7 +72,7 @@ export async function renderApp() {
   await initPlugins();
 
   const settings = await models.settings.getOrCreate();
-  setLanguage(settings.language, navigator.language);
+  setLanguage(settings.language, processEnv.INSOMNIUM_LANGUAGE || navigator.language);
 
   // git sign-in tokens localStorage still has, kept with their repositories
   await moveSignInsFromLocalStorage().catch(err => console.warn('[git] Could not move sign-ins out of localStorage', err));

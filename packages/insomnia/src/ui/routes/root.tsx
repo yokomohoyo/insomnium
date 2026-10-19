@@ -28,6 +28,7 @@ import {
 
 import { isDevelopment } from '../../common/constants';
 import { t } from '../../common/i18n';
+import { tx } from '../tx';
 import * as models from '../../models';
 
 import { Settings } from '../../models/settings';
@@ -140,7 +141,7 @@ const Root = () => {
               title: t('Plugin Install'),
               message: (
                 <>
-                  Do you want to install <code>{params.name}</code>? {t('It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.')}
+                  {tx('Do you want to install {name}?', { name: <code>{params.name}</code> })} {t('It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.')}
                 </>
               ),
               yesText: t('Install'),
@@ -172,7 +173,7 @@ const Root = () => {
               title: t('Install Theme'),
               message: (
                 <>
-                  Do you want to install <code>{parsedTheme.displayName}</code>?
+                  {tx('Do you want to install {name}?', { name: <code>{parsedTheme.displayName}</code> })}
                 </>
               ),
               yesText: t('Install'),

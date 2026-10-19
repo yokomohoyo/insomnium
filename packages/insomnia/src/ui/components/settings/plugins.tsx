@@ -9,6 +9,7 @@ import {
 } from '../../../common/constants';
 import { docsPlugins } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
+import { tx } from '../../tx';
 import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import * as models from '../../../models';
 import { createPlugin } from '../../../plugins/create';
@@ -100,8 +101,8 @@ export const Plugins: FC = () => {
   return (
     <div>
       <p className="notice info no-margin-top">
-        {t("Plugins run in a sandbox: without Node.js, so they can't read your files or run programs, and without the network, so what they see stays here.")} {t("A plugin that needs more can be allowed full access, which is the app's own.")} See the{' '}
-        <Link href={docsPlugins}>documentation</Link>.
+        {t("Plugins run in a sandbox: without Node.js, so they can't read your files or run programs, and without the network, so what they see stays here.")} {t("A plugin that needs more can be allowed full access, which is the app's own.")}{' '}
+        {tx('See the {link}.', { link: <Link href={docsPlugins}>{t('documentation')}</Link> })}
       </p>
       {plugins.length === 0 ? (
         <div className="text-center faint italic pad">{t('No Plugins Added')}</div>
@@ -145,7 +146,7 @@ export const Plugins: FC = () => {
                       <div className="txt-sm warning" data-testid="plugin-load-error">
                         {plugin.needsNode
                           ? t("It needs Node.js (its {module} module), which sandboxed plugins don't have. Allow it full access if you trust it.", { module: plugin.needsNode })
-                          : `It didn't load: ${plugin.loadError}`}
+                          : t("It didn't load: {error}", { error: plugin.loadError })}
                       </div>
                     )}
                   </td>
@@ -203,9 +204,8 @@ export const Plugins: FC = () => {
           </button>
           <div className="selectable force-pre-wrap">
             <b>{installPluginErrMsg}</b>
-            {'\n\n' + t('There may be an issue with the plugin itself.') + ' You can '}
-            <a href={PLUGIN_SEARCH_URL}>find plugins on npm</a>
-            {', or install one from a file.'}
+            {'\n\n' + t('There may be an issue with the plugin itself.') + ' '}
+            {tx('You can {link}, or install one from a file.', { link: <a href={PLUGIN_SEARCH_URL}>{t('find plugins on npm')}</a> })}
             <details>
               <summary>{t('Additional Information')}</summary>
               <pre className="pad-top-sm force-wrap selectable">

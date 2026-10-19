@@ -28,6 +28,10 @@ let language: Language = 'en';
 // a language tag (a setting, the OS's) as one the app has: de-AT is de, pt is pt-BR, zh-Hans is zh-CN; others English
 export function resolveLanguage(tag?: string | null): Language {
   const wanted = (tag || '').replace('_', '-').toLowerCase();
+  // Traditional Chinese (Taiwan, Hong Kong, Macau) isn't zh-CN's Simplified: English, until it has a catalog
+  if (/^zh-(tw|hk|mo|hant)\b/.test(wanted)) {
+    return 'en';
+  }
   const exact = LANGUAGES.find(({ code }) => code.toLowerCase() === wanted);
   if (exact) {
     return exact.code;
@@ -96,7 +100,8 @@ export function t(text: string, values?: Record<string, string | number>) {
 export const translateLater = (text: string) => text;
 
 // a menu label, whose & marks its mnemonic (Cu&t): kept where the OS shows them, dropped on macOS
+// (where they're dropped, a Japanese or Chinese label's "(&F)" goes whole)
 export const menuLabel = (text: string, mnemonics: boolean, values?: Record<string, string | number>) => {
   const label = t(text, values);
-  return mnemonics ? label : label.replace(/&(?!&)/g, '');
+  return mnemonics ? label : label.replace(/\s*\(&[^&)]\)/g, '').replace(/&(?!&)/g, '');
 };

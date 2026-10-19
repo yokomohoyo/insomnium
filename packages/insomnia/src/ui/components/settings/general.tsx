@@ -37,8 +37,8 @@ const RestartTooltip: FC<{ message: string }> = ({ message }) => (
   </Fragment>
 );
 
-// the app's language: the OS's unless one is chosen; the window reloads in it,
-// and the main process remakes the menus (main.development.ts)
+// the app's language: the OS's unless one is chosen; the main process remakes
+// the menus and reloads the windows in it (main.development.ts)
 const LanguageSetting: FC<{ value: string }> = ({ value }) => {
   const system = LANGUAGES.find(({ code }) => code === resolveLanguage(navigator.language))?.name || 'English';
   return (
@@ -48,10 +48,8 @@ const LanguageSetting: FC<{ value: string }> = ({ value }) => {
         <select
           name="language"
           value={value}
-          onChange={async event => {
-            await models.settings.patch({ language: event.currentTarget.value });
-            window.location.reload();
-          }}
+          // the main process reloads the windows when the language changes
+          onChange={event => models.settings.patch({ language: event.currentTarget.value })}
         >
           <option value="">{t("The system's ({language})", { language: system })}</option>
           {LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
