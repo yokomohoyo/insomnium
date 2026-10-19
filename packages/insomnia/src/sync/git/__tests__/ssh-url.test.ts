@@ -16,6 +16,13 @@ describe('parseSshUrl', () => {
     expect(parseSshUrl('ssh://kim@host/~kim/api.git')).toMatchObject({ path: '~kim/api.git' });
   });
 
+  it('keeps a user with a % that starts no valid escape as typed', () => {
+    expect(parseSshUrl('ssh://%@host/api.git')).toEqual({ user: '%', host: 'host', port: 0, path: '/api.git' });
+    expect(parseSshUrl('ssh://kim%E0%A4%A@host/api.git')).toMatchObject({ user: 'kim%E0%A4%A' });
+    expect(parseSshUrl('ssh://kim%40work@host/api.git')).toMatchObject({ user: 'kim@work' });
+    expect(isSshUrl('ssh://%@host/api.git')).toBe(true);
+  });
+
   it('takes nothing else for SSH', () => {
     for (const url of ['https://github.com/acme/api.git', 'http://host:8080/api.git', '/srv/git/api.git', 'C:\\repos\\api', 'file:///srv/api.git', '']) {
       expect([url, isSshUrl(url)]).toEqual([url, false]);
@@ -41,5 +48,7 @@ describe('remoteUrlFor', () => {
     expect(sshRequestOf('https://github.com/acme/api.git/info/refs?service=git-upload-pack')).toBeNull();
     expect(sshRequestOf(`${remoteUrlFor('git@github.com:acme/api.git')}/info/refs?service=git-upload-archive`)).toBeNull();
     expect(isSshTransportUrl('https://github.com/acme/api.git')).toBe(false);
+    // a % that starts no valid escape
+    expect(sshRequestOf('https://ssh.insomnium.invalid/%E0%A4%A/info/refs?service=git-upload-pack')).toBeNull();
   });
 });
