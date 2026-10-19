@@ -51,7 +51,8 @@ test('a stash keeps a change aside and brings it back, and a tag goes on the cur
   const tags = page.getByRole('dialog').filter({ hasText: 'Tags' });
   await tags.getByPlaceholder('v1.0.0').fill('v1.0.0');
   await tags.getByPlaceholder('The first release').fill('the first one');
-  await tags.getByRole('button', { name: /^Tag / }).click();
+  // the button names the commit: "Tag 1a2b3c4" (after the icon)
+  await tags.getByRole('button', { name: /Tag [0-9a-f]{7}/ }).click();
   const tag = tags.getByTestId('git-tag');
   await expect(tag).toContainText('v1.0.0');
   await expect(tag).toContainText('the first one');
