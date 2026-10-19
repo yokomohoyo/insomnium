@@ -275,7 +275,7 @@ const Root = () => {
                     </Breadcrumbs>
                     {workspaceData?.activeWorkspace && (
                       <nav className="flex rounded-full justify-between content-evenly font-semibold bg-[--hl-xs] p-[--padding-xxs]">
-                        {(isDesign(workspaceData.activeWorkspace) ? ['spec', 'debug', 'test'] : ['debug', 'test']).map(item => (
+                        {(isDesign(workspaceData.activeWorkspace) ? ['spec', 'debug', 'test', 'flows'] : ['debug', 'test', 'flows']).map(item => (
                           <NavLink
                             key={item}
                             to={`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${item}`}
@@ -287,7 +287,7 @@ const Root = () => {
                               } no-underline transition-colors text-center outline-none min-w-[4rem] uppercase text-[--color-font] text-xs px-[--padding-xs] py-[--padding-xxs] rounded-full`
                             }
                           >
-                            {item === 'spec' ? t('spec') : item === 'debug' ? t('debug') : t('test')}
+                            {item === 'spec' ? t('spec') : item === 'debug' ? t('debug') : item === 'test' ? t('test') : t('flows')}
                           </NavLink>
                         ))}
                       </nav>

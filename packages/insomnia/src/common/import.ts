@@ -4,6 +4,7 @@ import { BaseEnvironment, Environment, isEnvironment } from '../models/environme
 import { GrpcRequest, isGrpcRequest } from '../models/grpc-request';
 import { BaseModel, getModel } from '../models/index';
 import * as models from '../models/index';
+import { isFlow, remapRequests } from '../models/flow';
 import { isMcpRequest, McpRequest } from '../models/mcp-request';
 import { isRequest, Request } from '../models/request';
 import { isUnitTest, UnitTest } from '../models/unit-test';
@@ -122,8 +123,9 @@ export async function scanResources({
 
   const { type, data } = results;
 
+  // (a type a later version exports is left out)
   const resources = data.resources
-    .filter(r => r._type)
+    .filter(r => r._type && models.MODELS_BY_EXPORT_TYPE[r._type])
     .map(r => {
       const { _type, ...model } = r;
       return { ...model, type: models.MODELS_BY_EXPORT_TYPE[_type].type };
@@ -256,6 +258,15 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
           ...resource,
           _id: ResourceIdMap.get(resource._id),
           requestId: ResourceIdMap.get(resource.requestId),
+          parentId: ResourceIdMap.get(resource.parentId),
+        });
+
+        // and a flow to the new requests
+      } else if (isFlow(resource)) {
+        await db.docCreate(model.type, {
+          ...resource,
+          _id: ResourceIdMap.get(resource._id),
+          graph: resource.graph && remapRequests(resource.graph, id => ResourceIdMap.get(id)),
           parentId: ResourceIdMap.get(resource.parentId),
         });
       } else {

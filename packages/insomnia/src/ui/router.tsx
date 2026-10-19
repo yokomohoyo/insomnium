@@ -31,6 +31,7 @@ import Root from './routes/root';
 const Project = lazy(() => import('./routes/project'));
 const Workspace = lazy(() => import('./routes/workspace'));
 const UnitTest = lazy(() => import('./routes/unit-test'));
+const Flows = lazy(() => import('./routes/flows'));
 const Debug = lazy(() => import('./routes/debug'));
 const Design = lazy(() => import('./routes/design'));
 
@@ -547,6 +548,45 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
                                             ],
                                           },
                                         ],
+                                      },
+                                    ],
+                                  },
+                                ],
+                              },
+                              {
+                                path: 'flows/*',
+                                // the flow pane, in the page's own <Routes>, reads the list by this id
+                                id: 'flows',
+                                loader: async (...args) =>
+                                  (await import('./routes/flows')).loader(...args),
+                                element: (
+                                  <Suspense>
+                                    <Flows />
+                                  </Suspense>
+                                ),
+                                children: [
+                                  {
+                                    path: 'new',
+                                    action: async (...args) =>
+                                      (await import('./routes/flows')).createFlowAction(...args),
+                                  },
+                                  {
+                                    path: ':flowId',
+                                    children: [
+                                      {
+                                        path: 'rename',
+                                        action: async (...args) =>
+                                          (await import('./routes/flows')).renameFlowAction(...args),
+                                      },
+                                      {
+                                        path: 'duplicate',
+                                        action: async (...args) =>
+                                          (await import('./routes/flows')).duplicateFlowAction(...args),
+                                      },
+                                      {
+                                        path: 'delete',
+                                        action: async (...args) =>
+                                          (await import('./routes/flows')).deleteFlowAction(...args),
                                       },
                                     ],
                                   },

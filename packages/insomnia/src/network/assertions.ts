@@ -99,6 +99,11 @@ const actualValue = ({ source, property = '' }: RequestAssertion, response: Resp
   }
 };
 
+// a value of a response, as an assertion reads it (a flow's variables take
+// them): undefined where it has none
+export const responseValue = (source: AssertionSource, property: string | undefined, response: ResponseUnderTest) =>
+  actualValue({ id: '', source, property, operator: 'exists' }, response);
+
 const isNumber = (text: string) => text.trim() !== '' && Number.isFinite(Number(text));
 
 const passes = (operator: AssertionOperator, actual: string | undefined, expected: string) => {

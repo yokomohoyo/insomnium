@@ -288,6 +288,7 @@ export class NeDBClient {
         models.apiSpec.type,
         models.unitTestSuite.type,
         models.unitTest.type,
+        models.flow.type,
         models.grpcRequest.type,
         models.protoFile.type,
         models.protoDirectory.type,

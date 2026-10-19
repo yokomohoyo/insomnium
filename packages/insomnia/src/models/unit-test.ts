@@ -30,6 +30,12 @@ export function init() {
   };
 }
 
+// a copy's request, when it was copied too (a workspace duplicated)
+export const remapIds = (doc: UnitTest, ids: (id: string) => string | undefined): Partial<UnitTest> | undefined => {
+  const requestId = doc.requestId && ids(doc.requestId);
+  return requestId ? { requestId } : undefined;
+};
+
 export function migrate(doc: UnitTest) {
   return doc;
 }

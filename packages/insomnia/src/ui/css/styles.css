@@ -7,6 +7,7 @@
 @import './lib/codemirror/codemirror.css';
 @import './lib/codemirror/material.css';
 @import './main.css';
+@import '@xyflow/react/dist/style.css';
 
 @tailwind base;
 @tailwind components;
@@ -157,4 +158,32 @@ input[type="search"]::-webkit-search-cancel-button {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* a flow's canvas (React Flow) in the theme's colours */
+.insomnium-flow .react-flow {
+  --xy-background-color: var(--color-bg);
+  --xy-background-pattern-color: var(--hl-md);
+  --xy-edge-stroke: var(--hl);
+  --xy-edge-stroke-selected: var(--color-surprise);
+  --xy-connectionline-stroke: var(--color-surprise);
+  --xy-edge-label-background-color: var(--color-bg);
+  --xy-edge-label-color: var(--color-font);
+  --xy-handle-background-color: var(--hl);
+  --xy-handle-border-color: var(--color-bg);
+  --xy-node-background-color: transparent;
+  --xy-node-color: var(--color-font);
+  --xy-node-border: none;
+  --xy-selection-background-color: var(--hl-xs);
+  --xy-selection-border: 1px dotted var(--hl);
+  --xy-controls-button-background-color: var(--color-bg);
+  --xy-controls-button-background-color-hover: var(--hl-xs);
+  --xy-controls-button-color: var(--color-font);
+  --xy-controls-button-color-hover: var(--color-font);
+  --xy-controls-button-border-color: var(--hl-md);
+  --xy-controls-box-shadow: 0 0 0 1px var(--hl-md);
+}
+
+.insomnium-flow .react-flow__controls-button svg {
+  fill: currentColor;
 }
