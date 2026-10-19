@@ -1,5 +1,6 @@
 // The app's translatable strings, as the code has them: the English text of
-// each t('…'), and of the menu's label('…') in main/window-utils.ts.
+// each t('…') and translateLater('…'), and of the menu's label('…') in
+// main/window-utils.ts.
 //
 //   npm run i18n:strings              every string, as a JSON list
 //   npm run i18n:strings -- de        the ones locales/de.json hasn't got, as JSON to fill in
@@ -11,7 +12,7 @@ import path from 'path';
 const SRC = path.join(__dirname, '..', 'src');
 
 // t('…') or t("…"): one literal, in which its own quote may be escaped
-const CALL = /(?<![\w.$])(t|label)\(\s*(['"])((?:\\.|(?!\2)[^\\\n])*)\2/g;
+const CALL = /(?<![\w.$])(t|translateLater|label)\(\s*(['"])((?:\\.|(?!\2)[^\\\n])*)\2/g;
 
 const unescape = (text: string) => text.replace(/\\(.)/g, (_, char: string) => (char === 'n' ? '\n' : char));
 
@@ -27,7 +28,7 @@ export function sourceStrings(root = SRC) {
       } else if (/\.tsx?$/.test(entry.name) && !/\.(test|d)\.tsx?$/.test(entry.name)) {
         const menu = file.endsWith(path.join('main', 'window-utils.ts'));
         for (const [, fn, , body] of fs.readFileSync(file, 'utf8').matchAll(CALL)) {
-          if (fn === 't' || menu) {
+          if (fn !== 'label' || menu) {
             strings.add(unescape(body));
           }
         }

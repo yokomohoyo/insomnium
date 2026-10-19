@@ -2,6 +2,7 @@ import { env } from 'node:process';
 
 import appConfig from '../../config/config.json';
 import { version } from '../../package.json';
+import { t, translateLater } from './i18n';
 import { KeyCombination } from './settings';
 
 // App Stuff
@@ -231,9 +232,9 @@ export const PREVIEW_MODE_SOURCE = 'source';
 export const PREVIEW_MODE_RAW = 'raw';
 export const FRONT_END = 'frontend';
 const previewModeMap = {
-  [PREVIEW_MODE_FRIENDLY]: ['Preview', 'Visual Preview'],
-  [PREVIEW_MODE_SOURCE]: ['Source', 'Source Code'],
-  [PREVIEW_MODE_RAW]: ['Raw', 'Raw Data'],
+  [PREVIEW_MODE_FRIENDLY]: [translateLater('Preview'), translateLater('Visual Preview')],
+  [PREVIEW_MODE_SOURCE]: [translateLater('Source'), translateLater('Source Code')],
+  [PREVIEW_MODE_RAW]: [translateLater('Raw'), translateLater('Raw Data')],
   // v0.3
   // [FRONT_END]: ['FrontEnd', 'Front End Code'],
 } satisfies Record<PreviewMode, string[]>;
@@ -253,13 +254,13 @@ export const CONTENT_TYPE_GRAPHQL = 'application/graphql';
 export const CONTENT_TYPE_OTHER = '';
 const contentTypesMap: Record<string, string[]> = {
   [CONTENT_TYPE_EDN]: ['EDN', 'EDN'],
-  [CONTENT_TYPE_FILE]: ['File', 'Binary File'],
-  [CONTENT_TYPE_FORM_DATA]: ['Multipart', 'Multipart Form'],
-  [CONTENT_TYPE_FORM_URLENCODED]: ['Form', 'Form URL Encoded'],
-  [CONTENT_TYPE_GRAPHQL]: ['GraphQL', 'GraphQL Query'],
+  [CONTENT_TYPE_FILE]: [translateLater('File'), translateLater('Binary File')],
+  [CONTENT_TYPE_FORM_DATA]: [translateLater('Multipart'), translateLater('Multipart Form')],
+  [CONTENT_TYPE_FORM_URLENCODED]: [translateLater('Form'), translateLater('Form URL Encoded')],
+  [CONTENT_TYPE_GRAPHQL]: ['GraphQL', translateLater('GraphQL Query')],
   [CONTENT_TYPE_JSON]: ['JSON', 'JSON'],
-  [CONTENT_TYPE_OTHER]: ['Other', 'Other'],
-  [CONTENT_TYPE_PLAINTEXT]: ['Plain', 'Plain'],
+  [CONTENT_TYPE_OTHER]: [translateLater('Other'), translateLater('Other')],
+  [CONTENT_TYPE_PLAINTEXT]: [translateLater('Plain'), translateLater('Plain')],
   [CONTENT_TYPE_XML]: ['XML', 'XML'],
   [CONTENT_TYPE_YAML]: ['YAML', 'YAML'],
 };
@@ -288,19 +289,19 @@ export const JSON_ORDER_PREFIX = '&';
 export const JSON_ORDER_SEPARATOR = '~|';
 
 const authTypesMap: Record<string, string[]> = {
-  [AUTH_API_KEY]: ['API Key', 'API Key Auth'],
-  [AUTH_BASIC]: ['Basic', 'Basic Auth'],
-  [AUTH_DIGEST]: ['Digest', 'Digest Auth'],
+  [AUTH_API_KEY]: [translateLater('API Key'), translateLater('API Key Auth')],
+  [AUTH_BASIC]: [translateLater('Basic'), translateLater('Basic Auth')],
+  [AUTH_DIGEST]: [translateLater('Digest'), translateLater('Digest Auth')],
   [AUTH_NTLM]: ['NTLM', 'Microsoft NTLM'],
-  [AUTH_BEARER]: ['Bearer', 'Bearer Token'],
+  [AUTH_BEARER]: [translateLater('Bearer'), translateLater('Bearer Token')],
   [AUTH_OAUTH_1]: ['OAuth 1', 'OAuth 1.0'],
   [AUTH_OAUTH_2]: ['OAuth 2', 'OAuth 2.0'],
   [AUTH_HAWK]: ['Hawk', 'Hawk'],
   [AUTH_AWS_IAM]: ['AWS', 'AWS IAM v4'],
   [AUTH_ASAP]: ['ASAP', 'Atlassian ASAP'],
-  [AUTH_NETRC]: ['Netrc', 'Netrc File'],
-  [AUTH_GCP_ID_TOKEN]: ['GCP ID Token', 'Google Cloud ID Token'],
-  [AUTH_JWT]: ['JWT', 'JWT (signed here)'],
+  [AUTH_NETRC]: ['Netrc', translateLater('Netrc File')],
+  [AUTH_GCP_ID_TOKEN]: ['GCP ID Token', translateLater('Google Cloud ID Token')],
+  [AUTH_JWT]: ['JWT', translateLater('JWT (signed here)')],
   [AUTH_EDGEGRID]: ['EdgeGrid', 'Akamai EdgeGrid'],
 };
 
@@ -372,7 +373,7 @@ export type PreviewMode = 'friendly' | 'source' | 'raw' /*| 'frontend' */;
 
 export function getPreviewModeName(previewMode: PreviewMode, useLong = false) {
   if (previewModeMap.hasOwnProperty(previewMode)) {
-    return useLong ? previewModeMap[previewMode][1] : previewModeMap[previewMode][0];
+    return t(useLong ? previewModeMap[previewMode][1] : previewModeMap[previewMode][0]);
   } else {
     return '';
   }
@@ -384,16 +385,16 @@ export function getContentTypeName(contentType?: string | null, useLong = false)
   }
   for (const contentTypeKey in contentTypesMap) {
     if (contentType.includes(contentTypeKey) && contentTypeKey.length > 0) {
-      return useLong ? contentTypesMap[contentTypeKey][1] : contentTypesMap[contentTypeKey][0];
+      return t(useLong ? contentTypesMap[contentTypeKey][1] : contentTypesMap[contentTypeKey][0]);
     }
   }
 
-  return useLong ? contentTypesMap[CONTENT_TYPE_OTHER][1] : contentTypesMap[CONTENT_TYPE_OTHER][0];
+  return t(useLong ? contentTypesMap[CONTENT_TYPE_OTHER][1] : contentTypesMap[CONTENT_TYPE_OTHER][0]);
 }
 
 export function getAuthTypeName(authType: string, useLong = false) {
   if (authTypesMap.hasOwnProperty(authType)) {
-    return useLong ? authTypesMap[authType][1] : authTypesMap[authType][0];
+    return t(useLong ? authTypesMap[authType][1] : authTypesMap[authType][0]);
   } else {
     return '';
   }

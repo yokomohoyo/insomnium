@@ -66,10 +66,18 @@ const StyledDropdownWrapper = styled.div({
 export const canClientStream = (methodType?: GrpcMethodType) => methodType === 'client' || methodType === 'bidi';
 // getters, so each read is in the app's current language
 export const GrpcMethodTypeName = {
-  get unary() { return t('Unary'); },
-  get server() { return t('Server Streaming'); },
-  get client() { return t('Client Streaming'); },
-  get bidi() { return t('Bi-directional Streaming'); },
+  get unary() {
+    return t('Unary');
+  },
+  get server() {
+    return t('Server Streaming');
+  },
+  get client() {
+    return t('Client Streaming');
+  },
+  get bidi() {
+    return t('Bi-directional Streaming');
+  },
 } as const;
 
 export const GrpcRequestPane: FunctionComponent<Props> = ({

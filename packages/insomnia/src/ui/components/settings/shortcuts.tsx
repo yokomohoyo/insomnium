@@ -47,7 +47,7 @@ export const Shortcuts: FC = () => {
 
             return (
               <tr key={keyboardShortcut}>
-                <td style={{ verticalAlign: 'middle' }}>{keyboardShortcutDescriptions[keyboardShortcut]}</td>
+                <td style={{ verticalAlign: 'middle' }}>{t(keyboardShortcutDescriptions[keyboardShortcut])}</td>
                 <td className="text-right">
                   {keyCombosForThisPlatform.map((keyComb: KeyCombination, index: number) => {
                     return (

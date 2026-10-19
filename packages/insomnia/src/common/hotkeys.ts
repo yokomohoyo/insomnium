@@ -1,42 +1,43 @@
 import { displayModifierKey, isMac } from './constants';
+import { translateLater } from './i18n';
 import { keyboardKeys } from './keyboard-keys';
 import { HotKeyRegistry, KeyboardShortcut, KeyCombination, PlatformKeyCombinations } from './settings';
-import { strings } from './strings';
 
 /**
  * The collection of available hotkeys' and their descriptions.
  * @IMPORTANT Not using dot, because NeDB prohibits field names to contain dots.
  */
+// (in English: t() them where they're shown)
 export const keyboardShortcutDescriptions: Record<KeyboardShortcut, string> = {
-  'workspace_showSettings': `Show ${strings.document.singular} / ${strings.collection.singular} Settings`,
-  'request_showSettings': 'Show Request Settings',
-  'preferences_showKeyboardShortcuts': 'Show Keyboard Shortcuts',
-  'preferences_showGeneral': 'Show App Preferences',
-  'request_quickSwitch': 'Switch Requests',
-  'request_showRecent': 'Show Recent Requests',
-  'request_showRecentPrevious': 'Show Recent Requests (Previous)',
-  'plugin_reload': 'Reload Plugins',
-  'showAutocomplete': 'Show Autocomplete',
-  'request_send': 'Send Request',
-  'request_showOptions': 'Send Request (Options)',
-  'environment_showEditor': 'Show Environment Editor',
-  'environment_showSwitchMenu': 'Switch Environments',
-  'request_toggleHttpMethodMenu': 'Change HTTP Method',
-  'request_toggleHistory': 'Show Request History',
-  'request_focusUrl': 'Focus URL',
-  'request_showGenerateCodeEditor': 'Generate Code',
-  'sidebar_focusFilter': 'Filter Sidebar',
-  'sidebar_toggle': 'Toggle Sidebar',
-  'response_focus': 'Focus Response',
-  'showCookiesEditor': 'Edit Cookies',
-  'request_createHTTP': 'Create HTTP Request',
-  'request_showDelete': 'Delete Request',
-  'request_showCreateFolder': 'Create Folder',
-  'request_showDuplicate': 'Duplicate Request',
-  'request_togglePin': 'Pin/Unpin Request',
-  'environment_showVariableSourceAndValue': 'Show variable source and value',
-  'beautifyRequestBody': 'Beautify Active Code Editors',
-  'graphql_explorer_focus_filter': 'Focus GraphQL Explorer Filter',
+  'workspace_showSettings': translateLater('Show Document / Collection Settings'),
+  'request_showSettings': translateLater('Show Request Settings'),
+  'preferences_showKeyboardShortcuts': translateLater('Show Keyboard Shortcuts'),
+  'preferences_showGeneral': translateLater('Show App Preferences'),
+  'request_quickSwitch': translateLater('Switch Requests'),
+  'request_showRecent': translateLater('Show Recent Requests'),
+  'request_showRecentPrevious': translateLater('Show Recent Requests (Previous)'),
+  'plugin_reload': translateLater('Reload Plugins'),
+  'showAutocomplete': translateLater('Show Autocomplete'),
+  'request_send': translateLater('Send Request'),
+  'request_showOptions': translateLater('Send Request (Options)'),
+  'environment_showEditor': translateLater('Show Environment Editor'),
+  'environment_showSwitchMenu': translateLater('Switch Environments'),
+  'request_toggleHttpMethodMenu': translateLater('Change HTTP Method'),
+  'request_toggleHistory': translateLater('Show Request History'),
+  'request_focusUrl': translateLater('Focus URL'),
+  'request_showGenerateCodeEditor': translateLater('Generate Code'),
+  'sidebar_focusFilter': translateLater('Filter Sidebar'),
+  'sidebar_toggle': translateLater('Toggle Sidebar'),
+  'response_focus': translateLater('Focus Response'),
+  'showCookiesEditor': translateLater('Edit Cookies'),
+  'request_createHTTP': translateLater('Create HTTP Request'),
+  'request_showDelete': translateLater('Delete Request'),
+  'request_showCreateFolder': translateLater('Create Folder'),
+  'request_showDuplicate': translateLater('Duplicate Request'),
+  'request_togglePin': translateLater('Pin/Unpin Request'),
+  'environment_showVariableSourceAndValue': translateLater('Show variable source and value'),
+  'beautifyRequestBody': translateLater('Beautify Active Code Editors'),
+  'graphql_explorer_focus_filter': translateLater('Focus GraphQL Explorer Filter'),
 };
 
 /**

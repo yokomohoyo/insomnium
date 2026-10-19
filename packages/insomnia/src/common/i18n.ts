@@ -91,6 +91,10 @@ export function t(text: string, values?: Record<string, string | number>) {
   return pluralBlocks(translated, values).replace(/\{(\w+)\}/g, (whole, name) => (name in values ? String(values[name]) : whole));
 }
 
+// a string for t() later, where it's shown: one in a table made before the app's
+// language is known (it marks the string for scripts/i18n-strings.ts)
+export const translateLater = (text: string) => text;
+
 // a menu label, whose & marks its mnemonic (Cu&t): kept where the OS shows them, dropped on macOS
 export const menuLabel = (text: string, mnemonics: boolean, values?: Record<string, string | number>) => {
   const label = t(text, values);
