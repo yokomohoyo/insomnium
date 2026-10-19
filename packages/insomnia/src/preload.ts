@@ -113,6 +113,11 @@ const main: Window['main'] = {
     ipcRenderer.send('plugin-sandbox:open', { id, directory, name });
   }),
   closePluginSandbox: id => ipcRenderer.send('plugin-sandbox:close', id),
+  onPluginSandboxClosed: listener => {
+    const closed = (_event: Electron.IpcRendererEvent, id: string) => listener(id);
+    ipcRenderer.on('plugin-sandbox:closed', closed);
+    return () => ipcRenderer.removeListener('plugin-sandbox:closed', closed);
+  },
   curlRequest: options => ipcRenderer.invoke('curlRequest', options),
   cancelCurlRequest: options => ipcRenderer.send('cancelCurlRequest', options),
   writeFile: options => ipcRenderer.invoke('writeFile', options),

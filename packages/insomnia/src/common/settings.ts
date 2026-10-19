@@ -91,6 +91,8 @@ export interface PluginConfig {
   disabled: boolean;
   // runs with Node.js, as the app does, rather than in a sandbox (plugins/sandbox)
   fullAccess?: boolean;
+  // the folder it was allowed for: a plugin of the same name elsewhere runs sandboxed
+  fullAccessDirectory?: string;
 }
 
 export type PluginConfigMap = Record<string, PluginConfig>;

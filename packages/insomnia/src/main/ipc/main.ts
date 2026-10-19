@@ -45,6 +45,8 @@ export interface MainBridgeAPI {
   installPluginFromFile: (file: string) => Promise<string>;
   openPluginSandbox: (options: { directory: string; name: string }) => Promise<{ id: string; port: MessagePort }>;
   closePluginSandbox: (id: string) => void;
+  // a sandbox the main process closed, as its plugin hung or crashed it
+  onPluginSandboxClosed: (listener: (id: string) => void) => () => void;
   writeFile: (options: { path: string; content: string }) => Promise<string>;
   cancelCurlRequest: typeof cancelCurlRequest;
   curlRequest: typeof curlRequest;

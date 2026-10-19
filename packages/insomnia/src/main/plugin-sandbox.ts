@@ -13,6 +13,9 @@ import { isDevelopment } from '../common/constants';
 export const PLUGIN_SANDBOX_PARTITION = 'plugin-sandbox';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+// what a sandbox may read in all: its plugin's code, many times over
+const MAX_READS = 10_000;
+const MAX_READ_BYTES = 256 * 1024 * 1024;
 const CODE = /\.(c?js|json)$/i;
 
 interface Sandbox {
@@ -20,6 +23,8 @@ interface Sandbox {
   owner: WebContents;
   // the folders it may read code from
   roots: string[];
+  reads: number;
+  bytes: number;
 }
 
 const sandboxes = new Map<string, Sandbox>();
@@ -28,11 +33,14 @@ const bySender = new Map<number, Sandbox>();
 const hostFile = (name: string) => path.join(__dirname, name);
 const isHostPage = (url: string) => [hostFile('plugin-host.html'), hostFile('plugin-host.js')].some(file => url === pathToFileURL(file).href);
 
-let lockedDown = false;
-function sandboxSession() {
-  const sandboxed = session.fromPartition(PLUGIN_SANDBOX_PARTITION);
-  if (!lockedDown) {
-    lockedDown = true;
+// a session of its own for each plugin, kept in memory: plugins don't share
+// storage. Each is locked down the first time it's used.
+const lockedDown = new Set<string>();
+function sandboxSession(name: string) {
+  const partition = `${PLUGIN_SANDBOX_PARTITION}:${name}`;
+  const sandboxed = session.fromPartition(partition);
+  if (!lockedDown.has(partition)) {
+    lockedDown.add(partition);
     // nothing leaves: no request but for the sandbox's own page, and no permissions
     sandboxed.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !isHostPage(details.url) && !/^devtools:/.test(details.url) }));
     sandboxed.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
@@ -86,7 +94,8 @@ export function readPluginFile(file: string, roots: string[]): string | null {
   }
 }
 
-function close(id: string) {
+// notify: closed here (the plugin hung or crashed it), not by its window, which is told
+function close(id: string, notify = false) {
   const sandbox = sandboxes.get(id);
   if (!sandbox) {
     return;
@@ -95,6 +104,9 @@ function close(id: string) {
   if (!sandbox.window.isDestroyed()) {
     bySender.delete(sandbox.window.webContents.id);
     sandbox.window.destroy();
+  }
+  if (notify && !sandbox.owner.isDestroyed()) {
+    sandbox.owner.send('plugin-sandbox:closed', id);
   }
 }
 
@@ -117,12 +129,12 @@ async function open(owner: WebContents, id: string, directory: string, name: str
       nodeIntegrationInSubFrames: false,
       webviewTag: false,
       spellcheck: false,
-      session: sandboxSession(),
+      session: sandboxSession(name),
       preload: hostFile('plugin-host-preload.js'),
       devTools: isDevelopment(),
     },
   });
-  const sandbox: Sandbox = { window, owner, roots: codeRoots(directory) };
+  const sandbox: Sandbox = { window, owner, roots: codeRoots(directory), reads: 0, bytes: 0 };
   sandboxes.set(id, sandbox);
   bySender.set(window.webContents.id, sandbox);
   window.webContents.setWebRTCIPHandlingPolicy('disable_non_proxied_udp');
@@ -134,8 +146,8 @@ async function open(owner: WebContents, id: string, directory: string, name: str
     }
   });
   // a plugin that hangs its sandbox is unloaded, as one that crashes it
-  window.webContents.on('unresponsive', () => close(id));
-  window.webContents.on('render-process-gone', () => close(id));
+  window.webContents.on('unresponsive', () => close(id, true));
+  window.webContents.on('render-process-gone', () => close(id, true));
 
   await window.loadFile(hostFile('plugin-host.html'));
   const { port1, port2 } = new MessageChannelMain();
@@ -172,6 +184,13 @@ export function registerPluginSandboxHandlers() {
   // a sandbox reading the plugin's code, a file at a time, as its require needs it
   ipcMain.on('plugin-host:read', (event, file: string) => {
     const sandbox = bySender.get(event.sender.id);
-    event.returnValue = sandbox ? readPluginFile(file, sandbox.roots) : null;
+    if (!sandbox || sandbox.reads >= MAX_READS || sandbox.bytes >= MAX_READ_BYTES) {
+      event.returnValue = null;
+      return;
+    }
+    const text = readPluginFile(file, sandbox.roots);
+    sandbox.reads++;
+    sandbox.bytes += text?.length ?? 0;
+    event.returnValue = text;
   });
 }

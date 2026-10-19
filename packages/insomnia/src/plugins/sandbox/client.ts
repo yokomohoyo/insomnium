@@ -1,8 +1,10 @@
 // A sandboxed plugin, as the app's window has it (see protocol.ts): a Module
 // made from the sandbox's manifest, whose tags, hooks and actions send calls
 // with their context's data, and answer the plugin's calls back into it.
+import * as models from '../../models';
 import type { Module } from '../index';
 import type { PluginTheme } from '../misc';
+import { applyHookRequest, checkManifest, checkRender, deniedCall } from './policy';
 import {
   cloneable,
   CONTEXT_METHODS,
@@ -25,6 +27,8 @@ export interface SandboxPort {
 
 // a tag or a hook that hasn't answered by then, unless it's waiting on the app (a prompt, say)
 export const CALL_TIMEOUT = 30_000;
+// a plugin that hasn't said what it has by then doesn't load: the window waits for its plugins
+export const START_TIMEOUT = 15_000;
 
 const CONTEXT_PARTS = ['app', 'store', 'network', 'data', 'request', 'response', 'util', 'context', 'meta', 'renderPurpose'];
 
@@ -108,7 +112,11 @@ export class SandboxedPlugin {
 
   private receive(message: FromSandbox) {
     if (message.type === 'manifest') {
-      this.ready.resolve(message.manifest);
+      try {
+        this.ready.resolve(checkManifest(message.manifest, this.name));
+      } catch (err) {
+        this.ready.reject(err as Error);
+      }
     } else if (message.type === 'loadError') {
       this.ready.reject(new PluginSandboxError(message.error));
     } else if (message.type === 'result') {
@@ -138,13 +146,28 @@ export class SandboxedPlugin {
       if (!call || !(CONTEXT_METHODS as readonly string[]).includes(method)) {
         throw new Error(`${method} isn't something a plugin can call`);
       }
+      const denied = deniedCall(method, this.name);
+      if (denied) {
+        throw denied;
+      }
       const path = method.split('.');
       const owner = path.slice(0, -1).reduce<AnyContext | undefined>((target, key) => target?.[key], call.context);
       const fn = owner?.[path[path.length - 1]];
       if (typeof fn !== 'function') {
         throw new Error(`${method} isn't available here`);
       }
-      const value = await fn.apply(owner, args);
+      let value: unknown;
+      if (method === 'util.models.response.getBodyBuffer') {
+        // a stored response's body, by the response's id: not a path the plugin gives
+        const id = (args[0] as { _id?: unknown } | undefined)?._id;
+        const stored = typeof id === 'string' ? await models.response.getById(id) : null;
+        value = stored ? await fn.call(owner, stored, args[1]) : null;
+      } else {
+        if (method === 'util.render') {
+          checkRender(args[0], this.name);
+        }
+        value = await fn.apply(owner, args);
+      }
       this.port.postMessage({ type: 'contextResult', id, ok: true, value: cloneable(value) });
     } catch (err) {
       this.port.postMessage({ type: 'contextResult', id, ok: false, error: err instanceof Error ? err.message : String(err) });
@@ -181,9 +204,7 @@ export class SandboxedPlugin {
     // what a hook changed, back onto the request and response the app goes on with
     const request = context[REQUEST_DATA];
     if (result.renderedRequest && request && !request.readOnly) {
-      for (const [key, value] of Object.entries(result.renderedRequest as Record<string, unknown>)) {
-        request.renderedRequest[key] = value;
-      }
+      applyHookRequest(request.renderedRequest, result.renderedRequest, this.name);
     }
     if (result.responseBody && context.response?.setBody) {
       context.response.setBody(Buffer.from(result.responseBody));
@@ -228,29 +249,50 @@ export function moduleOf(manifest: Manifest, sandbox: SandboxedPlugin): Module {
   } as Module;
 }
 
-const open = new Set<SandboxedPlugin>();
+const open = new Map<string, SandboxedPlugin>();
+
+// a sandbox the main process closed (its plugin hung or crashed it): the
+// calls waiting on it fail, rather than wait for good
+let watching = false;
+const watchClosed = () => {
+  if (!watching) {
+    watching = true;
+    window.main.onPluginSandboxClosed?.(id => {
+      const sandbox = open.get(id);
+      if (sandbox) {
+        closeSandbox(id, sandbox);
+      }
+    });
+  }
+};
+
+const startedWithin = <T>(started: Promise<T>, name: string, timeout: number) => new Promise<T>((resolve, reject) => {
+  const timer = setTimeout(() => reject(new Error(`The plugin ${name} didn't start in ${Math.round(timeout / 1000)} seconds`)), timeout);
+  started.then(resolve, reject).finally(() => clearTimeout(timer));
+});
 
 // a plugin without full access, in a sandbox of its own (main/plugin-sandbox.ts)
-export async function loadSandboxedPlugin(directory: string, name: string): Promise<Module> {
-  const { id, port } = await window.main.openPluginSandbox({ directory, name });
+export async function loadSandboxedPlugin(directory: string, name: string, timeout = START_TIMEOUT): Promise<Module> {
+  watchClosed();
+  const { id, port } = await startedWithin(window.main.openPluginSandbox({ directory, name }), name, timeout);
   const sandbox = new SandboxedPlugin(port as unknown as SandboxPort, name, () => window.main.closePluginSandbox(id));
-  open.add(sandbox);
+  open.set(id, sandbox);
   try {
-    return moduleOf(await sandbox.manifest, sandbox);
+    return moduleOf(await startedWithin(sandbox.manifest, name, timeout), sandbox);
   } catch (err) {
-    closeSandbox(sandbox);
+    closeSandbox(id, sandbox);
     throw err;
   }
 }
 
-const closeSandbox = (sandbox: SandboxedPlugin) => {
-  open.delete(sandbox);
+const closeSandbox = (id: string, sandbox: SandboxedPlugin) => {
+  open.delete(id);
   sandbox.close();
 };
 
 // before the plugins load again
 export function closeSandboxes() {
-  for (const sandbox of [...open]) {
-    closeSandbox(sandbox);
+  for (const [id, sandbox] of [...open]) {
+    closeSandbox(id, sandbox);
   }
 }

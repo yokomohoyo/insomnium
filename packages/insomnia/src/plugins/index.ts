@@ -118,10 +118,12 @@ export async function init() {
   await reloadPlugins();
 }
 
+// sandboxed plugins start in parallel: `starting` has each one's start, which the traversal waits for
 async function _traversePluginPath(
   pluginMap: Record<string, Plugin>,
   allPaths: string[],
   allConfigs: PluginConfigMap,
+  starting: Promise<void>[] = [],
 ) {
   for (const p of allPaths) {
     if (!fs.existsSync(p)) {
@@ -140,7 +142,7 @@ async function _traversePluginPath(
 
         // Is it a scoped directory?
         if (filename.startsWith('@')) {
-          await _traversePluginPath(pluginMap, [modulePath], allConfigs);
+          await _traversePluginPath(pluginMap, [modulePath], allConfigs, starting);
         }
 
         // Is it a Node module?
@@ -158,42 +160,40 @@ async function _traversePluginPath(
         const config: PluginConfig = allConfigs.hasOwnProperty(pluginJson.name)
           ? allConfigs[pluginJson.name]
           : { disabled: false };
-        let module: Module = {};
-        let loadError: string | undefined;
-        let needsNode: string | undefined;
-        if (config.fullAccess) {
+        // full access is the folder's it was allowed for
+        const fullAccess = !!config.fullAccess && config.fullAccessDirectory === modulePath;
+        const plugin: Plugin = {
+          name: pluginJson.name,
+          description: pluginJson.description || pluginJson.insomnia.description || '',
+          version: pluginJson.version || 'unknown',
+          directory: modulePath || '',
+          config,
+          module: {},
+          sandboxed: !fullAccess,
+        };
+        if (fullAccess) {
           // Delete `require` cache if plugin has been required before, and re-require
           for (const p of Object.keys(global.require.cache)) {
             if (p.indexOf(modulePath) === 0) {
               delete global.require.cache[p];
             }
           }
-          module = global.require(modulePath);
+          plugin.module = global.require(modulePath);
         } else if (process.type !== 'renderer') {
           // the main process (MCP sends) loads only plugins with full access: a
           // sandbox is the app's window's
           continue;
         } else if (!config.disabled) {
-          try {
-            module = await loadSandboxedPlugin(modulePath, pluginJson.name);
-          } catch (err) {
-            loadError = err instanceof Error ? err.message : String(err);
-            needsNode = (err as { nodeModule?: string }).nodeModule;
+          starting.push(loadSandboxedPlugin(modulePath, pluginJson.name).then(module => {
+            plugin.module = module;
+          }, err => {
+            plugin.loadError = err instanceof Error ? err.message : String(err);
+            plugin.needsNode = (err as { nodeModule?: string }).nodeModule;
             console.warn(`[plugin] ${pluginJson.name} didn't load in its sandbox`, err);
-          }
+          }));
         }
 
-        pluginMap[pluginJson.name] = {
-          name: pluginJson.name,
-          description: pluginJson.description || pluginJson.insomnia.description || '',
-          version: pluginJson.version || 'unknown',
-          directory: modulePath || '',
-          config,
-          module,
-          sandboxed: !config.fullAccess,
-          loadError,
-          needsNode,
-        };
+        pluginMap[pluginJson.name] = plugin;
         console.log(`[plugin] Loaded ${modulePath}`);
       } catch (err) {
         showError({
@@ -217,37 +217,57 @@ export const pluginFolders = (value: string, delimiter = path.delimiter, home = 
     .filter(Boolean)
     .map(folder => (folder === '~' || /^~[\\/]/.test(folder) ? path.join(home, folder.slice(1)) : folder));
 
+// the plugins being loaded, which callers meanwhile wait for, rather than load them again
+let loading: Promise<Plugin[]> | null = null;
+let generation = 0;
+
 export async function getPlugins(force = false): Promise<Plugin[]> {
   if (force) {
     plugins = null;
+    loading = null;
+    generation++;
     if (process.type === 'renderer') {
       closeSandboxes();
     }
   }
-
-  if (!plugins) {
-    const settings = await models.settings.getOrCreate();
-    const allConfigs: PluginConfigMap = settings.pluginConfig;
-    const extraPaths = pluginFolders(settings.pluginPath || '');
-    // Make sure the default directories exist
-    const pluginPath = path.join(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
-    fs.mkdirSync(pluginPath, { recursive: true });
-    // Also look in node_modules folder in each directory
-    const basePaths = [pluginPath, ...extraPaths];
-    const extendedPaths = basePaths.map(p => path.join(p, 'node_modules'));
-    const allPaths = [...basePaths, ...extendedPaths];
-    // Store plugins in a map so that plugins with the same
-    // name only get added once
-    // TODO: Make this more complex and have the latest version always win
-    const pluginMap: Record<string, Plugin> = {
-      // "name": "module"
-    };
-
-    await _traversePluginPath(pluginMap, allPaths, allConfigs);
-    plugins = Object.keys(pluginMap).map(name => pluginMap[name]);
+  if (plugins) {
+    return plugins;
   }
+  // a load that failed is tried again by the next caller
+  loading ??= loadPlugins(generation).catch(err => {
+    loading = null;
+    throw err;
+  });
+  return loading;
+}
 
-  return plugins;
+async function loadPlugins(started: number): Promise<Plugin[]> {
+  const settings = await models.settings.getOrCreate();
+  const allConfigs: PluginConfigMap = settings.pluginConfig;
+  const extraPaths = pluginFolders(settings.pluginPath || '');
+  // Make sure the default directories exist
+  const pluginPath = path.join(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'plugins');
+  fs.mkdirSync(pluginPath, { recursive: true });
+  // Also look in node_modules folder in each directory
+  const basePaths = [pluginPath, ...extraPaths];
+  const extendedPaths = basePaths.map(p => path.join(p, 'node_modules'));
+  const allPaths = [...basePaths, ...extendedPaths];
+  // Store plugins in a map so that plugins with the same
+  // name only get added once
+  // TODO: Make this more complex and have the latest version always win
+  const pluginMap: Record<string, Plugin> = {
+    // "name": "module"
+  };
+
+  const starting: Promise<void>[] = [];
+  await _traversePluginPath(pluginMap, allPaths, allConfigs, starting);
+  await Promise.all(starting);
+  const loaded = Object.keys(pluginMap).map(name => pluginMap[name]);
+  // unless they were loaded again meanwhile
+  if (started === generation) {
+    plugins = loaded;
+  }
+  return loaded;
 }
 
 export async function reloadPlugins() {
