@@ -21,8 +21,6 @@ import * as models from '../models';
 import { DEFAULT_ORGANIZATION_ID } from '../models/organization';
 import { DEFAULT_PROJECT_ID } from '../models/project';
 import { init as initPlugins } from '../plugins';
-import { applyColorScheme } from '../plugins/misc';
-import { guard } from '../utils/guard';
 import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
 import Root from './routes/root';

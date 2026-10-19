@@ -487,7 +487,8 @@ export function createMenu() {
           newWindow?.capturePage(image => {
             const buffer = image.toPNG();
             const dir = app.getPath('desktop');
-            fs.writeFileSync(path.join(dir, `Screenshot-${new Date()}.png`), buffer);
+            // a name Windows takes too: no colons
+            fs.writeFileSync(path.join(dir, `Screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}.png`), buffer);
           });
         },
       },
