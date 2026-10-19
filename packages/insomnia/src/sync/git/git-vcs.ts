@@ -820,12 +820,18 @@ export class GitVCS {
     const branch = await this.getBranch();
     const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
     const tree = await filesAt(this._baseOpts, head);
-    for (const file of files) {
+    // what each file is in the stash (null: deleted), by its path in git's
+    // form: the changes list has the OS's separator, and a tree can't hold '\'
+    const kept = new Map<string, TreeFile | null>();
+    for (const file of files.map(convertToPosixSep)) {
       const content: Uint8Array | null = await fs.readFile(path.join(this._baseOpts.dir, file)).catch(() => null);
       if (content === null) {
         tree.delete(file);
+        kept.set(file, null);
       } else {
-        tree.set(file, { oid: await git.writeBlob({ ...this._baseOpts, blob: content }), mode: tree.get(file)?.mode || '100644' });
+        const entry = { oid: await git.writeBlob({ ...this._baseOpts, blob: content }), mode: tree.get(file)?.mode || '100644' };
+        tree.set(file, entry);
+        kept.set(file, entry);
       }
     }
     const when = await this._commitTimes();
@@ -839,6 +845,17 @@ export class GitVCS {
         committer: when,
       },
     });
+    // read back before it's listed, and before the caller undoes the changes:
+    // a stash that can't be read would lose them
+    try {
+      const stashed = await filesAt(this._baseOpts, oid);
+      const missing = [...kept].find(([file, entry]) => stashed.get(file)?.oid !== entry?.oid);
+      if (missing) {
+        throw new Error(`${missing[0]} isn't in it as it is here`);
+      }
+    } catch (err) {
+      throw new Error(`The changes couldn't be stashed, so they were left as they are: ${err instanceof Error ? err.message : String(err)}`);
+    }
     const id = String(Date.now());
     await git.writeRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}`, value: oid });
     console.log(`[git] Stashed ${files.length} files as ${id}`);
@@ -850,15 +867,21 @@ export class GitVCS {
     const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
     const ids: string[] = await fs.readdir(path.join(this._gitdir(), STASH_REFS)).catch(() => []);
     const stashes = await Promise.all(ids.map(async id => {
-      const oid = await git.resolveRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}` }).catch(() => null);
-      if (!oid) {
+      // one that can't be read is left out, rather than failing the list
+      try {
+        const oid = await git.resolveRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}` }).catch(() => null);
+        if (!oid) {
+          return null;
+        }
+        const { commit } = await git.readCommit({ ...this._baseOpts, oid });
+        const [message, ...rest] = commit.message.split('\n');
+        const branch = rest.find(line => line.startsWith('branch: '))?.slice('branch: '.length) || '';
+        const files = await this._changedBetween(commit.parent[0], oid);
+        return { id, message, timestamp: commit.committer.timestamp, branch, files: files.map(([file]) => file) };
+      } catch (err) {
+        console.warn(`[git] Could not read stash ${id}`, err);
         return null;
       }
-      const { commit } = await git.readCommit({ ...this._baseOpts, oid });
-      const [message, ...rest] = commit.message.split('\n');
-      const branch = rest.find(line => line.startsWith('branch: '))?.slice('branch: '.length) || '';
-      const files = await this._changedBetween(commit.parent[0], oid);
-      return { id, message, timestamp: commit.committer.timestamp, branch, files: files.map(([file]) => file) };
     }));
     return stashes.filter((stash): stash is GitStash => !!stash).sort((a, b) => Number(b.id) - Number(a.id));
   }
