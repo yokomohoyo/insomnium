@@ -358,6 +358,7 @@
   "Interface font size (px)": "Taille de police de l'interface (px)",
   "Interval in seconds": "Intervalle en secondes",
   "It needs Node.js (its {module} module), which sandboxed plugins don't have. Allow it full access if you trust it.": "Il a besoin de Node.js (son module {module}), dont les plugins en bac à sable ne disposent pas. Accordez-lui un accès complet si vous lui faites confiance.",
+  "It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.": "Il s'exécute dans un bac à sable, sans Node.js ni réseau, sauf si vous lui accordez un accès complet dans Préférences → Plugins.",
   "JWT (signed here)": "JWT (signé ici)",
   "Just Now": "À l'instant",
   "Keep yours": "Garder la vôtre",

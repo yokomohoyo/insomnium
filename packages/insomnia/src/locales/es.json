@@ -358,6 +358,7 @@
   "Interface font size (px)": "Tamaño de fuente de la interfaz (px)",
   "Interval in seconds": "Intervalo en segundos",
   "It needs Node.js (its {module} module), which sandboxed plugins don't have. Allow it full access if you trust it.": "Necesita Node.js (su módulo {module}), que los plugins aislados no tienen. Concédele acceso completo si confías en él.",
+  "It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.": "Se ejecuta aislado, sin Node.js ni red, salvo que le concedas acceso completo en Preferencias → Plugins.",
   "JWT (signed here)": "JWT (firmado aquí)",
   "Just Now": "Ahora mismo",
   "Keep yours": "Conservar el tuyo",

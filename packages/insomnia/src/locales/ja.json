@@ -358,6 +358,7 @@
   "Interface font size (px)": "インターフェイスのフォント サイズ (px)",
   "Interval in seconds": "間隔 (秒)",
   "It needs Node.js (its {module} module), which sandboxed plugins don't have. Allow it full access if you trust it.": "このプラグインには Node.js ({module} モジュール) が必要ですが、サンドボックスのプラグインでは使えません。信頼できる場合はフルアクセスを許可してください。",
+  "It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.": "Node.js もネットワークもないサンドボックスで実行されます。設定 → プラグインでフルアクセスを許可した場合は除きます。",
   "JWT (signed here)": "JWT (ここで署名)",
   "Just Now": "たった今",
   "Keep yours": "自分の側を保持",

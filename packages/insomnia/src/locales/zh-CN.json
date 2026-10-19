@@ -358,6 +358,7 @@
   "Interface font size (px)": "界面字号（px）",
   "Interval in seconds": "间隔（秒）",
   "It needs Node.js (its {module} module), which sandboxed plugins don't have. Allow it full access if you trust it.": "它需要 Node.js（其 {module} 模块），而沙盒中的插件没有。如果你信任它，请允许其完全访问。",
+  "It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.": "它在沙盒中运行，没有 Node.js 和网络，除非你在“首选项 → 插件”中允许其完全访问。",
   "JWT (signed here)": "JWT（在此签名）",
   "Just Now": "刚刚",
   "Keep yours": "保留你的",

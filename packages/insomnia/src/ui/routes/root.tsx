@@ -140,7 +140,7 @@ const Root = () => {
               title: t('Plugin Install'),
               message: (
                 <>
-                  Do you want to install <code>{params.name}</code>? {t('A plugin runs with the same access as the app: it can read your files and reach the network.')} {t('Install only plugins you trust.')}
+                  Do you want to install <code>{params.name}</code>? {t('It runs in a sandbox, without Node.js or the network, unless you allow it full access in Preferences → Plugins.')}
                 </>
               ),
               yesText: t('Install'),
