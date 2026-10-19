@@ -17,6 +17,7 @@ import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
 import { registerCurlHandlers } from './main/network/curl';
 import { registerFolderSyncHandlers } from './main/folder-sync';
+import { registerGitSshHandlers } from './main/git-ssh';
 import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
 import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
@@ -135,6 +136,7 @@ app.on('ready', async () => {
   registerWebSocketHandlers();
   registerMcpClientHandlers();
   registerFolderSyncHandlers();
+  registerGitSshHandlers();
   registerCurlHandlers();
 
   /**

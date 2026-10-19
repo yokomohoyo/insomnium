@@ -11,6 +11,7 @@ import { mergeLines } from './line-merge';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
 import { sameFile } from './same-file';
 import { sanitizeGitConfig } from './sanitize-git-config';
+import { remoteUrlFor } from './ssh-url';
 import { filesAt, mergeFile, readText, type TreeFile, writeFiles } from './trees';
 import { gitCallbacks } from './utils';
 
@@ -27,6 +28,9 @@ export interface GitRemoteConfig {
 interface GitCredentialsBase {
   username: string;
   password: string;
+  // for an SSH remote: a key to try besides the agent's and ~/.ssh's, and its passphrase
+  sshKey?: string;
+  sshPassphrase?: string;
 }
 
 // A repository set up with a GitHub or GitLab sign-in, which Insomnium no
@@ -196,7 +200,7 @@ export class GitVCS {
       gitdir: gitDirectory,
       fs,
       http: httpClient,
-      uri,
+      uri: remoteUrlFor(uri),
       repoId,
     };
 
@@ -274,7 +278,7 @@ export class GitVCS {
     // it's known to hold this workspace or none
     await git.clone({
       ...this._baseOpts,
-      url,
+      url: remoteUrlFor(url),
       singleBranch: true,
       noCheckout: true,
     });
@@ -398,7 +402,7 @@ export class GitVCS {
     await git.addRemote({
       ...this._baseOpts,
       remote: 'origin',
-      url,
+      url: remoteUrlFor(url),
       force: true,
     });
     const config = await this.getRemote('origin');

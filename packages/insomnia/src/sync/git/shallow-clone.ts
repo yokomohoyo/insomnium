@@ -5,6 +5,7 @@ import { GIT_CLONE_DIR, GIT_INTERNAL_DIR } from './git-vcs';
 import { httpClient } from './http-client';
 import { MemClient } from './mem-client';
 import { routableFSClient } from './routable-fs-client';
+import { remoteUrlFor } from './ssh-url';
 import { gitCallbacks } from './utils';
 
 interface Options {
@@ -25,7 +26,7 @@ export const shallowClone = async ({ fsClient, gitRepository }: Options) => {
     dir: GIT_CLONE_DIR,
     gitdir: GIT_INTERNAL_DIR,
     singleBranch: true,
-    url: gitRepository.uri,
+    url: remoteUrlFor(gitRepository.uri),
     depth: 1,
   });
 };
