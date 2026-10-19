@@ -1028,9 +1028,11 @@ export class GitVCS {
           files.delete(file);
         }
       }
+      // a signature was over the commit as it was, so it doesn't come along
+      const { gpgsig, ...unsigned } = commit;
       tip = await git.writeCommit({
         ...this._baseOpts,
-        commit: { ...commit, parent: [tip], tree: await writeFiles(this._baseOpts, files), committer: { ...commit.committer, timestamp: committer.timestamp, timezoneOffset: committer.timezoneOffset } },
+        commit: { ...unsigned, parent: [tip], tree: await writeFiles(this._baseOpts, files), committer: { ...commit.committer, timestamp: committer.timestamp, timezoneOffset: committer.timezoneOffset } },
       });
     }
     if (conflicts.size) {

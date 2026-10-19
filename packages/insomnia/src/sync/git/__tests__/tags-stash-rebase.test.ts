@@ -271,6 +271,23 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
       expect(await models.request.getById('req_2')).toMatchObject({ name: 'add pet' });
     });
 
+    it("leaves out a commit's signature, which was over the commit as it was", async () => {
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      // as if signed elsewhere
+      const { commit } = await git.readCommit({ ...GitVCS._baseOpts, oid: await head() });
+      const signed = await git.writeCommit({ ...GitVCS._baseOpts, commit: { ...commit, gpgsig: '-----BEGIN PGP SIGNATURE-----\n\nc2lnbmVk\n-----END PGP SIGNATURE-----' } });
+      await git.writeRef({ ...GitVCS._baseOpts, ref: 'refs/heads/main', value: signed, force: true });
+      pushUpstream([{ ...request, name: 'list all pets' }], 'rename');
+
+      await GitVCS.pull(null, {}, true);
+
+      const [rebased] = await GitVCS.log({ depth: 1 });
+      expect(rebased.commit.message.trim()).toBe('add pet');
+      expect(rebased.commit.parent).toHaveLength(1);
+      expect(rebased.commit.gpgsig).toBeUndefined();
+    });
+
     it('merges a document both sides changed by its fields', async () => {
       const doc = await models.request.getById('req_1');
       await models.request.update(doc!, { url: 'https://pets.example.com/v2/pets' });
