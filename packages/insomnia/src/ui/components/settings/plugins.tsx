@@ -79,15 +79,15 @@ export const Plugins: FC = () => {
       return apply();
     }
     showModal(AskModal, {
-      title: `Allow ${plugin.name} full access?`,
+      title: t('Allow {name} full access?', { name: plugin.name }),
       message: (
         <div>
-          <p>With full access, the plugin runs with Node.js, as Insomnium itself does: it can read and change any of your files, run programs, and send anything anywhere, including the requests, tokens and responses it sees.</p>
-          <p>Allow it only if you trust the plugin and whoever publishes it.</p>
+          <p>{t('With full access, the plugin runs with Node.js, as Insomnium itself does: it can read and change any of your files, run programs, and send anything anywhere, including the requests, tokens and responses it sees.')}</p>
+          <p>{t('Allow it only if you trust the plugin and whoever publishes it.')}</p>
         </div>
       ),
-      yesText: 'Allow Full Access',
-      noText: 'Cancel',
+      yesText: t('Allow Full Access'),
+      noText: t('Cancel'),
       onDone: async yes => {
         if (yes) {
           await apply();
@@ -143,7 +143,7 @@ export const Plugins: FC = () => {
                     {plugin.loadError && (
                       <div className="txt-sm warning" data-testid="plugin-load-error">
                         {plugin.needsNode
-                          ? `It needs Node.js (its ${plugin.needsNode} module), which sandboxed plugins don't have. Allow it full access if you trust it.`
+                          ? t("It needs Node.js (its {module} module), which sandboxed plugins don't have. Allow it full access if you trust it.", { module: plugin.needsNode })
                           : `It didn't load: ${plugin.loadError}`}
                       </div>
                     )}
@@ -155,14 +155,14 @@ export const Plugins: FC = () => {
                     </a>
                   </td>
                   <td className="no-wrap">
-                    <label className="flex items-center gap-1" title={plugin.config.fullAccess ? 'Runs with Node.js, as the app does' : 'Runs in a sandbox, without Node.js or the network'}>
+                    <label className="flex items-center gap-1" title={plugin.config.fullAccess ? t('Runs with Node.js, as the app does') : t('Runs in a sandbox, without Node.js or the network')}>
                       <input
                         type="checkbox"
                         checked={!!plugin.config.fullAccess}
                         disabled={isRefreshingPlugins}
                         onChange={event => setFullAccess(plugin, event.currentTarget.checked)}
                       />
-                      {plugin.config.fullAccess ? 'Full access' : 'Sandboxed'}
+                      {plugin.config.fullAccess ? t('Full access') : t('Sandboxed')}
                     </label>
                   </td>
                   <td
