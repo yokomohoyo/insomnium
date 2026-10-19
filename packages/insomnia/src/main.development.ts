@@ -8,6 +8,7 @@ import path from 'path';
 import { userDataFolder } from '../config/config.json';
 import { getAppVersion, isDevelopment, isMac } from './common/constants';
 import { database } from './common/database';
+import { currentLanguage, setLanguage } from './common/i18n';
 import log, { initializeLogging } from './common/log';
 import { backupDataIfVersionChanged } from './main/backup';
 import { announceCredentialStorage, safeStorageKeyWrapper } from './main/credential-keys';
@@ -176,6 +177,7 @@ app.on('ready', async () => {
   windowUtils.init();
   await _launchApp();
   await _initMcpServer();
+  _followLanguage();
   // collections kept in step with folders, as when the app last closed
   const { restoreFolderSyncs } = await import('./main/folder-sync');
   restoreFolderSyncs();
@@ -277,9 +279,24 @@ const _launchApp = async () => {
 async function _createModelInstances() {
   await models.stats.get();
   const settings = await models.settings.getOrCreate();
+  setLanguage(settings.language, app.getLocale());
   // the window's frame and menu bar match the theme from the start (a plugin's
   // theme, once the window has loaded it)
   nativeTheme.themeSource = nativeThemeSourceFor(builtInThemes.find(({ name }) => name === settings.theme), settings.autoDetectColorScheme);
+}
+
+// the menus in the language Preferences sets (the window reloads in it itself)
+function _followLanguage() {
+  database.onChange(async (changes: any[]) => {
+    if (!changes.some(([, doc]: any) => doc?.type === models.settings.type)) {
+      return;
+    }
+    const before = currentLanguage();
+    const { language } = await models.settings.getOrCreate();
+    if (setLanguage(language, app.getLocale()) !== before) {
+      windowUtils.createMenu();
+    }
+  });
 }
 
 // Start/stop MCP server based on Settings.mcpEnabled. Subscribes to settings

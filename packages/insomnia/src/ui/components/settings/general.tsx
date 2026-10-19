@@ -10,8 +10,10 @@ import {
   MIN_INTERFACE_FONT_SIZE,
 } from '../../../common/constants';
 import { docsKeyMaps } from '../../../common/documentation';
+import { LANGUAGES, resolveLanguage, t } from '../../../common/i18n';
 import { HttpVersion, HttpVersions } from '../../../common/settings';
 import { strings } from '../../../common/strings';
+import * as models from '../../../models';
 import { initNewOAuthSession } from '../../../network/o-auth-2/get-token';
 import { RootLoaderData } from '../../routes/root';
 import { Link } from '../base/link';
@@ -35,6 +37,30 @@ const RestartTooltip: FC<{ message: string }> = ({ message }) => (
   </Fragment>
 );
 
+// the app's language: the OS's unless one is chosen; the window reloads in it,
+// and the main process remakes the menus (main.development.ts)
+const LanguageSetting: FC<{ value: string }> = ({ value }) => {
+  const system = LANGUAGES.find(({ code }) => code === resolveLanguage(navigator.language))?.name || 'English';
+  return (
+    <div className="form-control form-control--outlined">
+      <label>
+        {t('Language')}
+        <select
+          name="language"
+          value={value}
+          onChange={async event => {
+            await models.settings.patch({ language: event.currentTarget.value });
+            window.location.reload();
+          }}
+        >
+          <option value="">{t("The system's ({language})", { language: system })}</option>
+          {LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
+        </select>
+      </label>
+    </div>
+  );
+};
+
 export const General: FC = () => {
   const {
     settings,
@@ -42,6 +68,7 @@ export const General: FC = () => {
 
   return (
     <div className="pad-bottom">
+      <LanguageSetting value={settings.language || ''} />
       <div className="row-fill row-fill--top">
         <div>
           <BooleanSetting

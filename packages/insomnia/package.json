@@ -25,6 +25,7 @@
     "build:main.min.js": "cross-env NODE_ENV=development esr esbuild.main.ts",
     "build:sr": "esr esbuild.sr.ts && tsc --build tsconfig.build.sr.json",
     "build:server": "esr esbuild.server.ts",
+    "i18n:strings": "esr scripts/i18n-strings.ts",
     "lint": "eslint . --ext .js,.ts,.tsx --cache",
     "package": "npm run build:app && cross-env USE_HARD_LINKS=false electron-builder build --config electron-builder.config.js --publish never",
     "package:snap": "electron-builder build --linux snap --config electron-builder.config.js --publish never --prepackaged dist/linux-unpacked",
