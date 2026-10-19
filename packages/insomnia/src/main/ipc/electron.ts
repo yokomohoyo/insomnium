@@ -1,5 +1,5 @@
 import type { MenuItemConstructorOptions, OpenDialogOptions, SaveDialogOptions } from 'electron';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron';
 
 import { fnOrString } from '../../common/misc';
 import type { NunjucksParsedTagArg } from '../../templating/utils';
@@ -76,6 +76,11 @@ export function registerElectronHandlers() {
         const hide = !visible;
         window.setAutoHideMenuBar(hide);
       });
+  });
+  ipcMain.on('setNativeTheme', (_, source: unknown) => {
+    if (source === 'system' || source === 'light' || source === 'dark') {
+      nativeTheme.themeSource = source;
+    }
   });
   ipcMain.handle('showOpenDialog', async (_, options: OpenDialogOptions) => {
     const { filePaths, canceled } = await dialog.showOpenDialog(options);

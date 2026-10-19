@@ -92,6 +92,7 @@ const main: Window['main'] = {
   spectralRun: options => ipcRenderer.invoke('spectralRun', options),
   runScript: options => ipcRenderer.invoke('runScript', options),
   setMenuBarVisibility: options => ipcRenderer.send('setMenuBarVisibility', options),
+  setNativeTheme: source => ipcRenderer.send('setNativeTheme', source),
   installPlugin: options => ipcRenderer.invoke('installPlugin', options),
   installPluginFromFile: file => ipcRenderer.invoke('installPluginFromFile', file),
   curlRequest: options => ipcRenderer.invoke('curlRequest', options),

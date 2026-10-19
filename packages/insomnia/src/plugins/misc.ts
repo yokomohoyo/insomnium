@@ -4,6 +4,7 @@ import { getAppDefaultTheme } from '../common/constants';
 import { ThemeSettings } from '../models/settings';
 import type { Theme } from './index';
 import { ColorScheme, getThemes } from './index';
+import { nativeThemeSourceFor } from './native-theme';
 
 export type HexColor = `#${string}`;
 export type RGBColor = `rgb(${string})`;
@@ -319,15 +320,15 @@ export async function applyColorScheme(settings: ThemeSettings) {
 
   switch (scheme) {
     case 'light':
-      await setTheme(settings.lightTheme);
+      await setTheme(settings.lightTheme, settings.autoDetectColorScheme);
       break;
 
     case 'dark':
-      await setTheme(settings.darkTheme);
+      await setTheme(settings.darkTheme, settings.autoDetectColorScheme);
       break;
 
     case 'default':
-      await setTheme(settings.theme);
+      await setTheme(settings.theme, settings.autoDetectColorScheme);
       break;
 
     default:
@@ -335,7 +336,8 @@ export async function applyColorScheme(settings: ThemeSettings) {
   }
 }
 
-export async function setTheme(themeName: string) {
+// followSystem: whether the theme follows the OS's light or dark
+export async function setTheme(themeName: string, followSystem = false) {
   if (!document) {
     return;
   }
@@ -356,6 +358,7 @@ export async function setTheme(themeName: string) {
   }
 
   body.setAttribute('theme', themeName);
+  window.main?.setNativeTheme?.(nativeThemeSourceFor(themes.find(t => t.theme.name === themeName)?.theme, followSystem));
 
   for (const theme of themes) {
     let themeCSS = generateThemeCSS(theme.theme);

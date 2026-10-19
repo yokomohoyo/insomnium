@@ -1,5 +1,5 @@
 
-import electron, { app, ipcMain, session } from 'electron';
+import electron, { app, ipcMain, nativeTheme, session } from 'electron';
 import { BrowserWindow } from 'electron';
 import contextMenu from 'electron-context-menu';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
@@ -24,6 +24,8 @@ import { checkIfRestartNeeded } from './main/squirrel-startup';
 import { hardenWebContents, lockDownSession } from './main/web-hardening';
 import * as windowUtils from './main/window-utils';
 import * as models from './models/index';
+import { nativeThemeSourceFor } from './plugins/native-theme';
+import builtInThemes from './plugins/themes';
 
 // Handle potential auto-update
 if (checkIfRestartNeeded()) {
@@ -270,7 +272,10 @@ const _launchApp = async () => {
  */
 async function _createModelInstances() {
   await models.stats.get();
-  await models.settings.getOrCreate();
+  const settings = await models.settings.getOrCreate();
+  // the window's frame and menu bar match the theme from the start (a plugin's
+  // theme, once the window has loaded it)
+  nativeTheme.themeSource = nativeThemeSourceFor(builtInThemes.find(({ name }) => name === settings.theme), settings.autoDetectColorScheme);
 }
 
 // Start/stop MCP server based on Settings.mcpEnabled. Subscribes to settings

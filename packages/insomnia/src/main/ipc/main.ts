@@ -3,6 +3,7 @@ import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { credentialStorageStatus } from '../../common/database';
+import type { NativeThemeSource } from '../../plugins/native-theme';
 import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
@@ -36,6 +37,8 @@ export interface MainBridgeAPI {
   authorizeUserInWindow: typeof authorizeUserInWindow;
   authorizeInSystemBrowser: (options: { url: string; redirectUrl: string }) => ReturnType<typeof authorizeInSystemBrowser>;
   setMenuBarVisibility: (visible: boolean) => void;
+  // the colours of the window's frame and menu bar (plugins/native-theme.ts)
+  setNativeTheme: (source: NativeThemeSource) => void;
   installPlugin: (lookupName: string) => Promise<void>;
   // a package tarball's path; resolves with the plugin's name
   installPluginFromFile: (file: string) => Promise<string>;

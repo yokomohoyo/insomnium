@@ -37,7 +37,7 @@ jest.mock('electron', () => {
   const BrowserWindow = {
     fromWebContents: (contents: unknown) => mockWindows.find(window => window.webContents === contents) || null,
   };
-  const electron = { app, ipcMain, session, BrowserWindow };
+  const electron = { app, ipcMain, session, BrowserWindow, nativeTheme: {} };
   return { __esModule: true, default: electron, ...electron };
 });
 jest.mock('electron-context-menu', () => () => {});
