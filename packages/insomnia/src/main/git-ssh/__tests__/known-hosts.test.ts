@@ -59,6 +59,7 @@ describe('hostConfig', () => {
     '  HostName github.com',
     '  User git',
     '  IdentityFile ~/.ssh/work_ed25519',
+    '  IdentitiesOnly yes',
     '',
     'Host *.internal !build.internal',
     '  Port 2222',
@@ -77,8 +78,10 @@ describe('hostConfig', () => {
       user: 'git',
       port: 22,
       identityFiles: ['/home/kim/.ssh/everywhere', '/home/kim/.ssh/work_ed25519'],
+      identitiesOnly: true,
     });
     expect(hostConfig(config, 'git.internal', '/home/kim')).toMatchObject({ port: 2222, user: 'fallback' });
+    expect(hostConfig(config, 'git.internal', '/home/kim').identitiesOnly).toBeUndefined();
     expect(hostConfig(config, 'build.internal', '/home/kim')).toMatchObject({ port: 22 });
   });
 });

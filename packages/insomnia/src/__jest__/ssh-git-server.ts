@@ -34,9 +34,13 @@ export async function startSshGitServer() {
   const clientKeys = keyPair();
   const allowed = [publicKey(clientKeys.public)];
   const accepted: string[] = [];
+  const offered: Buffer[] = [];
 
   const server = new Server({ hostKeys: [hostKeys.private] }, client => {
     client.on('authentication', context => {
+      if (context.method === 'publickey' && context.key && !context.signature) {
+        offered.push(context.key.data);
+      }
       const key = context.method === 'publickey' && allowed.find(candidate => context.key?.data.equals(candidate.getPublicSSH()));
       if (key) {
         // without a signature, it's asking whether the key would do
@@ -77,6 +81,8 @@ export async function startSshGitServer() {
     hostKey: publicKey(hostKeys.public).getPublicSSH(),
     // the usernames signed in with
     accepted,
+    // the public keys clients offered, in their wire form, in order
+    offered,
     // another key the server takes, by its public half
     allowKey: (text: string) => allowed.push(publicKey(text)),
     // a repository with these files in its first commit, and a way to push more

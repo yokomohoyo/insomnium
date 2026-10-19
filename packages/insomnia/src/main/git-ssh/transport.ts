@@ -5,7 +5,7 @@
 // passes over the advertisement, sends the request, and returns what comes back.
 import fs from 'fs';
 import path from 'path';
-import { type AuthMethod, Client, type ClientChannel, type ParsedKey, utils } from 'ssh2';
+import { type AuthMethod, BaseAgent, Client, type ClientChannel, createAgent, type ParsedKey, utils } from 'ssh2';
 
 import { type GitService, parseSshUrl, SSH_KEY_HEADER, SSH_PASSPHRASE_HEADER, sshRequestOf } from '../../sync/git/ssh-url';
 import { checkHostKey, fingerprint, hostEntryName, keyType, knownHostsLine } from './known-hosts';
@@ -36,8 +36,8 @@ export interface HostToTrust {
 export interface SshEnvironment {
   // where ~/.ssh is
   home: string;
-  // agents to try first: a socket, a Windows pipe, or 'pageant'
-  agents: string[];
+  // agents to try: a socket, a Windows pipe, or 'pageant' (or, in tests, an agent)
+  agents: (string | BaseAgent)[];
   // where a host the user trusts is added
   appKnownHostsFile: string;
   askToTrust: (host: HostToTrust) => Promise<boolean>;
@@ -106,11 +106,57 @@ function loadKeys(files: string[], passphrases: Record<string, string>) {
   return { keys, locked };
 }
 
+// a key file's public half, to know it among the agent's: from the key, or
+// from the .pub beside it when the key is locked
+function publicKeyOf(file: string, keys: KeyFile[]) {
+  const loaded = keys.find(key => key.file === file);
+  if (loaded) {
+    return loaded.key.getPublicSSH();
+  }
+  const text = readText(`${file}.pub`);
+  const parsed = text ? utils.parseKey(text) : null;
+  const key = Array.isArray(parsed) ? parsed[0] : parsed;
+  return key && !(key instanceof Error) ? key.getPublicSSH() : null;
+}
+
+// An agent's keys with the identities asked for first and, when only those
+// may be offered (IdentitiesOnly, or a key the repository names), none of
+// its others, as ssh offers them
+class IdentitiesAgent extends BaseAgent {
+  agent: BaseAgent;
+  identities: Buffer[];
+  only: boolean;
+
+  constructor(agent: BaseAgent, identities: Buffer[], only: boolean) {
+    super();
+    this.agent = agent;
+    this.identities = identities;
+    this.only = only;
+  }
+
+  getIdentities(callback: (err: Error | null | undefined, keys?: ParsedKey[]) => void) {
+    this.agent.getIdentities((err, keys) => {
+      if (err || !keys) {
+        return callback(err || new Error('The SSH agent listed no keys'));
+      }
+      const asked = (key: ParsedKey) => this.identities.some(identity => identity.equals(key.getPublicSSH()));
+      callback(null, [...keys.filter(asked), ...(this.only ? [] : keys.filter(key => !asked(key)))]);
+    });
+  }
+
+  sign(...args: Parameters<BaseAgent['sign']>) {
+    this.agent.sign(...args);
+  }
+}
+
 /**
- * Runs one of isomorphic-git's requests of an SSH remote. Keys come from the
- * agents, then a key file the repository names (with its passphrase), then
- * ~/.ssh/config's IdentityFile for the host, then ~/.ssh/id_*. The host's key
- * must be in ~/.ssh/known_hosts or the app's own list, or be trusted when asked.
+ * Runs one of isomorphic-git's requests of an SSH remote. Keys are offered as
+ * ssh offers them: the ones asked for (a key file the repository names, with
+ * its passphrase, then ~/.ssh/config's IdentityFile for the host), then the
+ * agents', then ~/.ssh/id_*. With IdentitiesOnly, or a key the repository
+ * names, only the ones asked for (~/.ssh/id_* when none is), and the agents'
+ * copies of them. The host's key must be in ~/.ssh/known_hosts or the app's
+ * own list, or be trusted when asked.
  */
 export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment): Promise<GitSshResponse> {
   const target = sshRequestOf(request.url);
@@ -130,13 +176,26 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
 
   const headers = Object.fromEntries(Object.entries(request.headers || {}).map(([name, value]) => [name.toLowerCase(), value]));
   const repositoryKey = headers[SSH_KEY_HEADER] ? expandHome(headers[SSH_KEY_HEADER], env.home) : '';
-  const { keys, locked } = loadKeys(
-    [...(repositoryKey ? [repositoryKey] : []), ...config.identityFiles, ...DEFAULT_KEYS.map(name => path.join(sshDir, name))],
-    repositoryKey ? { [repositoryKey]: headers[SSH_PASSPHRASE_HEADER] || '' } : {},
-  );
+  // the keys asked for go before the agents' others, which could sign in as
+  // another account; ~/.ssh/id_* stand in for them when none is named
+  const only = !!repositoryKey || config.identitiesOnly === true;
+  const named = [...(repositoryKey ? [repositoryKey] : []), ...config.identityFiles];
+  const defaults = DEFAULT_KEYS.map(name => path.join(sshDir, name)).filter(file => !named.includes(file));
+  const identities = named.length ? named : defaults;
+  const first = loadKeys(named.length || only ? identities : [], repositoryKey ? { [repositoryKey]: headers[SSH_PASSPHRASE_HEADER] || '' } : {});
+  const last = loadKeys(only ? [] : defaults, {});
+  const keys = [...first.keys, ...last.keys];
+  const locked = [...first.locked, ...last.locked];
+  const identityKeys = identities.map(file => publicKeyOf(file, keys)).filter((key): key is Buffer => !!key);
+  const agents = only && !identityKeys.length ? [] : env.agents;
   const authHandler: AuthMethod[] = [
-    ...env.agents.map(agent => ({ type: 'agent' as const, username: user, agent })),
-    ...keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
+    ...first.keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
+    ...agents.map(agent => ({
+      type: 'agent' as const,
+      username: user,
+      agent: new IdentitiesAgent(typeof agent === 'string' ? createAgent(agent) : agent, identityKeys, only),
+    })),
+    ...last.keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
   ];
 
   let hostError: Error | null = null;
@@ -176,7 +235,7 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
           return reject(hostError);
         }
         if (/authentication methods failed/i.test(err.message)) {
-          const tried = [...(env.agents.length ? ['the SSH agent'] : []), ...keys.map(({ file }) => file)];
+          const tried = [...first.keys.map(({ file }) => file), ...(agents.length ? ['the SSH agent'] : []), ...last.keys.map(({ file }) => file)];
           const lockedNote = locked.length ? ` ${locked.join(', ')} ${locked.length === 1 ? 'needs its' : 'need their'} passphrase: set it in the repository's settings, or add the key to the SSH agent.` : '';
           return reject(new Error(`${user}@${host} didn't accept ${tried.length ? `the keys tried (${tried.join(', ')})` : 'a key: none was found in the SSH agent or ~/.ssh'}.${lockedNote}`));
         }
