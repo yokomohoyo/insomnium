@@ -5,7 +5,6 @@ import YAMLSourceMap from 'yaml-source-map';
 
 import type { ApiSpec } from '../../../models/api-spec';
 
-import { Button } from '../themed-button';
 import { Sidebar } from './sidebar';
 
 interface Props {

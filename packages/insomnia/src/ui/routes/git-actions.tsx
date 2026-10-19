@@ -1,5 +1,5 @@
 import { fromUrl } from 'hosted-git-info';
-import { Errors, clone } from 'isomorphic-git';
+import { Errors } from 'isomorphic-git';
 import { env as processEnv } from 'node:process';
 import path from 'path';
 import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';

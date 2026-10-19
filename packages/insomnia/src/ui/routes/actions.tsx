@@ -2,19 +2,16 @@ import type { IRuleResult } from '@stoplight/spectral-core';
 import { generate, runTests, type Test } from 'insomnia-testing';
 import { ActionFunction, redirect } from 'react-router-dom';
 
-import { parseApiSpec, resolveComponentSchemaRefs } from '../../common/api-specs';
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { database } from '../../common/database';
 import { database as db } from '../../common/database';
 import { ResourceCache, scanResources } from '../../common/import';
-import { generateId } from '../../common/misc';
 import { specSyncSummary, syncSpecToWorkspace } from '../../common/spec-sync';
 import { spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import * as models from '../../models';
 import { getById, update } from '../../models/helpers/request-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
-import { isRequest, Request } from '../../models/request';
 import { isRequestGroup, isRequestGroupId } from '../../models/request-group';
 import { UnitTest } from '../../models/unit-test';
 import { isCollection, Workspace } from '../../models/workspace';
@@ -447,7 +444,7 @@ export const updateApiSpecAction: ActionFunction = async ({
 export const generateCollectionFromApiSpecAction: ActionFunction = async ({
   params,
 }) => {
-  const { organizationId, projectId, workspaceId } = params;
+  const { projectId, workspaceId } = params;
 
   guard(typeof projectId === 'string', 'Project ID is required');
   guard(typeof workspaceId === 'string', 'Workspace ID is required');
