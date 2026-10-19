@@ -191,7 +191,7 @@ const Root = () => {
                   );
                   patchSettings({ theme: parsedTheme.name });
                   await reloadPlugins();
-                  await setTheme(parsedTheme.name);
+                  await setTheme(parsedTheme.name, (await models.settings.getOrCreate()).autoDetectColorScheme);
                   showModal(SettingsModal, { tab: TAB_INDEX_THEMES });
                 }
               },
