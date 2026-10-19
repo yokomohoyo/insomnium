@@ -90,8 +90,6 @@ export async function exportRequestsHAR(
 
   const mapWorkspaceIdToEnvironmentId: Record<string, any> = {};
 
-  const exportedRequestIds = new Set(requests.map(request => request._id));
-  const isExampleOfExported = (d: BaseModel) => isResponseExample(d) && exportedRequestIds.has(d.parentId);
   for (const workspace of workspaces) {
     const workspaceMeta = await models.workspaceMeta.getByParentId(workspace._id);
     let environmentId = workspaceMeta ? workspaceMeta.activeEnvironmentId : null;

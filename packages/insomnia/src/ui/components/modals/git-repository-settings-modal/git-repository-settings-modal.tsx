@@ -3,7 +3,6 @@ import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
-import { docsGitSync } from '../../../../common/documentation';
 import { t } from '../../../../common/i18n';
 import type { GitRepository } from '../../../../models/git-repository';
 import { Link } from '../../base/link';

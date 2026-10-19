@@ -64,7 +64,7 @@ export const workspaceLoader: LoaderFunction = async ({
   request,
   params,
 }): Promise<WorkspaceLoaderData> => {
-  const { projectId, workspaceId, organizationId } = params;
+  const { projectId, workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
   guard(projectId, 'Project ID is required');
 

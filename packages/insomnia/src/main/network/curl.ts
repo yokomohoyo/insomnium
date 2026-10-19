@@ -10,7 +10,6 @@ import { Environment } from '../../models/environment';
 import { Response } from '../../models/response';
 import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
-import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getCaBundle } from './ca-bundle';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';

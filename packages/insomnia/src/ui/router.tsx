@@ -23,7 +23,6 @@ import { DEFAULT_PROJECT_ID } from '../models/project';
 import { init as initPlugins } from '../plugins';
 import { applyColorScheme } from '../plugins/misc';
 import { guard } from '../utils/guard';
-import { AppLoadingIndicator } from './components/app-loading-indicator';
 import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
 import Root from './routes/root';
