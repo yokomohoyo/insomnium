@@ -100,7 +100,7 @@ export const RequestTabs: FC = () => {
             key={id}
             data-testid="request-tab"
             aria-current={active ? 'page' : undefined}
-            className={`group flex flex-shrink-0 items-center gap-1 max-w-[14rem] pl-3 pr-1 border-r border-solid border-[--hl-sm] text-[--font-size-sm] ${active ? 'bg-[--hl-xs] text-[--color-font]' : 'text-[--hl]'}`}
+            className={`group flex flex-shrink-0 items-center gap-1 max-w-[14rem] pl-3 pr-1 border-r border-solid border-[--hl-sm] text-[length:var(--font-size-sm)] ${active ? 'bg-[--hl-xs] text-[--color-font]' : 'text-[--hl]'}`}
             onMouseDown={event => {
               if (event.button === 1) {
                 event.preventDefault();
