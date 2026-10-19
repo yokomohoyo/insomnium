@@ -635,7 +635,36 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
                                             await import('./routes/git-actions')
                                           ).mergeGitBranchAction(...args),
                                       },
+                                      {
+                                        path: 'rebase',
+                                        action: async (...args) =>
+                                          (
+                                            await import('./routes/git-actions')
+                                          ).rebaseGitBranchAction(...args),
+                                      },
                                     ],
+                                  },
+                                  {
+                                    path: 'tags',
+                                    loader: async (...args) =>
+                                      (
+                                        await import('./routes/git-actions')
+                                      ).gitTagsLoader(...args),
+                                    action: async (...args) =>
+                                      (
+                                        await import('./routes/git-actions')
+                                      ).gitTagAction(...args),
+                                  },
+                                  {
+                                    path: 'stashes',
+                                    loader: async (...args) =>
+                                      (
+                                        await import('./routes/git-actions')
+                                      ).gitStashesLoader(...args),
+                                    action: async (...args) =>
+                                      (
+                                        await import('./routes/git-actions')
+                                      ).gitStashAction(...args),
                                   },
                                   {
                                     path: 'rollback',

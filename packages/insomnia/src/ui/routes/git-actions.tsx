@@ -25,6 +25,8 @@ import GitVCS, {
   GIT_INTERNAL_DIR,
   GitConflictsError,
   GitLogEntry,
+  type GitStash,
+  type GitTag,
 } from '../../sync/git/git-vcs';
 import type { DocConflict, MergeChoice } from '../../sync/git/merge-docs';
 import { MemClient } from '../../sync/git/mem-client';
@@ -833,6 +835,36 @@ export const mergeGitBranchAction: ActionFunction = async ({
   return {};
 };
 
+export const rebaseGitBranchAction: ActionFunction = async ({
+  request,
+  params,
+}): Promise<MergeGitBranchResult> => {
+  const { workspaceId } = params;
+  guard(workspaceId, 'Workspace ID is required');
+  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
+  guard(workspaceMeta?.gitRepositoryId, 'Workspace is not linked to a git repository');
+
+  const formData = await request.formData();
+  const branch = formData.get('branch');
+  guard(typeof branch === 'string', 'Branch name is required');
+
+  // the current branch's commits go on top of branch's, and the work tree follows
+  const bufferId = await database.bufferChanges();
+  try {
+    await GitVCS.rebase(branch, mergeChoicesFrom(formData));
+  } catch (err) {
+    if (err instanceof GitConflictsError) {
+      return { conflicts: err.conflicts };
+    }
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return { errors: [errorMessage] };
+  } finally {
+    await database.flushChanges(bufferId, true);
+  }
+
+  return {};
+};
+
 export interface DeleteGitBranchResult {
   errors?: string[];
 }
@@ -981,9 +1013,10 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
   const bufferId = await database.bufferChanges();
 
 
-  // the pull fetches what it merges
+  // the pull fetches what it merges (or rebases onto)
+  const formData = await request.formData();
   try {
-    await GitVCS.pull(gitRepository.credentials, mergeChoicesFrom(await request.formData()));
+    await GitVCS.pull(gitRepository.credentials, mergeChoicesFrom(formData), formData.get('rebase') === 'true');
   } catch (err: unknown) {
     await database.flushChanges(bufferId);
     if (err instanceof GitConflictsError) {
@@ -1115,6 +1148,118 @@ async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
     statusNames,
   };
 }
+
+export interface GitTagsLoaderData {
+  tags: GitTag[];
+  // the current commit, which a new tag goes on
+  head: string;
+  hasRemote: boolean;
+  errors?: string[];
+}
+
+export const gitTagsLoader: LoaderFunction = async (): Promise<GitTagsLoaderData> => {
+  try {
+    const [head] = await GitVCS.log({ depth: 1 });
+    return { tags: await GitVCS.listTags(), head: head?.oid || '', hasRemote: !!(await GitVCS.getRemote('origin'))?.url };
+  } catch (err) {
+    return { tags: [], head: '', hasRemote: false, errors: [err instanceof Error ? err.message : String(err)] };
+  }
+};
+
+export interface GitTagResult {
+  errors?: string[];
+}
+
+// create, push or delete a tag
+export const gitTagAction: ActionFunction = async ({ request, params }): Promise<GitTagResult> => {
+  const { workspaceId } = params;
+  guard(workspaceId, 'Workspace ID is required');
+  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
+  const gitRepository = workspaceMeta?.gitRepositoryId ? await models.gitRepository.getById(workspaceMeta.gitRepositoryId) : null;
+  guard(gitRepository, 'Workspace is not linked to a git repository');
+
+  const formData = await request.formData();
+  const intent = formData.get('intent');
+  const name = String(formData.get('name') || '').trim();
+  guard(name, 'A tag name is required');
+  try {
+    if (intent === 'create') {
+      await GitVCS.createTag(name, String(formData.get('message') || ''));
+    } else if (intent === 'push') {
+      await GitVCS.pushTag(name, gitRepository.credentials);
+    } else if (intent === 'delete') {
+      await GitVCS.deleteTag(name, { remote: formData.get('remote') === 'true', gitCredentials: gitRepository.credentials });
+    }
+  } catch (err) {
+    if (err instanceof Errors.HttpError) {
+      return { errors: [`${err.message}, ${err.data.response}`] };
+    }
+    return { errors: [err instanceof Error ? err.message : String(err)] };
+  }
+  return {};
+};
+
+export interface GitStashesLoaderData {
+  stashes: GitStash[];
+  // what a stash now would keep aside
+  changes: number;
+  // a stash's files, by name
+  statusNames: Record<string, string>;
+}
+
+export const gitStashesLoader: LoaderFunction = async ({ params }): Promise<GitStashesLoaderData> => {
+  const { workspaceId } = params;
+  guard(typeof workspaceId === 'string', 'Workspace Id is required');
+  const workspace = await models.workspace.getById(workspaceId);
+  guard(workspace, 'Workspace not found');
+  const { changes, statusNames } = await getGitChanges(GitVCS, workspace);
+  return { stashes: await GitVCS.listStashes(), changes: changes.filter(change => change.editable).length, statusNames };
+};
+
+export interface GitStashResult {
+  errors?: string[];
+  conflicts?: DocConflict[];
+}
+
+/**
+ * stash: keeps the uncommitted changes aside (the ones a rollback could undo)
+ * and undoes them; apply and pop bring a stash's back, pop dropping it; drop
+ * deletes one
+ */
+export const gitStashAction: ActionFunction = async ({ request, params }): Promise<GitStashResult> => {
+  const { workspaceId } = params;
+  guard(typeof workspaceId === 'string', 'Workspace Id is required');
+  const workspace = await models.workspace.getById(workspaceId);
+  guard(workspace, 'Workspace not found');
+
+  const formData = await request.formData();
+  const intent = formData.get('intent');
+  const id = String(formData.get('id') || '');
+  const bufferId = await database.bufferChanges();
+  try {
+    if (intent === 'stash') {
+      const { changes } = await getGitChanges(GitVCS, workspace);
+      const files = changes.filter(change => change.editable).map(change => ({ filePath: change.path, status: change.status }));
+      if (!files.length) {
+        return { errors: ['There are no changes to stash.'] };
+      }
+      await GitVCS.stash(files.map(change => change.filePath), String(formData.get('message') || ''));
+      await gitRollback(GitVCS, files);
+    } else if (intent === 'apply' || intent === 'pop') {
+      await GitVCS.applyStash(id, { drop: intent === 'pop', choices: mergeChoicesFrom(formData) });
+    } else if (intent === 'drop') {
+      await GitVCS.dropStash(id);
+    }
+  } catch (err) {
+    if (err instanceof GitConflictsError) {
+      return { conflicts: err.conflicts };
+    }
+    return { errors: [err instanceof Error ? err.message : String(err)] };
+  } finally {
+    await database.flushChanges(bufferId, true);
+  }
+  return {};
+};
 
 export interface GitRollbackChangesResult {
   errors?: string[];

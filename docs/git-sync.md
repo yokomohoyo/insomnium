@@ -30,16 +30,19 @@ The **Git Sync** menu, at the bottom of the sidebar, shows the branch and has:
 
 - **Commit**: lists what changed since the last commit. Under each change, **Changed** lists its fields, from what to what. For headers, parameters and form fields, it says which were added, removed or changed. A change to only the order or timestamps says so. Choose what to stage, write a message, and commit. Changes can also be rolled back from there.
 - **Push** and **Pull**. A pull applies changes made upstream, including requests that were deleted there. It never writes over changes you haven't committed. If upstream changed a request you've changed and not committed, the pull stops before changing anything and names the request: commit your change (the pull then merges the two) or undo it, and pull again. A request deleted upstream that you've changed is kept. Switching branches and merging work the same way. When the remote has commits your branch doesn't, a push is turned down: pull them in first, or **Force Push** to replace the remote's branch with yours, which drops the commits you don't have.
-- **Fetch**, to see whether the remote has new commits.
+- **Pull with Rebase**: your branch's own commits go on top of what came, one at a time, so the history stays a line, with no merge commit. A request both sides changed merges field by field, as a pull does. If a field clashes, nothing changes until you choose (see below). A branch with a merge commit of its own can't be rebased: pull instead.
+- **Fetch**, to see whether the remote has new commits, and its tags.
 - **History**: the commits on this branch.
-- **Branches**: create, switch to, merge and delete branches, local and remote.
+- **Branches**: create, switch to, merge, rebase and delete branches, local and remote. **Rebase onto** puts the current branch's commits on top of the other branch.
+- **Tags**: tag the current commit, with a message (an annotated tag) or without, push a tag, and delete one here or on the remote too. A fetch or pull brings the remote's tags on the commits it brings, and keeps the ones you made.
+- **Stashes**: **Stash** keeps your uncommitted changes aside and undoes them, so you can pull, switch branches or try something else. **Pop** brings a stash back and drops it; **Apply** brings it back and keeps it. A stash applies onto whatever is there now, field by field, so a request changed since keeps those changes too.
 - **Create Pull Request**, for a repository on GitHub, GitLab or Bitbucket: opens the host's page to propose the branch's changes.
 
 ### When both sides changed something
 
 A pull or merge combines the two sides a request (or folder, or environment) at a time, field by field. If you changed a request's method and someone else changed its URL, both changes are kept.
 
-When both sides changed the same field differently, **Changed on Both Sides** lists each request with those fields, yours and theirs. Choose **Keep yours** or **Take theirs** for each, then **Merge**. Your other changes, and theirs, are merged either way. A merge stays on your branch.
+When both sides changed the same field differently, **Changed on Both Sides** lists each request with those fields, yours and theirs. Choose **Keep yours** or **Take theirs** for each, then **Merge**. Your other changes, and theirs, are merged either way. A merge stays on your branch. A rebase, and applying a stash, ask the same way (yours being your commit, or what's here now, against the stash).
 
 ## What's in the repository
 

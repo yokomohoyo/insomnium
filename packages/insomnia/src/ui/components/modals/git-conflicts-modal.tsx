@@ -10,6 +10,8 @@ import { ModalHeader } from '../base/modal-header';
 type Props = ModalProps & {
   // what's being merged in, for the title: a branch, or the remote's
   theirs: string;
+  // what resolving does: Merge, Rebase, Apply
+  actionLabel?: string;
   conflicts: DocConflict[];
   onResolve: (choices: Record<string, MergeChoice>) => void;
 };
@@ -17,7 +19,7 @@ type Props = ModalProps & {
 // The documents both sides of a merge or pull changed, with the fields that
 // clash. Each keeps this side's fields or takes theirs; other changes from both
 // sides merge either way.
-export const GitConflictsModal: FC<Props> = ({ theirs, conflicts, onResolve, onHide }) => {
+export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = 'Merge', conflicts, onResolve, onHide }) => {
   const modalRef = useRef<ModalHandle>(null);
   const [choices, setChoices] = useState<Record<string, MergeChoice>>(() =>
     Object.fromEntries(conflicts.map(conflict => [conflict.file, 'ours'])));
@@ -83,7 +85,7 @@ export const GitConflictsModal: FC<Props> = ({ theirs, conflicts, onResolve, onH
                 modalRef.current?.hide();
               }}
             >
-              Merge
+              {actionLabel}
             </button>
           </div>
         </ModalFooter>

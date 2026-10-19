@@ -38,19 +38,21 @@ export const GitBranchesModal: FC<Props> = (({
   const branchesFetcher = useFetcher<GitBranchesLoaderData>();
   const checkoutBranchFetcher = useFetcher();
   const mergeBranchFetcher = useFetcher<MergeGitBranchResult>();
-  // the branch being merged in, and the documents both sides changed
+  // the branch being merged in (or rebased onto), and the documents both sides changed
   const [merging, setMerging] = useState('');
+  const how = useRef<'merge' | 'rebase'>('merge');
   const [conflictsOpen, setConflictsOpen] = useState(false);
-  const merge = (branch: string, choices?: object) => {
+  const merge = (branch: string, choices?: object, way: 'merge' | 'rebase' = how.current) => {
     setMerging(branch);
+    how.current = way;
     mergeBranchFetcher.submit({ branch, ...(choices ? { choices: JSON.stringify(choices) } : {}) }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/merge`,
+      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/${way}`,
       method: 'post',
     });
   };
   useEffect(() => {
     if (mergeBranchFetcher.data?.errors?.length) {
-      showAlert({ title: 'Merge Failed', message: mergeBranchFetcher.data.errors.join('\n') });
+      showAlert({ title: how.current === 'rebase' ? 'Rebase Failed' : 'Merge Failed', message: mergeBranchFetcher.data.errors.join('\n') });
     }
     setConflictsOpen(Boolean(mergeBranchFetcher.data?.conflicts?.length));
   }, [mergeBranchFetcher.data]);
@@ -140,9 +142,16 @@ export const GitBranchesModal: FC<Props> = (({
                           <PromptButton
                             className="btn btn--micro btn--outlined space-left"
                             doneMessage="Merged"
-                            onClick={async () => merge(branch)}
+                            onClick={async () => merge(branch, undefined, 'merge')}
                           >
                             Merge
+                          </PromptButton>
+                          <PromptButton
+                            className="btn btn--micro btn--outlined space-left"
+                            doneMessage="Rebased"
+                            onClick={async () => merge(branch, undefined, 'rebase')}
+                          >
+                            Rebase onto
                           </PromptButton>
                           <PromptButton
                             className="btn btn--micro btn--outlined space-left"
@@ -236,6 +245,7 @@ export const GitBranchesModal: FC<Props> = (({
       {conflictsOpen && mergeBranchFetcher.data?.conflicts && (
         <GitConflictsModal
           theirs={merging}
+          actionLabel={how.current === 'rebase' ? 'Rebase' : 'Merge'}
           conflicts={mergeBranchFetcher.data.conflicts}
           onResolve={choices => merge(merging, choices)}
           onHide={() => setConflictsOpen(false)}

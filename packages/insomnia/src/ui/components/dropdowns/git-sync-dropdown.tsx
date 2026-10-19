@@ -31,6 +31,8 @@ import { GitConflictsModal } from '../modals/git-conflicts-modal';
 import { GitLogModal } from '../modals/git-log-modal';
 import { GitRepositorySettingsModal } from '../modals/git-repository-settings-modal';
 import { GitStagingModal } from '../modals/git-staging-modal';
+import { GitStashesModal } from '../modals/git-stashes-modal';
+import { GitTagsModal } from '../modals/git-tags-modal';
 import { Tooltip } from '../tooltip';
 
 interface Props {
@@ -51,6 +53,10 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
   const [isGitBranchesModalOpen, setIsGitBranchesModalOpen] = useState(false);
   const [isGitLogModalOpen, setIsGitLogModalOpen] = useState(false);
   const [isGitStagingModalOpen, setIsGitStagingModalOpen] = useState(false);
+  const [isGitStashesModalOpen, setIsGitStashesModalOpen] = useState(false);
+  const [isGitTagsModalOpen, setIsGitTagsModalOpen] = useState(false);
+  // the last pull rebased, so its conflicts pull the same way
+  const [pullRebases, setPullRebases] = useState(false);
 
   const gitPushFetcher = useFetcher<PushToGitRemoteResult>();
   const gitPullFetcher = useFetcher<PullFromGitRemoteResult>();
@@ -229,8 +235,25 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
       icon: loadingPull ? 'refresh fa-spin' : 'cloud-download',
       label: 'Pull',
       onClick: async () => {
+        setPullRebases(false);
         gitPullFetcher.submit(
           {},
+          {
+            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
+            method: 'post',
+          }
+        );
+      },
+    },
+    {
+      id: 7,
+      stayOpenAfterClick: true,
+      icon: loadingPull ? 'refresh fa-spin' : 'cloud-download',
+      label: 'Pull with Rebase',
+      onClick: async () => {
+        setPullRebases(true);
+        gitPullFetcher.submit(
+          { rebase: 'true' },
           {
             action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
             method: 'post',
@@ -271,7 +294,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
   // the host's page to propose this branch's changes, where it's known
   const pullRequestPage = hasRemote && currentBranch ? pullRequestUrl(gitRepository?.uri || '', currentBranch) : undefined;
   const currentBranchActions = [
-    ...branchActions.filter(action => hasRemote || !['Pull', 'Push', 'Fetch'].includes(String(action.label))),
+    ...branchActions.filter(action => hasRemote || !['Pull', 'Pull with Rebase', 'Push', 'Fetch'].includes(String(action.label))),
     ...(pullRequestPage ? [{
       id: 6,
       icon: 'code-pull-request',
@@ -386,6 +409,26 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
                   onClick={() => {
                     setIsGitBranchesModalOpen(true);
                   }}
+                />
+              )}
+            </DropdownItem>
+
+            <DropdownItem textValue="Tags">
+              {currentBranch && (
+                <ItemContent
+                  icon="tags"
+                  label="Tags"
+                  onClick={() => setIsGitTagsModalOpen(true)}
+                />
+              )}
+            </DropdownItem>
+
+            <DropdownItem textValue="Stashes">
+              {currentBranch && (
+                <ItemContent
+                  icon="archive"
+                  label="Stashes"
+                  onClick={() => setIsGitStashesModalOpen(true)}
                 />
               )}
             </DropdownItem>
@@ -540,11 +583,23 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
       {isGitStagingModalOpen && (
         <GitStagingModal onHide={() => setIsGitStagingModalOpen(false)} />
       )}
+      {isGitTagsModalOpen && (
+        <GitTagsModal onHide={() => setIsGitTagsModalOpen(false)} />
+      )}
+      {isGitStashesModalOpen && (
+        <GitStashesModal
+          onHide={() => {
+            setIsGitStashesModalOpen(false);
+            refreshRepoData();
+          }}
+        />
+      )}
       {pullConflictsOpen && gitPullFetcher.data?.conflicts && (
         <GitConflictsModal
           theirs="the remote"
+          actionLabel={pullRebases ? 'Rebase' : 'Merge'}
           conflicts={gitPullFetcher.data.conflicts}
-          onResolve={choices => gitPullFetcher.submit({ choices: JSON.stringify(choices) }, {
+          onResolve={choices => gitPullFetcher.submit({ choices: JSON.stringify(choices), ...(pullRebases ? { rebase: 'true' } : {}) }, {
             action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
             method: 'post',
           })}
