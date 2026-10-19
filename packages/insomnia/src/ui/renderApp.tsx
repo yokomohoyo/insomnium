@@ -45,7 +45,6 @@ export async function renderApp() {
  (await models.project.create({
           _id: 'proj_default-project',
           name: getProductName(),
-          remoteId: null,
         }));
 }
 

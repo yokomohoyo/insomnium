@@ -15,7 +15,7 @@ export function registerWorkspaceTools(server: McpServer) {
       return {
         content: [{
           type: 'text',
-          text: JSON.stringify(projects.map(p => ({ id: p._id, name: p.name, remoteId: p.remoteId })), null, 2),
+          text: JSON.stringify(projects.map(p => ({ id: p._id, name: p.name })), null, 2),
         }],
       };
     },

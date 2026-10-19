@@ -93,7 +93,6 @@ export const mcpRequest = _mcpRequest;
 export const webSocketResponse = _webSocketResponse;
 export const workspace = _workspace;
 export const workspaceMeta = _workspaceMeta;
-export * as organization from './organization';
 
 export function all() {
   // NOTE: This list should be from most to least specific (ie. parents above children)

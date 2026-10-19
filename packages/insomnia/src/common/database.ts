@@ -18,7 +18,6 @@ import type { SqliteStore, StoreQuery } from './sqlite-store';
 export interface Query {
   _id?: string | SpecificQuery;
   parentId?: string | SpecificQuery | null;
-  remoteId?: string | null;
   plugin?: string;
   key?: string;
   environmentId?: string | null;
