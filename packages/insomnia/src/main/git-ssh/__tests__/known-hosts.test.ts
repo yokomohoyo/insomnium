@@ -6,11 +6,13 @@ import crypto from 'crypto';
 import { describe, expect, it } from '@jest/globals';
 import { type ParsedKey, utils } from 'ssh2';
 
+import { keyPair } from '../../../__jest__/ssh-git-server';
+
 import { flushEnd } from '../transport';
 import { checkHostKey, fingerprint, keyType, knownHostsLine } from '../known-hosts';
 import { hostConfig } from '../ssh-config';
 
-const wireKey = () => (utils.parseKey(utils.generateKeyPairSync('ed25519').public) as ParsedKey).getPublicSSH();
+const wireKey = () => (utils.parseKey(keyPair().public) as ParsedKey).getPublicSSH();
 const hashed = (name: string) => {
   const salt = crypto.randomBytes(20);
   return `|1|${salt.toString('base64')}|${crypto.createHmac('sha1', salt).update(name).digest('base64')}`;

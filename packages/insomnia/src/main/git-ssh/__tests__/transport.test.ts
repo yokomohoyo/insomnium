@@ -10,7 +10,7 @@ import { utils } from 'ssh2';
 import YAML from 'yaml';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
-import { hasGit, startSshGitServer } from '../../../__jest__/ssh-git-server';
+import { hasGit, keyPair, startSshGitServer } from '../../../__jest__/ssh-git-server';
 import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
 import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR, type GitCredentials } from '../../../sync/git/git-vcs';
@@ -114,7 +114,7 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
 
   it('refuses a host whose key has changed, without asking', async () => {
     write('id_ed25519', server.clientKey);
-    const other = utils.parseKey(utils.generateKeyPairSync('ed25519').public) as { getPublicSSH(): Buffer };
+    const other = utils.parseKey(keyPair().public) as { getPublicSSH(): Buffer };
     write('known_hosts', `${knownHostsLine('127.0.0.1', server.port, other.getPublicSSH())}\n`);
     const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
 
@@ -135,7 +135,7 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
 
   it("uses the repository's own key file, with its passphrase", async () => {
     trustServer();
-    const locked = utils.generateKeyPairSync('ed25519', { passphrase: 'open sesame', cipher: 'aes256-ctr', rounds: 2 });
+    const locked = keyPair({ passphrase: 'open sesame', cipher: 'aes256-ctr', rounds: 2 });
     server.allowKey(locked.public);
     const keyFile = path.join(home, 'keys', 'insomnium');
     fs.mkdirSync(path.dirname(keyFile), { recursive: true });
@@ -155,7 +155,7 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
     const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
     await expect(clone(remote.url)).rejects.toThrow("git@127.0.0.1 didn't accept a key: none was found in the SSH agent or ~/.ssh");
 
-    write('id_ed25519', utils.generateKeyPairSync('ed25519').private);
+    write('id_ed25519', keyPair().private);
     await expect(clone(remote.url)).rejects.toThrow(`didn't accept the keys tried (${path.join(sshDir(), 'id_ed25519')})`);
   });
 });
