@@ -24,10 +24,11 @@ export async function loadCollection(filePath: string): Promise<Workspace[]> {
 
 // Makes the named sub environment active in each workspace that has one, and
 // writes the variables into each workspace's active (or base) environment.
-// Throws when a name is given that no workspace has.
-export async function applyEnvironment(workspaces: Workspace[], name: string | undefined, variables: Record<string, string>) {
+// Throws when a name is given that no workspace has, unless requireName is
+// false (a workspace brought up to date on its own).
+export async function applyEnvironment(workspaces: Workspace[], name: string | undefined, variables: Record<string, string>, requireName = true) {
   const names = new Set<string>();
-  let found = !name;
+  let found = !name || !requireName;
   for (const workspace of workspaces) {
     const base = await models.environment.getOrCreateForParentId(workspace._id);
     const subs = await models.environment.findByParentId(base._id);

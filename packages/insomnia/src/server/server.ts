@@ -8,7 +8,7 @@ import { setRequestPolicy } from '../network/request-policy';
 import { disableTemplateTags } from '../templating';
 import type { Workspace } from '../models/workspace';
 import { isWorkspace } from '../models/workspace';
-import type { ServerConfig } from './config';
+import { MAX_PULL_INTERVAL, type ServerConfig } from './config';
 import { startHttpServer } from './http';
 import { loadCollection, applyEnvironment } from './load';
 import { makeHostPolicy } from './policy';
@@ -44,7 +44,8 @@ type LoadConfig = Sources & Pick<ServerConfig, 'environment' | 'variables' | 'va
 
 // The in-memory database with the collections and repositories loaded, for
 // serving or a run. update() brings the repositories' workspaces up to date,
-// as serve does every --pull-interval, and says which changed.
+// as serve does every --pull-interval, and says which changed. close() removes
+// the clones' folders.
 export async function loadSources(config: LoadConfig) {
   await database.init(models.types(), { inMemoryOnly: true }, true, () => {});
   await models.project.all();
@@ -58,18 +59,27 @@ export async function loadSources(config: LoadConfig) {
   for (const collection of config.collections) {
     workspaces.push(...await loadCollection(collection));
   }
-  const repos: { repo: Repo; version: string }[] = [];
-  for (const location of config.repos) {
-    const repo = await openRepo(location, { branch: config.branch, token: config.gitToken, username: config.gitUsername });
-    const { docs, version } = await repo.read();
-    const id = docs.find(isWorkspace)?._id;
-    if (workspaces.some(workspace => workspace._id === id)) {
-      throw new Error(`${location} holds a workspace that's already loaded from another collection or repository`);
+  // each with its workspace's place in workspaces
+  const repos: { repo: Repo; version: string; index: number }[] = [];
+  const close = () => repos.forEach(({ repo }) => repo.close());
+  try {
+    for (const location of config.repos) {
+      const repo = await openRepo(location, { branch: config.branch, token: config.gitToken, username: config.gitUsername });
+      const entry = { repo, version: '', index: workspaces.length };
+      repos.push(entry);
+      const { docs, version } = await repo.read();
+      const id = docs.find(isWorkspace)?._id;
+      if (workspaces.some(workspace => workspace._id === id)) {
+        throw new Error(`${repo.location} holds a workspace that's already loaded from another collection or repository`);
+      }
+      workspaces.push(await syncRepoDocs(docs, repo.location));
+      entry.version = version;
     }
-    workspaces.push(await syncRepoDocs(docs, location));
-    repos.push({ repo, version });
+    await applyEnvironment(workspaces, config.environment, config.variables);
+  } catch (err) {
+    close();
+    throw err;
   }
-  await applyEnvironment(workspaces, config.environment, config.variables);
 
   const update = async () => {
     const changed: { location: string; version: string }[] = [];
@@ -77,27 +87,31 @@ export async function loadSources(config: LoadConfig) {
       await entry.repo.update();
       const { docs, version } = await entry.repo.read();
       if (version !== entry.version) {
-        await syncRepoDocs(docs, entry.repo.location);
+        const workspace = await syncRepoDocs(docs, entry.repo.location);
+        workspaces[entry.index] = workspace;
+        // the variables and the environment chosen, over what changed, before
+        // the next repository, so one that fails can't leave this one without
+        // them (the name was checked at load)
+        await applyEnvironment([workspace], config.environment, config.variables, false);
         entry.version = version;
         changed.push({ location: entry.repo.location, version });
       }
     }
-    // the variables and the environment chosen, over what changed
-    if (changed.length) {
-      await applyEnvironment(workspaces, config.environment, config.variables);
-    }
     return changed;
   };
-  return { workspaces, update, repoCount: repos.length };
+  return { workspaces, update, close, repoCount: repos.length };
 }
 
-// The in-memory database with the collections loaded, for a run
+// The in-memory database with the collections loaded, for a run. The
+// repositories are read in, so their clones aren't kept.
 export async function loadWorkspaces(config: LoadConfig) {
-  return (await loadSources(config)).workspaces;
+  const { workspaces, close } = await loadSources(config);
+  close();
+  return workspaces;
 }
 
 export async function startServer(config: ServerConfig) {
-  const { workspaces, update, repoCount } = await loadSources(config);
+  const { workspaces, update, close, repoCount } = await loadSources(config);
   const http = await startHttpServer({
     host: config.host,
     port: config.port,
@@ -107,6 +121,9 @@ export async function startServer(config: ServerConfig) {
       registerTools(server, name => SERVER_TOOLS.has(name));
       return server;
     },
+  }).catch(err => {
+    close();
+    throw err;
   });
 
   // the repositories brought up to date as they change, one update at a time
@@ -122,7 +139,10 @@ export async function startServer(config: ServerConfig) {
       .finally(() => {
         updating = false;
       });
-  }, config.pullInterval * 1000) : undefined;
-  http.on('close', () => clearInterval(timer));
+  }, Math.min(config.pullInterval, MAX_PULL_INTERVAL) * 1000) : undefined;
+  http.on('close', () => {
+    clearInterval(timer);
+    close();
+  });
   return { http, workspaces, update };
 }

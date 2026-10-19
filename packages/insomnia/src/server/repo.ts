@@ -3,8 +3,10 @@
 // A URL is cloned, and fetched again on each update, into a folder of its own,
 // laid out as the app lays out a clone: the work tree and the git dir apart,
 // and paths that would leave either refused (fs-client.ts, routable-fs-client.ts).
+// The folder is removed when the repository is closed.
 // A directory is a checkout something else keeps current, such as a mounted
-// volume, and is read again on each update. Either way, only the repository's
+// volume, and is read again on each update: its own folders and regular files
+// only, never through a link (checkoutClient). Either way, only the repository's
 // synced documents are read, by the rules a clone in the app keeps to
 // (readClonedDocs), and nothing is written back.
 import crypto from 'node:crypto';
@@ -34,14 +36,21 @@ export interface RepoOptions {
 }
 
 export interface Repo {
+  // where it's from, as printed: a URL without a username or token in it
   location: string;
   // brings the repository up to date (a fetch, for a clone)
   update(): Promise<void>;
   // its synced documents, and what they're from: a commit, or a checksum of a directory's
   read(): Promise<{ docs: BaseModel[]; version: string }>;
+  // removes a clone's folder; a directory is left as it is
+  close(): void;
 }
 
 export const isRemoteRepo = (location: string) => /^[a-z][a-z0-9+.-]*:\/\//i.test(location) || /^[\w.-]+@[^:/\s]+:/.test(location);
+
+// A URL as given may carry a username and token (https://user:token@host/…),
+// which logs and errors leave out
+export const withoutUserinfo = (location: string) => location.replace(/^([a-z][a-z0-9+.-]*:\/\/)[^/?#]*@/i, '$1');
 
 const readDocs = async (client: git.PromiseFsClient, location: string) => {
   const dataDirName = await clonedDataDir(client);
@@ -52,10 +61,12 @@ const readDocs = async (client: git.PromiseFsClient, location: string) => {
 };
 
 async function cloneRepo(url: string, options: RepoOptions): Promise<Repo> {
+  const location = withoutUserinfo(url);
   if (!/^https?:\/\//i.test(url)) {
-    throw new Error(`${url}: only http(s) Git remotes can be cloned; mount a checkout and give its directory instead`);
+    throw new Error(`${location}: only http(s) Git remotes can be cloned; mount a checkout and give its directory instead`);
   }
   const base = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'insomnium-repo-'));
+  const close = () => fs.rmSync(base, { recursive: true, force: true });
   const workTree = fsClient(path.join(base, 'work'));
   const opts = {
     fs: routableFSClient(workTree, { [GIT_INTERNAL_DIR]: fsClient(base) }),
@@ -64,13 +75,21 @@ async function cloneRepo(url: string, options: RepoOptions): Promise<Repo> {
     gitdir: GIT_INTERNAL_DIR,
     onAuth: () => (options.token ? { username: options.username || 'git', password: options.token } : { cancel: true }),
   };
-  await git.clone({ ...opts, url, ...(options.branch ? { ref: options.branch } : {}), singleBranch: true });
-  const branch = await git.currentBranch({ ...opts });
-  if (!branch) {
-    throw new Error(`${url} has no commits`);
+  let branch: string;
+  try {
+    await git.clone({ ...opts, url, ...(options.branch ? { ref: options.branch } : {}), singleBranch: true });
+    const current = await git.currentBranch({ ...opts });
+    if (!current) {
+      throw new Error(`${location} has no commits`);
+    }
+    branch = current;
+  } catch (err) {
+    close();
+    throw err;
   }
   return {
-    location: url,
+    location,
+    close,
     async update() {
       const { fetchHead } = await git.fetch({ ...opts, ref: branch, singleBranch: true });
       const head = await git.resolveRef({ ...opts, ref: 'HEAD' });
@@ -82,7 +101,62 @@ async function cloneRepo(url: string, options: RepoOptions): Promise<Repo> {
       await git.checkout({ ...opts, ref: branch, force: true });
     },
     async read() {
-      return { docs: await readDocs(workTree, url), version: await git.resolveRef({ ...opts, ref: 'HEAD' }) };
+      return { docs: await readDocs(workTree, location), version: await git.resolveRef({ ...opts, ref: 'HEAD' }) };
+    },
+  };
+}
+
+// a synced document is a few kilobytes; a bigger file than this in a checkout
+// is refused rather than read into memory
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// A mounted checkout, read only: its own folders and regular files, never a
+// link, and nothing whose real path is outside it. (A clone stores a link as a
+// plain file; a checkout made by git has real ones.)
+function checkoutClient(root: string): git.PromiseFsClient {
+  const realRoot = fs.realpathSync(root);
+  const entry = async (filePath: string) => {
+    const full = path.join(realRoot, path.normalize(filePath));
+    const real = await fs.promises.realpath(full);
+    const relative = path.relative(realRoot, real);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error(`Refusing ${filePath}: outside ${root}`);
+    }
+    return { real, stat: await fs.promises.lstat(full) };
+  };
+  const readOnly = async (filePath: string) => {
+    throw new Error(`Refusing to change ${filePath} in ${root}: a checkout is only read`);
+  };
+  return {
+    promises: {
+      async readdir(filePath: string) {
+        const { real, stat } = await entry(filePath);
+        if (!stat.isDirectory()) {
+          throw new Error(`Refusing ${filePath} in ${root}: not a folder`);
+        }
+        const entries = await fs.promises.readdir(real, { withFileTypes: true });
+        return entries.filter(dirent => dirent.isDirectory() || dirent.isFile()).map(dirent => dirent.name);
+      },
+      async readFile(filePath: string) {
+        const { real, stat } = await entry(filePath);
+        if (!stat.isFile() || stat.size > MAX_FILE_SIZE) {
+          throw new Error(`Refusing ${filePath} in ${root}: ${stat.isFile() ? 'larger than 10 MB' : 'not a regular file'}`);
+        }
+        const handle = await fs.promises.open(real, 'r');
+        try {
+          // no more than its size when checked, should it have grown since
+          const { buffer, bytesRead } = await handle.read(Buffer.alloc(stat.size), 0, stat.size, 0);
+          return buffer.subarray(0, bytesRead);
+        } finally {
+          await handle.close();
+        }
+      },
+      stat: async (filePath: string) => (await entry(filePath)).stat,
+      lstat: async (filePath: string) => (await entry(filePath)).stat,
+      writeFile: readOnly,
+      unlink: readOnly,
+      mkdir: readOnly,
+      rmdir: readOnly,
     },
   };
 }
@@ -92,7 +166,7 @@ function directoryRepo(directory: string): Repo {
   if (!fs.statSync(resolved, { throwIfNoEntry: false })?.isDirectory()) {
     throw new Error(`${directory} is not a directory, nor a Git URL`);
   }
-  const client = fsClient(resolved);
+  const client = checkoutClient(resolved);
   return {
     location: directory,
     async update() {},
@@ -100,6 +174,7 @@ function directoryRepo(directory: string): Repo {
       const docs = await readDocs(client, directory);
       return { docs, version: crypto.createHash('sha256').update(JSON.stringify(docs)).digest('hex') };
     },
+    close() {},
   };
 }
 
