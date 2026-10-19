@@ -13,7 +13,7 @@ const Row: FC<{ entry: ConsoleEntry }> = ({ entry }) => {
     <li data-testid="console-entry" className="border-b border-solid border-[--hl-sm]">
       <button
         type="button"
-        className="w-full flex items-center gap-3 px-3 py-1 text-left text-xs font-mono hover:bg-[--hl-xs]"
+        className="w-full flex items-center gap-3 px-3 py-1 text-left text-[--font-size-sm] [font-family:var(--font-monospace)] text-[--color-font] hover:bg-[--hl-xs]"
         onClick={() => setOpen(!open)}
         aria-expanded={details ? open : undefined}
       >
@@ -29,7 +29,7 @@ const Row: FC<{ entry: ConsoleEntry }> = ({ entry }) => {
         <span className="faint w-16 text-right">{size(entry.bytesRead)}</span>
       </button>
       {open && details && (
-        <div className="px-3 pb-2 text-xs font-mono selectable">
+        <div className="px-3 pb-2 text-[--font-size-sm] [font-family:var(--font-monospace)] selectable">
           {entry.error && <div className="danger" style={{ whiteSpace: 'pre-wrap' }}>{entry.error}</div>}
           {entry.logs.map((log, index) => (
             // eslint-disable-next-line react/no-array-index-key -- the logs are in order and don't change
@@ -60,16 +60,16 @@ export const ConsoleDrawer: FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
     <section
       aria-label="Console"
-      className="absolute left-0 right-0 bottom-[--line-height-sm] h-[35vh] z-20 flex flex-col bg-[--color-bg] border-t border-solid border-[--hl-md] shadow-lg"
+      className="absolute left-0 right-0 bottom-[--line-height-sm] h-[35vh] z-20 flex flex-col bg-[--color-bg] text-[--color-font] text-[--font-size-sm] border-t border-solid border-[--hl-md] shadow-lg"
       onKeyDown={event => event.key === 'Escape' && onClose()}
     >
       <div className="flex items-center gap-2 px-3 py-1 border-b border-solid border-[--hl-md]">
-        <strong className="text-sm">Console</strong>
-        <span className="faint text-xs">{entries.length} sent this session</span>
+        <strong className="text-[--font-size-md]">Console</strong>
+        <span className="faint">{entries.length} sent this session</span>
         <span className="flex-1" />
         <input
           aria-label="Filter the console"
-          className="text-xs px-2 py-1 border border-solid border-[--hl-sm] rounded-sm bg-transparent"
+          className="px-2 py-1 border border-solid border-[--hl-sm] rounded-sm bg-transparent text-[--color-font] placeholder:text-[--hl]"
           placeholder="Filter"
           value={filter}
           onChange={event => setFilter(event.currentTarget.value)}
@@ -82,7 +82,7 @@ export const ConsoleDrawer: FC<{ onClose: () => void }> = ({ onClose }) => {
           {shown.map(entry => <Row key={entry.id} entry={entry} />)}
         </ul>
       ) : (
-        <div className="pad faint text-sm">{entries.length ? 'Nothing matches the filter.' : 'Each request you send shows here, with what its scripts logged.'}</div>
+        <div className="pad faint">{entries.length ? 'Nothing matches the filter.' : 'Each request you send shows here, with what its scripts logged.'}</div>
       )}
     </section>
   );
