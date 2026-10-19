@@ -64,16 +64,25 @@ export function readPluginFile(file: string, roots: string[]): string | null {
   if (typeof file !== 'string' || !CODE.test(file)) {
     return null;
   }
+  let fd: number | undefined;
   try {
     const real = fs.realpathSync(path.resolve(file));
-    const realRoots = roots.map(root => fs.realpathSync(root));
-    const stat = fs.statSync(real);
-    if (!stat.isFile() || stat.size > MAX_FILE_SIZE || !realRoots.some(root => within(real, root))) {
+    if (!roots.map(root => fs.realpathSync(root)).some(root => within(real, root))) {
       return null;
     }
-    return fs.readFileSync(real, 'utf8');
+    // what's checked and what's read are the one file opened
+    fd = fs.openSync(real, 'r');
+    const stat = fs.fstatSync(fd);
+    if (!stat.isFile() || stat.size > MAX_FILE_SIZE) {
+      return null;
+    }
+    return fs.readFileSync(fd, 'utf8');
   } catch {
     return null;
+  } finally {
+    if (fd !== undefined) {
+      fs.closeSync(fd);
+    }
   }
 }
 
