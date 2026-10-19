@@ -452,6 +452,9 @@ export const cloneGitRepoAction: ActionFunction = async ({
   } else {
     // Clone all entities from the repository
     const imported = await importClonedDocs(fsClient, project._id, dataDirName);
+    if ('error' in imported || 'existingWorkspace' in imported) {
+      await database.flushChanges(bufferId);
+    }
     if ('error' in imported) {
       return {
         errors: [imported.error],
@@ -737,6 +740,7 @@ export const checkoutGitBranchAction: ActionFunction = async ({
   try {
     await GitVCS.checkout(branch);
   } catch (err) {
+    await database.flushChanges(bufferId);
     if (err instanceof Errors.HttpError) {
       return {
         errors: [`${err.message}, ${err.data.response}`],
@@ -925,6 +929,7 @@ export const pushToGitRemoteAction: ActionFunction = async ({
     await GitVCS.push(gitRepository.credentials, force);
 
   } catch (err: unknown) {
+    await database.flushChanges(bufferId);
     if (err instanceof Errors.HttpError) {
       return {
         errors: [`${err.message}, ${err.data.response}`],
@@ -980,8 +985,8 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
   try {
     await GitVCS.pull(gitRepository.credentials, mergeChoicesFrom(await request.formData()));
   } catch (err: unknown) {
+    await database.flushChanges(bufferId);
     if (err instanceof GitConflictsError) {
-      await database.flushChanges(bufferId);
       return { conflicts: err.conflicts };
     }
     if (err instanceof Errors.HttpError) {
@@ -999,7 +1004,6 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
 
     const author = log[0] ? log[0].commit.author : null;
     const cachedGitLastCommitTime = author ? author.timestamp * 1000 : null;
-    console.log("gitV cachedGitLastCommitTime", cachedGitLastCommitTime);
 
     await models.workspaceMeta.update(workspaceMeta, {
       cachedGitLastCommitTime,
