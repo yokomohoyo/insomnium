@@ -51,8 +51,8 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
               />
             </label>
           </div>
-          <h2>Actions</h2>
-          <div className="form-control form-control--padded">
+          <h2 className="mt-[--padding-lg]">Actions</h2>
+          <div className="form-control form-control--padded flex flex-wrap items-center gap-[--padding-sm]">
             <PromptButton
               onClick={() =>
                 submit(
@@ -60,7 +60,7 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
                   { method: 'post', action: `/organization/${organizationId}/project/${project._id}/delete` }
                 )
               }
-              className="width-auto btn btn--clicky inline-block"
+              className="width-auto btn btn--clicky"
             >
               <i className="fa fa-trash-o" /> Delete
             </PromptButton>
