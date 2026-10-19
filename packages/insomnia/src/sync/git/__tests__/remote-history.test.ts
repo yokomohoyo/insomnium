@@ -78,10 +78,10 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
     expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets', url: 'https://pets.example.com/v2/pets' });
     expect(await models.request.getById('req_2')).toMatchObject({ name: 'add pet' });
     expect(await shallowFile()).toBe('');
-    // (isomorphic-git's log lists a merge's common ancestor once for each side)
+    // each commit once, though the two sides share 'first'
     const history = (await GitVCS.log()).map(entry => entry.commit.message.trim());
     expect(history[0]).toMatch(/^Merge/);
-    expect(new Set(history)).toEqual(new Set([history[0], 'v2', 'rename', 'add pet', 'first']));
+    expect(history.slice(1).sort()).toEqual(['add pet', 'first', 'rename', 'v2']);
   });
 
   it('deepens a repository an earlier version left shallow, and then pulls', async () => {
