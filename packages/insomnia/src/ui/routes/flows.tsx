@@ -1,6 +1,6 @@
 import classnames from 'classnames';
 import React, { FC, Suspense } from 'react';
-import { ActionFunction, LoaderFunction, redirect, Route, Routes, useFetcher, useLoaderData, useNavigate, useParams } from 'react-router-dom';
+import { ActionFunction, LoaderFunction, redirect, Route, Routes, useFetcher, useLoaderData, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { database as db } from '../../common/database';
 import { t } from '../../common/i18n';
@@ -75,7 +75,8 @@ export const deleteFlowAction: ActionFunction = async ({ request, params }) => {
 };
 
 const FlowPane: FC = () => {
-  const { flows, requests } = useLoaderData() as FlowsLoaderData;
+  // rendered by the page's <Routes>, which aren't the data router's: the list is the flows route's
+  const { flows, requests } = useRouteLoaderData('flows') as FlowsLoaderData;
   const { flowId } = useParams() as { flowId: string };
   const flow = flows.find(candidate => candidate._id === flowId);
   if (!flow) {
@@ -87,8 +88,9 @@ const FlowPane: FC = () => {
 
 const FlowsRoute: FC = () => {
   const { flows } = useLoaderData() as FlowsLoaderData;
-  const params = useParams() as { organizationId: string; projectId: string; workspaceId: string; '*': string };
-  const selectedId = params['*']?.split('/')[0];
+  const params = useParams() as { organizationId: string; projectId: string; workspaceId: string; flowId?: string; '*'?: string };
+  // a flow's own route (its actions') matches before the splat does
+  const selectedId = params.flowId || params['*']?.split('/')[0];
   const base = flowsPath(params);
   const navigate = useNavigate();
   const createFetcher = useFetcher();

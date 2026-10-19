@@ -555,6 +555,8 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
                               },
                               {
                                 path: 'flows/*',
+                                // the flow pane, in the page's own <Routes>, reads the list by this id
+                                id: 'flows',
                                 loader: async (...args) =>
                                   (await import('./routes/flows')).loader(...args),
                                 element: (
