@@ -63,7 +63,8 @@ test('a plugin runs in its sandbox, without Node.js or the network, unless it ha
   // the one that needs Node.js loads once it's allowed full access
   await page.getByTestId('settings-button').click();
   await page.locator('div[role="tab"]:has-text("Plugins")').click();
-  await needsNode.getByRole('checkbox', { name: 'Sandboxed' }).check();
+  // the box changes once the dialog's answered, so it's clicked, not checked
+  await needsNode.getByRole('checkbox', { name: 'Sandboxed' }).click();
   await page.getByRole('dialog').filter({ hasText: 'full access' }).getByRole('button', { name: 'Allow Full Access' }).click();
   await expect(needsNode).toContainText('Full access');
   await expect(needsNode.getByTestId('plugin-load-error')).toHaveCount(0);
