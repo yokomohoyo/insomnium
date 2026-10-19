@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
 
 import { docsGitAccessToken } from '../../../../common/documentation';
+import { t } from '../../../../common/i18n';
 import * as models from '../../../../models';
 import { GitRepository } from '../../../../models/git-repository';
 import { gitHostOf, savedGitSignIns, type SavedGitSignIn } from '../../../../sync/git/saved-sign-ins';
@@ -69,9 +70,9 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
     >
       <div className="form-control form-control--outlined">
         <label>
-          Git URI
+          {t('Git URI')}
           <HelpTooltip className="space-left">
-            The repository's address: https://, or SSH, such as git@github.com:org/repo.git, which connects with your SSH keys (or, if you choose, with a token over its https:// form). Leave it empty for a repository on this computer only, with commits, branches and history; add an address here later to push it.
+            {t("The repository's address: https://, or SSH, such as git@github.com:org/repo.git, which connects with your SSH keys (or, if you choose, with a token over its https:// form). Leave it empty for a repository on this computer only, with commits, branches and history; add an address here later to push it.")}
           </HelpTooltip>
           <input
             type="text"
@@ -80,22 +81,22 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
             defaultValue={uri}
             disabled={Boolean(uri)}
             onChange={event => setTypedUri(event.currentTarget.value)}
-            placeholder="https://github.com/org/repo.git, or empty for this computer only"
+            placeholder={t('{example}, or empty for this computer only', { example: 'https://github.com/org/repo.git' })}
           />
         </label>
       </div>
       {isSsh && (
         <div className="form-control form-control--outlined">
           <label>
-            Connect With
+            {t('Connect With')}
             <select
               name="transport"
               value={transport}
               disabled={Boolean(uri)}
               onChange={event => setTransport(event.currentTarget.value === 'https' ? 'https' : 'ssh')}
             >
-              <option value="ssh">SSH, with my SSH keys</option>
-              <option value="https">HTTPS, with a token (the address's https:// form)</option>
+              <option value="ssh">{t('SSH, with my SSH keys')}</option>
+              <option value="https">{t("HTTPS, with a token (the address's https:// form)")}</option>
             </select>
           </label>
         </div>
@@ -103,7 +104,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
       {!overSsh && onHost.length > 0 && (
         <div className="form-control form-control--outlined">
           <label>
-            Saved sign-in for {host}
+            {t('Saved sign-in for {host}', { host })}
             <select
               defaultValue=""
               onChange={event => {
@@ -114,7 +115,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
                 }
               }}
             >
-              <option value="" disabled>Use the sign-in of another repository on {host}…</option>
+              <option value="" disabled>{t('Use the sign-in of another repository on {host}…', { host })}</option>
               {onHost.map((signIn, index) => (
                 <option key={signIn.username} value={index}>{signIn.username}</option>
               ))}
@@ -125,12 +126,12 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
       <div className="form-row">
         <div className="form-control form-control--outlined">
           <label>
-            Author Name
+            {t('Author Name')}
             <input
               required
               type="text"
               name="authorName"
-              placeholder="Name"
+              placeholder={t('Name')}
               disabled={Boolean(uri)}
               defaultValue={author.name}
             />
@@ -138,12 +139,12 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
         </div>
         <div className="form-control form-control--outlined">
           <label>
-            Author Email
+            {t('Author Email')}
             <input
               required
               type="text"
               name="authorEmail"
-              placeholder="Email"
+              placeholder={t('Email')}
               disabled={Boolean(uri)}
               defaultValue={author.email}
             />
@@ -155,9 +156,9 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
           <div className="form-row">
             <div className="form-control form-control--outlined">
               <label>
-                SSH Key File <span className="faint">(optional)</span>
+                {t('SSH Key File')} <span className="faint">{t('(optional)')}</span>
                 <HelpTooltip className="space-left">
-                  Your SSH agent's keys are tried first, then this file, then the IdentityFile your ~/.ssh/config names for the host, then ~/.ssh/id_ed25519, id_ecdsa and id_rsa. Host aliases in ~/.ssh/config work as the address's host.
+                  {t("Your SSH agent's keys are tried first, then this file, then the IdentityFile your ~/.ssh/config names for the host, then ~/.ssh/id_ed25519, id_ecdsa and id_rsa. Host aliases in ~/.ssh/config work as the address's host.")}
                 </HelpTooltip>
                 <input
                   type="text"
@@ -170,7 +171,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
             </div>
             <div className="form-control form-control--outlined">
               <label>
-                Passphrase <span className="faint">(for that file, if it has one)</span>
+                {t('Passphrase')} <span className="faint">{t('(for that file, if it has one)')}</span>
                 <input
                   type="password"
                   name="sshPassphrase"
@@ -181,14 +182,14 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
             </div>
           </div>
           <p className="faint txt-sm no-margin-top">
-            The first time Insomnium connects to a host, it shows the host key's fingerprint and asks before trusting it, unless your known_hosts has it already.
+            {t("The first time Insomnium connects to a host, it shows the host key's fingerprint and asks before trusting it, unless your known_hosts has it already.")}
           </p>
         </>
       ) : (<>
       <div className="form-row">
         <div className="form-control form-control--outlined">
           <label>
-            Username
+            {t('Username')}
             <input
               ref={usernameRef}
               type="text"
@@ -201,9 +202,9 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
         </div>
         <div className="form-control form-control--outlined">
           <label>
-            Authentication Token
+            {t('Authentication Token')}
             <HelpTooltip className="space-left">
-              Create a personal access token
+              {t('Create a personal access token')}
               <br />
               <Link href={docsGitAccessToken.github}>GitHub {linkIcon}</Link>
               {' | '}
@@ -231,7 +232,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
         </div>
       </div>
       <p className="faint txt-sm no-margin-top">
-        For a public repository you only clone and pull from, the username and token can be left empty.
+        {t('For a public repository you only clone and pull from, the username and token can be left empty.')}
       </p>
       </>)}
     </form>

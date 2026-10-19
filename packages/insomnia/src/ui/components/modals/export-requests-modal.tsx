@@ -3,6 +3,7 @@ import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
 import { exportRequestsToFile } from '../../../common/export';
+import { t } from '../../../common/i18n';
 import * as models from '../../../models';
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
 import { isMcpRequest, McpRequest } from '../../../models/mcp-request';
@@ -64,7 +65,7 @@ export const ExportRequestsModal = ({ workspace, onHide }: { workspace: Workspac
           ...models.requestGroup.init(),
           _id: 'all',
           type: models.requestGroup.type,
-          name: 'All requests',
+          name: t('All requests'),
           parentId: '',
           modified: 0,
           created: 0,
@@ -118,7 +119,7 @@ export const ExportRequestsModal = ({ workspace, onHide }: { workspace: Workspac
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
       <Modal ref={modalRef} tall onHide={onHide}>
-        <ModalHeader>Select Requests to Export</ModalHeader>
+        <ModalHeader>{t('Select Requests to Export')}</ModalHeader>
         <ModalBody>
           <div className="requests-tree">
             <Tree
@@ -139,7 +140,7 @@ export const ExportRequestsModal = ({ workspace, onHide }: { workspace: Workspac
         <ModalFooter>
           <div>
             <button className="btn" onClick={() => modalRef.current?.hide()}>
-              Cancel
+              {t('Cancel')}
             </button>
             <button
               className="btn"
@@ -151,7 +152,7 @@ export const ExportRequestsModal = ({ workspace, onHide }: { workspace: Workspac
               }}
               disabled={isExportDisabled}
             >
-              Export
+              {t('Export')}
             </button>
           </div>
         </ModalFooter>

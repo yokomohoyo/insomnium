@@ -1,6 +1,7 @@
 import React, { FC, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 
+import { t } from '../../../common/i18n';
 import type { DocConflict, MergeChoice } from '../../../sync/git/merge-docs';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -19,7 +20,7 @@ type Props = ModalProps & {
 // The documents both sides of a merge or pull changed, with the fields that
 // clash. Each keeps this side's fields or takes theirs; other changes from both
 // sides merge either way.
-export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = 'Merge', conflicts, onResolve, onHide }) => {
+export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = t('Merge'), conflicts, onResolve, onHide }) => {
   const modalRef = useRef<ModalHandle>(null);
   const [choices, setChoices] = useState<Record<string, MergeChoice>>(() =>
     Object.fromEntries(conflicts.map(conflict => [conflict.file, 'ours'])));
@@ -31,10 +32,10 @@ export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = 'Merge', co
   return (
     <OverlayContainer>
       <Modal ref={modalRef} onHide={onHide}>
-        <ModalHeader>Changed on Both Sides</ModalHeader>
+        <ModalHeader>{t('Changed on Both Sides')}</ModalHeader>
         <ModalBody className="pad">
           <p>
-            These changed here and in {theirs}. Choose which to keep for each; their other changes, and yours, are merged.
+            {t('These changed here and in {theirs}. Choose which to keep for each; their other changes, and yours, are merged.', { theirs })}
           </p>
           {conflicts.map(conflict => (
             <div key={conflict.file} className="pad-top" data-testid="git-conflict">
@@ -42,17 +43,17 @@ export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = 'Merge', co
               <table className="table--fancy table--outlined margin-top-sm">
                 <thead>
                   <tr>
-                    <th className="text-left">Field</th>
-                    <th className="text-left">Yours</th>
-                    <th className="text-left">Theirs</th>
+                    <th className="text-left">{t('Field')}</th>
+                    <th className="text-left">{t('Yours')}</th>
+                    <th className="text-left">{t('Theirs')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {conflict.fields.map(field => (
                     <tr key={field.field}>
                       <td><code>{field.field}</code></td>
-                      <td className="selectable">{field.ours ?? <span className="faint">(none)</span>}</td>
-                      <td className="selectable">{field.theirs ?? <span className="faint">(none)</span>}</td>
+                      <td className="selectable">{field.ours ?? <span className="faint">{t('(none)')}</span>}</td>
+                      <td className="selectable">{field.theirs ?? <span className="faint">{t('(none)')}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -66,7 +67,7 @@ export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = 'Merge', co
                       checked={choices[conflict.file] === choice}
                       onChange={() => setChoices({ ...choices, [conflict.file]: choice })}
                     />
-                    {choice === 'ours' ? 'Keep yours' : 'Take theirs'}
+                    {choice === 'ours' ? t('Keep yours') : t('Take theirs')}
                   </label>
                 ))}
               </div>
@@ -76,7 +77,7 @@ export const GitConflictsModal: FC<Props> = ({ theirs, actionLabel = 'Merge', co
         <ModalFooter>
           <div>
             <button className="btn" onClick={() => modalRef.current?.hide()}>
-              Cancel
+              {t('Cancel')}
             </button>
             <button
               className="btn"

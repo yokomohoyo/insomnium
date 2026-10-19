@@ -3,14 +3,14 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { parseApiSpec } from '../../../common/api-specs';
 import { getProductName } from '../../../common/constants';
-import { getWorkspaceLabel } from '../../../common/get-workspace-label';
+import { t } from '../../../common/i18n';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import type { ApiSpec } from '../../../models/api-spec';
 import { CaCertificate } from '../../../models/ca-certificate';
 import { ClientCertificate } from '../../../models/client-certificate';
 import { Project } from '../../../models/project';
 import type { Workspace } from '../../../models/workspace';
-import { WorkspaceScopeKeys } from '../../../models/workspace';
+import { isDesign, WorkspaceScopeKeys } from '../../../models/workspace';
 import { WorkspaceMeta } from '../../../models/workspace-meta';
 import type { DocumentAction } from '../../../plugins';
 import { getDocumentActions } from '../../../plugins';
@@ -58,7 +58,7 @@ const useDocumentActionPlugins = ({ workspace, apiSpec, project }: Props) => {
       await p.action(context, parseApiSpec(apiSpec?.contents || ''));
     } catch (err) {
       showError({
-        title: 'Document Action Failed',
+        title: t('Document Action Failed'),
         error: err,
       });
     } finally {
@@ -101,32 +101,32 @@ export const WorkspaceCardDropdown: FC<Props> = props => {
   return (
     <Fragment>
       <Dropdown
-        aria-label='Workspace Actions Dropdown'
+        aria-label={t('Workspace Actions Dropdown')}
         onOpen={refresh}
         triggerButton={
-          <DropdownButton aria-label='Workspace actions menu button' className="px-4 py-1 flex flex-1 items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm">
+          <DropdownButton aria-label={t('Workspace actions menu button')} className="px-4 py-1 flex flex-1 items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm">
             <SvgIcon icon="ellipsis" />
           </DropdownButton>
         }
       >
-        <DropdownItem aria-label='Duplicate'>
+        <DropdownItem aria-label={t('Duplicate')}>
           <ItemContent
-            label="Duplicate"
+            label={t('Duplicate')}
             icon="copy"
             onClick={() => setIsDuplicateModalOpen(true)}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Rename'>
+        <DropdownItem aria-label={t('Rename')}>
           <ItemContent
-            label="Rename"
+            label={t('Rename')}
             icon="pen-to-square"
             onClick={() => {
               showPrompt({
-                title: `Rename ${getWorkspaceLabel(workspace).singular}`,
+                title: isDesign(workspace) ? t('Rename Document') : t('Rename Collection'),
                 defaultValue: workspaceName,
-                submitName: 'Rename',
+                submitName: t('Rename'),
                 selectText: true,
-                label: 'Name',
+                label: t('Name'),
                 onComplete: name =>
                   fetcher.submit(
                     { name, workspaceId: workspace._id },
@@ -140,24 +140,24 @@ export const WorkspaceCardDropdown: FC<Props> = props => {
             }}
           />
         </DropdownItem>
-        <DropdownSection aria-label='Meta section'>
-          <DropdownItem aria-label='Import'>
+        <DropdownSection aria-label={t('Meta section')}>
+          <DropdownItem aria-label={t('Import')}>
             <ItemContent
-              label="Import"
+              label={t('Import')}
               icon="file-import"
               onClick={() => setIsImportModalOpen(true)}
             />
           </DropdownItem>
-          <DropdownItem aria-label='Export'>
+          <DropdownItem aria-label={t('Export')}>
             <ItemContent
-              label="Export"
+              label={t('Export')}
               icon="file-export"
               onClick={() => setIsExportModalOpen(true)}
             />
           </DropdownItem>
-          <DropdownItem aria-label='Settings'>
+          <DropdownItem aria-label={t('Settings')}>
             <ItemContent
-              label="Settings"
+              label={t('Settings')}
               icon="gear"
               onClick={() => setIsSettingsModalOpen(true)}
             />
@@ -165,19 +165,18 @@ export const WorkspaceCardDropdown: FC<Props> = props => {
         </DropdownSection>
         {renderPluginDropdownItems()}
 
-        <DropdownSection aria-label='Delete section'>
-          <DropdownItem aria-label='Delete'>
+        <DropdownSection aria-label={t('Delete section')}>
+          <DropdownItem aria-label={t('Delete')}>
             <ItemContent
-              label="Delete"
+              label={t('Delete')}
               icon="trash-o"
               className="danger"
               onClick={() => {
-                const label = getWorkspaceLabel(workspace);
                 showModal(AskModal, {
-                  title: `Delete ${label.singular}`,
-                  message: `Do you really want to delete "${workspaceName}"?`,
-                  yesText: 'Yes',
-                  noText: 'Cancel',
+                  title: isDesign(workspace) ? t('Delete Document') : t('Delete Collection'),
+                  message: t('Do you really want to delete "{name}"?', { name: workspaceName }),
+                  yesText: t('Yes'),
+                  noText: t('Cancel'),
                   onDone: async (isYes: boolean) => {
                     if (!isYes) {
                       return;

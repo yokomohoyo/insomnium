@@ -4,6 +4,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { docsGitSync } from '../../../../common/documentation';
+import { t } from '../../../../common/i18n';
 import type { GitRepository } from '../../../../models/git-repository';
 import { Link } from '../../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
@@ -71,7 +72,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
       const errorMessage = errors.map(e => e instanceof Error ? e.message : typeof e === 'string' && e).join(', ');
 
       showAlert({
-        title: 'Error Cloning Repository',
+        title: t('Error Cloning Repository'),
         message: errorMessage,
       });
     }
@@ -81,14 +82,14 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
     <OverlayContainer>
       <Modal ref={modalRef} {...props}>
         <ModalHeader>
-          Git Settings
+          {t('Git Settings')}
 
         </ModalHeader>
         <ModalBody>
           <ErrorBoundary>
             <Tabs
               isDisabled={isLoading || hasGitRepository}
-              aria-label="Git repository settings tabs"
+              aria-label={t('Git repository settings tabs')}
             >
               <TabItem key='custom' title={<TabPill><i className="fa fa-code-fork" /> Git</TabPill>}>
                 <PanelContainer className="pad pad-top-sm">
@@ -118,7 +119,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
                 });
               }}
             >
-              Reset
+              {t('Reset')}
             </button>
             {hasGitRepository ? (
               <button
@@ -127,7 +128,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
                 className="btn"
                 data-testid="git-repository-settings-modal__sync-btn-close"
               >
-                Close
+                {t('Close')}
               </button>
             ) : (
               <button
@@ -137,7 +138,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
                 className="btn"
                 data-testid="git-repository-settings-modal__sync-btn"
               >
-                Sync
+                {t('Sync')}
               </button>
             )}
           </div>

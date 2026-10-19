@@ -3,6 +3,7 @@ import React, { Fragment, useRef, useState } from 'react';
 import { Button, Item, Menu, MenuTrigger, Popover } from 'react-aria-components';
 import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { toKebabCase } from '../../../common/misc';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import { PlatformKeyCombinations } from '../../../common/settings';
@@ -58,10 +59,10 @@ export const RequestGroupActionsDropdown = ({
 
   const handleRequestGroupDuplicate = () => {
     showPrompt({
-      title: 'Duplicate Folder',
+      title: t('Duplicate Folder'),
       defaultValue: requestGroup.name,
-      submitName: 'Create',
-      label: 'New Name',
+      submitName: t('Create'),
+      label: t('New Name'),
       selectText: true,
       onComplete: async (name: string) => {
         requestFetcher.submit({ _id: requestGroup._id, name },
@@ -77,11 +78,11 @@ export const RequestGroupActionsDropdown = ({
   const patchGroup = useRequestGroupPatcher();
   const handleRename = () => {
     showPrompt({
-      title: 'Rename Folder',
+      title: t('Rename Folder'),
       defaultValue: requestGroup.name,
-      submitName: 'Rename',
+      submitName: t('Rename'),
       selectText: true,
-      label: 'Name',
+      label: t('Name'),
       onComplete: name => patchGroup(requestGroup._id, { name }),
     });
   };
@@ -113,7 +114,7 @@ export const RequestGroupActionsDropdown = ({
       });
     } catch (err) {
       showError({
-        title: 'Plugin Action Failed',
+        title: t('Plugin Action Failed'),
         error: err,
       });
     }
@@ -140,14 +141,14 @@ export const RequestGroupActionsDropdown = ({
   })[] = [
       {
         id: 'From Curl',
-        name: 'From Curl',
+        name: t('From Curl'),
         icon: 'terminal',
         action: () => setPasteCurlModalOpen(true),
 
       },
       {
         id: 'HTTP',
-        name: 'HTTP Request',
+        name: t('HTTP Request'),
         icon: 'plus-circle',
         hint: hotKeyRegistry.request_createHTTP,
       action: () => createRequest({
@@ -157,7 +158,7 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'Event Stream',
-        name: 'Event Stream Request',
+        name: t('Event Stream Request'),
         icon: 'plus-circle',
         action: () => createRequest({
           requestType: 'Event Stream',
@@ -166,7 +167,7 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'GraphQL Request',
-        name: 'GraphQL Request',
+        name: t('GraphQL Request'),
         icon: 'plus-circle',
         action: () => createRequest({
           requestType: 'GraphQL',
@@ -175,7 +176,7 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'gRPC Request',
-        name: 'gRPC Request',
+        name: t('gRPC Request'),
         icon: 'plus-circle',
         action: () => createRequest({
           requestType: 'gRPC',
@@ -184,7 +185,7 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'WebSocket Request',
-        name: 'WebSocket Request',
+        name: t('WebSocket Request'),
         icon: 'plus-circle',
         action: () => createRequest({
           requestType: 'WebSocket',
@@ -193,7 +194,7 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'MCP Request',
-        name: 'MCP Request',
+        name: t('MCP Request'),
         icon: 'plus-circle',
         action: () => createRequest({
           requestType: 'MCP',
@@ -202,14 +203,14 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'New Folder',
-        name: 'New Folder',
+        name: t('New Folder'),
         icon: 'folder',
         action: () =>
           showPrompt({
-            title: 'New Folder',
-            defaultValue: 'My Folder',
-            submitName: 'Create',
-            label: 'Name',
+            title: t('New Folder'),
+            defaultValue: t('My Folder'),
+            submitName: t('Create'),
+            label: t('Name'),
             selectText: true,
             onComplete: name => requestFetcher.submit({ parentId: requestGroup._id, name },
               {
@@ -220,33 +221,33 @@ export const RequestGroupActionsDropdown = ({
       },
       {
         id: 'Run',
-        name: 'Run Folder',
+        name: t('Run Folder'),
         icon: 'play',
         action: () => setIsRunnerOpen(true),
       },
       {
         id: 'Duplicate',
-        name: 'Duplicate',
+        name: t('Duplicate'),
         icon: 'copy',
         hint: hotKeyRegistry.request_createHTTP,
         action: () => handleRequestGroupDuplicate(),
       },
       {
         id: 'Environment',
-        name: 'Environment',
+        name: t('Environment'),
         icon: 'code',
         action: () => showModal(EnvironmentEditModal, { requestGroup }),
       },
       {
         id: 'Rename',
-        name: 'Rename',
+        name: t('Rename'),
         icon: 'edit',
         action: () =>
           handleRename(),
       },
       {
         id: 'Delete',
-        name: 'Delete',
+        name: t('Delete'),
         icon: 'trash',
         action: () =>
           handleDeleteFolder(),
@@ -260,7 +261,7 @@ export const RequestGroupActionsDropdown = ({
       })),
       {
         id: 'Settings',
-        name: 'Settings',
+        name: t('Settings'),
         icon: 'wrench',
         action: () =>
           setIsSettingsModalOpen(true),
@@ -272,14 +273,14 @@ export const RequestGroupActionsDropdown = ({
     <MenuTrigger onOpenChange={isOpen => isOpen && onOpen()}>
       <Button
         data-testid={`Dropdown-${toKebabCase(requestGroup.name)}`}
-        aria-label="Request Group Actions"
+        aria-label={t('Request Group Actions')}
         className="opacity-0 items-center hover:opacity-100 focus:opacity-100 data-[pressed]:opacity-100 flex group-focus:opacity-100 group-hover:opacity-100 justify-center h-6 aspect-square aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
       >
         <Icon icon="caret-down" />
       </Button>
       <Popover className="min-w-max">
         <Menu
-          aria-label="Request Group Actions Menu"
+          aria-label={t('Request Group Actions Menu')}
           selectionMode="single"
           onAction={key => {
             const item = requestGroupActionItems.find(a => a.id === key);

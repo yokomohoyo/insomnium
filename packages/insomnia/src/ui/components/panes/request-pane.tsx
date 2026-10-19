@@ -3,6 +3,7 @@ import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { getContentTypeFromHeaders } from '../../../common/constants';
+import { t } from '../../../common/i18n';
 import * as models from '../../../models';
 import { queryAllWorkspaceUrls } from '../../../models/helpers/query-all-workspace-urls';
 import type { Settings } from '../../../models/settings';
@@ -170,7 +171,7 @@ export const RequestPane: FC<Props> = ({
           />
         </ErrorBoundary>
       </PaneHeader>
-      <Tabs aria-label="Request pane tabs">
+      <Tabs aria-label={t('Request pane tabs')}>
         <TabItem key="content-type" title={<ContentTypeDropdown />}>
           <BodyEditor
             key={uniqueKey}
@@ -190,7 +191,7 @@ export const RequestPane: FC<Props> = ({
           key="query"
           title={
             <>
-              Query{' '}
+              {t('Query')}{' '}
               {numParameters > 0 && (
                 <span className="bubble space-left">{numParameters}</span>
               )}
@@ -199,7 +200,7 @@ export const RequestPane: FC<Props> = ({
         >
           <QueryEditorContainer>
             <QueryEditorPreview className="pad pad-bottom-sm">
-              <label className="label--small no-pad-top">Url Preview</label>
+              <label className="label--small no-pad-top">{t('Url Preview')}</label>
               <code className="txt-sm block faint">
                 <ErrorBoundary
                   key={uniqueKey}
@@ -231,12 +232,12 @@ export const RequestPane: FC<Props> = ({
                 className="btn btn--compact"
                 title={
                   urlHasQueryParameters
-                    ? 'Import querystring'
-                    : 'No query params to import'
+                    ? t('Import querystring')
+                    : t('No query params to import')
                 }
                 onClick={handleImportQueryFromUrl}
               >
-                Import from URL
+                {t('Import from URL')}
               </button>
               <button
                 className="btn btn--compact"
@@ -247,8 +248,8 @@ export const RequestPane: FC<Props> = ({
                 }
               >
                 {settings.useBulkParametersEditor
-                  ? 'Regular Edit'
-                  : 'Bulk Edit'}
+                  ? t('Regular Edit')
+                  : t('Bulk Edit')}
               </button>
             </TabPanelFooter>
           </QueryEditorContainer>
@@ -257,7 +258,7 @@ export const RequestPane: FC<Props> = ({
           key="headers"
           title={
             <>
-              Headers{' '}
+              {t('Headers')}{' '}
               {numHeaders > 0 && (
                 <span className="bubble space-left">{numHeaders}</span>
               )}
@@ -273,7 +274,7 @@ export const RequestPane: FC<Props> = ({
                 <RequestHeadersEditor bulk={settings.useBulkHeaderEditor} />
                 {folderHeaders.length > 0 && (
                   <p className="pad-left pad-right faint txt-sm" data-testid="folder-headers">
-                    Also sends its folders' headers: {folderHeaders.map(({ name, folder }) => `${name} (${folder})`).join(', ')}
+                    {t("Also sends its folders' headers: {headers}", { headers: folderHeaders.map(({ name, folder }) => `${name} (${folder})`).join(', ') })}
                   </p>
                 )}
               </TabPanelBody>
@@ -288,7 +289,7 @@ export const RequestPane: FC<Props> = ({
                   })
                 }
               >
-                {settings.useBulkHeaderEditor ? 'Regular Edit' : 'Bulk Edit'}
+                {settings.useBulkHeaderEditor ? t('Regular Edit') : t('Bulk Edit')}
               </button>
             </TabPanelFooter>
           </HeaderContainer>
@@ -297,7 +298,7 @@ export const RequestPane: FC<Props> = ({
           key="assertions"
           title={
             <>
-              Assertions{' '}
+              {t('Assertions')}{' '}
               {numAssertions > 0 && (
                 <span className="bubble space-left">{numAssertions}</span>
               )}
@@ -314,7 +315,7 @@ export const RequestPane: FC<Props> = ({
           key="scripts"
           title={
             <>
-              Scripts{' '}
+              {t('Scripts')}{' '}
               {numScripts > 0 && (
                 <span className="bubble space-left">{numScripts}</span>
               )}
@@ -329,7 +330,7 @@ export const RequestPane: FC<Props> = ({
           key="examples"
           title={
             <>
-              Examples{' '}
+              {t('Examples')}{' '}
               {examples.length > 0 && (
                 <span className="bubble space-left">{examples.length}</span>
               )}
@@ -344,7 +345,7 @@ export const RequestPane: FC<Props> = ({
           key="docs"
           title={
             <>
-              Docs
+              {t('Docs')}
               {activeRequest.description && (
                 <span className="bubble space-left">
                   <i className="fa fa--skinny fa-check txt-xxs" />
@@ -361,7 +362,7 @@ export const RequestPane: FC<Props> = ({
                     className="btn btn--clicky"
                     onClick={() => setIsRequestSettingsModalOpen(true)}
                   >
-                    Edit
+                    {t('Edit')}
                   </button>
                 </div>
                 <div className="pad">
@@ -391,7 +392,7 @@ export const RequestPane: FC<Props> = ({
                     className="btn btn--clicky faint"
                     onClick={() => setIsRequestSettingsModalOpen(true)}
                   >
-                    Add Description
+                    {t('Add Description')}
                   </button>
                 </p>
               </div>

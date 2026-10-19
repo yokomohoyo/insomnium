@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 
 import { getAppVersion, getProductName } from '../../../common/constants';
+import { t } from '../../../common/i18n';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
@@ -46,51 +47,51 @@ export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props,
   return (
     <Modal ref={modalRef} tall {...props}>
       <ModalHeader>
-        {getProductName()} Preferences
+        {t('{productName} Preferences', { productName: getProductName() })}
         <span className="faint txt-sm">
           &nbsp;&nbsp;–&nbsp; v{getAppVersion()}
 
         </span>
       </ModalHeader>
       <ModalBody noScroll>
-        <Tabs aria-label="Insomnium Settings" defaultSelectedKey={defaultTabKey}>
-          <TabItem key="general" title="General">
+        <Tabs aria-label={t('Insomnium Settings')} defaultSelectedKey={defaultTabKey}>
+          <TabItem key="general" title={t('General')}>
             <PanelContainer className="pad">
               <General />
             </PanelContainer>
           </TabItem>
-          <TabItem key="data" title="Data">
+          <TabItem key="data" title={t('Data')}>
             <PanelContainer className="pad">
               <ImportExport hideSettingsModal={() => modalRef.current?.hide()} />
               <Snapshots />
             </PanelContainer>
           </TabItem>
-          <TabItem key="themes" title="Themes">
+          <TabItem key="themes" title={t('Themes')}>
             <PanelContainer className="pad">
               <ThemePanel />
             </PanelContainer>
           </TabItem>
-          <TabItem key="keyboard" title="Keyboard">
+          <TabItem key="keyboard" title={t('Keyboard')}>
             <PanelContainer className="pad">
               <Shortcuts />
             </PanelContainer>
           </TabItem>
-          <TabItem key="plugins" title="Plugins">
+          <TabItem key="plugins" title={t('Plugins')}>
             <PanelContainer className="pad">
               <Plugins />
             </PanelContainer>
           </TabItem>
-          <TabItem key="proto-tokens" title="Proto Tokens">
+          <TabItem key="proto-tokens" title={t('Proto Tokens')}>
             <PanelContainer className="pad">
               <ProtoTokens />
             </PanelContainer>
           </TabItem>
-          <TabItem key="mcp" title="Automation (MCP)">
+          <TabItem key="mcp" title={t('Automation (MCP)')}>
             <PanelContainer className="pad">
               <McpAutomation />
             </PanelContainer>
           </TabItem>
-          <TabItem key={TAB_INDEX_AI} title="AI">
+          <TabItem key={TAB_INDEX_AI} title={t('AI')}>
             <PanelContainer className="pad">
               <AiAssistant />
             </PanelContainer>

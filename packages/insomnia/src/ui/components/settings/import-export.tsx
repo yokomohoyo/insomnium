@@ -6,6 +6,7 @@ import { getProductName } from '../../../common/constants';
 import { docsImportExport } from '../../../common/documentation';
 import { exportAllToFile } from '../../../common/export';
 import { getWorkspaceLabel } from '../../../common/get-workspace-label';
+import { t } from '../../../common/i18n';
 import { strings } from '../../../common/strings';
 import { ProjectLoaderData } from '../../routes/project';
 import { WorkspaceLoaderData } from '../../routes/workspace';
@@ -49,41 +50,41 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
     <Fragment>
       <div data-testid="import-export-tab">
         <div className="no-margin-top">
-          Import format will be automatically detected.
+          {t('Import format will be automatically detected.')}
         </div>
         <p>
-          Your format isn't supported? <Link href={docsImportExport}>Add Your Own</Link>.
+          {t("Your format isn't supported?")} <Link href={docsImportExport}>{t('Add Your Own')}</Link>.
         </p>
         <div className="pad-top">
           {workspaceData?.activeWorkspace ?
             (<Dropdown
-              aria-label='Export Data Dropdown'
+              aria-label={t('Export Data Dropdown')}
               triggerButton={
                 <DropdownButton className="btn btn--clicky">
-                  Export Data <i className="fa fa-caret-down" />
+                  {t('Export Data')} <i className="fa fa-caret-down" />
                 </DropdownButton>
               }
             >
               <DropdownSection
-                aria-label="Choose Export Type"
-                title="Choose Export Type"
+                aria-label={t('Choose Export Type')}
+                title={t('Choose Export Type')}
               >
-                <DropdownItem aria-label={`Export the "${activeWorkspaceName}" ${getWorkspaceLabel(workspaceData.activeWorkspace).singular}`}>
+                <DropdownItem aria-label={t('Export the "{name}" {type}', { name: workspaceData.activeWorkspace.name, type: getWorkspaceLabel(workspaceData.activeWorkspace).singular })}>
                   <ItemContent
                     icon="home"
-                    label={`Export the "${activeWorkspaceName}" ${getWorkspaceLabel(workspaceData.activeWorkspace).singular}`}
+                    label={t('Export the "{name}" {type}', { name: workspaceData.activeWorkspace.name, type: getWorkspaceLabel(workspaceData.activeWorkspace).singular })}
                     onClick={() => setIsExportModalOpen(true)}
                   />
                 </DropdownItem>
-                <DropdownItem aria-label={`Export files from the "${projectName}" ${strings.project.singular}`}>
+                <DropdownItem aria-label={t('Export files from the "{name}" {type}', { name: projectName, type: strings.project.singular })}>
                   <ItemContent
                     icon="empty"
-                    label={`Export files from the "${projectName}" ${strings.project.singular}`}
+                    label={t('Export files from the "{name}" {type}', { name: projectName, type: strings.project.singular })}
                     onClick={handleExportAllToFile}
                   />
                 </DropdownItem>
               </DropdownSection>
-            </Dropdown>) : (<Button onClick={handleExportAllToFile}>{`Export files from the "${projectName}" ${strings.project.singular}`}</Button>)
+            </Dropdown>) : (<Button onClick={handleExportAllToFile}>{t('Export files from the "{name}" {type}', { name: projectName, type: strings.project.singular })}</Button>)
           }
           &nbsp;&nbsp;
           <Button
@@ -95,7 +96,7 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
             onClick={() => setIsImportModalOpen(true)}
           >
             <i className="fa fa-file-import" />
-            {`Import to the "${projectName}" ${strings.project.singular}`}
+            {t('Import to the "{name}" {type}', { name: projectName, type: strings.project.singular })}
           </Button>
         </div>
       </div>

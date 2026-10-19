@@ -1,6 +1,7 @@
 import React, { FC } from 'react';
 import styled from 'styled-components';
 
+import { t } from '../../../common/i18n';
 import { ColorScheme } from '../../../plugins';
 import { PluginTheme } from '../../../plugins/misc';
 import { useThemes } from '../../hooks/theme';
@@ -324,9 +325,9 @@ export const ThemePanel: FC = () => {
     <RootWrapper>
       <CheckboxWrapper className="form-control form-control--thin">
         <label className="inline-block">
-          Use OS color scheme
+          {t('Use OS color scheme')}
           <HelpTooltip className="space-left">
-            Select different themes for when you’re using light versus dark color schemes on your OS. Check this box, then hover over a theme and select either sun (light) or moon (dark).
+            {t('Select different themes for when you’re using light versus dark color schemes on your OS. Check this box, then hover over a theme and select either sun (light) or moon (dark).')}
           </HelpTooltip>
           <input
             type="checkbox"

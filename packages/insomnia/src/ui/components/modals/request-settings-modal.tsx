@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { HttpVersions } from '../../../common/settings';
 import * as models from '../../../models';
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
@@ -84,18 +85,18 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
     <OverlayContainer>
       <Modal ref={modalRef} onHide={onHide}>
         <ModalHeader>
-          Request Settings{' '}
+          {t('Request Settings')}{' '}
           <span className="txt-sm selectable faint monospace">{request ? request._id : ''}</span>
         </ModalHeader>
         <ModalBody className="pad">
           <div>
             <div className="form-control form-control--outlined">
               <label>
-                Name{' '}
-                <span className="txt-sm faint italic">(also rename by double-clicking in sidebar)</span>
+                {t('Name')}{' '}
+                <span className="txt-sm faint italic">{t('(also rename by double-clicking in sidebar)')}</span>
                 <input
                   type="text"
-                  placeholder={request?.url || 'My Request'}
+                  placeholder={request?.url || t('My Request')}
                   defaultValue={request?.name}
                   onChange={event => patchRequest(request._id, { name: event.target.value })}
                 />
@@ -107,7 +108,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   ref={editorRef}
                   className="margin-top"
                   defaultPreviewMode={defaultPreviewMode}
-                  placeholder="Write a description"
+                  placeholder={t('Write a description')}
                   defaultValue={request.description}
                   onChange={updateDescription}
                 />
@@ -115,7 +116,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   <div className="pad-top pad-bottom">
                     <div className="form-control form-control--thin">
                       <label>
-                        Send cookies automatically
+                        {t('Send cookies automatically')}
                         <input
                           type="checkbox"
                           name="settingSendCookies"
@@ -126,7 +127,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                     </div>
                     <div className="form-control form-control--thin">
                       <label>
-                        Store cookies automatically
+                        {t('Store cookies automatically')}
                         <input
                           type="checkbox"
                           name="settingStoreCookies"
@@ -138,15 +139,15 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   </div>
                   <div className="form-control form-control--outlined">
                     <label>
-                      Follow redirects <span className="txt-sm faint italic">(overrides global setting)</span>
+                      {t('Follow redirects')} <span className="txt-sm faint italic">{t('(overrides global setting)')}</span>
                       <select
                         defaultValue={request.settingFollowRedirects}
                         name="settingFollowRedirects"
                         onChange={toggleCheckBox}
                       >
-                        <option value={'global'}>Use global setting</option>
-                        <option value={'off'}>Don't follow redirects</option>
-                        <option value={'on'}>Follow redirects</option>
+                        <option value={'global'}>{t('Use global setting')}</option>
+                        <option value={'off'}>{t("Don't follow redirects")}</option>
+                        <option value={'on'}>{t('Follow redirects')}</option>
                       </select>
                     </label>
                   </div>
@@ -155,10 +156,9 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                 <div className="form-row">
                   <div className="form-control form-control--outlined">
                     <label>
-                      Move/Copy to Workspace
+                      {t('Move/Copy to Workspace')}
                       <HelpTooltip position="top" className="space-left">
-                        Copy or move the current request to a new workspace. It will be placed at the root of
-                        the new workspace's folder structure.
+                        {t("Copy or move the current request to a new workspace. It will be placed at the root of the new workspace's folder structure.")}
                       </HelpTooltip>
                       <select
                         value={activeWorkspaceIdToCopyTo}
@@ -167,7 +167,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                           setState(state => ({ ...state, activeWorkspaceIdToCopyTo }));
                         }}
                       >
-                        <option value="">-- Select Workspace --</option>
+                        <option value="">{t('-- Select Workspace --')}</option>
                         {workspacesForActiveProject.map(w => {
                           if (workspaceId === w._id) {
                             return null;
@@ -188,7 +188,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                       className="btn btn--clicky"
                       onClick={handleCopyToWorkspace}
                     >
-                      Copy
+                      {t('Copy')}
                     </button>
                   </div>
                   <div className="form-control form-control--no-label width-auto">
@@ -197,14 +197,14 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                       className="btn btn--clicky"
                       onClick={handleMoveToWorkspace}
                     >
-                      Move
+                      {t('Move')}
                     </button>
                   </div>
                 </div>
               </>)}
             {request && isGrpcRequest(request) && (
               <p className="faint italic">
-                Are there any gRPC settings you expect to see? Create a{' '}
+                {t('Are there any gRPC settings you expect to see?')} Create a{' '}
                 <a href={'https://github.com/yokomohoyo/insomnium/issues/new/choose'}>feature request</a>!
               </p>
             )}
@@ -214,7 +214,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   ref={editorRef}
                   className="margin-top"
                   defaultPreviewMode={defaultPreviewMode}
-                  placeholder="Write a description"
+                  placeholder={t('Write a description')}
                   defaultValue={request.description}
                   onChange={updateDescription}
                 />
@@ -222,7 +222,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   <div className="pad-top pad-bottom">
                     <div className="form-control form-control--thin">
                       <label>
-                        Send cookies automatically
+                        {t('Send cookies automatically')}
                         <input
                           type="checkbox"
                           name="settingSendCookies"
@@ -233,7 +233,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                     </div>
                     <div className="form-control form-control--thin">
                       <label>
-                        Store cookies automatically
+                        {t('Store cookies automatically')}
                         <input
                           type="checkbox"
                           name="settingStoreCookies"
@@ -244,7 +244,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                     </div>
                     <div className="form-control form-control--thin">
                       <label>
-                        Automatically encode special characters in URL
+                        {t('Automatically encode special characters in URL')}
                         <input
                           type="checkbox"
                           name="settingEncodeUrl"
@@ -252,14 +252,13 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                           onChange={toggleCheckBox}
                         />
                         <HelpTooltip position="top" className="space-left">
-                          Automatically encode special characters at send time (does not apply to query
-                          parameters editor)
+                          {t('Automatically encode special characters at send time (does not apply to query parameters editor)')}
                         </HelpTooltip>
                       </label>
                     </div>
                     <div className="form-control form-control--thin">
                       <label>
-                        Skip rendering of request body
+                        {t('Skip rendering of request body')}
                         <input
                           type="checkbox"
                           name="settingDisableRenderRequestBody"
@@ -267,17 +266,15 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                           onChange={toggleCheckBox}
                         />
                         <HelpTooltip position="top" className="space-left">
-                          Disable rendering of environment variables and tags for the request body
+                          {t('Disable rendering of environment variables and tags for the request body')}
                         </HelpTooltip>
                       </label>
                     </div>
                     <div className="form-control form-control--thin">
                       <label>
-                        Rebuild path dot sequences
+                        {t('Rebuild path dot sequences')}
                         <HelpTooltip position="top" className="space-left">
-                          This instructs libcurl to squash sequences of "/../" or "/./" that may exist in the
-                          URL's path part and that is supposed to be removed according to RFC 3986 section
-                          5.2.4
+                          {t("This instructs libcurl to squash sequences of \"/../\" or \"/./\" that may exist in the URL's path part and that is supposed to be removed according to RFC 3986 section 5.2.4")}
                         </HelpTooltip>
                         <input
                           type="checkbox"
@@ -290,7 +287,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   </div>
                   <div className="form-control form-control--outlined">
                     <label>
-                      Follow redirects <span className="txt-sm faint italic">(overrides global setting)</span>
+                      {t('Follow redirects')} <span className="txt-sm faint italic">{t('(overrides global setting)')}</span>
                       <select
                         defaultValue={request.settingFollowRedirects}
                         name="settingFollowRedirects"
@@ -301,34 +298,34 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                           setState(state => ({ ...state, request: updated }));
                         }}
                       >
-                        <option value={'global'}>Use global setting</option>
-                        <option value={'off'}>Don't follow redirects</option>
-                        <option value={'on'}>Follow redirects</option>
+                        <option value={'global'}>{t('Use global setting')}</option>
+                        <option value={'off'}>{t("Don't follow redirects")}</option>
+                        <option value={'on'}>{t('Follow redirects')}</option>
                       </select>
                     </label>
                   </div>
                   <div className="form-control form-control--outlined">
                     <label>
-                      Validate certificates <span className="txt-sm faint italic">(overrides global setting)</span>
+                      {t('Validate certificates')} <span className="txt-sm faint italic">{t('(overrides global setting)')}</span>
                       <select
                         defaultValue={request.settingValidateSSL || 'global'}
                         onChange={event => patchRequest(request._id, { settingValidateSSL: event.currentTarget.value as Request['settingValidateSSL'] })}
                       >
-                        <option value={'global'}>Use global setting</option>
-                        <option value={'on'}>Validate certificates</option>
-                        <option value={'off'}>Don't validate certificates</option>
+                        <option value={'global'}>{t('Use global setting')}</option>
+                        <option value={'on'}>{t('Validate certificates')}</option>
+                        <option value={'off'}>{t("Don't validate certificates")}</option>
                       </select>
                     </label>
                   </div>
                   <div className="form-control form-control--outlined">
                     <label>
-                      HTTP version <span className="txt-sm faint italic">(overrides global setting)</span>
+                      {t('HTTP version')} <span className="txt-sm faint italic">{t('(overrides global setting)')}</span>
                       <select
                         defaultValue={request.settingHttpVersion || 'global'}
                         onChange={event => patchRequest(request._id, { settingHttpVersion: event.currentTarget.value as Request['settingHttpVersion'] })}
                       >
-                        <option value={'global'}>Use global setting</option>
-                        <option value={HttpVersions.default}>Default</option>
+                        <option value={'global'}>{t('Use global setting')}</option>
+                        <option value={HttpVersions.default}>{t('Default')}</option>
                         <option value={HttpVersions.V1_0}>HTTP 1.0</option>
                         <option value={HttpVersions.V1_1}>HTTP 1.1</option>
                         <option value={HttpVersions.V2PriorKnowledge}>HTTP/2 PriorKnowledge</option>
@@ -338,12 +335,12 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                   </div>
                   <div className="form-control form-control--outlined">
                     <label>
-                      Request timeout (ms) <span className="txt-sm faint italic">(overrides global setting; 0 for none)</span>
+                      {t('Request timeout (ms)')} <span className="txt-sm faint italic">{t('(overrides global setting; 0 for none)')}</span>
                       <input
                         type="number"
                         min={0}
                         step={100}
-                        placeholder="Use global setting"
+                        placeholder={t('Use global setting')}
                         defaultValue={request.settingTimeout ?? ''}
                         onChange={event => {
                           const { value } = event.currentTarget;
@@ -360,10 +357,9 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                 <div className="form-row">
                   <div className="form-control form-control--outlined">
                     <label>
-                      Move/Copy to Workspace
+                      {t('Move/Copy to Workspace')}
                       <HelpTooltip position="top" className="space-left">
-                        Copy or move the current request to a new workspace. It will be placed at the root of
-                        the new workspace's folder structure.
+                        {t("Copy or move the current request to a new workspace. It will be placed at the root of the new workspace's folder structure.")}
                       </HelpTooltip>
                       <select
                         value={activeWorkspaceIdToCopyTo}
@@ -372,7 +368,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                           setState(state => ({ ...state, activeWorkspaceIdToCopyTo }));
                         }}
                       >
-                        <option value="">-- Select Workspace --</option>
+                        <option value="">{t('-- Select Workspace --')}</option>
                         {workspacesForActiveProject.map(w => {
                           if (workspaceId === w._id) {
                             return null;
@@ -393,7 +389,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                       className="btn btn--clicky"
                       onClick={handleCopyToWorkspace}
                     >
-                      Copy
+                      {t('Copy')}
                     </button>
                   </div>
                   <div className="form-control form-control--no-label width-auto">
@@ -402,7 +398,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                       className="btn btn--clicky"
                       onClick={handleMoveToWorkspace}
                     >
-                      Move
+                      {t('Move')}
                     </button>
                   </div>
                 </div>

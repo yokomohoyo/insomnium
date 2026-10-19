@@ -3,6 +3,7 @@ import React, { useCallback, useRef } from 'react';
 import { useFetcher, useRevalidator, useRouteLoaderData } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { decompressObject } from '../../../common/misc';
 import * as models from '../../../models/index';
 import { isRequest, Request } from '../../../models/request';
@@ -151,7 +152,7 @@ export const ResponseHistoryDropdown = ({
               {!response.requestVersionId ?
                 <i
                   className="icon fa fa-info-circle"
-                  title={'Request will not be restored with this response because it was created before this ability was added'}
+                  title={t('Request will not be restored with this response because it was created before this ability was added')}
                 />
                 : null}
             </>
@@ -165,17 +166,17 @@ export const ResponseHistoryDropdown = ({
     request_toggleHistory: () => dropdownRef.current?.toggle(true),
   });
 
-  const environmentName = activeEnvironment ? activeEnvironment.name : 'Base';
+  const environmentName = activeEnvironment ? activeEnvironment.name : t('Base');
   const isLatestResponseActive = !responses.length || activeResponse._id === responses[0]._id;
   return (
     <Dropdown
       ref={dropdownRef}
-      aria-label="Response history dropdown"
+      aria-label={t('Response history dropdown')}
       key={activeResponse ? activeResponse._id : 'n/a'}
       closeOnSelect={false}
       className="tall pane__header__right"
       triggerButton={
-        <DropdownButton className="btn btn--super-compact tall" title="Response history">
+        <DropdownButton className="btn btn--super-compact tall" title={t('Response history')}>
           {activeResponse && <TimeFromNow timestamp={activeResponse.created} titleCase />}
           {!isLatestResponseActive ? (
             <i className="fa fa-thumb-tack space-left" />
@@ -186,63 +187,63 @@ export const ResponseHistoryDropdown = ({
       }
     >
       <DropdownSection
-        aria-label={`${environmentName} Responses`}
-        title={<span><strong>{environmentName}</strong> Responses</span>}
+        aria-label={t('{environment} Responses', { environment: environmentName })}
+        title={<span><strong>{environmentName}</strong> {t('Responses')}</span>}
       >
-        <DropdownItem aria-label='Save as Example'>
+        <DropdownItem aria-label={t('Save as Example')}>
           <ItemContent
             icon="fa-bookmark-o"
-            label="Save as Example"
+            label={t('Save as Example')}
             onClick={handleSaveAsExample}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Delete Current Response'>
+        <DropdownItem aria-label={t('Delete Current Response')}>
           <ItemContent
             icon="fa-trash-o"
-            label="Delete Current Response"
+            label={t('Delete Current Response')}
             onClick={handleDeleteResponse}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Clear History'>
+        <DropdownItem aria-label={t('Clear History')}>
           <ItemContent
             icon="fa-trash-o"
-            label="Clear History"
+            label={t('Clear History')}
             onClick={handleDeleteResponses}
           />
         </DropdownItem>
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Minutes Section'
-        title="Just Now"
+        aria-label={t('Minutes Section')}
+        title={t('Just Now')}
       >
         {categories.minutes.map(renderResponseRow)}
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Hours Section'
-        title="Less Than Two Hours Ago"
+        aria-label={t('Hours Section')}
+        title={t('Less Than Two Hours Ago')}
       >
         {categories.hours.map(renderResponseRow)}
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Today Section'
-        title="Today"
+        aria-label={t('Today Section')}
+        title={t('Today')}
       >
         {categories.today.map(renderResponseRow)}
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Week Section'
-        title="This Week"
+        aria-label={t('Week Section')}
+        title={t('This Week')}
       >
         {categories.week.map(renderResponseRow)}
       </DropdownSection>
 
       <DropdownSection
-        aria-label='Other Section'
-        title="Older Than This Week"
+        aria-label={t('Other Section')}
+        title={t('Older Than This Week')}
       >
         {categories.other.map(renderResponseRow)}
       </DropdownSection>

@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import { getCommonHeaderNames, getCommonHeaderValues } from '../../../common/common-headers';
 import { documentationLinks } from '../../../common/documentation';
+import { t } from '../../../common/i18n';
 import { generateId } from '../../../common/misc';
 import { getRenderedGrpcRequest, getRenderedGrpcRequestMessage, RENDER_PURPOSE_SEND } from '../../../common/render';
 import { GrpcMethodInfo, GrpcMethodType } from '../../../main/ipc/grpc';
@@ -63,11 +64,12 @@ const StyledDropdownWrapper = styled.div({
 });
 
 export const canClientStream = (methodType?: GrpcMethodType) => methodType === 'client' || methodType === 'bidi';
+// getters, so each read is in the app's current language
 export const GrpcMethodTypeName = {
-  unary: 'Unary',
-  server: 'Server Streaming',
-  client: 'Client Streaming',
-  bidi: 'Bi-directional Streaming',
+  get unary() { return t('Unary'); },
+  get server() { return t('Server Streaming'); },
+  get client() { return t('Client Streaming'); },
+  get bidi() { return t('Bi-directional Streaming'); },
 } as const;
 
 export const GrpcRequestPane: FunctionComponent<Props> = ({
@@ -95,7 +97,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
         } catch (error) {
           // Empty list so the next render doesn't retry and show the error again.
           loadedMethods = [];
-          showModal(ErrorModal, { title: 'Failed to load proto file methods', error });
+          showModal(ErrorModal, { title: t('Failed to load proto file methods'), error });
         }
         setMethods(loadedMethods);
       }
@@ -149,10 +151,10 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
           });
         } else {
           showAlert({
-            title: 'Unexpected Request Failure',
+            title: t('Unexpected Request Failure'),
             message: (
               <div>
-                <p>The request failed due to an unhandled error:</p>
+                <p>{t('The request failed due to an unhandled error:')}</p>
                 <code className="wide selectable">
                   <pre>{err.message}</pre>
                 </code>
@@ -233,7 +235,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                   }
                 }}
               >
-                <Tooltip message="Replace body with request template" position="bottom" delay={500}>
+                <Tooltip message={t('Replace body with request template')} position="bottom" delay={500}>
                   <i className="fa fa-code" />
                 </Tooltip>
               </Button>
@@ -252,7 +254,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                   }
                 }}
               >
-                <Tooltip message="Click to use server reflection" position="bottom" delay={500}>
+                <Tooltip message={t('Click to use server reflection')} position="bottom" delay={500}>
                   <i className="fa fa-refresh" />
                 </Tooltip>
               </Button>
@@ -261,7 +263,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                 variant="text"
                 onClick={() => setIsProtoModalOpen(true)}
               >
-                <Tooltip message="Click to change proto file" position="bottom" delay={500}>
+                <Tooltip message={t('Click to change proto file')} position="bottom" delay={500}>
                   <i className="fa fa-file-code-o" />
                 </Tooltip>
               </Button>
@@ -276,7 +278,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
         </PaneHeader>
         <PaneBody>
           {methodType && (
-            <Tabs aria-label="Grpc request pane tabs">
+            <Tabs aria-label={t('Grpc request pane tabs')}>
               <TabItem key="method-type" title={GrpcMethodTypeName[methodType]}>
                 <>
                   {running && canClientStream(methodType) && (
@@ -303,19 +305,19 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                           });
                         }}
                       >
-                        Stream <i className='fa fa-plus' />
+                        {t('Stream')} <i className='fa fa-plus' />
                       </button>
                       <button
                         className='btn btn--compact btn--clicky-small margin-left-sm bg-surprise'
                         onClick={() => window.main.grpc.commit(requestId)}
                       >
-                        Commit <i className='fa fa-arrow-right' />
+                        {t('Commit')} <i className='fa fa-arrow-right' />
                       </button>
                     </ActionButtonsContainer>
                   )}
-                  <Tabs key={uniquenessKey} aria-label="Grpc tabbed messages tabs" isNested>
+                  <Tabs key={uniquenessKey} aria-label={t('Grpc tabbed messages tabs')} isNested>
                     {[
-                      <TabItem key="body" title="Body">
+                      <TabItem key="body" title={t('Body')}>
                         <CodeEditor
                           id="grpc-request-editor"
                           ref={editorRef}
@@ -327,7 +329,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                         />
                       </TabItem>,
                       ...requestMessages.sort((a, b) => a.created - b.created).map((m, index) => (
-                          <TabItem key={m.id} title={`Stream ${index + 1}`}>
+                          <TabItem key={m.id} title={t('Stream {number}', { number: index + 1 })}>
                             <CodeEditor
                               id={'grpc-request-editor-tab' + m.id}
                               defaultValue={m.text}
@@ -342,13 +344,13 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                   </Tabs>
                 </>
               </TabItem>
-              <TabItem key="headers" title="Headers">
+              <TabItem key="headers" title={t('Headers')}>
                 <PanelContainer className="tall wide">
                   <ErrorBoundary key={uniquenessKey} errorClassName="font-error pad text-center">
                     <KeyValueEditor
-                      namePlaceholder="header"
-                      valuePlaceholder="value"
-                      descriptionPlaceholder="description"
+                      namePlaceholder={t('header')}
+                      valuePlaceholder={t('value')}
+                      descriptionPlaceholder={t('description')}
                       pairs={activeRequest.metadata}
                       isDisabled={running}
                       handleGetAutocompleteNameConstants={getCommonHeaderNames}
@@ -374,8 +376,8 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
             <EmptyStatePane
               icon={<SvgIcon icon="bug" />}
               documentationLinks={[]}
-              secondaryAction="Select a body type from above to send data in the body of a request"
-              title="Enter a URL and send to get a response"
+              secondaryAction={t('Select a body type from above to send data in the body of a request')}
+              title={t('Enter a URL and send to get a response')}
             />
           )}
         </PaneBody>
@@ -396,7 +398,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                 setMethods(await window.main.grpc.loadMethods(protoFileId));
               } catch (error) {
                 setMethods([]);
-                showModal(ErrorModal, { title: 'Failed to load proto file methods', error });
+                showModal(ErrorModal, { title: t('Failed to load proto file methods'), error });
               }
               setIsProtoModalOpen(false);
             }

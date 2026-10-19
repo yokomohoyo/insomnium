@@ -27,9 +27,10 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 
-import { SORT_ORDERS, SortOrder, sortOrderName } from '../../common/constants';
+import { SORT_ORDERS, SortOrder } from '../../common/constants';
 import { ChangeBufferEvent, database as db } from '../../common/database';
 import { variableNames } from '../../common/ai-prompts';
+import { t } from '../../common/i18n';
 import { generateId } from '../../common/misc';
 import { PlatformKeyCombinations } from '../../common/settings';
 import type { GrpcMethodInfo } from '../../main/ipc/grpc';
@@ -106,8 +107,20 @@ export interface GrpcMessage {
 }
 
 const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest): string => {
-  return !isRequestGroup(doc) ? doc.name || doc.url || 'Untitled request' : doc.name || 'Untitled folder';
+  return !isRequestGroup(doc) ? doc.name || doc.url || t('Untitled request') : doc.name || t('Untitled folder');
 };
+
+// a sort order's name, in the app's language
+const sortOrderName = (order: SortOrder) => ({
+  'type-manual': t('Manual'),
+  'name-asc': t('Name Ascending (A-Z)'),
+  'name-desc': t('Name Descending (Z-A)'),
+  'created-asc': t('Oldest First'),
+  'created-desc': t('Newest First'),
+  'http-method': t('HTTP Method'),
+  'type-desc': t('Folders First'),
+  'type-asc': t('Requests First'),
+})[order];
 
 export interface GrpcRequestState {
   requestId: string;
@@ -560,7 +573,7 @@ export const Debug: FC = () => {
   }[] = [
       {
         id: 'HTTP',
-        name: 'HTTP Request',
+        name: t('HTTP Request'),
         icon: 'plus-circle',
         hint: hotKeyRegistry.request_createHTTP,
         action: () =>
@@ -571,7 +584,7 @@ export const Debug: FC = () => {
       },
       {
         id: 'Event Stream',
-        name: 'Event Stream Request',
+        name: t('Event Stream Request'),
         icon: 'plus-circle',
         action: () =>
           createRequest({
@@ -581,7 +594,7 @@ export const Debug: FC = () => {
       },
       {
         id: 'GraphQL Request',
-        name: 'GraphQL Request',
+        name: t('GraphQL Request'),
         icon: 'plus-circle',
         action: () =>
           createRequest({
@@ -591,7 +604,7 @@ export const Debug: FC = () => {
       },
       {
         id: 'gRPC Request',
-        name: 'gRPC Request',
+        name: t('gRPC Request'),
         icon: 'plus-circle',
         action: () =>
           createRequest({
@@ -601,7 +614,7 @@ export const Debug: FC = () => {
       },
       {
         id: 'WebSocket Request',
-        name: 'WebSocket Request',
+        name: t('WebSocket Request'),
         icon: 'plus-circle',
         action: () =>
           createRequest({
@@ -611,7 +624,7 @@ export const Debug: FC = () => {
       },
       {
         id: 'MCP Request',
-        name: 'MCP Request',
+        name: t('MCP Request'),
         icon: 'plus-circle',
         action: () =>
           createRequest({
@@ -621,7 +634,7 @@ export const Debug: FC = () => {
       },
       {
         id: 'LLM Request',
-        name: 'LLM Request',
+        name: t('LLM Request'),
         icon: 'plus-circle',
         action: () =>
           createRequest({
@@ -631,27 +644,27 @@ export const Debug: FC = () => {
       },
       {
         id: 'From Curl',
-        name: 'From Curl',
+        name: t('From Curl'),
         icon: 'terminal',
         action: () => setPasteCurlModalOpen(true),
       },
       // with the AI assistant set up
       ...(settings.aiBaseUrl && settings.aiModel ? [{
         id: 'From a Description',
-        name: 'From a Description…',
+        name: t('From a Description…'),
         icon: 'wand-magic-sparkles' as IconName,
         action: () => setDescribeRequestModalOpen(true),
       }] : []),
       {
         id: 'New Folder',
-        name: 'New Folder',
+        name: t('New Folder'),
         icon: 'folder',
         action: () =>
           showPrompt({
-            title: 'New Folder',
-            defaultValue: 'My Folder',
-            submitName: 'Create',
-            label: 'Name',
+            title: t('New Folder'),
+            defaultValue: t('My Folder'),
+            submitName: t('Create'),
+            label: t('Name'),
             selectText: true,
             onComplete: name =>
               requestFetcher.submit(
@@ -690,7 +703,7 @@ export const Debug: FC = () => {
           <div className="flex flex-col items-start gap-2 justify-between p-[--padding-sm]">
             <div className="flex w-full items-center gap-2 justify-between">
               <Select
-                aria-label="Select an environment"
+                aria-label={t('Select an environment')}
                 onSelectionChange={environmentId => {
                   setActiveEnvironmentFetcher.submit(
                     {
@@ -717,7 +730,7 @@ export const Debug: FC = () => {
                         return (
                           <Fragment>
                             <Icon icon="cancel" />
-                            No Environment
+                            {t('No Environment')}
                           </Fragment>
                         );
                       }
@@ -765,7 +778,7 @@ export const Debug: FC = () => {
                             />
                             <span>
                               {item._id === baseEnvironment._id
-                                ? 'No Environment'
+                                ? t('No Environment')
                                 : item.name}
                             </span>
                             {isSelected && (
@@ -782,7 +795,7 @@ export const Debug: FC = () => {
                 </Popover>
               </Select>
               <Button
-                aria-label='Manage Environments'
+                aria-label={t('Manage Environments')}
                 onPress={() => setEnvironmentModalOpen(true)}
                 className="flex flex-shrink-0 items-center justify-center aspect-square h-full aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
               >
@@ -794,30 +807,30 @@ export const Debug: FC = () => {
               className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
             >
               <Icon icon="cookie-bite" />
-              {activeCookieJar.cookies.length === 0 ? 'Add' : 'Manage'} Cookies
+              {activeCookieJar.cookies.length === 0 ? t('Add Cookies') : t('Manage Cookies')}
             </Button>
             <Button
-              aria-label="Global Environments"
+              aria-label={t('Global Environments')}
               onPress={() => setGlobalEnvironmentsModalOpen(true)}
               className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
             >
               <Icon icon="globe" />
-              {activeGlobalEnvironment ? `Globals: ${activeGlobalEnvironment.name}` : 'Globals'}
+              {activeGlobalEnvironment ? t('Globals: {name}', { name: activeGlobalEnvironment.name }) : t('Globals')}
             </Button>
             <Button
-              aria-label="History"
+              aria-label={t('History')}
               onPress={() => setHistoryModalOpen(true)}
               className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
             >
               <Icon icon="clock-rotate-left" />
-              History
+              {t('History')}
             </Button>
           </div>
 
           <div className="flex flex-col flex-1 overflow-hidden">
             <div className="flex justify-between gap-1 p-[--padding-sm]">
               <SearchField
-                aria-label="Request filter"
+                aria-label={t('Request filter')}
                 className="group relative flex-1"
                 defaultValue={searchParams.get('filter')?.toString() ?? ''}
                 onChange={filter => {
@@ -828,7 +841,7 @@ export const Debug: FC = () => {
                 }}
               >
                 <Input
-                  placeholder="Filter"
+                  placeholder={t('Filter')}
                   className="py-1 w-full pl-2 pr-7 rounded-sm border border-solid border-[--hl-sm] bg-[--color-bg] text-[--color-font] focus:outline-none focus:ring-1 focus:ring-[--hl-md] transition-colors"
                 />
                 <div className="flex items-center px-2 absolute right-0 top-0 h-full">
@@ -838,7 +851,7 @@ export const Debug: FC = () => {
                 </div>
               </SearchField>
               <Select
-                aria-label="Sort order"
+                aria-label={t('Sort order')}
                 className="h-full aspect-square"
                 selectedKey={sortOrder}
                 onSelectionChange={order =>
@@ -850,12 +863,12 @@ export const Debug: FC = () => {
                 items={SORT_ORDERS.map(order => {
                   return {
                     id: order,
-                    name: sortOrderName[order],
+                    name: sortOrderName(order),
                   };
                 })}
               >
                 <Button
-                  aria-label="Select sort order"
+                  aria-label={t('Select sort order')}
                   className="flex flex-shrink-0 items-center justify-center aspect-square h-full aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
                 >
                   <Icon icon="sort" />
@@ -890,14 +903,14 @@ export const Debug: FC = () => {
 
               <MenuTrigger>
                 <Button
-                  aria-label="Create in collection"
+                  aria-label={t('Create in collection')}
                   className="flex items-center justify-center h-full aspect-square aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
                 >
                   <Icon icon="plus-circle" />
                 </Button>
                 <Popover className="min-w-max">
                   <Menu
-                    aria-label="Create a new request"
+                    aria-label={t('Create a new request')}
                     selectionMode="single"
                     onAction={key => {
                       const item = createInCollectionActionList.find(item => item.id === key);
@@ -927,7 +940,7 @@ export const Debug: FC = () => {
             <GridList
               className="overflow-y-auto border-b border-t data-[empty]:py-0 py-[--padding-sm] data-[empty]:border-none border-solid border-[--hl-sm]"
               items={collection.filter(item => !item.hidden && item.pinned)}
-              aria-label="Pinned Requests"
+              aria-label={t('Pinned Requests')}
               disallowEmptySelection
               selectedKeys={[requestId]}
               selectionMode="single"
@@ -995,7 +1008,7 @@ export const Debug: FC = () => {
                 style={{ height: virtualizer.getTotalSize() }}
                 items={virtualizer.getVirtualItems()}
                 className="relative"
-                aria-label="Request Collection"
+                aria-label={t('Request Collection')}
                 disallowEmptySelection
                 key={sortOrder}
                 dragAndDropHooks={sortOrder === 'type-manual' ? collectionDragAndDrop.dragAndDropHooks : undefined}

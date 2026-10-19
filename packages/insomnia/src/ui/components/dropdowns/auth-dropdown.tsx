@@ -7,6 +7,7 @@ import {
   getAuthTypeName,
   HAWK_ALGORITHM_SHA256,
 } from '../../../common/constants';
+import { t } from '../../../common/i18n';
 import {
   addAuthStrategy,
   RequestAuthentication,
@@ -83,16 +84,16 @@ interface StrategyDropdownProps {
 // Adds a strategy to a list of them: a request's, or a folder's
 export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication, onChange, authTypes = defaultTypes, disabled = false, allowNone = false }) => (
   <Dropdown
-    aria-label='Authentication Dropdown'
+    aria-label={t('Authentication Dropdown')}
     isDisabled={disabled}
     triggerButton={
       <DropdownButton className="tall">
-        + Add Auth
+        + {t('Add Auth')}
         <i className="fa fa-caret-down space-left" />
       </DropdownButton>
     }
   >
-    <DropdownSection aria-label='Auth types section' title="Add an Auth Strategy">
+    <DropdownSection aria-label={t('Auth types section')} title={t('Add an Auth Strategy')}>
       {authTypes.map(authType => (
         <DropdownItem key={authType} aria-label={getAuthTypeName(authType, true)}>
           <ItemContent
@@ -103,12 +104,12 @@ export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication
         </DropdownItem>
       ))}
     </DropdownSection>
-    <DropdownSection aria-label='Folder auth section' items={allowNone ? [{ id: 'none' }] : []}>
+    <DropdownSection aria-label={t('Folder auth section')} items={allowNone ? [{ id: 'none' }] : []}>
       {item => (
-        <DropdownItem key={item.id} aria-label="No auth, not the folder's">
+        <DropdownItem key={item.id} aria-label={t("No auth, not the folder's")}>
           <ItemContent
             icon='ban'
-            label="No auth, not the folder's"
+            label={t("No auth, not the folder's")}
             onClick={() => onChange([{ type: AUTH_NONE }])}
           />
         </DropdownItem>

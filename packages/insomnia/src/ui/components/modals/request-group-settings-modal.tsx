@@ -4,6 +4,7 @@ import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
 import { getCommonHeaderNames, getCommonHeaderValues } from '../../../common/common-headers';
 import type { AuthType } from '../../../common/constants';
+import { t } from '../../../common/i18n';
 import { getAuthStrategies, type RequestAuthenticationStrategy, type RequestHeader } from '../../../models/request';
 import type { RequestGroup } from '../../../models/request-group';
 import { guard } from '../../../utils/guard';
@@ -99,7 +100,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
     <OverlayContainer onClick={e => e.stopPropagation()}>
       <Modal ref={modalRef} onHide={onHide}>
         <ModalHeader>
-          Folder Settings{' '}
+          {t('Folder Settings')}{' '}
           <span className="txt-sm selectable faint monospace">
             {requestGroup?._id || ''}
           </span>
@@ -107,10 +108,10 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
         <ModalBody className="pad"><div>
           <div className="form-control form-control--outlined">
             <label>
-              Name
+              {t('Name')}
               <input
                 type="text"
-                placeholder={requestGroup?.name || 'My Folder'}
+                placeholder={requestGroup?.name || t('My Folder')}
                 defaultValue={requestGroup?.name}
                 onChange={async event => {
                   guard(requestGroup, 'No request group');
@@ -123,7 +124,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
             ref={editorRef}
             className="margin-top"
             defaultPreviewMode={defaultPreviewMode}
-            placeholder="Write a description"
+            placeholder={t('Write a description')}
             defaultValue={requestGroup?.description || ''}
             onChange={async (description: string) => {
               guard(requestGroup, 'No request group');
@@ -131,24 +132,24 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
             }}
           />
           <hr />
-          <section aria-label="Folder auth">
+          <section aria-label={t('Folder auth')}>
             <div className="flex flex--center">
-              <strong className="flex-1">Auth</strong>
+              <strong className="flex-1">{t('Auth')}</strong>
               <AuthStrategyDropdown authentication={authentication} onChange={saveAuthentication} authTypes={FOLDER_AUTH_TYPES} />
             </div>
             <p className="faint txt-sm">
-              Requests in this folder, and in folders inside it, that have no auth of their own use this.
+              {t('Requests in this folder, and in folders inside it, that have no auth of their own use this.')}
             </p>
             {authentication.length > 0 && <AuthStrategiesEditor authentication={authentication} onChange={saveAuthentication} editableTypes={FOLDER_AUTH_TYPES} />}
           </section>
-          <section aria-label="Folder headers" className="margin-top">
-            <strong>Headers</strong>
+          <section aria-label={t('Folder headers')} className="margin-top">
+            <strong>{t('Headers')}</strong>
             <p className="faint txt-sm">
-              Sent with every request in this folder, unless the request sets the same header. A folder inside it can override them.
+              {t('Sent with every request in this folder, unless the request sets the same header. A folder inside it can override them.')}
             </p>
             <KeyValueEditor
-              namePlaceholder="header"
-              valuePlaceholder="value"
+              namePlaceholder={t('header')}
+              valuePlaceholder={t('value')}
               pairs={headers}
               handleGetAutocompleteNameConstants={getCommonHeaderNames}
               handleGetAutocompleteValueConstants={getCommonHeaderValues}
@@ -159,10 +160,9 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
           <div className="form-row">
             <div className="form-control form-control--outlined">
               <label>
-                Move/Copy to Workspace
+                {t('Move/Copy to Workspace')}
                 <HelpTooltip position="top" className="space-left">
-                  Copy or move the current folder to a new workspace. It will be
-                  placed at the root of the new workspace's folder structure.
+                  {t("Copy or move the current folder to a new workspace. It will be placed at the root of the new workspace's folder structure.")}
                 </HelpTooltip>
                 <select
                   value={activeWorkspaceIdToCopyTo}
@@ -174,7 +174,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
                     }));
                   }}
                 >
-                  <option value="">-- Select Workspace --</option>
+                  <option value="">{t('-- Select Workspace --')}</option>
                   {workspacesForActiveProject
                     .filter(w => workspaceId !== w._id)
                     .map(w => (
@@ -192,7 +192,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
                 className="btn btn--clicky"
                 onClick={handleCopyToWorkspace}
               >
-                Copy
+                {t('Copy')}
               </button>
             </div>
             <div className="form-control form-control--no-label width-auto">
@@ -201,7 +201,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
                 className="btn btn--clicky"
                 onClick={handleMoveToWorkspace}
               >
-                Move
+                {t('Move')}
               </button>
             </div>
           </div>

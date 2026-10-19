@@ -11,6 +11,7 @@ import { OverlayContainer, useDrop } from 'react-aria';
 import { useFetcher } from 'react-router-dom';
 import styled from 'styled-components';
 
+import { t } from '../../../common/i18n';
 import {
   ImportResourcesActionResult,
   ScanForResourcesActionResult,
@@ -474,7 +475,7 @@ export const ImportModal: FC<ImportModalProps> = ({
   // allow workspace import if there is only one workspace
   const totalWorkspaces = scanResourcesFetcher.data?.workspaces?.length || 0;
   const shouldImportToWorkspace = !!defaultWorkspaceId && totalWorkspaces <= 1;
-  const header = shouldImportToWorkspace ? `Import to "${workspaceName}" Workspace` : `Import to "${projectName}" Project`;
+  const header = shouldImportToWorkspace ? t('Import to "{name}" Workspace', { name: workspaceName || '' }) : t('Import to "{name}" Project', { name: projectName });
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
       <Modal ref={modalRef} onHide={onHide} wide>
@@ -546,7 +547,7 @@ const ScanResourcesForm = ({
               checked={importFrom === 'file'}
             >
               <i className="fa fa-plus" />
-              File
+              {t('File')}
             </Radio>
             <Radio
               onChange={() => setImportFrom('uri')}
@@ -564,7 +565,7 @@ const ScanResourcesForm = ({
               checked={importFrom === 'clipboard'}
             >
               <i className="fa fa-clipboard" />
-              Clipboard
+              {t('Clipboard')}
             </Radio>
           </RadioGroup>
         </Fieldset>
@@ -587,7 +588,7 @@ const ScanResourcesForm = ({
         {errors && errors.length > 0 && (
           <div className="notice error margin-top-sm">
             <p>
-              <strong>Error while scanning for resources to import:</strong>
+              <strong>{t('Error while scanning for resources to import:')}</strong>
               {errors[0]}
             </p>
           </div>
@@ -607,7 +608,7 @@ const ScanResourcesForm = ({
               paddingBottom: 'var(--padding-sm)',
             }}
           >
-            Supported Formats
+            {t('Supported Formats')}
           </div>
           <div
             style={{
@@ -665,7 +666,7 @@ const ScanResourcesForm = ({
           form={id}
           className="btn"
         >
-          <i className="fa fa-file-import" /> Scan
+          <i className="fa fa-file-import" /> {t('Scan')}
         </Button>
       </div>
     </Fragment>
@@ -788,8 +789,7 @@ const ImportResourcesForm = ({
                 className="table--no-outline-row"
               >
                 <td>
-                  {scanResult.workspaces.length}{' '}
-                  {scanResult.workspaces.length === 1 ? 'Workspace' : 'Workspaces'}
+                  {t('{count, plural, one {# Workspace} other {# Workspaces}}', { count: scanResult.workspaces.length })}
                 </td>
               </tr>
             )}
@@ -799,8 +799,7 @@ const ImportResourcesForm = ({
                 className="table--no-outline-row"
               >
                 <td>
-                  {scanResult.requests.length}{' '}
-                  {scanResult.requests.length === 1 ? 'Request' : 'Requests'}
+                  {t('{count, plural, one {# Request} other {# Requests}}', { count: scanResult.requests.length })}
                 </td>
               </tr>
             )}
@@ -817,8 +816,7 @@ const ImportResourcesForm = ({
                       gap: 'var(--padding-md)',
                     }}
                   >
-                    {scanResult.apiSpecs.length}{' '}
-                    {scanResult.apiSpecs.length === 1 ? 'OpenAPI Spec' : 'OpenAPI Specs'}
+                    {t('{count, plural, one {# OpenAPI Spec} other {# OpenAPI Specs}}', { count: scanResult.apiSpecs.length })}
                   </div>
                 </td>
               </tr>
@@ -827,13 +825,10 @@ const ImportResourcesForm = ({
               scanResult.environments.length > 0 && (
               <tr className="table--no-outline-row">
                 <td>
-                  {scanResult.environments.length}{' '}
-                  {scanResult.environments.length === 1
-                    ? 'Environment'
-                    : 'Environments'}
-                  {' with '}
-                  {scanResult.cookieJars?.length}{' '}
-                  {scanResult.cookieJars?.length === 1 ? 'Cookie Jar' : 'Cookie Jars'}
+                  {t('{environments, plural, one {# Environment} other {# Environments}} with {cookieJars, plural, one {# Cookie Jar} other {# Cookie Jars}}', {
+                    environments: scanResult.environments.length,
+                    cookieJars: scanResult.cookieJars?.length ?? 0,
+                  })}
                 </td>
               </tr>
             )}
@@ -841,13 +836,10 @@ const ImportResourcesForm = ({
               scanResult.unitTestSuites?.length > 0 && (
               <tr className="table--no-outline-row">
                 <td>
-                  {scanResult.unitTestSuites.length}{' '}
-                  {scanResult.unitTestSuites.length === 1
-                    ? 'Test Suite'
-                    : 'Test Suites'}
-                  {' with '}
-                  {scanResult.unitTests?.length}
-                  {scanResult.unitTests?.length === 1 ? ' Test' : ' Tests'}
+                  {t('{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}', {
+                    suites: scanResult.unitTestSuites.length,
+                    tests: scanResult.unitTests?.length ?? 0,
+                  })}
                 </td>
               </tr>
             )}
@@ -859,7 +851,7 @@ const ImportResourcesForm = ({
         {errors && errors.length > 0 && (
           <div className="notice error margin-top-sm">
             <p>
-              <strong>Error while importing to Insomnium:</strong>
+              <strong>{t('Error while importing to Insomnium:')}</strong>
               {errors[0]}
             </p>
           </div>
@@ -889,11 +881,11 @@ const ImportResourcesForm = ({
         >
           {disabled ? (
             <div>
-              <i className="fa fa-spinner fa-spin" /> Importing
+              <i className="fa fa-spinner fa-spin" /> {t('Importing')}
             </div>
           ) : (
             <div>
-              <i className="fa fa-file-import" /> Import
+              <i className="fa fa-file-import" /> {t('Import')}
             </div>
           )}
         </Button>

@@ -2,6 +2,7 @@ import React, { FC, useEffect, useRef } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { GitLogLoaderData } from '../../routes/git-actions';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -38,18 +39,18 @@ export const GitLogModal: FC<Props> = ({ branch, onHide }) => {
   return (
     <OverlayContainer>
       <Modal ref={modalRef} onHide={onHide}>
-        <ModalHeader>Git History</ModalHeader>
+        <ModalHeader>{t('Git History')}</ModalHeader>
         <ModalBody className="pad">
           {isLoading && <div className="txt-sm faint italic">
             <i className="fa fa-spinner fa-spin space-right" />
-            Loading git log...
+            {t('Loading git log...')}
           </div>}
           {!isLoading && <table className="table--fancy table--striped">
             <thead>
               <tr>
-                <th className="text-left">Message</th>
-                <th className="text-left">When</th>
-                <th className="text-left">Author</th>
+                <th className="text-left">{t('Message')}</th>
+                <th className="text-left">{t('When')}</th>
+                <th className="text-left">{t('Author')}</th>
               </tr>
             </thead>
             <tbody>{log.map(entry => {
@@ -83,7 +84,7 @@ export const GitLogModal: FC<Props> = ({ branch, onHide }) => {
           </div>
           <div>
             <button className="btn" onClick={() => modalRef.current?.hide()}>
-              Done
+              {t('Done')}
             </button>
           </div>
         </ModalFooter>

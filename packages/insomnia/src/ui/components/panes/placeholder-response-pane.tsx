@@ -2,7 +2,7 @@ import React, { FC, PropsWithChildren } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
-import { keyboardShortcutDescriptions } from '../../../common/hotkeys';
+import { t } from '../../../common/i18n';
 import { KeyboardShortcut } from '../../../common/settings';
 import { RootLoaderData } from '../../routes/root';
 import { Hotkey } from '../hotkey';
@@ -39,14 +39,14 @@ export const PlaceholderResponsePane: FC<PropsWithChildren<{}>> = ({ children })
       <PaneBody placeholder>
         <Wrapper>
           {[
-            'request_send',
-            'request_focusUrl',
-            'showCookiesEditor',
-            'environment_showEditor',
-            'preferences_showKeyboardShortcuts',
-          ].map(shortcut => (
+            ['request_send', t('Send Request')],
+            ['request_focusUrl', t('Focus URL')],
+            ['showCookiesEditor', t('Edit Cookies')],
+            ['environment_showEditor', t('Show Environment Editor')],
+            ['preferences_showKeyboardShortcuts', t('Show Keyboard Shortcuts')],
+          ].map(([shortcut, description]) => (
             <Item key={shortcut}>
-              <Description>{keyboardShortcutDescriptions[shortcut as KeyboardShortcut]}</Description>
+              <Description>{description}</Description>
               <code>
                 <Hotkey
                   keyBindings={hotKeyRegistry[shortcut as KeyboardShortcut]}

@@ -2,6 +2,7 @@ import React, { FC, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import { useFetcher, useParams } from 'react-router-dom';
 
+import { t } from '../../../common/i18n';
 import { RootLoaderData } from '../../routes/root';
 import { Hotkey } from '../hotkey';
 import { Pane, PaneBody, PaneHeader } from './pane';
@@ -29,7 +30,7 @@ export const PlaceholderRequestPane: FC = () => {
           <table className="table--fancy">
             <tbody>
               <tr>
-                <td>New Request</td>
+                <td>{t('New Request')}</td>
                 <td className="text-right">
                   <code>
                     <Hotkey
@@ -40,7 +41,7 @@ export const PlaceholderRequestPane: FC = () => {
                 </td>
               </tr>
               <tr>
-                <td>Switch Requests</td>
+                <td>{t('Switch Requests')}</td>
                 <td className="text-right">
                   <code>
                     <Hotkey
@@ -51,7 +52,7 @@ export const PlaceholderRequestPane: FC = () => {
                 </td>
               </tr>
               <tr>
-                <td>Edit Environments</td>
+                <td>{t('Edit Environments')}</td>
                 <td className="text-right">
                   <code>
                     <Hotkey
@@ -66,7 +67,7 @@ export const PlaceholderRequestPane: FC = () => {
 
           <div className="text-center pane__body--placeholder__cta">
             <button className="btn inline-block btn--clicky" onClick={createHttpRequest}>
-              New HTTP Request
+              {t('New HTTP Request')}
             </button>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useRouteLoaderData } from 'react-router-dom';
 
 import { getPreviewModeName, PREVIEW_MODE_SOURCE, PREVIEW_MODES } from '../../../common/constants';
 import { exportHarCurrentRequest } from '../../../common/har';
+import { t } from '../../../common/i18n';
 import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
@@ -40,16 +41,16 @@ export const PreviewModeDropdown: FC<Props> = ({
       har = JSON.stringify(await exportHarCurrentRequest(activeRequest, activeResponse), null, '\t');
     } catch (err) {
       showError({
-        title: 'Export Failed',
-        message: `Failed to export as HAR: ${err.message}`,
+        title: t('Export Failed'),
+        message: t('Failed to export as HAR: {error}', { error: err.message }),
         error: err,
       });
       return;
     }
 
     const { filePath } = await window.dialog.showSaveDialog({
-      title: 'Export As HAR',
-      buttonLabel: 'Save',
+      title: t('Export As HAR'),
+      buttonLabel: t('Save'),
       defaultPath: `${activeRequest.name.replace(/ +/g, '_')}-${Date.now()}.har`,
     });
 
@@ -59,8 +60,8 @@ export const PreviewModeDropdown: FC<Props> = ({
     const error = await writeToFile(filePath, har);
     if (error) {
       showError({
-        title: 'Save Failed',
-        message: `Failed to save to ${filePath}: ${error.message}`,
+        title: t('Save Failed'),
+        message: t('Failed to save to {path}: {error}', { path: filePath, error: error.message }),
         error,
       });
     }
@@ -79,8 +80,8 @@ export const PreviewModeDropdown: FC<Props> = ({
       .join('');
 
     const { canceled, filePath } = await window.dialog.showSaveDialog({
-      title: 'Save Full Response',
-      buttonLabel: 'Save',
+      title: t('Save Full Response'),
+      buttonLabel: t('Save'),
       defaultPath: `${activeRequest.name.replace(/ +/g, '_')}-${Date.now()}.txt`,
     });
 
@@ -90,11 +91,11 @@ export const PreviewModeDropdown: FC<Props> = ({
     const readStream = models.response.getBodyStream(activeResponse);
     const error = readStream && typeof readStream !== 'string'
       ? await writeToFile(filePath, headers, readStream)
-      : new Error('the response body could not be read');
+      : new Error(t('the response body could not be read'));
     if (error) {
       showError({
-        title: 'Save Failed',
-        message: `Failed to save to ${filePath}: ${error.message}`,
+        title: t('Save Failed'),
+        message: t('Failed to save to {path}: {error}', { path: filePath, error: error.message }),
         error,
       });
     }
@@ -103,7 +104,7 @@ export const PreviewModeDropdown: FC<Props> = ({
 
   return (
     <Dropdown
-      aria-label='Preview Mode Dropdown'
+      aria-label={t('Preview Mode Dropdown')}
       triggerButton={
         <DropdownButton className="tall">
           {getPreviewModeName(previewMode)}
@@ -112,8 +113,8 @@ export const PreviewModeDropdown: FC<Props> = ({
       }
     >
       <DropdownSection
-        aria-label='Preview Mode Section'
-        title="Preview Mode"
+        aria-label={t('Preview Mode Section')}
+        title={t('Preview Mode')}
       >
         {PREVIEW_MODES.map(mode =>
           <DropdownItem
@@ -129,43 +130,43 @@ export const PreviewModeDropdown: FC<Props> = ({
         )}
       </DropdownSection>
       <DropdownSection
-        aria-label='Action Section'
-        title="Action"
+        aria-label={t('Action Section')}
+        title={t('Action')}
       >
-        <DropdownItem aria-label='Copy raw response'>
+        <DropdownItem aria-label={t('Copy raw response')}>
           <ItemContent
             icon="copy"
-            label="Copy raw response"
+            label={t('Copy raw response')}
             onClick={copyToClipboard}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Export raw response'>
+        <DropdownItem aria-label={t('Export raw response')}>
           <ItemContent
             icon="save"
-            label="Export raw response"
+            label={t('Export raw response')}
             onClick={handleDownloadNormal}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Export prettified response'>
+        <DropdownItem aria-label={t('Export prettified response')}>
           {shouldPrettifyOption &&
             <ItemContent
               icon="save"
-              label="Export prettified response"
+              label={t('Export prettified response')}
               onClick={handleDownloadPrettify}
             />
           }
         </DropdownItem>
-        <DropdownItem aria-label='Export HTTP debug'>
+        <DropdownItem aria-label={t('Export HTTP debug')}>
           <ItemContent
             icon="bug"
-            label="Export HTTP debug"
+            label={t('Export HTTP debug')}
             onClick={exportDebugFile}
           />
         </DropdownItem>
-        <DropdownItem aria-label='Export as HAR'>
+        <DropdownItem aria-label={t('Export as HAR')}>
           <ItemContent
             icon="save"
-            label="Export as HAR"
+            label={t('Export as HAR')}
             onClick={exportAsHAR}
           />
         </DropdownItem>
