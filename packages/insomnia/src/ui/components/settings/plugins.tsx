@@ -72,7 +72,8 @@ export const Plugins: FC = () => {
     const apply = async () => {
       setState(state => ({ ...state, isRefreshingPlugins: true }));
       const { pluginConfig } = await models.settings.getOrCreate();
-      await models.settings.patch({ pluginConfig: { ...pluginConfig, [plugin.name]: { ...plugin.config, fullAccess } } });
+      // for this folder's plugin: another of its name elsewhere stays sandboxed
+      await models.settings.patch({ pluginConfig: { ...pluginConfig, [plugin.name]: { ...plugin.config, fullAccess, fullAccessDirectory: fullAccess ? plugin.directory : undefined } } });
       await refreshPlugins();
     };
     if (!fullAccess) {
@@ -155,14 +156,14 @@ export const Plugins: FC = () => {
                     </a>
                   </td>
                   <td className="no-wrap">
-                    <label className="flex items-center gap-1" title={plugin.config.fullAccess ? t('Runs with Node.js, as the app does') : t('Runs in a sandbox, without Node.js or the network')}>
+                    <label className="flex items-center gap-1" title={!plugin.sandboxed ? t('Runs with Node.js, as the app does') : t('Runs in a sandbox, without Node.js or the network')}>
                       <input
                         type="checkbox"
-                        checked={!!plugin.config.fullAccess}
+                        checked={!plugin.sandboxed}
                         disabled={isRefreshingPlugins}
                         onChange={event => setFullAccess(plugin, event.currentTarget.checked)}
                       />
-                      {plugin.config.fullAccess ? t('Full access') : t('Sandboxed')}
+                      {!plugin.sandboxed ? t('Full access') : t('Sandboxed')}
                     </label>
                   </td>
                   <td

@@ -91,6 +91,7 @@ export default async function installPlugin(lookupName: string, options: PluginI
   const { tmpDir } = await _installPluginToTmpDir(lookupName, options);
   // the actual module name, without a version
   await _movePlugin(tmpDir, info.name);
+  return info.name as string;
 }
 
 // A plugin from a package tarball on this computer (npm pack's .tgz), to

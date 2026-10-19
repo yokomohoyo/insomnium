@@ -20,6 +20,8 @@ Some plugins need Node.js: to read a file, use `crypto` or `fs`, or call a progr
 
 A plugin with full access also renders in requests sent through the MCP server; a sandboxed one's tags render only in the app's window.
 
+Full access is for the plugin in the folder you allowed it for. A plugin of the same name in another folder runs sandboxed, and installing a plugin (from npm or a file) in place of one starts it sandboxed again: it's new code.
+
 Up to Insomnium 0.4, every plugin had full access. From 0.5 each is sandboxed until you allow it.
 
 **Registry** sets where Install Plugin gets packages from, such as a mirror or your company's own registry, instead of the npm registry. Installs go through the proxy set under **General → Network Proxy**, like requests do.
@@ -78,7 +80,14 @@ The context also has `context.app` (alerts, prompts, dialogs), `context.store` (
 A sandboxed plugin gets the same context, with these differences:
 
 - `require` loads the plugin's own files and the packages in its `node_modules` (`.js`, `.json`, folders with an `index.js` or a `package.json` `main`), but none of Node.js's modules: `fs`, `path`, `crypto`, `http` and the rest. `Buffer` is there, for `Buffer.from(…)`, `toString('base64')` and the like, but `process` isn't.
-- There's no `fetch`, `XMLHttpRequest` or `WebSocket`. To reach a server, an action can use `context.network.sendRequest`, which sends a request as the app does.
+- There's no `fetch`, `XMLHttpRequest` or `WebSocket`, and the app doesn't reach servers for it: `context.network.sendRequest` and `context.data.import.uri` aren't available. `context.data.import.raw` is.
+- What the app does for it stays on this computer:
+  - `context.util.render` renders the built-in tags that read no file, run no program and reach no server (`base64`, `now`, `uuid`, `hash`, `hmac`, `jwt`, `random`, `faker`, `jsonpath`, `cookie`, `prompt`, `request`, `os`, `env`) and Nunjucks's own (`if`, `for`, `set`, `raw`); not `file`, `response`, the secret managers' or other plugins' tags.
+  - `context.util.models.response.getBodyBuffer(response)` reads a stored response's body, by the response's `_id`.
+  - A request hook can change the request's headers, parameters, cookies, body, settings, method and URL, but not the server it goes to (the URL's scheme and host), not add a file of this computer to the body, and not point its authentication at another URL.
+  - A tag's value goes where you put it: a sandboxed plugin's tag in a request's URL decides where that request goes, as any tag there does.
+- A theme's colours are used as they are; its raw CSS isn't, if it loads anything (`url(`, `@import`) or uses escapes.
 - Calls that go to the app return promises: `context.store.*`, `context.app.alert` and `prompt`, `context.app.clipboard.readText`, `context.util.render` and `context.util.models.*`. `context.app.getPath('desktop')` and `context.app.getInfo()` stay as they were. `context.app.dialog` and `context.response.getBodyStream()` aren't available; use `getBody()`.
 - A template tag's arguments are data: a `displayName`, `hide` or `validate` given as a function, and `liveDisplayName` and `disablePreview`, are left out, so the tag shows its name and every argument.
-- A tag or hook that takes more than 30 seconds (not counting time waiting on a prompt) is given up on, and a plugin that hangs its sandbox is unloaded.
+- A tag or hook that takes more than 30 seconds (not counting time waiting on a prompt) is given up on, and a plugin that hangs its sandbox is unloaded. A plugin that hasn't started in 15 seconds doesn't load, and the list says so.
+- Each plugin's sandbox has storage of its own (`localStorage` and the like, kept until the app closes): plugins don't share it.

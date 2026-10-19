@@ -11,7 +11,7 @@ import { codeRoots, readPluginFile } from '../../../main/plugin-sandbox';
 import * as requestContext from '../../context/request';
 import * as responseContext from '../../context/response';
 import { SandboxBuffer } from '../buffer';
-import { moduleOf, PluginSandboxError, SandboxedPlugin, type SandboxPort } from '../client';
+import { loadSandboxedPlugin, moduleOf, PluginSandboxError, SandboxedPlugin, type SandboxPort } from '../client';
 import { type Port, startRuntime } from '../runtime';
 
 // a plugin's files, as it's installed: its own code, and its node_modules
@@ -151,6 +151,73 @@ describe('a plugin in its sandbox', () => {
     const answer = await sandbox.run('templateTag', 0, [], { util: { models: { request: { remove } } } });
     expect(answer).toEqual({ type: 'contextResult', id: 1, ok: false, error: "util.models.request.remove isn't something a plugin can call" });
     expect(remove).not.toHaveBeenCalled();
+  });
+});
+
+describe("what a sandboxed plugin's context does for it", () => {
+  let ports: MessagePort[] = [];
+  afterEach(() => {
+    ports.forEach(port => port.close());
+    ports = [];
+  });
+
+  // a sandbox that, during a call, makes one call back into its context and returns the answer
+  const callBack = async (method: string, args: unknown[], context: Record<string, any>) => {
+    const { port1, port2 } = new MessageChannel();
+    ports.push(port1, port2);
+    const sandbox = new SandboxedPlugin(port2 as unknown as SandboxPort, 'test');
+    port1.onmessage = ({ data }) => {
+      if (data.type === 'call') {
+        port1.postMessage({ type: 'context', id: 1, call: data.id, method, args });
+      } else if (data.type === 'contextResult') {
+        port1.postMessage({ type: 'result', id: 1, ok: true, value: data });
+      }
+    };
+    return sandbox.run('templateTag', 0, [], context);
+  };
+
+  it("doesn't send requests for it", async () => {
+    const sendRequest = jest.fn();
+    const answer = await callBack('network.sendRequest', [{ _id: 'req_1' }], { network: { sendRequest } });
+    expect(answer).toMatchObject({ ok: false, error: expect.stringContaining("can't send requests") });
+    expect(sendRequest).not.toHaveBeenCalled();
+  });
+
+  it('reads a stored response\'s body by its id, not a path it gives', async () => {
+    const getBodyBuffer = jest.fn(() => Buffer.from('secret'));
+    const answer = await callBack('util.models.response.getBodyBuffer', [{ bodyPath: '/etc/hosts' }], { util: { models: { response: { getBodyBuffer } } } });
+    expect(answer).toMatchObject({ ok: true, value: null });
+    expect(getBodyBuffer).not.toHaveBeenCalled();
+  });
+
+  it('renders only tags that stay on this computer', async () => {
+    const render = jest.fn(async (text: string) => text);
+    const answer = await callBack('util.render', ["{% file '/etc/hosts' %}"], { util: { render } });
+    expect(answer).toMatchObject({ ok: false, error: expect.stringContaining("can't render the file tag") });
+    expect(render).not.toHaveBeenCalled();
+  });
+});
+
+describe('starting a sandbox', () => {
+  const main = (globalThis as any).window;
+  afterEach(() => {
+    (globalThis as any).window = main;
+  });
+
+  it("gives up on a plugin that doesn't say what it has", async () => {
+    const { port1, port2 } = new MessageChannel();
+    const closePluginSandbox = jest.fn();
+    (globalThis as any).window = {
+      main: {
+        openPluginSandbox: async () => ({ id: 'sandbox-1', port: port2 }),
+        closePluginSandbox,
+        onPluginSandboxClosed: () => () => {},
+      },
+    };
+    await expect(loadSandboxedPlugin('/plugins/silent', 'silent', 50)).rejects.toThrow("didn't start in 0 seconds");
+    expect(closePluginSandbox).toHaveBeenCalledWith('sandbox-1');
+    port1.close();
+    port2.close();
   });
 });
 
