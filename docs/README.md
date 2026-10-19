@@ -6,6 +6,7 @@ Insomnium is a local API client for HTTP, GraphQL, gRPC, WebSocket and Server-Se
 - [Template tags](template-tags.md): `{{ variables }}` and `{% tags %}` for timestamps, hashes, signatures, fake data, other responses and more.
 - [Scripts](scripts.md): pre-request and after-response JavaScript, with the `insomnia` (or `pm`) API.
 - [Tests and the runner](testing.md): assertions, script tests, running a collection or folder, and running it in CI.
+- [Flows](flows.md): requests in an order you draw, with conditions on their responses, variables from them, and delays.
 - [Mock server](mock-server.md): answer as a collection's requests would, with their examples.
 - [Git Sync](git-sync.md): keep a collection in a Git repository, with branches, commits, pulls and pushes.
 - [Your editor](editors.md): requests as files with completion, and your editor's AI agent sending them.

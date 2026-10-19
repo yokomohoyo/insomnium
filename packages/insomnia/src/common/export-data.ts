@@ -7,6 +7,7 @@ import YAML from 'yaml';
 import { isApiSpec } from '../models/api-spec';
 import { isCookieJar } from '../models/cookie-jar';
 import { isEnvironment } from '../models/environment';
+import { isFlow } from '../models/flow';
 import { isGrpcRequest } from '../models/grpc-request';
 import type { BaseModel } from '../models/index';
 import * as models from '../models/index';
@@ -27,6 +28,7 @@ import {
   EXPORT_TYPE_API_SPEC,
   EXPORT_TYPE_COOKIE_JAR,
   EXPORT_TYPE_ENVIRONMENT,
+  EXPORT_TYPE_FLOW,
   EXPORT_TYPE_GRPC_REQUEST,
   EXPORT_TYPE_MCP_REQUEST,
   EXPORT_TYPE_PROTO_DIRECTORY,
@@ -186,6 +188,7 @@ export async function exportRequestsData(
         isApiSpec(d) ||
         isUnitTestSuite(d) ||
         isUnitTest(d) ||
+        isFlow(d) ||
         isProtoFile(d) ||
         isProtoDirectory(d) ||
         isWebSocketPayload(d) ||
@@ -203,6 +206,7 @@ export async function exportRequestsData(
         !(
           isUnitTestSuite(d) ||
           isUnitTest(d) ||
+          isFlow(d) ||
           isRequest(d) ||
           isWebSocketPayload(d) ||
           isResponseExample(d) ||
@@ -242,6 +246,9 @@ export async function exportRequestsData(
       } else if (isUnitTest(d)) {
         // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
         d._type = EXPORT_TYPE_UNIT_TEST;
+      } else if (isFlow(d)) {
+        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
+        d._type = EXPORT_TYPE_FLOW;
       } else if (isRequestGroup(d)) {
         // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
         d._type = EXPORT_TYPE_REQUEST_GROUP;

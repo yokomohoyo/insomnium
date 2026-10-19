@@ -2,6 +2,7 @@ import {
   EXPORT_TYPE_API_SPEC,
   EXPORT_TYPE_COOKIE_JAR,
   EXPORT_TYPE_ENVIRONMENT,
+  EXPORT_TYPE_FLOW,
   EXPORT_TYPE_GRPC_REQUEST,
   EXPORT_TYPE_MCP_REQUEST,
   EXPORT_TYPE_PROTO_DIRECTORY,
@@ -21,6 +22,7 @@ import * as _caCertificate from './ca-certificate';
 import * as _clientCertificate from './client-certificate';
 import * as _cookieJar from './cookie-jar';
 import * as _environment from './environment';
+import * as _flow from './flow';
 import * as _gitRepository from './git-repository';
 import * as _grpcRequest from './grpc-request';
 import * as _grpcRequestMeta from './grpc-request-meta';
@@ -67,6 +69,7 @@ export const clientCertificate = _clientCertificate;
 export const caCertificate = _caCertificate;
 export const cookieJar = _cookieJar;
 export const environment = _environment;
+export const flow = _flow;
 export const gitRepository = _gitRepository;
 export const oAuth2Token = _oAuth2Token;
 export const pluginData = _pluginData;
@@ -121,6 +124,7 @@ export function all() {
     unitTestSuite,
     unitTestResult,
     unitTest,
+    flow,
     protoFile,
     protoDirectory,
     grpcRequest,
@@ -228,6 +232,7 @@ export const MODELS_BY_EXPORT_TYPE: Record<string, any> = {
   [EXPORT_TYPE_REQUEST_GROUP]: requestGroup,
   [EXPORT_TYPE_UNIT_TEST_SUITE]: unitTestSuite,
   [EXPORT_TYPE_UNIT_TEST]: unitTest,
+  [EXPORT_TYPE_FLOW]: flow,
   [EXPORT_TYPE_WORKSPACE]: workspace,
   [EXPORT_TYPE_COOKIE_JAR]: cookieJar,
   [EXPORT_TYPE_ENVIRONMENT]: environment,

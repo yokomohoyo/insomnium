@@ -1,5 +1,6 @@
 import { ApiSpec, isApiSpec } from '../models/api-spec';
 import { isEnvironment } from '../models/environment';
+import { isFlow, remapRequests } from '../models/flow';
 import { isGrpcRequest } from '../models/grpc-request';
 import { BaseModel, getModel } from '../models/index';
 import * as models from '../models/index';
@@ -89,6 +90,15 @@ export const importResourcesToNewWorkspace = async (projectId: string, _resource
           ...resource,
           _id: ResourceIdMap.get(resource._id),
           requestId: ResourceIdMap.get(resource.requestId),
+          parentId: ResourceIdMap.get(resource.parentId),
+        });
+
+        // and a flow to the new requests
+      } else if (isFlow(resource)) {
+        await db.docCreate(model.type, {
+          ...resource,
+          _id: ResourceIdMap.get(resource._id),
+          graph: resource.graph && remapRequests(resource.graph, id => ResourceIdMap.get(id)),
           parentId: ResourceIdMap.get(resource.parentId),
         });
       } else {

@@ -569,6 +569,7 @@ export const EXPORT_TYPE_RESPONSE_EXAMPLE = 'response_example';
 export const EXPORT_TYPE_REQUEST_GROUP = 'request_group';
 export const EXPORT_TYPE_UNIT_TEST_SUITE = 'unit_test_suite';
 export const EXPORT_TYPE_UNIT_TEST = 'unit_test';
+export const EXPORT_TYPE_FLOW = 'flow';
 export const EXPORT_TYPE_WORKSPACE = 'workspace';
 export const EXPORT_TYPE_COOKIE_JAR = 'cookie_jar';
 export const EXPORT_TYPE_ENVIRONMENT = 'environment';

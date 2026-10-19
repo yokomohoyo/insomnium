@@ -51,6 +51,7 @@ describe('NeDBClient', () => {
       expect(await neDbClient.readdir(GIT_INSOMNIA_DIR)).toEqual([
         models.apiSpec.type,
         models.environment.type,
+        models.flow.type,
         models.grpcRequest.type,
         models.mcpRequest.type,
         models.protoDirectory.type,

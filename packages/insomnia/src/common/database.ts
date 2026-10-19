@@ -140,6 +140,8 @@ export const database = {
       return _send<T>('duplicate', ...arguments);
     }
     const flushId = await database.bufferChanges();
+    // each copy by its original's id, for references between the docs copied
+    const copies = new Map<string, BaseModel>();
 
     async function next<T extends BaseModel>(docToCopy: T, patch: Patch<T>) {
       const model = mustGetModel(docToCopy.type);
@@ -155,6 +157,7 @@ export const database = {
 
       // Don't initialize the model during insert, and simply duplicate
       const createdDoc = await database.insert(newDoc, false, false);
+      copies.set(docToCopy._id, createdDoc);
 
       // 2. Get all the children
       for (const type of allTypes()) {
@@ -175,6 +178,14 @@ export const database = {
     }
 
     const createdDoc = await next(originalDoc, patch);
+    // a copied unit test's request, and a copied flow's, are the copies
+    for (const copy of copies.values()) {
+      const remapIds = (mustGetModel(copy.type) as { remapIds?: (doc: BaseModel, ids: (id: string) => string | undefined) => Partial<BaseModel> | undefined }).remapIds;
+      const remapped = remapIds?.(copy, id => copies.get(id)?._id);
+      if (remapped) {
+        await database.update({ ...copy, ...remapped });
+      }
+    }
     await database.flushChanges(flushId);
     return createdDoc;
   },

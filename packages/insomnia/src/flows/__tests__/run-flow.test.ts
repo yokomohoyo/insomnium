@@ -54,6 +54,21 @@ describe('runFlow', () => {
     expect(result.steps.at(-1)).toMatchObject({ nodeId: 'send', status: 'failed' });
   });
 
+  it("checks a condition against a value with the flow's variables", async () => {
+    const render = async (text: string, variables: Record<string, string>) => text.replace('{{ expected }}', variables.expected);
+    const graph: FlowGraph = {
+      nodes: [
+        node('start', 'start'),
+        node('expect', 'setVariable', { name: 'expected', source: 'value', value: 'abc' }),
+        node('get', 'request', { requestId: 'req_1' }),
+        node('same', 'condition', { source: 'jsonpath', property: '$.token', operator: 'equals', value: '{{ expected }}' }),
+      ],
+      edges: [edge('start', 'expect'), edge('expect', 'get'), edge('get', 'same')],
+    };
+    const result = await runFlow(graph, { send: async () => json(200, { token: 'abc' }), render });
+    expect(result.steps.at(-1)).toMatchObject({ nodeId: 'same', status: 'true' });
+  });
+
   it("says what's missing from a step", async () => {
     const graph = (step: FlowNode): FlowGraph => ({ nodes: [node('start', 'start'), step], edges: [edge('start', step.id)] });
     const send = async () => json(200, {});
@@ -90,8 +105,8 @@ describe('runFlow', () => {
 
 describe('checkFlow', () => {
   it('needs one Start, and one arrow out of each step but a condition', () => {
-    expect(checkFlow({ nodes: [], edges: [] })).toBe('Add a Start, where the flow begins.');
-    expect(checkFlow({ nodes: [node('a', 'start'), node('b', 'start')], edges: [] })).toBe('A flow has one Start.');
+    expect(checkFlow({ nodes: [], edges: [] })).toBe('Add a Flow Start, where the flow begins.');
+    expect(checkFlow({ nodes: [node('a', 'start'), node('b', 'start')], edges: [] })).toBe('A flow has one Flow Start.');
     expect(checkFlow({ nodes: [node('a', 'start'), node('b', 'delay'), node('c', 'delay')], edges: [edge('a', 'b'), edge('a', 'c')] })).toContain('one arrow out of it');
     expect(checkFlow(login)).toBeUndefined();
   });
