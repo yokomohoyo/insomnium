@@ -45,6 +45,8 @@ describe('insomnium-server', () => {
     fs.writeFileSync(path.join(dir, 'collection.yaml'), collection);
     ({ http: server } = await startServer({
       collections: [path.join(dir, 'collection.yaml')],
+      repos: [],
+      pullInterval: 0,
       environment: 'staging',
       host: '127.0.0.1',
       port: 0,

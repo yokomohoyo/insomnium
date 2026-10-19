@@ -38,11 +38,33 @@ Then point an MCP client at `http://<host>:8080/mcp` with the header `Authorizat
 claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Authorization: Bearer $TOKEN"
 ```
 
+## Serve a Git Sync repository
+
+Instead of an export, give the repository a collection is synced to with Git Sync, and the server keeps up with it: every `--pull-interval` (5 minutes by default) it fetches what was pushed and applies it. Requests and folders that were added or changed are written, ones deleted upstream go, and the rest keep the responses they've had. It only ever reads the repository.
+
+```sh
+docker run -p 8080:8080 \
+  -e INSOMNIUM_MCP_TOKEN="$TOKEN" \
+  -e INSOMNIUM_ALLOWED_HOSTS="api.internal.example.com" \
+  -e INSOMNIUM_GIT_TOKEN="$GITHUB_TOKEN" \
+  ghcr.io/yokomohoyo/insomnium-server --repo https://github.com/acme/api-collection.git --branch main --env staging
+```
+
+`--repo` takes:
+
+- **An http(s) URL**, which the server clones. For a private repository, set `INSOMNIUM_GIT_TOKEN` to a token that can read it (a GitHub fine-grained token with read-only Contents, say), and `INSOMNIUM_GIT_USERNAME` if the host needs a particular username. SSH remotes can't be cloned; mount a checkout instead.
+- **A directory** with a checkout of the repository, kept current by something else: a mounted volume, a sidecar that pulls, a CI checkout. The server reads it again every `--pull-interval`.
+
+The repository's `.insomnium` folder (or `.insomnia`, from Insomnia) is read the way the app reads a clone, so it holds one workspace. `INSOMNIUM_VAR_*` values apply over the repository's environment after every update. `run`, `load` and `mock` take `--repo` too, and read the repository once.
+
 ## Options
 
 | | |
 |---|---|
 | `--collection <file>` | A collection to load; repeat for more. |
+| `--repo <url or directory>` | A Git Sync repository to serve (see above); repeat for more. |
+| `--branch <name>` | The branch of the repositories to clone; the remote's default otherwise. |
+| `--pull-interval <seconds>` | How often to update the repositories (`INSOMNIUM_PULL_INTERVAL`, default 300); 0 for never. |
 | `--env <name>` | The sub environment to send with. |
 | `--host`, `--port` | Where to listen (`INSOMNIUM_HOST`, `INSOMNIUM_PORT`; the image uses `0.0.0.0:8080`). |
 | `INSOMNIUM_MCP_TOKEN` | **Required**, 32+ characters. Clients send it as a bearer token. |
@@ -52,6 +74,7 @@ claude mcp add --transport http insomnium http://localhost:8080/mcp --header "Au
 | `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` | The proxy to send through, read as curl reads them. gRPC can only use an `http://` proxy. |
 | `INSOMNIUM_ALLOWED_ENV` | Comma-separated environment variables that collections may read with `{% env 'NAME' %}`: names, or prefixes ending in `*`. None by default, so a collection can't read the container's environment unless you allow it. |
 | `INSOMNIUM_ALLOWED_SECRETS` | The secret-manager secrets the [secret tags](../../docs/template-tags.md#secrets-from-a-secret-manager) may read, such as `vault:secret/data/app` or `aws:prod/*`. None by default. |
+| `INSOMNIUM_GIT_TOKEN`, `INSOMNIUM_GIT_USERNAME` | A token for cloning private repositories (sent as the password), and the username to send with it. |
 
 `GET /health` answers without a token, for health checks.
 
@@ -94,6 +117,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 | | |
 |---|---|
 | `--collection <file>` | A collection to run, in any format Import takes; repeat for more. |
+| `--repo <url or directory>`, `--branch <name>` | A Git Sync repository to run, [as serve takes it](#serve-a-git-sync-repository). |
 | `--folder <name>` | Only that folder's requests: its name, or its path (`Users/Admin`) when the name isn't unique. |
 | `--env <name>` | The sub environment to send with. |
 | `--data <file>` | A CSV file with a header row, or a JSON array of objects: one row of variables per iteration, over the environment's. |
@@ -129,6 +153,7 @@ Status codes: 200 × 8416, 503 × 3
 | | |
 |---|---|
 | `--collection <file>` | A collection to load test, in any format Import takes; repeat for more. |
+| `--repo <url or directory>`, `--branch <name>` | A Git Sync repository to load test, [as serve takes it](#serve-a-git-sync-repository). |
 | `--folder <name>` | Only that folder's requests: its name, or its path. |
 | `--env <name>` | The sub environment to send with. |
 | `--users <n>` | Virtual users, 1 to 100 (default 5). |
@@ -154,13 +179,15 @@ docker run --rm -p 4040:4040 -v "$PWD:/work" -w /work \
 | | |
 |---|---|
 | `--collection <file>` | A collection to answer for, in any format Import takes; repeat for more. |
+| `--repo <url or directory>`, `--branch <name>` | A Git Sync repository to answer for, [as serve takes it](#serve-a-git-sync-repository). |
 | `--port <n>` | The port (`INSOMNIUM_MOCK_PORT`; default 4040). |
 | `--host <address>` | The address to listen on (`INSOMNIUM_MOCK_HOST`; default 127.0.0.1, so use 0.0.0.0 in a container). |
 
 ## Not yet
 
 - OAuth 2 flows that need a browser (authorization code, implicit) can't run here; client credentials and password grants can.
-- Collections are loaded at start, from files. Loading a Git Sync repository, and tools that edit, are planned.
+- Tools that edit, and writing back to a repository, are planned.
+- Repositories are cloned over http(s) only; for SSH, mount a checkout.
 - The image is linux/amd64 only, until libcurl is built for arm64.
 
 ## Develop
