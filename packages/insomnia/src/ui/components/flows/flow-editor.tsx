@@ -117,10 +117,11 @@ const StepNode: FC<NodeProps<CanvasNode>> = ({ id, type, data, selected }) => {
 
 const NODE_TYPES = { start: StepNode, request: StepNode, condition: StepNode, setVariable: StepNode, delay: StepNode };
 
-const Field: FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+// a setting, named by its label alone (a select's would otherwise take in its options' text)
+const Field: FC<{ label: string; children: React.ReactElement }> = ({ label, children }) => (
   <label className="flex flex-col gap-[--padding-xxs] text-[--font-size-sm]">
     <span className="text-[--hl]">{label}</span>
-    {children}
+    {React.cloneElement(children, { 'aria-label': label })}
   </label>
 );
 
