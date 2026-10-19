@@ -41,9 +41,49 @@ export interface SshEnvironment {
   // where a host the user trusts is added
   appKnownHostsFile: string;
   askToTrust: (host: HostToTrust) => Promise<boolean>;
+  // how long the connection may take to be ready, in ms (HANDSHAKE_TIMEOUT)
+  handshakeTimeout?: number;
 }
 
 const DEFAULT_KEYS = ['id_ed25519', 'id_ecdsa', 'id_rsa'];
+
+// not counting the time the user spends in the dialog about the host's key
+const HANDSHAKE_TIMEOUT = 30_000;
+
+// A time limit that can be held, and taken up again with what was left
+function deadline(ms: number, expired: () => void) {
+  let left = ms;
+  let since = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let stopped = false;
+  const hold = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+      left -= Date.now() - since;
+    }
+  };
+  return {
+    run: () => {
+      if (!stopped && !timer) {
+        since = Date.now();
+        timer = setTimeout(() => {
+          stopped = true;
+          expired();
+        }, Math.max(left, 0));
+      }
+    },
+    hold,
+    stop: () => {
+      hold();
+      stopped = true;
+    },
+  };
+}
+
+// The dialog about a host's key, by host and key: a request that comes to it
+// while it's open (background fetches can overlap) waits for its answer
+const trusting = new Map<string, Promise<void>>();
 
 // ~/.ssh's files are small and read once a request, as ssh itself reads them
 const readText = (file: string) => {
@@ -198,7 +238,10 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
     ...last.keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
   ];
 
+  const client = new Client();
   let hostError: Error | null = null;
+  let timedOut = () => {};
+  const limit = deadline(env.handshakeTimeout ?? HANDSHAKE_TIMEOUT, () => timedOut());
   const verifyHost = async (key: Buffer) => {
     const files = [path.join(sshDir, 'known_hosts'), path.join(sshDir, 'known_hosts2'), env.appKnownHostsFile];
     const knownHosts = files.map(file => ({ path: file, text: readText(file) || '' }));
@@ -213,24 +256,45 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
     if (check.status === 'changed') {
       throw new Error(`The host key of ${name} isn't the one trusted for it (${check.file}, line ${check.line}). Someone may be in between. If the host has changed its key, delete that line and connect again to trust the new one.`);
     }
-    const trusted = await env.askToTrust({ host: name, keyType: keyType(key), fingerprint: fingerprint(key), otherTypesKnown: check.otherTypesKnown });
-    if (!trusted) {
-      throw new Error(`Not connected: the host key of ${name} wasn't trusted.`);
+    const asked = [env.appKnownHostsFile, name, fingerprint(key)].join('\n');
+    let answer = trusting.get(asked);
+    if (!answer) {
+      answer = (async () => {
+        const trusted = await env.askToTrust({ host: name, keyType: keyType(key), fingerprint: fingerprint(key), otherTypesKnown: check.otherTypesKnown });
+        if (!trusted) {
+          throw new Error(`Not connected: the host key of ${name} wasn't trusted.`);
+        }
+        await fs.promises.mkdir(path.dirname(env.appKnownHostsFile), { recursive: true });
+        await fs.promises.appendFile(env.appKnownHostsFile, `${knownHostsLine(host, port, key)}\n`);
+      })().finally(() => trusting.delete(asked));
+      trusting.set(asked, answer);
     }
-    await fs.promises.mkdir(path.dirname(env.appKnownHostsFile), { recursive: true });
-    await fs.promises.appendFile(env.appKnownHostsFile, `${knownHostsLine(host, port, key)}\n`);
+    // the time the user takes to answer isn't the connection's
+    limit.hold();
+    try {
+      await answer;
+    } finally {
+      limit.run();
+    }
     return true;
   };
 
-  const client = new Client();
   try {
     await new Promise<void>((resolve, reject) => {
-      client.on('ready', resolve);
+      timedOut = () => {
+        reject(new Error(`Couldn't connect to ${host}:${port} over SSH: Timed out while waiting for handshake`));
+        client.destroy();
+      };
+      client.on('ready', () => {
+        limit.stop();
+        resolve();
+      });
       client.on('error', err => {
         // an agent that isn't running: the next way of signing in is tried
         if (err.level === 'agent') {
           return;
         }
+        limit.stop();
         if (hostError) {
           return reject(hostError);
         }
@@ -241,11 +305,13 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
         }
         reject(new Error(`Couldn't connect to ${host}:${port} over SSH: ${err.message}`));
       });
+      limit.run();
       client.connect({
         host,
         port,
         username: user,
-        readyTimeout: 30_000,
+        // limit stands in for it: ssh2's own would run on while the dialog is open
+        readyTimeout: 0,
         keepaliveInterval: 15_000,
         authHandler,
         hostVerifier: (key, verify) => {

@@ -51,6 +51,7 @@ declare module 'ssh2' {
     connect(config: ConnectConfig): this;
     exec(command: string, callback: (err: Error | undefined, channel: ClientChannel) => void): this;
     end(): this;
+    destroy(): this;
     on(event: 'ready' | 'close', listener: () => void): this;
     on(event: 'error', listener: (err: Error & { level?: string }) => void): this;
     on(event: string, listener: (...args: any[]) => void): this;

@@ -3,6 +3,7 @@
  */
 import crypto from 'crypto';
 import fs from 'fs';
+import net from 'net';
 import os from 'os';
 import path from 'path';
 
@@ -138,6 +139,36 @@ class TestAgent extends BaseAgent {
     expect((await models.request.getById('req_1'))?.description).toBe(description);
   });
 
+  it("doesn't count the time the host-key dialog is open against the connection", async () => {
+    write('id_ed25519', server.clientKey);
+    env.handshakeTimeout = 2000;
+    askToTrust.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(true), 3000)));
+    const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace), [file(request)]: YAML.stringify(request) });
+
+    await clone(remote.url);
+    expect(askToTrust).toHaveBeenCalledTimes(1);
+    expect(await models.request.getById('req_1')).toMatchObject({ name: 'list pets' });
+  });
+
+  it('asks once about a host two requests come to at the same time', async () => {
+    write('id_ed25519', server.clientKey);
+    let answer: (trusted: boolean) => void = () => {};
+    askToTrust.mockImplementation(() => new Promise(resolve => {
+      answer = resolve;
+    }));
+    const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
+    const url = `${remoteUrlFor(remote.url)}/info/refs?service=git-upload-pack`;
+
+    const both = Promise.all([1, 2].map(() => gitSshRequest({ url, method: 'GET', headers: {} }, env)));
+    // both at the host's key by then
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    answer(true);
+
+    expect((await both).map(response => response.statusCode)).toEqual([200, 200]);
+    expect(askToTrust).toHaveBeenCalledTimes(1);
+    expect(fs.readFileSync(env.appKnownHostsFile, 'utf8')).toBe(`${knownHostsLine('127.0.0.1', server.port, server.hostKey)}\n`);
+  });
+
   it("won't connect to a host that isn't trusted", async () => {
     write('id_ed25519', server.clientKey);
     askToTrust.mockResolvedValue(false);
@@ -262,16 +293,33 @@ class TestAgent extends BaseAgent {
 });
 
 describe('gitSshRequest', () => {
+  let home: string;
+  let env: SshEnvironment;
+  const askToTrust = jest.fn<SshEnvironment['askToTrust']>();
+  const advertisement = (sshUrl: string) => ({ url: `${remoteUrlFor(sshUrl)}/info/refs?service=git-upload-pack`, method: 'GET', headers: {} });
+
+  beforeEach(() => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-ssh-home-'));
+    env = { home, agents: [], appKnownHostsFile: path.join(home, 'known_hosts'), askToTrust };
+    askToTrust.mockReset();
+  });
+  afterEach(() => fs.rmSync(home, { recursive: true, force: true }));
+
   it('refuses a repository path that starts with -, before connecting', async () => {
-    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-ssh-home-'));
-    const askToTrust = jest.fn<SshEnvironment['askToTrust']>();
-    const url = `${remoteUrlFor('git@127.0.0.1:-oops/api.git')}/info/refs?service=git-upload-pack`;
+    await expect(gitSshRequest(advertisement('git@127.0.0.1:-oops/api.git'), env)).rejects.toThrow('The repository path -oops/api.git starts with "-"');
+    expect(askToTrust).not.toHaveBeenCalled();
+  });
+
+  it("gives up on a host that doesn't answer", async () => {
+    // takes what comes, and says nothing
+    const silent = net.createServer(socket => socket.resume());
+    await new Promise<void>(resolve => silent.listen(0, '127.0.0.1', resolve));
+    const { port } = silent.address() as net.AddressInfo;
     try {
-      await expect(gitSshRequest({ url, method: 'GET', headers: {} }, { home, agents: [], appKnownHostsFile: path.join(home, 'known_hosts'), askToTrust }))
-        .rejects.toThrow('The repository path -oops/api.git starts with "-"');
-      expect(askToTrust).not.toHaveBeenCalled();
+      await expect(gitSshRequest(advertisement(`ssh://git@127.0.0.1:${port}/api.git`), { ...env, handshakeTimeout: 300 }))
+        .rejects.toThrow(`Couldn't connect to 127.0.0.1:${port} over SSH: Timed out while waiting for handshake`);
     } finally {
-      fs.rmSync(home, { recursive: true, force: true });
+      await new Promise(resolve => silent.close(resolve));
     }
   });
 });
