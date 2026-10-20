@@ -23,11 +23,6 @@ const Wrapper = styled.div({
   opacity: 'calc(var(--opacity-subtle) * 0.8)',
 });
 
-const Icon = styled.div({
-  fontSize: '9em',
-  marginBottom: 'var(--padding-lg)',
-  opacity: 'calc(var(--opacity-subtle) * 0.5)',
-});
 
 const Title = styled.div({
   fontWeight: 'bold',

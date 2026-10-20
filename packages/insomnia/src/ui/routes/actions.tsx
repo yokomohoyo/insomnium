@@ -14,7 +14,7 @@ import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
 import { isRequestGroup, isRequestGroupId } from '../../models/request-group';
 import { UnitTest } from '../../models/unit-test';
-import { isCollection, Workspace } from '../../models/workspace';
+import { Workspace } from '../../models/workspace';
 import { WorkspaceMeta } from '../../models/workspace-meta';
 import { getSendRequestCallback } from '../../network/unit-test-feature';
 import { guard } from '../../utils/guard';
@@ -103,7 +103,7 @@ export const createNewWorkspaceAction: ActionFunction = async ({
   // Create default env, cookie jar, and meta
   await models.environment.getOrCreateForParentId(workspace._id);
   await models.cookieJar.getOrCreateForParentId(workspace._id);
-  const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
+  await models.workspaceMeta.getOrCreateByParentId(workspace._id);
 
   await database.flushChanges(flushId);
 

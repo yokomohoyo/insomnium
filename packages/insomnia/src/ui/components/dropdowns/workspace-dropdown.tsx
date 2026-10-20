@@ -19,7 +19,7 @@ import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSe
 import { showAlert, showError, showModal, showPrompt } from '../modals';
 import { AskModal } from '../modals/ask-modal';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
-import { configGenerators, showGenerateConfigModal } from '../modals/generate-config-modal';
+import { configGenerators } from '../modals/generate-config-modal';
 import { ImportModal } from '../modals/import-modal';
 import { CaptureModal } from '../modals/capture-modal';
 import { MockServerModal } from '../modals/mock-server-modal';
@@ -36,7 +36,6 @@ export const WorkspaceDropdown: FC = () => {
     activeWorkspace,
     activeWorkspaceMeta,
     activeProject,
-    activeApiSpec,
     clientCertificates,
     caCertificate,
     projects,
@@ -143,16 +142,6 @@ export const WorkspaceDropdown: FC = () => {
     await window.main.folderSync.stop({ workspaceId: activeWorkspace._id });
     setSyncFolder(null);
   };
-
-  const handleGenerateConfig = useCallback((label: string) => {
-    if (!activeApiSpec) {
-      return;
-    }
-    showGenerateConfigModal({
-      apiSpec: activeApiSpec,
-      activeTabLabel: label,
-    });
-  }, [activeApiSpec]);
 
   return (
     <>

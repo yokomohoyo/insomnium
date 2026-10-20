@@ -1,26 +1,20 @@
 import './rendererListeners';
 
 import React, { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom/client';
 import {
   createMemoryRouter,
   matchPath,
   Outlet,
-  RouterProvider,
 } from 'react-router-dom';
 
 import {
   ACTIVITY_DEBUG,
   ACTIVITY_SPEC,
   getProductName,
-  isDevelopment,
 } from '../common/constants';
-import { database } from '../common/database';
 import { initializeLogging } from '../common/log';
-import * as models from '../models';
 import { DEFAULT_ORGANIZATION_ID } from '../models/organization';
 import { DEFAULT_PROJECT_ID } from '../models/project';
-import { init as initPlugins } from '../plugins';
 import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
 import Root from './routes/root';

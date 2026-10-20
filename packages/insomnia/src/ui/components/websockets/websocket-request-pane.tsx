@@ -22,7 +22,6 @@ import { AuthWrapper } from '../editors/auth/auth-wrapper';
 import { QueryEditorContainer, QueryEditorPreview } from '../editors/query-editor';
 import { RequestHeadersEditor } from '../editors/request-headers-editor';
 import { RequestParametersEditor } from '../editors/request-parameters-editor';
-import { RequestSegmentEditor } from '../editors/request-segment-editor';
 import { ErrorBoundary } from '../error-boundary';
 import { MarkdownPreview } from '../markdown-preview';
 import { showAlert, showModal, showPrompt } from '../modals';

@@ -1,5 +1,4 @@
 import React, { forwardRef, Key, useImperativeHandle, useRef, useState } from 'react';
-import YAML from 'yaml';
 
 import { parseApiSpec } from '../../../common/api-specs';
 import type { ApiSpec } from '../../../models/api-spec';
@@ -75,7 +74,7 @@ export const GenerateConfigModal = forwardRef<GenerateConfigModalHandle, ModalPr
 
   const generateConfig = async (generatePlugin: typeof configGenerators[0], apiSpec: ApiSpec): Promise<Config> => {
     try {
-      const { rawContents, formatVersion } = parseApiSpec(apiSpec.contents);
+      const { formatVersion } = parseApiSpec(apiSpec.contents);
       const isSupported = formatVersion && formatVersion.match(/^3./);
       if (!isSupported) {
         return {
