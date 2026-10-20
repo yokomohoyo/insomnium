@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const collection = JSON.stringify({
@@ -32,7 +33,7 @@ test('a variable added in the environment table is sent @ci', async ({ app, page
   await expect(dialog.locator('.CodeMirror')).toContainText('"petId": "42"');
   await dialog.getByRole('button', { name: 'Close' }).click();
 
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet from the table' }).click();
+  await openRequest(page, 'pet from the table');
   await requestPane.getByRole('button', { name: 'Send' }).click();
   await expect(responsePane).toContainText('"id": "42"');
 });

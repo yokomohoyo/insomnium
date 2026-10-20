@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const globals = JSON.stringify({
@@ -28,7 +29,7 @@ test("a project's global environments reach its collections, and each collection
   // Postman's globals go to the project's global base environment
   await importFromClipboard(globals);
   await importFromClipboard(collection);
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet from globals' }).click();
+  await openRequest(page, 'pet from globals');
   await requestPane.getByRole('button', { name: 'Send' }).click();
   await expect(responsePane).toContainText('global-7');
 

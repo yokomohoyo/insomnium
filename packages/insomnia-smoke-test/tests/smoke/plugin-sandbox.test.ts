@@ -3,6 +3,7 @@ import path from 'path';
 
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // two plugins: one whose tag says what it can reach, and one that needs Node.js
@@ -55,7 +56,7 @@ test('a plugin runs in its sandbox, without Node.js or the network, unless it ha
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet from a plugin' }).click();
+  await openRequest(page, 'pet from a plugin');
   await page.getByTestId('request-pane').getByRole('button', { name: 'Send' }).click();
   // no process, no fetch; the store and Buffer work
   await expect(page.getByTestId('response-pane')).toContainText(`hi-kim-undefined-undefined-${Buffer.from('ok').toString('base64')}`);
