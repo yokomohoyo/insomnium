@@ -21,7 +21,6 @@ export async function renderApp() {
 
   const prevLocationHistoryEntry = localStorage.getItem('locationHistoryEntry');
   let beginningPathForFirstTimeUser: string | null = null;
-  let wId: string | null = null;
   let eId: string | null = null;
 
   // initalize a new req manually on user's first run
@@ -39,7 +38,6 @@ export async function renderApp() {
     const w = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === "Workspace");
     const e = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === "Environment");
     if (w && r && e) {
-      wId = w._id;
       beginningPathForFirstTimeUser = `/organization/org_default-project/project/proj_default-project/workspace/${w._id}/debug/request/${r._id}`;
 
       const defaultProject = await models.project.getById('proj_default-project');
@@ -55,7 +53,7 @@ export async function renderApp() {
       console.log("META DESU->", w._id, beginningPathForFirstTimeUser);
       const id = await models.workspaceMeta.getByParentId(w._id);
       if (!id) {
-        const activeWorkspaceMeta = await models.workspaceMeta.getOrCreateByParentId(w._id, {
+        await models.workspaceMeta.getOrCreateByParentId(w._id, {
           activeEnvironmentId: eId,
         });
       }

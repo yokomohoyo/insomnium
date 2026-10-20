@@ -20,7 +20,7 @@ import { useParams, useRouteLoaderData } from 'react-router-dom';
 import { t } from '../../../common/i18n';
 import { generateId } from '../../../common/misc';
 import { appFlowRunner } from '../../../flows/flow-runner';
-import { type FlowEdge, type FlowGraph, type FlowNode, type FlowNodeData, type FlowNodeKind, type FlowResult, type FlowStep, runFlow } from '../../../flows/run-flow';
+import { type FlowEdge, type FlowGraph, type FlowNodeData, type FlowNodeKind, type FlowResult, type FlowStep, runFlow } from '../../../flows/run-flow';
 import * as models from '../../../models';
 import { type Flow, START_NODE_ID } from '../../../models/flow';
 import { ASSERTION_OPERATORS, ASSERTION_SOURCES, type AssertionOperator, type AssertionSource, operatorHasValue, sourceHasProperty } from '../../../network/assertions';

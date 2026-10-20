@@ -1,6 +1,6 @@
 import React, { FC, ReactNode, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
-import { useFetcher, useRevalidator } from 'react-router-dom';
+import { useFetcher } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -12,7 +12,6 @@ import * as models from '../../../models/index';
 import { isRequest } from '../../../models/request';
 import { isDesign, Workspace } from '../../../models/workspace';
 import { WorkspaceMeta } from '../../../models/workspace-meta';
-import { guard } from '../../../utils/guard';
 import { FileInputButton } from '../base/file-input-button';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -89,7 +88,6 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
     showDescription: hasDescription,
     defaultPreviewMode: hasDescription,
   });
-  const { revalidate } = useRevalidator();
   const activeWorkspaceName = workspace.name;
   useEffect(() => {
     modalRef.current?.show();
