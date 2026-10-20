@@ -4,7 +4,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { createMemoryRouter, redirect } from 'react-router-dom';
 
-import { revalidateOnDatabaseChanges } from '../revalidate-on-changes';
+import { revalidateOnDatabaseChanges, waitingOn } from '../revalidate-on-changes';
 
 type Router = ReturnType<typeof createMemoryRouter>;
 type Listener = (changes: any[]) => void;
@@ -90,6 +90,16 @@ describe('revalidating on database changes', () => {
 
     expect(router.state.location.pathname).toBe('/item');
     stop();
+  });
+
+  it('says what keeps the window busy', async () => {
+    const { router, state } = await window();
+    router.fetch('create', 'root', '/new', { formMethod: 'post', formData: new FormData() });
+    await until(() => state.finishAction);
+    expect(waitingOn(router)).toEqual({ navigation: 'idle', fetchers: [{ key: 'create', state: 'submitting', formMethod: 'POST', formAction: '/new' }] });
+    state.finishAction!();
+    await settled(router);
+    expect(waitingOn(router).fetchers).toEqual([]);
   });
 
   it('(which a revalidation begun meanwhile would drop)', async () => {
