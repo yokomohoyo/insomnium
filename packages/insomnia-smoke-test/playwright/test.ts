@@ -61,11 +61,19 @@ export const test = baseTest.extend<{
 
     await electronApp.close();
   },
-  page: async ({ app }, use) => {
+  page: async ({ app }, use, testInfo) => {
     const page = await app.firstWindow();
+    // the window's console, printed when a test fails: what the app said meanwhile
+    const logs: string[] = [];
+    page.on('console', message => logs.push(`[${message.type()}] ${message.text()}`));
+    page.on('pageerror', error => logs.push(`[pageerror] ${error.message}`));
 
     await page.waitForLoadState();
 
     await use(page);
+
+    if (testInfo.status !== testInfo.expectedStatus) {
+      console.log(`--- the window's console during "${testInfo.title}" ---\n${logs.slice(-200).join('\n')}`);
+    }
   },
 });

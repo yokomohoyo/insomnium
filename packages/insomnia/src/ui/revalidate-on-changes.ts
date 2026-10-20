@@ -30,12 +30,20 @@ const busy = (router: Router) =>
  */
 export function revalidateOnDatabaseChanges(router: Router, db: Pick<typeof database, 'onChange' | 'offChange'> = database) {
   let pending = false;
+  // a revalidation waiting this long says on what, in the window's console
+  let slow: ReturnType<typeof setTimeout> | undefined;
   const listener = (changes: ChangeBufferEvent[]) => {
     if (!changes.some(([, doc]) => REVALIDATE_TYPES.has(doc.type))) {
       return;
     }
     if (busy(router)) {
       pending = true;
+      slow ??= setTimeout(() => {
+        slow = undefined;
+        if (pending) {
+          console.warn('[revalidate] waiting on', waitingOn(router));
+        }
+      }, SLOW);
       return;
     }
     router.revalidate();
@@ -43,6 +51,8 @@ export function revalidateOnDatabaseChanges(router: Router, db: Pick<typeof data
   const unsubscribe = router.subscribe(() => {
     if (pending && !busy(router)) {
       pending = false;
+      clearTimeout(slow);
+      slow = undefined;
       // not from inside the router's own state update
       queueMicrotask(() => router.revalidate());
     }
@@ -51,5 +61,16 @@ export function revalidateOnDatabaseChanges(router: Router, db: Pick<typeof data
   return () => {
     db.offChange(listener);
     unsubscribe();
+    clearTimeout(slow);
   };
 }
+
+const SLOW = 5000;
+
+// what keeps the window busy: its navigation, and the fetchers not idle
+export const waitingOn = (router: Router) => ({
+  navigation: router.state.navigation.state,
+  fetchers: [...router.state.fetchers]
+    .filter(([, fetcher]) => fetcher.state !== 'idle')
+    .map(([key, fetcher]) => ({ key, state: fetcher.state, formMethod: fetcher.formMethod, formAction: fetcher.formAction })),
+});
