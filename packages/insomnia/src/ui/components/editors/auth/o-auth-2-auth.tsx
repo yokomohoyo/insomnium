@@ -6,7 +6,7 @@ import accessTokenUrls from '../../../../datasets/access-token-urls';
 import authorizationUrls from '../../../../datasets/authorization-urls';
 import * as models from '../../../../models';
 import type { OAuth2Token } from '../../../../models/o-auth-2-token';
-import type { AuthTypeOAuth2, OAuth2ResponseType, Request } from '../../../../models/request';
+import type { AuthTypeOAuth2, OAuth2ResponseType } from '../../../../models/request';
 import {
   GRANT_TYPE_AUTHORIZATION_CODE,
   GRANT_TYPE_CLIENT_CREDENTIALS,

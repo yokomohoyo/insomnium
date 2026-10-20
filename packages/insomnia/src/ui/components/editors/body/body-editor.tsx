@@ -10,7 +10,6 @@ import {
   CONTENT_TYPE_GRAPHQL,
   getContentTypeFromHeaders,
 } from '../../../../common/constants';
-import { documentationLinks } from '../../../../common/documentation';
 import { getContentTypeHeader } from '../../../../common/misc';
 import {
   isEventStreamRequest,

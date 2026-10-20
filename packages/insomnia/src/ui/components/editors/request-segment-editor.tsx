@@ -1,10 +1,9 @@
 import React, { FC, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
-import { RequestParameter, RequestSegment } from '../../../models/request';
+import { RequestSegment } from '../../../models/request';
 import { useRequestSetter } from '../../hooks/use-request';
 import { RequestLoaderData, WebSocketRequestLoaderData } from '../../routes/request';
-import { CodeEditor } from '../codemirror/code-editor';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 import _ from "lodash";
 import { generateId } from '../../../common/misc';

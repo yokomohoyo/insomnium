@@ -1,4 +1,4 @@
-import React, { FC, Fragment } from 'react';
+import React, { FC } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { ErrorBoundary } from '../components/error-boundary';

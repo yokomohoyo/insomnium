@@ -1,5 +1,5 @@
 import React, { FC, useState } from 'react';
-import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
+import { useParams, useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { getContentTypeFromHeaders } from '../../../common/constants';
@@ -36,7 +36,6 @@ import { RequestUrlBar } from '../request-url-bar';
 import { Pane, PaneHeader } from './pane';
 import { PlaceholderRequestPane } from './placeholder-request-pane';
 import { RequestSegmentEditor } from '../editors/request-segment-editor';
-import { GitRepoLoaderData } from '../../routes/git-actions';
 const HeaderContainer = styled.div({
   display: 'flex',
   flexDirection: 'column',

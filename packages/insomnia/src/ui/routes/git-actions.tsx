@@ -40,7 +40,6 @@ import {
 } from '../../sync/git/utils';
 import { type DocDiff, docDiff } from '../../sync/git/doc-diff';
 import { guard } from '../../utils/guard';
-import electron from 'electron';
 
 // Loaders
 export type GitRepoLoaderData =

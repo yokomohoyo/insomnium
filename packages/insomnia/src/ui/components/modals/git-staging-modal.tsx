@@ -121,7 +121,7 @@ export const GitStagingModal: FC<ModalProps> = ({
               if (formRef.current) {
                 const data = new FormData(formRef.current);
                 data.append('changeType', 'modified');
-                const res = await gitCommitFetcher.submit(data, {
+                await gitCommitFetcher.submit(data, {
                   action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/commit`,
                   method: 'post',
                 });

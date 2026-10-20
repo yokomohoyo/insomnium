@@ -5,14 +5,12 @@ import styled from 'styled-components';
 
 import { t } from '../../../../common/i18n';
 import type { GitRepository } from '../../../../models/git-repository';
-import { Link } from '../../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
 import { ModalBody } from '../../base/modal-body';
 import { ModalFooter } from '../../base/modal-footer';
 import { ModalHeader } from '../../base/modal-header';
 import { PanelContainer, TabItem, Tabs } from '../../base/tabs';
 import { ErrorBoundary } from '../../error-boundary';
-import { HelpTooltip } from '../../help-tooltip';
 import { showAlert } from '..';
 import { CustomRepositorySettingsFormGroup } from './custom-repository-settings-form-group';
 
