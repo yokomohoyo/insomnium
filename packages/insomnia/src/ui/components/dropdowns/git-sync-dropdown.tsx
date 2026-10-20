@@ -347,7 +347,8 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
                 justifyContent: 'flex-start !important',
                 height: 'var(--line-height-sm)',
               }}
-              disabled={isLoading}
+              // not disabled while the repository data refreshes (after a dialog
+              // closes, say): a click then would be lost; the icon spins instead
             >
               <div
                 style={{
@@ -454,7 +455,8 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
                     className={classnames({ bold: isCurrentBranch })}
                     icon={branch === currentBranch ? 'tag' : 'empty'}
                     label={branch}
-                    isDisabled={isCurrentBranch}
+                    // not another switch while one is under way
+                    isDisabled={isCurrentBranch || gitCheckoutFetcher.state !== 'idle'}
                     onClick={async () => {
                       gitCheckoutFetcher.submit(
                         {
@@ -510,7 +512,6 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
                 justifyContent: 'flex-start !important',
                 height: 'var(--line-height-sm)',
               }}
-              disabled={isLoading}
             >
               <div
                 style={{
