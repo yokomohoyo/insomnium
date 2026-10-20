@@ -23,7 +23,9 @@ export const isSettings = (model: Pick<BaseModel, 'type'>): model is Settings =>
 
 export function init(): BaseSettings {
   return {
-    autoDetectColorScheme: false,
+    autoDetectColorScheme: true,
+    // a settings doc from before 0.5 hasn't it: migrate() sees false
+    autoDetectColorSchemeDefaulted: false,
     autoHideMenuBar: false,
     autocompleteDelay: 1200,
     checkForNewReleases: false,
@@ -92,6 +94,7 @@ export function init(): BaseSettings {
 export function migrate(doc: Settings) {
   try {
     doc = migrateEnsureHotKeys(doc);
+    doc = migrateFollowOsColorScheme(doc);
     return doc;
   } catch (e) {
     console.log('[db] Error during settings migration', e);
@@ -132,6 +135,23 @@ export async function getOrCreate() {
     return await create();
   }
   return results[0];
+}
+
+// Up to 0.4 the theme didn't follow the OS's light or dark unless asked to. An
+// install still on the out-of-the-box theme follows it now, as a new one does;
+// one with a theme chosen keeps it. Once: turned off after, it stays off.
+export function migrateFollowOsColorScheme(settings: Settings): Settings {
+  if (settings.autoDetectColorSchemeDefaulted) {
+    return settings;
+  }
+  const outOfTheBox = settings.theme === getAppDefaultTheme()
+    && settings.lightTheme === getAppDefaultLightTheme()
+    && settings.darkTheme === getAppDefaultDarkTheme();
+  return {
+    ...settings,
+    autoDetectColorScheme: settings.autoDetectColorScheme || outOfTheBox,
+    autoDetectColorSchemeDefaulted: true,
+  };
 }
 
 /**
