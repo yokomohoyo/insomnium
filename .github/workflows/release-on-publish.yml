@@ -341,8 +341,9 @@ jobs:
           printf '  %s\n' "${files[@]}"
           gh release upload "$TAG" "${files[@]}" --repo "${{ github.repository }}" --clobber
 
-      # SignPath Foundation's terms: the release page names the code signing
-      # policy (once, from one build)
+      # SignPath Foundation's terms: once Windows builds are signed through it,
+      # the release page names the code signing policy (once, from one build),
+      # which the README has then
       - name: Link the code signing policy from the release
         if: ${{ !inputs.dry_run && matrix.os == 'ubuntu-latest' }}
         env:
@@ -351,6 +352,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          grep -q '^## Code signing policy' README.md || exit 0
           body=$(gh release view "$TAG" --repo "${{ github.repository }}" --json body -q .body)
           case "$body" in *"Code signing policy"*) exit 0 ;; esac
           printf '%s\n\n[Code signing policy](https://github.com/${{ github.repository }}#code-signing-policy)\n' "$body" > "$RUNNER_TEMP/notes.md"
