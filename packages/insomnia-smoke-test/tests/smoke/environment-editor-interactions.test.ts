@@ -1,4 +1,5 @@
 import { loadFixture } from '../../playwright/paths';
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 test.describe('Environment Editor', async () => {
@@ -24,7 +25,7 @@ test.describe('Environment Editor', async () => {
     await page.getByRole('button', { name: 'Close' }).click();
 
     // Send a request check variables defaulted to base env since new env is empty
-    await page.getByLabel('Request Collection').getByRole('row', { name: 'New Request' }).click();
+    await openRequest(page, 'New Request');
     await page.getByRole('button', { name: 'Send' }).click();
     await page.getByRole('tab', { name: 'Timeline' }).click();
     await page.getByText('baseenv0').click();
@@ -41,7 +42,7 @@ test.describe('Environment Editor', async () => {
     await page.getByRole('button', { name: 'Close' }).click();
 
     // Send a request check variables defaulted to base env since new env is empty
-    await page.getByLabel('Request Collection').getByRole('row', { name: 'New Request' }).click();
+    await openRequest(page, 'New Request');
     await page.getByRole('button', { name: 'Send' }).click();
     await page.getByRole('tab', { name: 'Timeline' }).click();
     await page.getByText('subenvB0').click();

@@ -13,6 +13,7 @@ import {
 interface EnvOptions {
   INSOMNIA_DATA_PATH: string;
   INSOMNIA_API_URL: string;
+  INSOMNIUM_LANGUAGE: string;
 }
 
 export const test = baseTest.extend<{

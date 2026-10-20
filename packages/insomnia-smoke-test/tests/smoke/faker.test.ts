@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // a Postman collection whose request uses a dynamic variable
@@ -18,7 +19,7 @@ test("Postman's dynamic variables import as faker tags and render on send @ci", 
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet by guid' }).click();
+  await openRequest(page, 'pet by guid');
 
   await requestPane.getByRole('button', { name: 'Send' }).click();
   // the server echoes the id it was sent: a fresh v4 UUID
