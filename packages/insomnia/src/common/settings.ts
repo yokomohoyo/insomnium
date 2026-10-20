@@ -98,7 +98,11 @@ export interface PluginConfig {
 export type PluginConfigMap = Record<string, PluginConfig>;
 
 export interface Settings {
+  // the theme follows the OS's light or dark (lightTheme, darkTheme); on out of the box
   autoDetectColorScheme: boolean;
+  // set once the out-of-the-box theme has been switched to follow the OS (0.5): an
+  // install from before keeps a theme of its own, and isn't switched again after
+  autoDetectColorSchemeDefaulted: boolean;
   autoHideMenuBar: boolean;
   autocompleteDelay: number;
   /** Opt-in: ask GitHub for the latest release and show a notice when it's newer. */
