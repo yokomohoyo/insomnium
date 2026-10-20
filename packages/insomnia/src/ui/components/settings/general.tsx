@@ -12,7 +12,6 @@ import {
 import { docsKeyMaps } from '../../../common/documentation';
 import { LANGUAGES, resolveLanguage, t } from '../../../common/i18n';
 import { HttpVersion, HttpVersions } from '../../../common/settings';
-import { strings } from '../../../common/strings';
 import * as models from '../../../models';
 import { initNewOAuthSession } from '../../../network/o-auth-2/get-token';
 import { RootLoaderData } from '../../routes/root';
