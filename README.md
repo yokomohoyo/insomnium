@@ -24,7 +24,7 @@ I have removed user login, tracking, analytics, etc, from Insomnia so it is now 
 
 ## Download
 
-Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). Windows code signing is provided by [SignPath Foundation](https://signpath.org) (see the [Code signing policy](#code-signing-policy)). On Arch Linux, use the AppImage or `.tar.gz` from the releases page for now: the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
+Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). macOS builds are signed and notarized with the maintainer's Apple Developer ID; Windows builds aren't signed yet. On Arch Linux, use the AppImage or `.tar.gz` from the releases page for now: the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
 
 ### macOS (Homebrew)
 
@@ -227,20 +227,7 @@ Before submitting a bug or a feature request, you can read the
 
 Please read through our [contributing guidelines](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md). Included are directions for opening issues, coding standards, and notes on development.
 
-## Code signing policy
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
-
-Windows release binaries are built from this repository's own source by GitHub Actions ([`release-on-publish.yml`](.github/workflows/release-on-publish.yml)), and signed only after a maintainer approves each signing request. macOS builds are signed and notarized with the maintainer's Apple Developer ID.
-
-Team roles:
-
-- Committers and reviewers: [yokomohoyo](https://github.com/yokomohoyo)
-- Approvers: [yokomohoyo](https://github.com/yokomohoyo)
-
-Pull requests from anyone else are reviewed by a committer before they're merged.
-
-### Privacy policy
+## Privacy
 
 This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Insomnium has no account, telemetry or analytics. It contacts only what you point it at: the requests you send, your Git remotes, the plugin registry when you install a plugin, an AI model's endpoint if you set one up, and, only if you turn on "Check for new releases" (off by default), api.github.com once a day for the latest release.
 
