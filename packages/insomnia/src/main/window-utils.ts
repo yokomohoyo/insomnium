@@ -38,6 +38,9 @@ interface Bounds {
   y?: number;
 }
 
+// the app's windows (not a plugin's sandbox or a sign-in's)
+export const appWindows = () => [...windows].filter(window => !window.isDestroyed());
+
 export function init() {
   initLocalStorage();
 }
