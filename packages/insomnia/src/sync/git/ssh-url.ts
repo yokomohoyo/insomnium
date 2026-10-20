@@ -17,6 +17,15 @@ export interface SshAddress {
 const TRANSPORT_HOST = 'ssh.insomnium.invalid';
 const TRANSPORT_ORIGIN = `https://${TRANSPORT_HOST}`;
 
+// %-escapes decoded; text with a % that starts no valid one is kept as typed
+const decoded = (text: string) => {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+};
+
 export function parseSshUrl(url: string): SshAddress | null {
   const address = url.trim();
   // ssh://[user@]host[:port]/path, and git's other spellings of it
@@ -24,7 +33,7 @@ export function parseSshUrl(url: string): SshAddress | null {
   if (full) {
     const [, user, host, port, path] = full;
     // ssh://host/~user/repo is relative to a home, as git takes it
-    return { user: user ? decodeURIComponent(user) : '', host: host.replace(/^\[|\]$/g, ''), port: port ? Number(port) : 0, path: path.replace(/^\/~/, '~') };
+    return { user: user ? decoded(user) : '', host: host.replace(/^\[|\]$/g, ''), port: port ? Number(port) : 0, path: path.replace(/^\/~/, '~') };
   }
   // the scp-like form, [user@]host:path, which has no :// and no slash before the colon
   const scp = address.match(/^(?:([^@/:]+)@)?(\[[^\]]+\]|[^:/]+):(?!\/\/)(.+)$/);
@@ -54,7 +63,12 @@ export function sshRequestOf(url: string): { sshUrl: string; service: GitService
     return null;
   }
   const [, encoded, ...rest] = parsed.pathname.split('/');
-  const sshUrl = decodeURIComponent(encoded || '');
+  let sshUrl: string;
+  try {
+    sshUrl = decodeURIComponent(encoded || '');
+  } catch {
+    return null;
+  }
   const action = rest.join('/');
   const service = (action === 'info/refs' ? parsed.searchParams.get('service') : action) as GitService;
   if (!isSshUrl(sshUrl) || (service !== 'git-upload-pack' && service !== 'git-receive-pack')) {

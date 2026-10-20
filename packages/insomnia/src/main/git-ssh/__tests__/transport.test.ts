@@ -1,12 +1,14 @@
 /**
  * @jest-environment node
  */
+import crypto from 'crypto';
 import fs from 'fs';
+import net from 'net';
 import os from 'os';
 import path from 'path';
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { utils } from 'ssh2';
+import { BaseAgent, type ParsedKey, utils } from 'ssh2';
 import YAML from 'yaml';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
@@ -17,6 +19,7 @@ import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR, type GitCred
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
 import { routableFSClient } from '../../../sync/git/routable-fs-client';
+import { remoteUrlFor } from '../../../sync/git/ssh-url';
 import { knownHostsLine } from '../known-hosts';
 import { gitSshRequest, type SshEnvironment } from '../transport';
 
@@ -29,6 +32,28 @@ jest.setTimeout(20_000);
 const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' };
 const request = { _id: 'req_1', type: models.request.type, parentId: 'wrk_1', name: 'list pets', method: 'GET', url: 'https://pets.example.com/pets' };
 const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${doc._id}.yml`;
+
+// a key's public half, in its wire form, from either half's text
+const publicOf = (text: string) => (utils.parseKey(text) as ParsedKey).getPublicSSH().toString('base64');
+
+// an agent holding these keys, as ssh-agent would
+class TestAgent extends BaseAgent {
+  keys: { public: ParsedKey; private: ParsedKey }[];
+
+  constructor(...pairs: { public: string; private: string; passphrase?: string }[]) {
+    super();
+    this.keys = pairs.map(pair => ({ public: utils.parseKey(pair.public) as ParsedKey, private: utils.parseKey(pair.private, pair.passphrase) as ParsedKey }));
+  }
+
+  getIdentities(callback: (err: Error | null, keys?: ParsedKey[]) => void) {
+    callback(null, this.keys.map(key => key.public));
+  }
+
+  sign(pubKey: ParsedKey, data: Buffer, options: { hash?: string } | undefined, callback: (err: Error | null, signature?: Buffer) => void) {
+    const key = this.keys.find(candidate => candidate.public.getPublicSSH().equals(pubKey.getPublicSSH()));
+    callback(null, key!.private.sign(data, options?.hash) as Buffer);
+  }
+}
 
 (hasGit ? describe : describe.skip)('Git over SSH', () => {
   let server: Awaited<ReturnType<typeof startSshGitServer>>;
@@ -103,6 +128,47 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
     expect(server.accepted.every(user => user === 'git')).toBe(true);
   });
 
+  it('takes a pack that comes in many pieces', async () => {
+    trustServer();
+    write('id_ed25519', server.clientKey);
+    // random, so it doesn't compress: many of the channel's packets
+    const description = crypto.randomBytes(400_000).toString('hex');
+    const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace), [file(request)]: YAML.stringify({ ...request, description }) });
+
+    await clone(remote.url);
+    expect((await models.request.getById('req_1'))?.description).toBe(description);
+  });
+
+  it("doesn't count the time the host-key dialog is open against the connection", async () => {
+    write('id_ed25519', server.clientKey);
+    env.handshakeTimeout = 2000;
+    askToTrust.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve(true), 3000)));
+    const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace), [file(request)]: YAML.stringify(request) });
+
+    await clone(remote.url);
+    expect(askToTrust).toHaveBeenCalledTimes(1);
+    expect(await models.request.getById('req_1')).toMatchObject({ name: 'list pets' });
+  });
+
+  it('asks once about a host two requests come to at the same time', async () => {
+    write('id_ed25519', server.clientKey);
+    let answer: (trusted: boolean) => void = () => {};
+    askToTrust.mockImplementation(() => new Promise(resolve => {
+      answer = resolve;
+    }));
+    const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
+    const url = `${remoteUrlFor(remote.url)}/info/refs?service=git-upload-pack`;
+
+    const both = Promise.all([1, 2].map(() => gitSshRequest({ url, method: 'GET', headers: {} }, env)));
+    // both at the host's key by then
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    answer(true);
+
+    expect((await both).map(response => response.statusCode)).toEqual([200, 200]);
+    expect(askToTrust).toHaveBeenCalledTimes(1);
+    expect(fs.readFileSync(env.appKnownHostsFile, 'utf8')).toBe(`${knownHostsLine('127.0.0.1', server.port, server.hostKey)}\n`);
+  });
+
   it("won't connect to a host that isn't trusted", async () => {
     write('id_ed25519', server.clientKey);
     askToTrust.mockResolvedValue(false);
@@ -157,5 +223,103 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
 
     write('id_ed25519', keyPair().private);
     await expect(clone(remote.url)).rejects.toThrow(`didn't accept the keys tried (${path.join(sshDir(), 'id_ed25519')})`);
+  });
+
+  describe('the keys it offers', () => {
+    // each key offered, once, in order
+    const offered = () => [...new Set(server.offered.map(key => key.toString('base64')))];
+    const keyFile = () => path.join(home, 'keys', 'insomnium');
+    const writeKeyFile = (text: string) => {
+      fs.mkdirSync(path.dirname(keyFile()), { recursive: true });
+      fs.writeFileSync(keyFile(), text, { mode: 0o600 });
+    };
+    beforeEach(() => {
+      server.offered.length = 0;
+      trustServer();
+    });
+
+    it("offers the repository's key, and none of the agent's others", async () => {
+      const other = keyPair();
+      server.allowKey(other.public);
+      env.agents = [new TestAgent(other)];
+      writeKeyFile(server.clientKey);
+      const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
+
+      await clone(remote.url, { username: '', password: '', sshKey: keyFile() });
+      expect(offered()).toEqual([publicOf(server.clientKey)]);
+    });
+
+    it("signs with the agent's copy of a locked repository key, known by its .pub", async () => {
+      const locked = keyPair({ passphrase: 'open sesame', cipher: 'aes256-ctr', rounds: 2 });
+      const other = keyPair();
+      server.allowKey(locked.public);
+      server.allowKey(other.public);
+      env.agents = [new TestAgent(other, { ...locked, passphrase: 'open sesame' })];
+      writeKeyFile(locked.private);
+      fs.writeFileSync(`${keyFile()}.pub`, locked.public);
+      const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
+
+      await clone(remote.url, { username: '', password: '', sshKey: keyFile() });
+      expect(offered()).toEqual([publicOf(locked.public)]);
+    });
+
+    it("tries IdentityFile's key, then the agent's, then ~/.ssh/id_*", async () => {
+      const work = keyPair();
+      const agentKey = keyPair();
+      write('work_ed25519', work.private);
+      write('id_ed25519', server.clientKey);
+      write('config', 'Host 127.0.0.1\n  IdentityFile ~/.ssh/work_ed25519\n');
+      env.agents = [new TestAgent(agentKey)];
+      const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
+
+      await clone(remote.url);
+      expect(offered()).toEqual([publicOf(work.public), publicOf(agentKey.public), publicOf(server.clientKey)]);
+    });
+
+    it("with IdentitiesOnly, offers only IdentityFile's keys, the agent's copies of them too", async () => {
+      const work = keyPair();
+      const other = keyPair();
+      server.allowKey(other.public);
+      write('work_ed25519', work.private);
+      write('id_ed25519', server.clientKey);
+      write('config', 'Host 127.0.0.1\n  IdentitiesOnly yes\n  IdentityFile ~/.ssh/work_ed25519\n');
+      env.agents = [new TestAgent(other, work)];
+      const remote = server.createRepo({ [file(workspace)]: YAML.stringify(workspace) });
+
+      await expect(clone(remote.url)).rejects.toThrow(`didn't accept the keys tried (${path.join(sshDir(), 'work_ed25519')}, the SSH agent)`);
+      expect(offered()).toEqual([publicOf(work.public)]);
+    });
+  });
+});
+
+describe('gitSshRequest', () => {
+  let home: string;
+  let env: SshEnvironment;
+  const askToTrust = jest.fn<SshEnvironment['askToTrust']>();
+  const advertisement = (sshUrl: string) => ({ url: `${remoteUrlFor(sshUrl)}/info/refs?service=git-upload-pack`, method: 'GET', headers: {} });
+
+  beforeEach(() => {
+    home = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-ssh-home-'));
+    env = { home, agents: [], appKnownHostsFile: path.join(home, 'known_hosts'), askToTrust };
+    askToTrust.mockReset();
+  });
+  afterEach(() => fs.rmSync(home, { recursive: true, force: true }));
+
+  it('refuses a repository path that starts with -, before connecting', async () => {
+    await expect(gitSshRequest(advertisement('git@127.0.0.1:-oops/api.git'), env)).rejects.toThrow('The repository path -oops/api.git starts with "-"');
+    expect(askToTrust).not.toHaveBeenCalled();
+  });
+
+  it("gives up on a host that doesn't answer", async () => {
+    // takes what comes, and says nothing
+    const silent = net.createServer(socket => socket.resume());
+    await new Promise<void>(resolve => silent.listen(0, '127.0.0.1', resolve));
+    const { port } = silent.address() as net.AddressInfo;
+    try {
+      await expect(gitSshRequest(advertisement(`ssh://git@127.0.0.1:${port}/api.git`), { ...env, handshakeTimeout: 300 }))
+        .rejects.toThrow(`Couldn't connect to 127.0.0.1:${port} over SSH: Timed out while waiting for handshake`);
+    } finally {
+      await new Promise(resolve => silent.close(resolve));
+    }
   });
 });

@@ -158,7 +158,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
               <label>
                 {t('SSH Key File')} <span className="faint">{t('(optional)')}</span>
                 <HelpTooltip className="space-left">
-                  {t("Your SSH agent's keys are tried first, then this file, then the IdentityFile your ~/.ssh/config names for the host, then ~/.ssh/id_ed25519, id_ecdsa and id_rsa. Host aliases in ~/.ssh/config work as the address's host.")}
+                  {t("This file is offered first, then the IdentityFile your ~/.ssh/config names for the host, and your SSH agent's copies of them, but none of the agent's other keys. Without a file here: that IdentityFile, then the agent's keys, then ~/.ssh/id_ed25519, id_ecdsa and id_rsa. Host aliases in ~/.ssh/config work as the address's host.")}
                 </HelpTooltip>
                 <input
                   type="text"

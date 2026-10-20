@@ -8,6 +8,8 @@ export interface HostConfig {
   user?: string;
   port?: number;
   identityFiles: string[];
+  // offer only the identity files' keys, not the agent's others
+  identitiesOnly?: boolean;
 }
 
 // a Host pattern: * and ? as in a shell
@@ -54,6 +56,8 @@ export function hostConfig(text: string, host: string, home: string): HostConfig
       config.user = setting;
     } else if (keyword === 'port' && config.port === undefined && /^\d+$/.test(setting)) {
       config.port = Number(setting);
+    } else if (keyword === 'identitiesonly' && config.identitiesOnly === undefined) {
+      config.identitiesOnly = /^(yes|true)$/i.test(setting);
     } else if (keyword === 'identityfile') {
       config.identityFiles.push(setting.replace(/^~(?=$|[\\/])/, home).replace(/%d/g, home).replace(/%h/g, config.hostName || host));
     }

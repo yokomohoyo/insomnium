@@ -158,6 +158,10 @@ interface BaseOpts {
 // git's own depth for all of a history (--unshallow): past any there is
 const ALL_HISTORY = 2147483647;
 
+// a branch by its full name: isomorphic-git takes a short name as a tag
+// first, and the remote's tags are kept here (_followTags)
+const branchRef = (name: string) => (name.startsWith('refs/') ? name : `refs/heads/${name}`);
+
 // what a pull, merge or switch of branch would write over: changes here that
 // were never committed, to documents (or files) it brings changes to
 export class GitLocalChangesError extends Error {
@@ -283,13 +287,13 @@ export class GitVCS {
       noCheckout: true,
     });
     const branch = await git.currentBranch({ ...this._baseOpts });
-    const hasCommits = !!branch && await git.resolveRef({ ...this._baseOpts, ref: branch }).then(() => true, () => false);
+    const hasCommits = !!branch && await git.resolveRef({ ...this._baseOpts, ref: branchRef(branch) }).then(() => true, () => false);
     if (!branch || !hasCommits) {
       // an empty repository: nothing to check out
       console.log(`[git] Cloned an empty repo to ${gitDirectory} from ${url}`);
       return;
     }
-    const files = await git.listFiles({ ...this._baseOpts, ref: branch });
+    const files = await git.listFiles({ ...this._baseOpts, ref: branchRef(branch) });
     const held = workspaceIdsIn(files, dataDirName);
     const elsewhere = GIT_DATA_DIR_NAMES.find(dir => dir !== dataDirName && workspaceIdsIn(files, dir).length);
     if (!held.length && elsewhere) {
@@ -300,7 +304,7 @@ export class GitVCS {
         throw new Error('This repository holds a different workspace, so it can\'t be linked to this one. To open it, clone it from the project instead (Clone Git Repository), which adds it as its own workspace.');
       }
     }
-    await git.checkout({ ...this._baseOpts, ref: branch });
+    await git.checkout({ ...this._baseOpts, ref: branchRef(branch) });
     console.log(`[git] Clones repo to ${gitDirectory} from ${url}`);
   }
 
@@ -486,10 +490,12 @@ export class GitVCS {
 
   async push(gitCredentials?: GitCredentials | null, force = false) {
     console.log(`[git] Push remote=origin force=${force ? 'true' : 'false'}`);
+    const branch = await git.currentBranch({ ...this._baseOpts });
     // eslint-disable-next-line no-unreachable
     const response: git.PushResult = await git.push({
       ...this._baseOpts,
       ...gitCallbacks(gitCredentials),
+      ...(branch ? { ref: branchRef(branch) } : {}),
       remote: 'origin',
       force,
     });
@@ -517,6 +523,7 @@ export class GitVCS {
       ...await this._fetchDepth(),
       remote: 'origin',
       ref: branch,
+      remoteRef: branchRef(branch),
       singleBranch: true,
     });
     if (!fetchHead) {
@@ -531,13 +538,13 @@ export class GitVCS {
       return await this._removingDroppedDocs(async () => {
         await git.merge({
           ...this._baseOpts,
-          ours: branch,
+          ours: branchRef(branch),
           theirs: fetchHead,
           message: `Merge ${fetchHeadDescription}`,
         });
         await git.checkout({
           ...this._baseOpts,
-          ref: branch,
+          ref: branchRef(branch),
           remote: 'origin',
         });
       });
@@ -560,13 +567,13 @@ export class GitVCS {
   async mergeByField(theirs: string, choices: Record<string, MergeChoice> = {}) {
     const ours = await this.getBranch();
     console.log(`[git] Merge ${ours} <-- ${theirs}`);
-    await this._refuseOverwritingLocalChanges(theirs, `Merging ${theirs.replace(/^refs\/remotes\/origin\//, '')}`);
+    await this._refuseOverwritingLocalChanges(branchRef(theirs), `Merging ${theirs.replace(/^refs\/remotes\/origin\//, '')}`);
     const conflicts: DocConflict[] = [];
     // the synced documents by field; the repository's other files by line, as git would
     const merge = () => git.merge({
       ...this._baseOpts,
-      ours,
-      theirs,
+      ours: branchRef(ours),
+      theirs: branchRef(theirs),
       abortOnConflict: true,
       mergeDriver: ({ contents: [base, mine, yours], path: file }) => {
         if (!isSyncedDoc(file, mine, yours)) {
@@ -594,7 +601,7 @@ export class GitVCS {
         const result = await merge();
         await git.checkout({
           ...this._baseOpts,
-          ref: ours,
+          ref: branchRef(ours),
           remote: 'origin',
         });
         return result;
@@ -750,8 +757,8 @@ export class GitVCS {
     console.log(`[git] Merge ${ours} <-- ${theirBranch}`);
     return git.merge({
       ...this._baseOpts,
-      ours,
-      theirs: theirBranch,
+      ours: branchRef(ours),
+      theirs: branchRef(theirBranch),
     });
   }
 
@@ -777,6 +784,11 @@ export class GitVCS {
   // a tag on the current commit; one with a message is annotated, as git tag -a makes
   async createTag(name: string, message = '') {
     console.log(`[git] Tag ${name}`);
+    // git takes a name both have as the tag, so it would stand in for the branch
+    const branches = [...await git.listBranches({ ...this._baseOpts }), ...await git.listBranches({ ...this._baseOpts, remote: 'origin' })];
+    if (branches.includes(name)) {
+      throw new Error(`There's a branch named ${name}: give the tag another name.`);
+    }
     const object = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' });
     if (message.trim()) {
       const tagger = await this._commitTimes();
@@ -820,12 +832,18 @@ export class GitVCS {
     const branch = await this.getBranch();
     const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
     const tree = await filesAt(this._baseOpts, head);
-    for (const file of files) {
+    // what each file is in the stash (null: deleted), by its path in git's
+    // form: the changes list has the OS's separator, and a tree can't hold '\'
+    const kept = new Map<string, TreeFile | null>();
+    for (const file of files.map(convertToPosixSep)) {
       const content: Uint8Array | null = await fs.readFile(path.join(this._baseOpts.dir, file)).catch(() => null);
       if (content === null) {
         tree.delete(file);
+        kept.set(file, null);
       } else {
-        tree.set(file, { oid: await git.writeBlob({ ...this._baseOpts, blob: content }), mode: tree.get(file)?.mode || '100644' });
+        const entry = { oid: await git.writeBlob({ ...this._baseOpts, blob: content }), mode: tree.get(file)?.mode || '100644' };
+        tree.set(file, entry);
+        kept.set(file, entry);
       }
     }
     const when = await this._commitTimes();
@@ -839,6 +857,17 @@ export class GitVCS {
         committer: when,
       },
     });
+    // read back before it's listed, and before the caller undoes the changes:
+    // a stash that can't be read would lose them
+    try {
+      const stashed = await filesAt(this._baseOpts, oid);
+      const missing = [...kept].find(([file, entry]) => stashed.get(file)?.oid !== entry?.oid);
+      if (missing) {
+        throw new Error(`${missing[0]} isn't in it as it is here`);
+      }
+    } catch (err) {
+      throw new Error(`The changes couldn't be stashed, so they were left as they are: ${err instanceof Error ? err.message : String(err)}`);
+    }
     const id = String(Date.now());
     await git.writeRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}`, value: oid });
     console.log(`[git] Stashed ${files.length} files as ${id}`);
@@ -850,15 +879,21 @@ export class GitVCS {
     const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
     const ids: string[] = await fs.readdir(path.join(this._gitdir(), STASH_REFS)).catch(() => []);
     const stashes = await Promise.all(ids.map(async id => {
-      const oid = await git.resolveRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}` }).catch(() => null);
-      if (!oid) {
+      // one that can't be read is left out, rather than failing the list
+      try {
+        const oid = await git.resolveRef({ ...this._baseOpts, ref: `${STASH_REFS}/${id}` }).catch(() => null);
+        if (!oid) {
+          return null;
+        }
+        const { commit } = await git.readCommit({ ...this._baseOpts, oid });
+        const [message, ...rest] = commit.message.split('\n');
+        const branch = rest.find(line => line.startsWith('branch: '))?.slice('branch: '.length) || '';
+        const files = await this._changedBetween(commit.parent[0], oid);
+        return { id, message, timestamp: commit.committer.timestamp, branch, files: files.map(([file]) => file) };
+      } catch (err) {
+        console.warn(`[git] Could not read stash ${id}`, err);
         return null;
       }
-      const { commit } = await git.readCommit({ ...this._baseOpts, oid });
-      const [message, ...rest] = commit.message.split('\n');
-      const branch = rest.find(line => line.startsWith('branch: '))?.slice('branch: '.length) || '';
-      const files = await this._changedBetween(commit.parent[0], oid);
-      return { id, message, timestamp: commit.committer.timestamp, branch, files: files.map(([file]) => file) };
     }));
     return stashes.filter((stash): stash is GitStash => !!stash).sort((a, b) => Number(b.id) - Number(a.id));
   }
@@ -938,7 +973,7 @@ export class GitVCS {
   async rebase(onto: string, choices: Record<string, MergeChoice> = {}, doing = `Rebasing onto ${onto.replace(/^refs\/remotes\//, '')}`) {
     const branch = await this.getBranch();
     const head = await git.resolveRef({ ...this._baseOpts, ref: 'HEAD' });
-    const upstream = await git.resolveRef({ ...this._baseOpts, ref: onto });
+    const upstream = await git.resolveRef({ ...this._baseOpts, ref: branchRef(onto) });
     const [base] = await git.findMergeBase({ ...this._baseOpts, oids: [head, upstream] });
     if (!base) {
       throw new Error(`${branch} and ${onto} have no history in common to rebase on.`);
@@ -993,9 +1028,11 @@ export class GitVCS {
           files.delete(file);
         }
       }
+      // a signature was over the commit as it was, so it doesn't come along
+      const { gpgsig, ...unsigned } = commit;
       tip = await git.writeCommit({
         ...this._baseOpts,
-        commit: { ...commit, parent: [tip], tree: await writeFiles(this._baseOpts, files), committer: { ...commit.committer, timestamp: committer.timestamp, timezoneOffset: committer.timezoneOffset } },
+        commit: { ...unsigned, parent: [tip], tree: await writeFiles(this._baseOpts, files), committer: { ...commit.committer, timestamp: committer.timestamp, timezoneOffset: committer.timezoneOffset } },
       });
     }
     if (conflicts.size) {
@@ -1005,7 +1042,7 @@ export class GitVCS {
     console.log(`[git] Rebased ${commits.length} commits of ${branch} onto ${onto}`);
     await this._removingDroppedDocs(async () => {
       await git.writeRef({ ...this._baseOpts, ref: `refs/heads/${branch}`, value: tip, force: true });
-      await git.checkout({ ...this._baseOpts, ref: branch, remote: 'origin' });
+      await git.checkout({ ...this._baseOpts, ref: branchRef(branch), remote: 'origin' });
     });
     return { rebased: commits.length };
   }
@@ -1131,6 +1168,7 @@ export class GitVCS {
             ...await this._fetchDepth(),
             remote: 'origin',
             ref: branch,
+            remoteRef: branchRef(branch),
             singleBranch: true,
             tags: false,
           });
@@ -1140,15 +1178,21 @@ export class GitVCS {
       }
 
       // the branch as it's checked out: the local one, or else the remote's
-      const target = await git.resolveRef({ ...this._baseOpts, ref: `refs/heads/${branch}` })
-        .catch(() => git.resolveRef({ ...this._baseOpts, ref: `refs/remotes/origin/${branch}` }))
-        .catch(() => null);
+      const local = await git.resolveRef({ ...this._baseOpts, ref: branchRef(branch) }).catch(() => null);
+      const target = local || await git.resolveRef({ ...this._baseOpts, ref: `refs/remotes/origin/${branch}` }).catch(() => null);
       if (target) {
         await this._refuseOverwritingLocalChanges(target, `Switching to ${branch}`, 'head');
       }
+      if (!local && target) {
+        // made here from the remote's, tracking it, as isomorphic-git's checkout
+        // would for a short name (which could be taken as a tag)
+        await git.writeRef({ ...this._baseOpts, ref: branchRef(branch), value: target });
+        await git.setConfig({ ...this._baseOpts, path: `branch.${branch}.remote`, value: 'origin' });
+        await git.setConfig({ ...this._baseOpts, path: `branch.${branch}.merge`, value: branchRef(branch) });
+      }
       await this._removingDroppedDocs(() => git.checkout({
         ...this._baseOpts,
-        ref: branch,
+        ref: branchRef(branch),
         remote: 'origin',
       }));
       const branches = await this.listBranches();
@@ -1162,7 +1206,7 @@ export class GitVCS {
     console.log('[git] Undo pending changes');
     await git.checkout({
       ...this._baseOpts,
-      ref: await this.getBranch(),
+      ref: branchRef(await this.getBranch()),
       remote: 'origin',
       force: true,
       filepaths: fileFilter?.map(convertToPosixSep),
