@@ -33,6 +33,10 @@ describe('t', () => {
     expect(resolveLanguage('pt')).toBe('pt-BR');
     expect(resolveLanguage('zh_CN')).toBe('zh-CN');
     expect(resolveLanguage('ko-KR')).toBe('en');
+    // Traditional Chinese isn't zh-CN's Simplified
+    expect(resolveLanguage('zh-TW')).toBe('en');
+    expect(resolveLanguage('zh-Hant-HK')).toBe('en');
+    expect(resolveLanguage('zh-Hans')).toBe('zh-CN');
     expect(setLanguage('', 'fr-CA')).toBe('fr');
     expect(setLanguage('es', 'fr-CA')).toBe('es');
   });
@@ -41,7 +45,52 @@ describe('t', () => {
     expect(menuLabel('Cu&t', true)).toBe('Cu&t');
     expect(menuLabel('Cu&t', false)).toBe('Cut');
     expect(menuLabel('A&bout {name}', false, { name: 'Insomnium' })).toBe('About Insomnium');
+    // Japanese and Chinese put it after the word, as (&F): on macOS it goes whole
+    setLanguage('ja');
+    expect(menuLabel('&File', true)).toBe('ファイル(&F)');
+    expect(menuLabel('&File', false)).toBe('ファイル');
   });
+});
+
+// the menus (main/window-utils.ts), each with its items: a letter opens one item of a menu
+const MENUS: Record<string, string[]> = {
+  bar: ['&Application', '&File', '&Edit', '&View', '&Window', '&Tools', '&Help', '&Developer'],
+  application: ['&Preferences', '&Changelog', '&Quit'],
+  file: ['&New Window'],
+  edit: ['&Undo', '&Redo', 'Cu&t', '&Copy', '&Paste', 'Select &All'],
+  view: [
+    'Toggle &Full Screen', '&Actual Size', 'Zoom &In', 'Zoom &Out', 'Specific Zoom Level',
+    'Resize to &Small (qHD 540)', 'Resize to Defaul&t (HD 720)', 'Resize to &Large (FHD 1080)', 'Toggle Sidebar', 'Toggle &DevTools',
+  ],
+  window: ['&New', '&Minimize', '&Close'],
+  tools: ['&Reload Plugins'],
+  help: ['&Help and Support', '&Keyboard Shortcuts', 'Show App &Data Folder', 'Show App &Logs Folder', 'Show Open Source Licenses', 'Show Software License', '&About'],
+  developer: ['&Reload', 'Take &Screenshot', '&Clear a model', 'Clear &all models', 'R&estart', 'Set window for &FHD Screenshot'],
+};
+// on macOS only, which shows no mnemonics
+const MAC_ONLY = ['A&bout {name}'];
+
+describe('the menus', () => {
+  const mnemonic = (label: string) => /&([^&])/.exec(label)?.[1].toLowerCase();
+
+  it('are all here', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', '..', 'main', 'window-utils.ts'), 'utf8');
+    const labels = [...source.matchAll(/\blabel\('((?:\\.|[^'\\])*)'/g)].map(([, label]) => label.replace(/\\(.)/g, '$1'));
+    const listed = new Set([...Object.values(MENUS).flat(), ...MAC_ONLY]);
+    expect(labels.length).toBeGreaterThan(30);
+    expect(labels.filter(label => !listed.has(label))).toEqual([]);
+  });
+
+  for (const { code } of LANGUAGES) {
+    it(`${code}: one letter for each item of a menu`, () => {
+      const catalog: Record<string, string> = code === 'en' ? {} : JSON.parse(fs.readFileSync(path.join(LOCALES, `${code}.json`), 'utf8'));
+      const clashes = Object.entries(MENUS).flatMap(([menu, labels]) => {
+        const letters = labels.map(label => mnemonic(catalog[label] || label)).filter(Boolean);
+        return letters.filter((letter, index) => letters.indexOf(letter) !== index).map(letter => `${menu}: ${letter}`);
+      });
+      expect(clashes).toEqual([]);
+    });
+  }
 });
 
 describe('the catalogs', () => {

@@ -5,7 +5,7 @@
 // passes over the advertisement, sends the request, and returns what comes back.
 import fs from 'fs';
 import path from 'path';
-import { type AuthMethod, Client, type ClientChannel, type ParsedKey, utils } from 'ssh2';
+import { type AuthMethod, BaseAgent, Client, type ClientChannel, createAgent, type ParsedKey, utils } from 'ssh2';
 
 import { type GitService, parseSshUrl, SSH_KEY_HEADER, SSH_PASSPHRASE_HEADER, sshRequestOf } from '../../sync/git/ssh-url';
 import { checkHostKey, fingerprint, hostEntryName, keyType, knownHostsLine } from './known-hosts';
@@ -36,14 +36,54 @@ export interface HostToTrust {
 export interface SshEnvironment {
   // where ~/.ssh is
   home: string;
-  // agents to try first: a socket, a Windows pipe, or 'pageant'
-  agents: string[];
+  // agents to try: a socket, a Windows pipe, or 'pageant' (or, in tests, an agent)
+  agents: (string | BaseAgent)[];
   // where a host the user trusts is added
   appKnownHostsFile: string;
   askToTrust: (host: HostToTrust) => Promise<boolean>;
+  // how long the connection may take to be ready, in ms (HANDSHAKE_TIMEOUT)
+  handshakeTimeout?: number;
 }
 
 const DEFAULT_KEYS = ['id_ed25519', 'id_ecdsa', 'id_rsa'];
+
+// not counting the time the user spends in the dialog about the host's key
+const HANDSHAKE_TIMEOUT = 30_000;
+
+// A time limit that can be held, and taken up again with what was left
+function deadline(ms: number, expired: () => void) {
+  let left = ms;
+  let since = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let stopped = false;
+  const hold = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+      left -= Date.now() - since;
+    }
+  };
+  return {
+    run: () => {
+      if (!stopped && !timer) {
+        since = Date.now();
+        timer = setTimeout(() => {
+          stopped = true;
+          expired();
+        }, Math.max(left, 0));
+      }
+    },
+    hold,
+    stop: () => {
+      hold();
+      stopped = true;
+    },
+  };
+}
+
+// The dialog about a host's key, by host and key: a request that comes to it
+// while it's open (background fetches can overlap) waits for its answer
+const trusting = new Map<string, Promise<void>>();
 
 // ~/.ssh's files are small and read once a request, as ssh itself reads them
 const readText = (file: string) => {
@@ -106,17 +146,67 @@ function loadKeys(files: string[], passphrases: Record<string, string>) {
   return { keys, locked };
 }
 
+// a key file's public half, to know it among the agent's: from the key, or
+// from the .pub beside it when the key is locked
+function publicKeyOf(file: string, keys: KeyFile[]) {
+  const loaded = keys.find(key => key.file === file);
+  if (loaded) {
+    return loaded.key.getPublicSSH();
+  }
+  const text = readText(`${file}.pub`);
+  const parsed = text ? utils.parseKey(text) : null;
+  const key = Array.isArray(parsed) ? parsed[0] : parsed;
+  return key && !(key instanceof Error) ? key.getPublicSSH() : null;
+}
+
+// An agent's keys with the identities asked for first and, when only those
+// may be offered (IdentitiesOnly, or a key the repository names), none of
+// its others, as ssh offers them
+class IdentitiesAgent extends BaseAgent {
+  agent: BaseAgent;
+  identities: Buffer[];
+  only: boolean;
+
+  constructor(agent: BaseAgent, identities: Buffer[], only: boolean) {
+    super();
+    this.agent = agent;
+    this.identities = identities;
+    this.only = only;
+  }
+
+  getIdentities(callback: (err: Error | null | undefined, keys?: ParsedKey[]) => void) {
+    this.agent.getIdentities((err, keys) => {
+      if (err || !keys) {
+        return callback(err || new Error('The SSH agent listed no keys'));
+      }
+      const asked = (key: ParsedKey) => this.identities.some(identity => identity.equals(key.getPublicSSH()));
+      callback(null, [...keys.filter(asked), ...(this.only ? [] : keys.filter(key => !asked(key)))]);
+    });
+  }
+
+  sign(...args: Parameters<BaseAgent['sign']>) {
+    this.agent.sign(...args);
+  }
+}
+
 /**
- * Runs one of isomorphic-git's requests of an SSH remote. Keys come from the
- * agents, then a key file the repository names (with its passphrase), then
- * ~/.ssh/config's IdentityFile for the host, then ~/.ssh/id_*. The host's key
- * must be in ~/.ssh/known_hosts or the app's own list, or be trusted when asked.
+ * Runs one of isomorphic-git's requests of an SSH remote. Keys are offered as
+ * ssh offers them: the ones asked for (a key file the repository names, with
+ * its passphrase, then ~/.ssh/config's IdentityFile for the host), then the
+ * agents', then ~/.ssh/id_*. With IdentitiesOnly, or a key the repository
+ * names, only the ones asked for (~/.ssh/id_* when none is), and the agents'
+ * copies of them. The host's key must be in ~/.ssh/known_hosts or the app's
+ * own list, or be trusted when asked.
  */
 export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment): Promise<GitSshResponse> {
   const target = sshRequestOf(request.url);
   const address = target && parseSshUrl(target.sshUrl);
   if (!target || !address) {
     throw new Error(`Not an SSH remote: ${request.url}`);
+  }
+  // the remote command would take it as an option; git refuses such a path too
+  if (address.path.startsWith('-')) {
+    throw new Error(`The repository path ${address.path} starts with "-", which git doesn't take as a path.`);
   }
   const sshDir = path.join(env.home, '.ssh');
   const config = hostConfig(readText(path.join(sshDir, 'config')) || '', address.host, env.home);
@@ -126,16 +216,32 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
 
   const headers = Object.fromEntries(Object.entries(request.headers || {}).map(([name, value]) => [name.toLowerCase(), value]));
   const repositoryKey = headers[SSH_KEY_HEADER] ? expandHome(headers[SSH_KEY_HEADER], env.home) : '';
-  const { keys, locked } = loadKeys(
-    [...(repositoryKey ? [repositoryKey] : []), ...config.identityFiles, ...DEFAULT_KEYS.map(name => path.join(sshDir, name))],
-    repositoryKey ? { [repositoryKey]: headers[SSH_PASSPHRASE_HEADER] || '' } : {},
-  );
+  // the keys asked for go before the agents' others, which could sign in as
+  // another account; ~/.ssh/id_* stand in for them when none is named
+  const only = !!repositoryKey || config.identitiesOnly === true;
+  const named = [...(repositoryKey ? [repositoryKey] : []), ...config.identityFiles];
+  const defaults = DEFAULT_KEYS.map(name => path.join(sshDir, name)).filter(file => !named.includes(file));
+  const identities = named.length ? named : defaults;
+  const first = loadKeys(named.length || only ? identities : [], repositoryKey ? { [repositoryKey]: headers[SSH_PASSPHRASE_HEADER] || '' } : {});
+  const last = loadKeys(only ? [] : defaults, {});
+  const keys = [...first.keys, ...last.keys];
+  const locked = [...first.locked, ...last.locked];
+  const identityKeys = identities.map(file => publicKeyOf(file, keys)).filter((key): key is Buffer => !!key);
+  const agents = only && !identityKeys.length ? [] : env.agents;
   const authHandler: AuthMethod[] = [
-    ...env.agents.map(agent => ({ type: 'agent' as const, username: user, agent })),
-    ...keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
+    ...first.keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
+    ...agents.map(agent => ({
+      type: 'agent' as const,
+      username: user,
+      agent: new IdentitiesAgent(typeof agent === 'string' ? createAgent(agent) : agent, identityKeys, only),
+    })),
+    ...last.keys.map(({ key }) => ({ type: 'publickey' as const, username: user, key })),
   ];
 
+  const client = new Client();
   let hostError: Error | null = null;
+  let timedOut = () => {};
+  const limit = deadline(env.handshakeTimeout ?? HANDSHAKE_TIMEOUT, () => timedOut());
   const verifyHost = async (key: Buffer) => {
     const files = [path.join(sshDir, 'known_hosts'), path.join(sshDir, 'known_hosts2'), env.appKnownHostsFile];
     const knownHosts = files.map(file => ({ path: file, text: readText(file) || '' }));
@@ -150,39 +256,62 @@ export async function gitSshRequest(request: GitSshRequest, env: SshEnvironment)
     if (check.status === 'changed') {
       throw new Error(`The host key of ${name} isn't the one trusted for it (${check.file}, line ${check.line}). Someone may be in between. If the host has changed its key, delete that line and connect again to trust the new one.`);
     }
-    const trusted = await env.askToTrust({ host: name, keyType: keyType(key), fingerprint: fingerprint(key), otherTypesKnown: check.otherTypesKnown });
-    if (!trusted) {
-      throw new Error(`Not connected: the host key of ${name} wasn't trusted.`);
+    const asked = [env.appKnownHostsFile, name, fingerprint(key)].join('\n');
+    let answer = trusting.get(asked);
+    if (!answer) {
+      answer = (async () => {
+        const trusted = await env.askToTrust({ host: name, keyType: keyType(key), fingerprint: fingerprint(key), otherTypesKnown: check.otherTypesKnown });
+        if (!trusted) {
+          throw new Error(`Not connected: the host key of ${name} wasn't trusted.`);
+        }
+        await fs.promises.mkdir(path.dirname(env.appKnownHostsFile), { recursive: true });
+        await fs.promises.appendFile(env.appKnownHostsFile, `${knownHostsLine(host, port, key)}\n`);
+      })().finally(() => trusting.delete(asked));
+      trusting.set(asked, answer);
     }
-    await fs.promises.mkdir(path.dirname(env.appKnownHostsFile), { recursive: true });
-    await fs.promises.appendFile(env.appKnownHostsFile, `${knownHostsLine(host, port, key)}\n`);
+    // the time the user takes to answer isn't the connection's
+    limit.hold();
+    try {
+      await answer;
+    } finally {
+      limit.run();
+    }
     return true;
   };
 
-  const client = new Client();
   try {
     await new Promise<void>((resolve, reject) => {
-      client.on('ready', resolve);
+      timedOut = () => {
+        reject(new Error(`Couldn't connect to ${host}:${port} over SSH: Timed out while waiting for handshake`));
+        client.destroy();
+      };
+      client.on('ready', () => {
+        limit.stop();
+        resolve();
+      });
       client.on('error', err => {
         // an agent that isn't running: the next way of signing in is tried
         if (err.level === 'agent') {
           return;
         }
+        limit.stop();
         if (hostError) {
           return reject(hostError);
         }
         if (/authentication methods failed/i.test(err.message)) {
-          const tried = [...(env.agents.length ? ['the SSH agent'] : []), ...keys.map(({ file }) => file)];
+          const tried = [...first.keys.map(({ file }) => file), ...(agents.length ? ['the SSH agent'] : []), ...last.keys.map(({ file }) => file)];
           const lockedNote = locked.length ? ` ${locked.join(', ')} ${locked.length === 1 ? 'needs its' : 'need their'} passphrase: set it in the repository's settings, or add the key to the SSH agent.` : '';
           return reject(new Error(`${user}@${host} didn't accept ${tried.length ? `the keys tried (${tried.join(', ')})` : 'a key: none was found in the SSH agent or ~/.ssh'}.${lockedNote}`));
         }
         reject(new Error(`Couldn't connect to ${host}:${port} over SSH: ${err.message}`));
       });
+      limit.run();
       client.connect({
         host,
         port,
         username: user,
-        readyTimeout: 30_000,
+        // limit stands in for it: ssh2's own would run on while the dialog is open
+        readyTimeout: 0,
         keepaliveInterval: 15_000,
         authHandler,
         hostVerifier: (key, verify) => {
@@ -205,19 +334,23 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
     client.exec(`${service} ${quoted(repoPath)}`, (err, stream) => (err ? reject(err) : resolve(stream)));
   });
   return new Promise((resolve, reject) => {
-    let output = Buffer.alloc(0);
+    // the advertisement, joined as it comes to find its end; what follows it
+    // (a pack, which can be large) is kept in pieces and joined once
+    let advertisement = Buffer.alloc(0);
+    const rest: Buffer[] = [];
     let errors = '';
     let advertised = -1;
     channel.stderr.on('data', (chunk: Buffer) => {
       errors += chunk.toString();
     });
     channel.on('data', (chunk: Buffer) => {
-      output = Buffer.concat([output, chunk]);
       if (advertised !== -1) {
+        rest.push(chunk);
         return;
       }
+      advertisement = Buffer.concat([advertisement, chunk]);
       try {
-        advertised = flushEnd(output);
+        advertised = flushEnd(advertisement);
       } catch (err) {
         channel.close();
         return reject(err);
@@ -225,6 +358,8 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
       if (advertised === -1) {
         return;
       }
+      rest.push(advertisement.subarray(advertised));
+      advertisement = advertisement.subarray(0, advertised);
       if (body) {
         channel.end(body);
       } else {
@@ -237,7 +372,7 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
         return reject(new Error(errors.trim() || `${service} ended before listing the repository's refs${code ? ` (exit ${code})` : ''}`));
       }
       if (body) {
-        const result = output.subarray(advertised);
+        const result = Buffer.concat(rest);
         if (!result.length && errors.trim()) {
           return reject(new Error(errors.trim()));
         }
@@ -248,7 +383,7 @@ async function run(client: Client, service: GitService, repoPath: string, body?:
         statusCode: 200,
         statusMessage: 'OK',
         headers: { 'content-type': `application/x-${service}-advertisement` },
-        body: Buffer.concat([head, output.subarray(0, advertised)]),
+        body: Buffer.concat([head, advertisement]),
       });
     });
   });

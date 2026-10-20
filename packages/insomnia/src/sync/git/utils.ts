@@ -63,9 +63,10 @@ export const getOauth2FormatName = (credentials?: GitCredentials | null): 'githu
 };
 
 // an SSH key's settings, which ride with each request to the main process (http-client.ts drops them for HTTP)
-const sshHeaders = (credentials?: GitCredentials | null) => {
+const sshHeaders = (credentials?: GitCredentials | null): { headers: Record<string, string> } => {
   if (!credentials || !('sshKey' in credentials) || !credentials.sshKey) {
-    return {};
+    // none, in place of the ones of a repository opened before
+    return { headers: {} };
   }
   return { headers: { [SSH_KEY_HEADER]: credentials.sshKey, [SSH_PASSPHRASE_HEADER]: credentials.sshPassphrase || '' } };
 };

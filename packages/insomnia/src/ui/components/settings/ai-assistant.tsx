@@ -3,6 +3,7 @@ import { useFetchers, useRouteLoaderData } from 'react-router-dom';
 
 import { docsAiAssistant } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
+import { tx } from '../../tx';
 import { useSettingsPatcher } from '../../hooks/use-request';
 import { RootLoaderData } from '../../routes/root';
 import { Link } from '../base/link';
@@ -59,8 +60,8 @@ export const AiAssistant: FC = () => {
   return (
     <div>
       <p className="notice info no-margin-top">
-        {t("The assistant suggests a request from a description, and a commit message from your changes, with a model you choose: one on your computer, or a provider's with your own key.")} {t('Nothing is sent until you ask for a suggestion.')} See the{' '}
-        <Link href={docsAiAssistant}>documentation</Link>.
+        {t("The assistant suggests a request from a description, and a commit message from your changes, with a model you choose: one on your computer, or a provider's with your own key.")} {t('Nothing is sent until you ask for a suggestion.')}{' '}
+        {tx('See the {link}.', { link: <Link href={docsAiAssistant}>{t('documentation')}</Link> })}
       </p>
       <div className="form-row">
         <TextSetting

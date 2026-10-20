@@ -115,6 +115,50 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
     });
   });
 
+  describe('a tag named as a branch', () => {
+    it('pulls into the branch, not the tag', async () => {
+      // the remote's tag, on the first commit, comes here with the pull
+      remote.tag('main');
+      const first = await head();
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      pushUpstream([{ ...request, name: 'list all pets' }], 'rename');
+
+      await GitVCS.pull(null);
+
+      expect(await GitVCS.getBranch()).toBe('main');
+      expect(await git.resolveRef({ ...GitVCS._baseOpts, ref: 'refs/tags/main' })).toBe(first);
+      const [merge, ...rest] = await messages();
+      expect(merge).toMatch(/^Merge/);
+      expect(rest.sort()).toEqual(['add pet', 'first', 'rename']);
+      expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets' });
+    });
+
+    it('rebases onto the branch, and switches to it, not the tag', async () => {
+      await GitVCS.createTag('feature');
+      const first = await head();
+      await GitVCS.branch('feature', true);
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      await GitVCS.checkout('main');
+      await rename('req_1', 'list all pets');
+      await commitHere('rename', 'req_1');
+
+      expect(await GitVCS.rebase('feature')).toEqual({ rebased: 1 });
+      expect(await messages()).toEqual(['rename', 'add pet', 'first']);
+      expect(await GitVCS.getBranch()).toBe('main');
+
+      await GitVCS.checkout('feature');
+      expect(await GitVCS.getBranch()).toBe('feature');
+      expect(await git.resolveRef({ ...GitVCS._baseOpts, ref: 'refs/tags/feature' })).toBe(first);
+    });
+
+    it("won't make a tag named as a branch", async () => {
+      await expect(GitVCS.createTag('main')).rejects.toThrow("There's a branch named main");
+      expect(await GitVCS.listTags()).toEqual([]);
+    });
+  });
+
   describe('stashes', () => {
     it('keeps changes and new documents aside, then brings them back', async () => {
       await rename('req_1', 'list all pets');
@@ -134,6 +178,51 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
       expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets' });
       expect(await models.request.getById('req_2')).toMatchObject({ name: 'add pet' });
       expect(await GitVCS.listStashes()).toEqual([]);
+    });
+
+    it("takes the changes list's paths with Windows separators, a deletion too", async () => {
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      await rename('req_1', 'list all pets');
+      await models.request.remove((await models.request.getById('req_2'))!);
+      const files = [file({ _id: 'req_1' }), file({ _id: 'req_2' })];
+
+      const id = await GitVCS.stash(files.map(name => name.replace(/\//g, '\\')), 'on windows');
+      await GitVCS.undoPendingChanges(files);
+      expect(await models.request.getById('req_1')).toMatchObject({ name: 'list pets' });
+      expect(await models.request.getById('req_2')).toMatchObject({ name: 'add pet' });
+
+      expect(await GitVCS.listStashes()).toEqual([expect.objectContaining({ id, message: 'on windows', files })]);
+      await GitVCS.applyStash(id);
+      expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets' });
+      expect(await models.request.getById('req_2')).toBeNull();
+    });
+
+    it("throws, keeping nothing, when the stash can't be read back", async () => {
+      await rename('req_1', 'list all pets');
+      // tree entries isomorphic-git won't read back
+      const writeTree = git.writeTree;
+      jest.spyOn(git, 'writeTree').mockImplementation(args => writeTree({
+        ...args,
+        tree: args.tree.map(entry => (entry.type === 'blob' ? { ...entry, path: `x\\${entry.path}` } : entry)),
+      }));
+
+      await expect(GitVCS.stash([file({ _id: 'req_1' })], '')).rejects.toThrow("The changes couldn't be stashed");
+      expect(await GitVCS.listStashes()).toEqual([]);
+      expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets' });
+    });
+
+    it("lists the stashes it can read, past one it can't", async () => {
+      await rename('req_1', 'list all pets');
+      const id = await GitVCS.stash([file({ _id: 'req_1' })], 'readable');
+      // as one made from a Windows path was
+      const blob = await git.writeBlob({ ...GitVCS._baseOpts, blob: Buffer.from('name: list all pets\n') });
+      const tree = await git.writeTree({ ...GitVCS._baseOpts, tree: [{ mode: '100644', path: '.insomnium\\Request\\req_1.yml', oid: blob, type: 'blob' }] });
+      const when = { name: 'Ana', email: 'ana@example.com', timestamp: 1, timezoneOffset: 0 };
+      const broken = await git.writeCommit({ ...GitVCS._baseOpts, commit: { message: 'broken\n', tree, parent: [await head()], author: when, committer: when } });
+      await git.writeRef({ ...GitVCS._baseOpts, ref: 'refs/insomnium/stash/1', value: broken });
+
+      expect(await GitVCS.listStashes()).toEqual([expect.objectContaining({ id, message: 'readable' })]);
     });
 
     it('applies onto changes made since, field by field', async () => {
@@ -180,6 +269,23 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
       expect(log.every(entry => entry.commit.parent.length <= 1)).toBe(true);
       expect(await models.request.getById('req_1')).toMatchObject({ name: 'list all pets', url: 'https://pets.example.com/v2/pets' });
       expect(await models.request.getById('req_2')).toMatchObject({ name: 'add pet' });
+    });
+
+    it("leaves out a commit's signature, which was over the commit as it was", async () => {
+      await models.request.create({ _id: 'req_2', parentId: 'wrk_1', name: 'add pet' });
+      await commitHere('add pet', 'req_2');
+      // as if signed elsewhere
+      const { commit } = await git.readCommit({ ...GitVCS._baseOpts, oid: await head() });
+      const signed = await git.writeCommit({ ...GitVCS._baseOpts, commit: { ...commit, gpgsig: '-----BEGIN PGP SIGNATURE-----\n\nc2lnbmVk\n-----END PGP SIGNATURE-----' } });
+      await git.writeRef({ ...GitVCS._baseOpts, ref: 'refs/heads/main', value: signed, force: true });
+      pushUpstream([{ ...request, name: 'list all pets' }], 'rename');
+
+      await GitVCS.pull(null, {}, true);
+
+      const [rebased] = await GitVCS.log({ depth: 1 });
+      expect(rebased.commit.message.trim()).toBe('add pet');
+      expect(rebased.commit.parent).toHaveLength(1);
+      expect(rebased.commit.gpgsig).toBeUndefined();
     });
 
     it('merges a document both sides changed by its fields', async () => {

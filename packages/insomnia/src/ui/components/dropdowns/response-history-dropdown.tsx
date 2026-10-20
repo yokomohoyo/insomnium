@@ -4,6 +4,7 @@ import { useFetcher, useRevalidator, useRouteLoaderData } from 'react-router-dom
 import { useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
+import { tx } from '../../tx';
 import { decompressObject } from '../../../common/misc';
 import * as models from '../../../models/index';
 import { isRequest, Request } from '../../../models/request';
@@ -188,7 +189,7 @@ export const ResponseHistoryDropdown = ({
     >
       <DropdownSection
         aria-label={t('{environment} Responses', { environment: environmentName })}
-        title={<span><strong>{environmentName}</strong> {t('Responses')}</span>}
+        title={<span>{tx('{environment} Responses', { environment: <strong>{environmentName}</strong> })}</span>}
       >
         <DropdownItem aria-label={t('Save as Example')}>
           <ItemContent

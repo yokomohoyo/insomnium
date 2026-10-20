@@ -10,8 +10,17 @@ declare module 'ssh2' {
     comment: string;
     getPublicSSH(): Buffer;
     verify(data: Buffer, signature: Buffer): boolean | Error;
-    sign(data: Buffer): Buffer | Error;
+    sign(data: Buffer, algo?: string): Buffer | Error;
   }
+
+  // an SSH agent's keys, and their signatures
+  export class BaseAgent {
+    getIdentities(callback: (err: Error | null | undefined, keys?: ParsedKey[]) => void): void;
+    sign(pubKey: ParsedKey, data: Buffer, options: { hash?: string } | undefined, callback: (err: Error | null | undefined, signature?: Buffer) => void): void;
+  }
+
+  // the agent at a socket, a Windows pipe, or 'pageant'
+  export function createAgent(socketPath: string): BaseAgent;
 
   export interface ClientChannel extends Duplex {
     stderr: Readable;
@@ -24,7 +33,7 @@ declare module 'ssh2' {
 
   export type AuthMethod =
     | { type: 'none'; username: string }
-    | { type: 'agent'; username: string; agent: string }
+    | { type: 'agent'; username: string; agent: string | BaseAgent }
     | { type: 'publickey'; username: string; key: ParsedKey | Buffer | string; passphrase?: string };
 
   export interface ConnectConfig {
@@ -42,6 +51,7 @@ declare module 'ssh2' {
     connect(config: ConnectConfig): this;
     exec(command: string, callback: (err: Error | undefined, channel: ClientChannel) => void): this;
     end(): this;
+    destroy(): this;
     on(event: 'ready' | 'close', listener: () => void): this;
     on(event: 'error', listener: (err: Error & { level?: string }) => void): this;
     on(event: string, listener: (...args: any[]) => void): this;

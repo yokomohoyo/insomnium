@@ -3,6 +3,7 @@ import { OverlayContainer } from 'react-aria';
 import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
+import { tx } from '../../tx';
 import { HttpVersions } from '../../../common/settings';
 import * as models from '../../../models';
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
@@ -204,8 +205,9 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
               </>)}
             {request && isGrpcRequest(request) && (
               <p className="faint italic">
-                {t('Are there any gRPC settings you expect to see?')} Create a{' '}
-                <a href={'https://github.com/yokomohoyo/insomnium/issues/new/choose'}>feature request</a>!
+                {tx('Are there any gRPC settings you expect to see? Ask for them in a {link}.', {
+                  link: <a href={'https://github.com/yokomohoyo/insomnium/issues/new/choose'}>{t('feature request')}</a>,
+                })}
               </p>
             )}
             {request && isRequest(request) && (

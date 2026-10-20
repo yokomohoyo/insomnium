@@ -24,6 +24,8 @@ export const test = baseTest.extend<{
     const options: EnvOptions = {
       INSOMNIA_DATA_PATH: randomDataPath(),
       INSOMNIA_API_URL: webServerUrl + '/api',
+      // English, whatever this computer's language: the tests find things by their English names
+      INSOMNIUM_LANGUAGE: 'en',
     };
 
     const electronApp = await playwright._electron.launch({
