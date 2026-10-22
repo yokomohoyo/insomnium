@@ -5,6 +5,7 @@ import { useInterval } from 'react-use';
 import styled from 'styled-components';
 
 import { getProductName } from '../../common/constants';
+import { t } from '../../common/i18n';
 import imgSrcCore from '../../icons/256x256.png';
 import { Link } from './base/link';
 
@@ -140,13 +141,13 @@ export const Toast: FC<{ checkForNewReleases: boolean }> = ({ checkForNewRelease
         <img src={imgSrcCore} alt={productName} />
       </StyledLogo>
       <StyledContent>
-        <p>{notification?.message || 'Unknown'}</p>
+        <p>{notification?.message || t('Unknown')}</p>
         <StyledFooter>
           <button
             className="btn btn--super-duper-compact btn--outlined"
             onClick={close}
           >
-            Dismiss
+            {t('Dismiss')}
           </button>
           &nbsp;&nbsp;
           <Link

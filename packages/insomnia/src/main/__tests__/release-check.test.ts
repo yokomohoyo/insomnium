@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import { getAppVersion } from '../../common/constants';
+import { setLanguage } from '../../common/i18n';
 import * as models from '../../models';
 import { checkForNewRelease, isNewerVersion } from '../release-check';
 
@@ -57,6 +58,19 @@ describe('checkForNewRelease()', () => {
       headers: { Accept: 'application/vnd.github+json' },
       credentials: 'omit',
     });
+  });
+
+  it("says it in the app's language", async () => {
+    await optIn();
+    setLanguage('de');
+    try {
+      expect(await checkForNewRelease(release('99.0.0'), 0)).toMatchObject({
+        cta: 'Release ansehen',
+        message: `Insomnium 99.0.0 ist verfügbar. Sie haben ${getAppVersion()}.`,
+      });
+    } finally {
+      setLanguage('en');
+    }
   });
 
   it('stays quiet when already on the latest release', async () => {

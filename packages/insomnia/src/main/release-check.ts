@@ -2,6 +2,7 @@ import { session } from 'electron';
 
 import appConfig from '../../config/config.json';
 import { getAppVersion, getProductName } from '../common/constants';
+import { t } from '../common/i18n';
 import * as models from '../models';
 import type { ToastNotification } from '../ui/components/toast';
 
@@ -44,8 +45,9 @@ const toNotification = (latest: { tag: string; url: string } | null): ToastNotif
   latest && isNewerVersion(latest.tag, getAppVersion()) ? {
     key: `release-${latest.tag}`,
     url: latest.url,
-    cta: 'View release',
-    message: `${getProductName()} ${latest.tag} is available. You have ${getAppVersion()}.`,
+    // in the app's language when it's asked for (the main process follows the setting)
+    cta: t('View release'),
+    message: t('{product} {version} is available. You have {current}.', { product: getProductName(), version: latest.tag, current: getAppVersion() }),
   } : null;
 
 async function askGitHub(fetchImpl: typeof fetch, now: number) {
