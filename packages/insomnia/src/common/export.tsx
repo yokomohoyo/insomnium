@@ -12,6 +12,7 @@ import { AskModal } from '../ui/components/modals/ask-modal';
 import { SelectModal } from '../ui/components/modals/select-modal';
 import { database } from './database';
 import { exportRequestsData, exportRequestsHAR, exportWorkspacesData, exportWorkspacesHAR } from './export-data';
+import { docsFromExport } from './export-docs';
 import { toOpenApiYaml } from './export-openapi';
 import { clientFromExport } from './openapi-client';
 import { toPostmanCollection } from './export-postman';
@@ -26,6 +27,8 @@ const VALUE_HAR = 'har';
 const VALUE_POSTMAN = 'postman';
 const VALUE_OPENAPI = 'openapi';
 const VALUE_TYPESCRIPT = 'typescript';
+const VALUE_MARKDOWN = 'markdown';
+const VALUE_HTML = 'html';
 
 export type SelectedFormat =
   | typeof VALUE_HAR
@@ -34,6 +37,8 @@ export type SelectedFormat =
   | typeof VALUE_POSTMAN
   | typeof VALUE_OPENAPI
   | typeof VALUE_TYPESCRIPT
+  | typeof VALUE_MARKDOWN
+  | typeof VALUE_HTML
   ;
 
 // Insomnium's export, as a Postman collection (export-postman.ts)
@@ -45,7 +50,10 @@ const asOpenApi = (insomniumJson: string, name: string) => toOpenApiYaml(JSON.pa
 // and as a TypeScript client for the API (openapi-client.ts)
 const asTypeScriptClient = (insomniumJson: string, name: string) => clientFromExport(JSON.parse(insomniumJson).resources, name);
 
-const EXTENSIONS: Record<string, string> = { [VALUE_POSTMAN]: 'postman_collection.json', [VALUE_OPENAPI]: 'openapi.yaml', [VALUE_TYPESCRIPT]: 'client.ts' };
+// and as documentation for the API, one Markdown file or one HTML page (export-docs.ts)
+const asDocs = (insomniumJson: string, name: string, format: 'markdown' | 'html') => docsFromExport(JSON.parse(insomniumJson).resources, name, format);
+
+const EXTENSIONS: Record<string, string> = { [VALUE_POSTMAN]: 'postman_collection.json', [VALUE_OPENAPI]: 'openapi.yaml', [VALUE_TYPESCRIPT]: 'client.ts', [VALUE_MARKDOWN]: 'docs.md', [VALUE_HTML]: 'docs.html' };
 
 const showSelectExportTypeModal = ({ onDone }: {
   onDone: (selectedFormat: SelectedFormat) => Promise<void>;
@@ -74,6 +82,14 @@ const showSelectExportTypeModal = ({ onDone }: {
     {
       name: 'TypeScript client (from OpenAPI)',
       value: VALUE_TYPESCRIPT,
+    },
+    {
+      name: 'API documentation (Markdown)',
+      value: VALUE_MARKDOWN,
+    },
+    {
+      name: 'API documentation (HTML page)',
+      value: VALUE_HTML,
     },
   ];
 
@@ -185,6 +201,11 @@ export const exportAllToFile = (activeProjectName: string, workspacesForActivePr
             stringifiedExport = asTypeScriptClient(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName);
             break;
 
+          case VALUE_MARKDOWN:
+          case VALUE_HTML:
+            stringifiedExport = asDocs(await exportWorkspacesData(workspacesForActiveProject, exportPrivateEnvironments, 'json'), activeProjectName, selectedFormat);
+            break;
+
           default:
             throw new Error(`selected export format "${selectedFormat}" is invalid`);
         }
@@ -267,6 +288,11 @@ export const exportRequestsToFile = (requestIds: string[]) => {
 
           case VALUE_TYPESCRIPT:
             stringifiedExport = asTypeScriptClient(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium');
+            break;
+
+          case VALUE_MARKDOWN:
+          case VALUE_HTML:
+            stringifiedExport = asDocs(await exportRequestsData(requests, exportPrivateEnvironments, 'json'), 'Insomnium', selectedFormat);
             break;
 
           default:

@@ -308,9 +308,9 @@ export type Client = ReturnType<typeof createClient>;
 `;
 }
 
-// The client for an export: from its design document's OpenAPI 3 spec when it
-// has exactly one, or else from its HTTP requests
-export function clientFromExport(resources: Doc[], name: string) {
+// An export's API description: its design document's OpenAPI 3 spec when it
+// has exactly one, or else one made from its HTTP requests
+export function openApiOfExport(resources: Doc[], name: string): Doc {
   const specs = resources
     .filter(resource => resource._type === 'api_spec')
     .map(resource => {
@@ -322,5 +322,8 @@ export function clientFromExport(resources: Doc[], name: string) {
     })
     .filter(parsed => parsed?.format === 'openapi' && /^3\./.test(parsed.formatVersion || '') && isObject(parsed.contents));
   const workspaces = resources.filter(resource => resource._type === 'workspace');
-  return typescriptClient(specs.length === 1 && workspaces.length === 1 ? specs[0]!.contents! : toOpenApi(resources as any, name));
+  return specs.length === 1 && workspaces.length === 1 ? specs[0]!.contents! : toOpenApi(resources as any, name);
 }
+
+// The client for an export
+export const clientFromExport = (resources: Doc[], name: string) => typescriptClient(openApiOfExport(resources, name));
