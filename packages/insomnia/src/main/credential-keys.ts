@@ -2,6 +2,7 @@ import { BrowserWindow, safeStorage } from 'electron';
 
 import type { GuardState, KeyWrapper } from '../common/credential-guard';
 import { credentialStorageStatus } from '../common/database';
+import { t } from '../common/i18n';
 import type { ToastNotification } from '../ui/components/toast';
 
 // Wraps the credential data key with the OS keychain: Keychain on macOS, DPAPI
@@ -28,22 +29,22 @@ const launchedAt = Date.now();
 // Notices for the Toast when credential storage needs the user's attention, most
 // pressing first; the Toast shows the first one not yet dismissed.
 export function credentialStorageNotices({ state, unreadableKeys }: { state: GuardState; unreadableKeys: string[] }): ToastNotification[] {
-  const notice = (key: string, message: string) => ({ key, url: LEARN_MORE, cta: 'Learn more', message });
+  const notice = (key: string, message: string) => ({ key, url: LEARN_MORE, cta: t('Learn more'), message });
   if (state === 'locked' || state === 'unavailable') {
     // every launch until it works
     return [notice(`credentials-${state}-${launchedAt}`, state === 'locked'
-      ? 'The system keychain could not unlock your saved credentials, so they read as empty. Credentials you enter now are kept only until you quit.'
-      : 'The system keychain is unavailable, so credentials you enter are kept only until you quit, and not saved to disk.')];
+      ? t('The system keychain could not unlock your saved credentials, so they read as empty. Credentials you enter now are kept only until you quit.')
+      : t('The system keychain is unavailable, so credentials you enter are kept only until you quit, and not saved to disk.'))];
   }
   const notices: ToastNotification[] = [];
   if (unreadableKeys.length) {
     notices.push(notice(`credentials-unreadable-${unreadableKeys.join('-')}`,
-      'Some saved credentials were encrypted on another computer or under an earlier system keychain, so they read as empty here. Enter them again to save them.'));
+      t('Some saved credentials were encrypted on another computer or under an earlier system keychain, so they read as empty here. Enter them again to save them.')));
   }
   if (state === 'weak') {
     notices.push(notice('credentials-weak', process.env.SNAP
-      ? 'Saved credentials (git tokens, OAuth tokens, certificate passphrases) are only obfuscated on disk, because this snap can\'t reach your keyring. Run: sudo snap connect insomnium:password-manager-service'
-      : 'No system keyring was reachable, so saved credentials (git tokens, OAuth tokens, certificate passphrases) are only obfuscated on disk. Run and unlock a keyring such as GNOME Keyring or KWallet to encrypt them.'));
+      ? t("Saved credentials (git tokens, OAuth tokens, certificate passphrases) are only obfuscated on disk, because this snap can't reach your keyring. Run: {command}", { command: 'sudo snap connect insomnium:password-manager-service' })
+      : t('No system keyring was reachable, so saved credentials (git tokens, OAuth tokens, certificate passphrases) are only obfuscated on disk. Run and unlock a keyring such as GNOME Keyring or KWallet to encrypt them.')));
   }
   return notices;
 }
