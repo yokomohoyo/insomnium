@@ -136,10 +136,15 @@ describe('toMarkdownDocs', () => {
     expect(markdown).toMatch(/^# Pet Store 2\.1\.0\n\nAll the \*\*pets\*\*\.\n/);
     expect(markdown).toContain('- [Pets](#pets)\n  - [GET List the pets](#get-list-the-pets)');
     expect(markdown).toContain('<a id="get-list-the-pets"></a>\n\n### GET List the pets\n\n`GET /pets`');
-    expect(markdown).toContain('| `limit` | query | integer | no | at most \\| this many | `10` |');
+    expect(markdown).toContain('| <code>limit</code> | query | integer | no | at most \\| this many | <code>10</code> |');
     expect(markdown).toContain('> **Deprecated**');
     expect(markdown).toContain('Authentication: none');
     expect(markdown).toContain('## Schemas');
+  });
+
+  it("keeps a table cell's backslashes and pipes inside the cell", () => {
+    const docs = toMarkdownDocs({ paths: { '/x': { get: { parameters: [{ name: 'a|b\\', in: 'query', description: 'ends in \\|', example: 'c\\|d' }] } } } });
+    expect(docs).toContain('| <code>a&#124;b\\</code> | query | any | no | ends in \\\\\\| | <code>c\\&#124;d</code> |');
   });
 
   it("fences an example so its own backticks can't close the block", () => {

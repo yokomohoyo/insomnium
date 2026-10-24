@@ -300,10 +300,16 @@ export function docsModel(spec: Doc): DocsModel {
   };
 }
 
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
+
 // Markdown
 
-// text in a table cell: on one line, its pipes escaped
-const cell = (value: string) => value.replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').trim() || ' ';
+// text in a table cell: on one line, its backslashes and pipes escaped, so
+// neither can end the cell
+const cell = (value: string) => value.replace(/[\\|]/g, character => `\\${character}`).replace(/\r?\n/g, ' ').trim() || ' ';
+// code in a table cell, as HTML: a code span keeps backslashes as written, so
+// it can't escape a pipe, but an entity hides it from the table
+const codeCell = (value: string) => `<code>${escapeHtml(value.replace(/\r?\n/g, ' ')).replace(/\|/g, '&#124;')}</code>`;
 // text in a heading or inline: no line breaks
 const inline = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
 // a fenced block that its text can't close
@@ -319,7 +325,7 @@ const code = (value: string) => {
 const rowsTable = (rows: Row[]) => [
   '| Name | Type | Required | Description |',
   '| --- | --- | --- | --- |',
-  ...rows.map(row => `| ${cell(code(row.name))} | ${cell(row.type)} | ${row.required ? 'yes' : 'no'} | ${cell(row.description)} |`),
+  ...rows.map(row => `| ${codeCell(row.name)} | ${cell(row.type)} | ${row.required ? 'yes' : 'no'} | ${cell(row.description)} |`),
 ].join('\n');
 
 const contentsMarkdown = (contents: Content[]) => contents.flatMap(content => [
@@ -371,7 +377,7 @@ export function toMarkdownDocs(spec: Doc): string {
         out.push('#### Parameters', [
           '| Name | In | Type | Required | Description | Example |',
           '| --- | --- | --- | --- | --- | --- |',
-          ...operation.parameters.map(row => `| ${cell(code(row.name))} | ${row.in} | ${cell(row.type)} | ${row.required ? 'yes' : 'no'} | ${cell(row.description)} | ${row.example ? cell(code(row.example)) : ' '} |`),
+          ...operation.parameters.map(row => `| ${codeCell(row.name)} | ${row.in} | ${cell(row.type)} | ${row.required ? 'yes' : 'no'} | ${cell(row.description)} | ${row.example ? codeCell(row.example) : ' '} |`),
         ].join('\n'));
       }
       if (operation.requestBody) {
@@ -405,7 +411,6 @@ export function toMarkdownDocs(spec: Doc): string {
 
 // HTML
 
-const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!));
 // only links that can't run script: the web, mail, and the page's own anchors
 const safeHref = (href: string | null) => (href && /^(https?:|mailto:|#)/i.test(href.trim()) ? href.trim() : null);
 
