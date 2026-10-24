@@ -30,6 +30,7 @@ import GitVCS, {
 } from '../../sync/git/git-vcs';
 import type { DocConflict, MergeChoice } from '../../sync/git/merge-docs';
 import { MemClient } from '../../sync/git/mem-client';
+import { findInsomniaProjectFiles, importInsomniaProjectFiles } from '../../sync/git/insomnia-git-project';
 import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
 import parseGitPath from '../../sync/git/parse-git-path';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
@@ -452,6 +453,22 @@ export const cloneGitRepoAction: ActionFunction = async ({
   let scope: 'design' | 'collection' = WorkspaceScopeKeys.design;
   // If no workspace exists we create a new one
   if (!dataDirName) {
+    // a Git project of Kong Insomnia's (12.6+): its files imported, each a
+    // collection or document of its own, and not linked (insomnia-git-project.ts)
+    const projectFiles = await findInsomniaProjectFiles(fsClient);
+    if (projectFiles.length) {
+      const { workspaces, failed } = await importInsomniaProjectFiles(projectFiles, project._id);
+      await database.flushChanges(bufferId);
+      if (!workspaces.length) {
+        return { errors: [`This is an Insomnia Git project, but none of its files imported: ${failed.map(file => `${file.path}: ${file.error}`).join('; ')}`] };
+      }
+      failed.forEach(file => console.warn(`[git] Didn't import ${file.path}: ${file.error}`));
+      // one: open it; more: the project, where they all are
+      return redirect(workspaces.length === 1
+        ? `/organization/${organizationId}/project/${projectId}/workspace/${workspaces[0]._id}/${workspaces[0].scope === WorkspaceScopeKeys.collection ? 'debug' : ACTIVITY_SPEC}`
+        : `/organization/${organizationId}/project/${projectId}`);
+    }
+
     // Create a new workspace
 
     const workspace = await models.workspace.create({
