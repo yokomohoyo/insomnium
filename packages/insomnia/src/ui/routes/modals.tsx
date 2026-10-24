@@ -1,6 +1,7 @@
-import React, { FC } from 'react';
+import React, { FC, useEffect } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
+import { showDeviceCodePrompt } from '../components/editors/auth/device-code-prompt';
 import { ErrorBoundary } from '../components/error-boundary';
 import { registerModal } from '../components/modals';
 import { AddKeyCombinationModal } from '../components/modals/add-key-combination-modal';
@@ -21,11 +22,14 @@ import { SelectModal } from '../components/modals/select-modal';
 import { SettingsModal } from '../components/modals/settings-modal';
 
 import { WrapperModal } from '../components/modals/wrapper-modal';
+import { setDeviceCodeUi } from '../../network/o-auth-2/device-code';
 import { WorkspaceLoaderData } from './workspace';
 
 const Modals: FC = () => {
   const workspaceData = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData | undefined;
   const { activeWorkspace, activeEnvironment } = workspaceData || {};
+  // the OAuth 2 device code grant shows its code with the alert
+  useEffect(() => setDeviceCodeUi(showDeviceCodePrompt), []);
 
   return (
     <div key="modals" className="modals">

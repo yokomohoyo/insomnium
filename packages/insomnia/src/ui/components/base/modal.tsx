@@ -39,7 +39,9 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
   const [onHideArgument, setOnHideArgument] = useState<() => void>();
 
   const show: ModalHandle['show'] = useCallback(options => {
-    options?.onHide && setOnHideArgument(options.onHide);
+    // stored as a value (a function passed to a state setter is called as an
+    // updater), and this show's only, not an earlier one's
+    setOnHideArgument(() => options?.onHide);
     setOpen(true);
     setZIndex(globalZIndex++);
     onShow?.();

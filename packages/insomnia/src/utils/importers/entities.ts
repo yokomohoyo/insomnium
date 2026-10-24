@@ -22,7 +22,10 @@ export interface Authentication extends Comment {
   clientSecret?: Variable;
   scope?: string;
   type?: 'none' | 'apikey' | 'basic' | 'oauth1' | 'oauth2' | 'bearer' | 'digest' | 'ntlm' | 'iam' | 'netrc' | 'asap' | 'hawk' | 'sha1' | 'sha256';
-  grantType?: 'authorization_code' | 'client_credentials' | 'password' | 'implicit' | 'refresh_token';
+  grantType?: 'authorization_code' | 'client_credentials' | 'password' | 'implicit' | 'refresh_token'
+    | 'urn:ietf:params:oauth:grant-type:device_code'
+    | 'urn:ietf:params:oauth:grant-type:jwt-bearer'
+    | 'urn:ietf:params:oauth:grant-type:token-exchange';
   disabled?: boolean;
   username?: string;
   password?: string;

@@ -11,13 +11,18 @@ import type { Response } from '../../models/response';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getBasicAuthHeader } from '../basic-auth/get-header';
-import { CLIENT_ASSERTION_TYPE, clientAssertion } from './client-assertion';
+import { CLIENT_ASSERTION_TYPE, clientAssertion, grantAssertion } from './client-assertion';
+import { pollForToken, readDeviceAuthorization } from './device-code';
 import { redactTokenResponse } from './redact';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../network';
 import {
   AuthKeys,
   GRANT_TYPE_AUTHORIZATION_CODE,
+  GRANT_TYPE_DEVICE_CODE,
+  GRANT_TYPE_JWT_BEARER,
+  GRANT_TYPE_TOKEN_EXCHANGE,
   PKCE_CHALLENGE_S256,
+  TOKEN_TYPE_ACCESS_TOKEN,
 } from './constants';
 
 const LOCALSTORAGE_KEY_SESSION_ID = 'insomnia::current-oauth-session-id';
@@ -48,7 +53,7 @@ export const getOAuth2Token = async (
   if (oAuth2Token) {
     return oAuth2Token;
   }
-  const validGrantType = ['implicit', 'authorization_code', 'password', 'client_credentials'].includes(authentication.grantType);
+  const validGrantType = ['implicit', 'authorization_code', 'password', 'client_credentials', GRANT_TYPE_DEVICE_CODE, GRANT_TYPE_JWT_BEARER, GRANT_TYPE_TOKEN_EXCHANGE].includes(authentication.grantType);
   guard(validGrantType, `Invalid grant type ${authentication.grantType}`);
   if (authentication.grantType === 'implicit') {
     guard(authentication.authorizationUrl, 'Missing authorization URL');
@@ -90,7 +95,12 @@ export const getOAuth2Token = async (
     }));
   }
   guard(authentication.accessTokenUrl, 'Missing access token URL');
+  if (authentication.grantType === GRANT_TYPE_DEVICE_CODE) {
+    return getTokenWithDeviceCode(requestId, authentication);
+  }
   let params: RequestHeader[] = [];
+  // the newer grants send the client's credentials only when it has some
+  let clientAuthentication = withClientAuthentication;
   if (authentication.grantType === 'authorization_code') {
     guard(authentication.authorizationUrl, 'Invalid authorization URL');
 
@@ -171,15 +181,99 @@ export const getOAuth2Token = async (
       ...insertAuthKeyIf('audience', authentication.audience),
       ...insertAuthKeyIf('resource', authentication.resource),
     ];
+  } else if (authentication.grantType === GRANT_TYPE_JWT_BEARER) {
+    params = [
+      { name: 'grant_type', value: GRANT_TYPE_JWT_BEARER },
+      { name: 'assertion', value: jwtBearerAssertion(authentication) },
+      ...insertAuthKeyIf('scope', authentication.scope),
+    ];
+    // the private key signs the grant's assertion here, not the client's
+    clientAuthentication = (auth, params, headers) => optionalClientAuthentication({ ...auth, usePrivateKeyJwt: false }, params, headers);
+  } else if (authentication.grantType === GRANT_TYPE_TOKEN_EXCHANGE) {
+    guard(authentication.subjectToken, 'A token exchange needs the subject token, the token to trade');
+    params = [
+      { name: 'grant_type', value: GRANT_TYPE_TOKEN_EXCHANGE },
+      { name: 'subject_token', value: authentication.subjectToken },
+      { name: 'subject_token_type', value: authentication.subjectTokenType || TOKEN_TYPE_ACCESS_TOKEN },
+      ...(authentication.actorToken ? [
+        { name: 'actor_token', value: authentication.actorToken },
+        { name: 'actor_token_type', value: authentication.actorTokenType || TOKEN_TYPE_ACCESS_TOKEN },
+      ] : []),
+      ...(authentication.requestedTokenType ? [{ name: 'requested_token_type', value: authentication.requestedTokenType }] : []),
+      ...insertAuthKeyIf('audience', authentication.audience),
+      ...insertAuthKeyIf('resource', authentication.resource),
+      ...insertAuthKeyIf('scope', authentication.scope),
+    ];
+    clientAuthentication = optionalClientAuthentication;
   }
   const headers = authentication.origin ? [{ name: 'Origin', value: authentication.origin }] : [];
-  const authenticated = withClientAuthentication(authentication, params, headers);
+  const authenticated = clientAuthentication(authentication, params, headers);
   const { response, body } = await sendAccessTokenRequest(requestId, authentication, authenticated.params, authenticated.headers);
   const old = await models.oAuth2Token.getOrCreateByParentId(requestId);
   return models.oAuth2Token.update(old, transformNewAccessTokenToOauthModel(
     oauthResponseToAccessToken(authentication.accessTokenUrl, response, body)
   ));
 };
+
+// The JWT bearer grant's assertion: as given, or signed here with the private key
+export const jwtBearerAssertion = (authentication: AuthTypeOAuth2) => {
+  if (authentication.assertion) {
+    return authentication.assertion;
+  }
+  guard(authentication.privateKey, 'The JWT bearer grant needs an assertion, or a private key to sign one with');
+  const issuer = authentication.assertionIssuer || authentication.clientId;
+  guard(issuer, 'The assertion needs an issuer: set the issuer, or the client ID');
+  guard(authentication.accessTokenUrl, 'Missing access token URL');
+  return grantAssertion({
+    issuer,
+    subject: authentication.assertionSubject || undefined,
+    audience: authentication.audience || authentication.accessTokenUrl,
+    scope: authentication.scope || undefined,
+    privateKey: authentication.privateKey,
+    algorithm: authentication.privateKeyAlgorithm || undefined,
+    keyId: authentication.privateKeyId || undefined,
+  });
+};
+
+// The device code grant: a code from the device authorization endpoint, shown
+// to the user (device-code.ts), then the token endpoint asked until they've
+// entered it. Polls that only say "not yet" aren't kept as responses.
+async function getTokenWithDeviceCode(requestId: string, authentication: AuthTypeOAuth2) {
+  guard(authentication.deviceAuthorizationUrl, 'Missing device authorization URL');
+  guard(authentication.accessTokenUrl, 'Missing access token URL');
+  const accessTokenUrl = authentication.accessTokenUrl;
+  const headers = authentication.origin ? [{ name: 'Origin', value: authentication.origin }] : [];
+  const asked = optionalClientAuthentication(authentication, [
+    ...insertAuthKeyIf('scope', authentication.scope),
+    ...insertAuthKeyIf('audience', authentication.audience),
+  ], headers);
+  const first = await sendAccessTokenRequest(requestId, { ...authentication, accessTokenUrl: authentication.deviceAuthorizationUrl }, asked.params, asked.headers);
+  const firstBody = first.body ? tryToParse(first.body.toString()) : null;
+  if (first.response.statusCode < 200 || first.response.statusCode >= 300) {
+    const reason = firstBody?.error ? ` ${firstBody.error}` : '';
+    throw new Error('Failed to get a device code url=' + authentication.deviceAuthorizationUrl + ' status=' + first.response.statusCode + reason);
+  }
+  const authorization = readDeviceAuthorization(firstBody);
+  let last = first;
+  await pollForToken(authorization, async () => {
+    const polled = optionalClientAuthentication(authentication, [
+      { name: 'grant_type', value: GRANT_TYPE_DEVICE_CODE },
+      { name: 'device_code', value: authorization.deviceCode },
+    ], headers);
+    const sent = await sendAccessTokenRequest(requestId, authentication, polled.params, polled.headers);
+    const body = sent.body ? tryToParse(sent.body.toString()) : null;
+    if (body?.error === 'authorization_pending' || body?.error === 'slow_down') {
+      await models.response.remove(sent.response);
+    }
+    last = sent;
+    return { status: sent.response.statusCode, body };
+  });
+  const old = await models.oAuth2Token.getOrCreateByParentId(requestId);
+  return models.oAuth2Token.update(old, transformNewAccessTokenToOauthModel(
+    oauthResponseToAccessToken(accessTokenUrl, last.response, last.body)
+  ));
+}
+
 // 1. get token from db and return if valid
 // 2. if expired, and no refresh token return null
 // 3. run refresh token query and return new token or null if it fails
@@ -360,6 +454,13 @@ const tryToParse = (body: string): Record<string, any> | null => {
 };
 
 const insertAuthKeyIf = (name: AuthKeys, value?: string) => value ? [{ name, value }] : [];
+
+// For grants where the client may be public: its credentials when it has
+// some, or else just its ID, if any
+export const optionalClientAuthentication = (authentication: AuthTypeOAuth2, params: RequestParameter[], headers: RequestHeader[]) =>
+  authentication.usePrivateKeyJwt || authentication.clientSecret
+    ? withClientAuthentication(authentication, params, headers)
+    : { params: [...params, ...insertAuthKeyIf('client_id', authentication.clientId)], headers };
 
 // how a token request says which client it's from: a signed JWT
 // (private_key_jwt), the id and secret in the body, or a Basic header
