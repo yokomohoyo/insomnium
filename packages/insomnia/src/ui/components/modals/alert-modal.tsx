@@ -12,6 +12,8 @@ export interface AlertModalOptions {
   addCancel?: boolean;
   okLabel?: React.ReactNode;
   onConfirm?: () => void | Promise<void>;
+  // however it's closed
+  onHide?: () => void;
 }
 export interface AlertModalHandle {
   show: (options: AlertModalOptions) => void;
@@ -30,7 +32,7 @@ export const AlertModal = forwardRef<AlertModalHandle, ModalProps>((_, ref) => {
     hide: () => {
       modalRef.current?.hide();
     },
-    show: ({ title, message, addCancel, onConfirm, okLabel }) => {
+    show: ({ title, message, addCancel, onConfirm, okLabel, onHide }) => {
       setState({
         title,
         message,
@@ -38,7 +40,7 @@ export const AlertModal = forwardRef<AlertModalHandle, ModalProps>((_, ref) => {
         okLabel,
         onConfirm,
       });
-      modalRef.current?.show();
+      modalRef.current?.show({ onHide });
     },
   }), []);
 

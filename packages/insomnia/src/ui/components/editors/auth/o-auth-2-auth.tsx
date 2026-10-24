@@ -10,10 +10,14 @@ import type { AuthTypeOAuth2, OAuth2ResponseType } from '../../../../models/requ
 import {
   GRANT_TYPE_AUTHORIZATION_CODE,
   GRANT_TYPE_CLIENT_CREDENTIALS,
+  GRANT_TYPE_DEVICE_CODE,
   GRANT_TYPE_IMPLICIT,
+  GRANT_TYPE_JWT_BEARER,
   GRANT_TYPE_PASSWORD,
+  GRANT_TYPE_TOKEN_EXCHANGE,
   PKCE_CHALLENGE_PLAIN,
   PKCE_CHALLENGE_S256,
+  TOKEN_TYPES,
 } from '../../../../network/o-auth-2/constants';
 import { CLIENT_ASSERTION_ALGORITHMS } from '../../../../network/o-auth-2/client-assertion';
 import { getOAuth2Token } from '../../../../network/o-auth-2/get-token';
@@ -52,7 +56,23 @@ const grantTypeOptions = [
     name: 'Client Credentials',
     value: GRANT_TYPE_CLIENT_CREDENTIALS,
   },
+  {
+    name: 'Device Code',
+    value: GRANT_TYPE_DEVICE_CODE,
+  },
+  {
+    name: 'JWT Bearer',
+    value: GRANT_TYPE_JWT_BEARER,
+  },
+  {
+    name: 'Token Exchange',
+    value: GRANT_TYPE_TOKEN_EXCHANGE,
+  },
 ];
+
+// urn:ietf:params:oauth:token-type:access_token is shown as access_token
+const tokenTypeOptions = TOKEN_TYPES.map(value => ({ name: value.split(':').pop() || value, value }));
+const requestedTokenTypeOptions = [{ name: "Any (the provider's choice)", value: '' }, ...tokenTypeOptions];
 
 const privateKeyAlgorithmOptions = CLIENT_ASSERTION_ALGORITHMS.map(algorithm => ({ name: algorithm, value: algorithm }));
 
@@ -146,6 +166,25 @@ const getFields = (authentication: any) => {
     offTitle='Sign a JWT with a private key instead of sending the secret'
     help="Authenticate the client with a JWT signed with its private key, whose public key the provider has, instead of the client secret."
   />;
+  // the device code grant
+  const deviceAuthorizationUrl = <AuthInputRow label='Device Authorization URL' property='deviceAuthorizationUrl' key='deviceAuthorizationUrl' help='Where the code to enter on another device comes from, such as https://oauth2.googleapis.com/device/code' />;
+  // the JWT bearer grant
+  const assertion = <AuthInputRow label='Assertion' property='assertion' key='assertion' mask help='A signed JWT to send as it is. Leave it empty to sign one here with the private key below.' />;
+  const assertionKeyFields = [
+    <AuthPrivateKeyRow label='Private Key' property='privateKey' key='privateKey' help='The PEM private key to sign the assertion with, such as a service account key' />,
+    <AuthSelectRow label='Signing Algorithm' property='privateKeyAlgorithm' key='privateKeyAlgorithm' options={privateKeyAlgorithmOptions} />,
+    <AuthInputRow label='Key ID' property='privateKeyId' key='privateKeyId' help="The key's kid, if the provider needs one to find it" />,
+    <AuthInputRow label='Issuer' property='assertionIssuer' key='assertionIssuer' help="Who signs the assertion, such as a service account's email; the client ID when left empty" />,
+    <AuthInputRow label='Subject' property='assertionSubject' key='assertionSubject' help='Who the token is for, such as a user to act as; the issuer when left empty' />,
+  ];
+  const assertionAudience = <AuthInputRow label='Audience' property='audience' key='audience' help="The assertion's aud claim; the access token URL when left empty" />;
+  // the token exchange grant
+  const subjectToken = <AuthInputRow label='Subject Token' property='subjectToken' key='subjectToken' mask help='The token to trade, such as {% response %} of another sign-in' />;
+  const subjectTokenType = <AuthSelectRow label='Subject Token Type' property='subjectTokenType' key='subjectTokenType' options={tokenTypeOptions} />;
+  const actorToken = <AuthInputRow label='Actor Token' property='actorToken' key='actorToken' mask help="A token for who acts on the subject's behalf, if anyone" />;
+  const actorTokenType = <AuthSelectRow label='Actor Token Type' property='actorTokenType' key='actorTokenType' options={tokenTypeOptions} disabled={!authentication.actorToken} />;
+  const requestedTokenType = <AuthSelectRow label='Requested Token Type' property='requestedTokenType' key='requestedTokenType' options={requestedTokenTypeOptions} />;
+
   const privateKeyFields = authentication.usePrivateKeyJwt ? [
     <AuthPrivateKeyRow label='Private Key' property='privateKey' key='privateKey' help='The PEM private key to sign the client assertion with' />,
     <AuthSelectRow label='Signing Algorithm' property='privateKeyAlgorithm' key='privateKeyAlgorithm' options={privateKeyAlgorithmOptions} />,
@@ -173,6 +212,15 @@ const getFields = (authentication: any) => {
     useSystemBrowser,
     usePrivateKeyJwt,
     privateKeyFields,
+    deviceAuthorizationUrl,
+    assertion,
+    assertionKeyFields,
+    assertionAudience,
+    subjectToken,
+    subjectTokenType,
+    actorToken,
+    actorTokenType,
+    requestedTokenType,
   };
 };
 
@@ -198,6 +246,15 @@ const getFieldsForGrantType = (authentication: any) => {
     useSystemBrowser,
     usePrivateKeyJwt,
     privateKeyFields,
+    deviceAuthorizationUrl,
+    assertion,
+    assertionKeyFields,
+    assertionAudience,
+    subjectToken,
+    subjectTokenType,
+    actorToken,
+    actorTokenType,
+    requestedTokenType,
   } = getFields(authentication);
 
   const { grantType } = authentication;
@@ -260,6 +317,59 @@ const getFieldsForGrantType = (authentication: any) => {
       ...privateKeyFields,
       tokenPrefix,
       audience,
+    ];
+  } else if (grantType === GRANT_TYPE_DEVICE_CODE) {
+    basic = [
+      deviceAuthorizationUrl,
+      accessTokenUrl,
+      clientId,
+      scope,
+    ];
+
+    advanced = [
+      clientSecret,
+      credentialsInBody,
+      usePrivateKeyJwt,
+      ...privateKeyFields,
+      tokenPrefix,
+      audience,
+      origin,
+    ];
+  } else if (grantType === GRANT_TYPE_JWT_BEARER) {
+    basic = [
+      accessTokenUrl,
+      assertion,
+      ...assertionKeyFields,
+      scope,
+    ];
+
+    advanced = [
+      assertionAudience,
+      clientId,
+      clientSecret,
+      credentialsInBody,
+      tokenPrefix,
+    ];
+  } else if (grantType === GRANT_TYPE_TOKEN_EXCHANGE) {
+    basic = [
+      accessTokenUrl,
+      subjectToken,
+      subjectTokenType,
+      clientId,
+      clientSecret,
+    ];
+
+    advanced = [
+      actorToken,
+      actorTokenType,
+      requestedTokenType,
+      audience,
+      resource,
+      scope,
+      credentialsInBody,
+      usePrivateKeyJwt,
+      ...privateKeyFields,
+      tokenPrefix,
     ];
   } else if (grantType === GRANT_TYPE_IMPLICIT) {
     basic = [

@@ -849,5 +849,10 @@
   "{name} (Copy)": "{name} (コピー)",
   "{productName} Preferences": "{productName} の設定",
   "{product} {version} is available. You have {current}.": "{product} {version} が利用可能です。現在のバージョンは {current} です。",
-  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, other {# 個のテスト スイート}}と{tests, plural, other {# 件のテスト}}"
+  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, other {# 個のテスト スイート}}と{tests, plural, other {# 件のテスト}}",
+  "Sign In on Another Device": "別のデバイスでサインイン",
+  "Enter this code at {page}:": "{page} でこのコードを入力してください:",
+  "Copy Code": "コードをコピー",
+  "Open the Page": "ページを開く",
+  "Waiting for the sign-in to finish…": "サインインの完了を待っています…"
 }

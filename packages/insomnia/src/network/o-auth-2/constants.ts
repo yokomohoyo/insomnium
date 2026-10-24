@@ -3,6 +3,14 @@ export const GRANT_TYPE_IMPLICIT = 'implicit';
 export const GRANT_TYPE_PASSWORD = 'password';
 export const GRANT_TYPE_CLIENT_CREDENTIALS = 'client_credentials';
 export const GRANT_TYPE_REFRESH = 'refresh_token';
+// grants named by URN: a device's sign-in with a code (RFC 8628), a JWT that
+// stands for the grant (RFC 7523) and a token traded for another (RFC 8693)
+export const GRANT_TYPE_DEVICE_CODE = 'urn:ietf:params:oauth:grant-type:device_code';
+export const GRANT_TYPE_JWT_BEARER = 'urn:ietf:params:oauth:grant-type:jwt-bearer';
+export const GRANT_TYPE_TOKEN_EXCHANGE = 'urn:ietf:params:oauth:grant-type:token-exchange';
+// the kinds of token a token exchange names (RFC 8693 3)
+export const TOKEN_TYPES = ['access_token', 'refresh_token', 'id_token', 'jwt', 'saml1', 'saml2'].map(name => `urn:ietf:params:oauth:token-type:${name}`);
+export const TOKEN_TYPE_ACCESS_TOKEN = TOKEN_TYPES[0];
 export type AuthKeys =
     'access_token' |
     'id_token' |

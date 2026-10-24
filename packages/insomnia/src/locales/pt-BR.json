@@ -849,5 +849,10 @@
   "{name} (Copy)": "{name} (cópia)",
   "{productName} Preferences": "Preferências do {productName}",
   "{product} {version} is available. You have {current}.": "{product} {version} está disponível. Você tem a {current}.",
-  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, one {# suíte de testes} other {# suítes de testes}} com {tests, plural, one {# teste} other {# testes}}"
+  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, one {# suíte de testes} other {# suítes de testes}} com {tests, plural, one {# teste} other {# testes}}",
+  "Sign In on Another Device": "Entrar em outro dispositivo",
+  "Enter this code at {page}:": "Digite este código em {page}:",
+  "Copy Code": "Copiar código",
+  "Open the Page": "Abrir a página",
+  "Waiting for the sign-in to finish…": "Aguardando o término do login…"
 }

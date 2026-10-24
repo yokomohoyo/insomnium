@@ -49,7 +49,12 @@ An **MCP Request** tries out an MCP (Model Context Protocol) server, as an agent
 
 ### OAuth 2.0
 
-OAuth 2.0 auth gets a token with the authorization code (with PKCE if you like), implicit, password or client credentials grant, keeps it with the request, and refreshes it when it expires.
+OAuth 2.0 auth gets a token with the authorization code (with PKCE if you like), implicit, password, client credentials, device code, JWT bearer or token exchange grant, keeps it with the request, and refreshes it when it expires.
+
+- **Device Code** (RFC 8628) is for signing in on another device, as a TV or a CLI does. Give the **Device Authorization URL** and the access token URL. Insomnium shows the code to enter and the page to enter it on (**Open the Page** opens it, with the code in when the provider allows), then asks for the token every few seconds until you've signed in. Close the dialog to stop.
+- **JWT Bearer** (RFC 7523) sends a signed JWT for the grant itself, as Google's service accounts and Salesforce's JWT flow use. Paste an **Assertion** to send as it is, or give a **Private Key** and Insomnium signs one: from the **Issuer** (the client ID when empty), about the **Subject** (the issuer when empty), for the access token URL (or the **Audience**), with the scope as a claim too.
+- **Token Exchange** (RFC 8693) trades one token for another: the **Subject Token** and its type, and optionally an **Actor Token** (who acts on the subject's behalf), the **Requested Token Type**, audience, resource and scope. A `{% response %}` tag can take the subject token from another request's sign-in.
+- For these three, the client ID and secret are sent only when given (a public client sends just its ID).
 
 - **Use the System Browser** (authorization code) signs in with your browser instead of a window of the app. That's for providers that block embedded windows, and for single sign-on and passkeys that live in your browser. The redirect URL has to be a loopback address the provider allows, such as `http://127.0.0.1:8484/callback`; leave out the port and any free one is used. Insomnium checks that the sign-in comes back with the state it sent.
 - **Client Assertion (private_key_jwt)**, under the advanced options, authenticates the client with a short-lived JWT signed with its private key (RS256 to ES512), instead of the client secret. Give the PEM private key, and the key ID if the provider needs it.
