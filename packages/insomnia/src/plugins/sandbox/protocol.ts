@@ -7,9 +7,11 @@
 // the plugin's calls back into its context (store, alerts, sendRequest…) come
 // back as context messages, which the app answers. Everything crossing is
 // data: functions are left behind (cloneable below).
+import type { AuthProviderManifest } from '../auth-providers';
 
 export type EntryKind =
   | 'templateTag'
+  | 'authProvider'
   | 'tagAction'
   | 'requestHook'
   | 'responseHook'
@@ -36,6 +38,8 @@ export interface ActionManifest {
 
 export interface Manifest {
   templateTags: TagManifest[];
+  // kinds of auth (../auth-providers.ts)
+  authProviders: AuthProviderManifest[];
   requestHooks: number;
   responseHooks: number;
   requestActions: ActionManifest[];

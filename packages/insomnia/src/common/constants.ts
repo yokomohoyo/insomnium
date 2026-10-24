@@ -38,6 +38,7 @@ export type AuthType =
   | 'gcp-id-token'
   | 'jwt'
   | 'edgegrid'
+  | 'plugin'
   | 'sha256'
   | 'sha1';
 export const getBrowserUserAgent = () => encodeURIComponent(
@@ -303,6 +304,8 @@ const authTypesMap: Record<string, string[]> = {
   [AUTH_GCP_ID_TOKEN]: ['GCP ID Token', translateLater('Google Cloud ID Token')],
   [AUTH_JWT]: ['JWT', translateLater('JWT (signed here)')],
   [AUTH_EDGEGRID]: ['EdgeGrid', 'Akamai EdgeGrid'],
+  // a plugin's (plugins/auth-providers.ts): its own name is shown
+  plugin: ['Plugin', 'Plugin Auth'],
 };
 
 // Sort Orders

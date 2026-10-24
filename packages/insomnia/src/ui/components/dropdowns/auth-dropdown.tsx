@@ -15,6 +15,8 @@ import {
 } from '../../../models/request';
 import { SIGNATURE_METHOD_HMAC_SHA1 } from '../../../network/o-auth-1/constants';
 import { GRANT_TYPE_AUTHORIZATION_CODE } from '../../../network/o-auth-2/constants';
+import { newPluginStrategy } from '../../../plugins/auth-providers';
+import { useAuthProviders } from '../editors/auth/plugin-auth';
 import { useRequestSetter } from '../../hooks/use-request';
 import { RequestLoaderData } from '../../routes/request';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
@@ -79,10 +81,14 @@ interface StrategyDropdownProps {
   disabled?: boolean;
   // a request can opt out of its folder's auth
   allowNone?: boolean;
+  // the auth plugins add (HTTP requests and folders only: it runs with the request hooks)
+  withPlugins?: boolean;
 }
 
 // Adds a strategy to a list of them: a request's, or a folder's
-export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication, onChange, authTypes = defaultTypes, disabled = false, allowNone = false }) => (
+export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication, onChange, authTypes = defaultTypes, disabled = false, allowNone = false, withPlugins = false }) => {
+  const providers = useAuthProviders();
+  return (
   <Dropdown
     aria-label={t('Authentication Dropdown')}
     isDisabled={disabled}
@@ -104,6 +110,17 @@ export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication
         </DropdownItem>
       ))}
     </DropdownSection>
+    <DropdownSection aria-label={t('Plugin auth section')} title={t('From Plugins')} items={withPlugins ? providers.map(item => ({ ...item, id: `${item.plugin}/${item.provider.name}` })) : []}>
+      {item => (
+        <DropdownItem key={item.id} aria-label={item.provider.displayName}>
+          <ItemContent
+            icon='plug'
+            label={item.provider.displayName}
+            onClick={() => onChange(addAuthStrategy(authentication, newPluginStrategy(item.plugin, item.provider)))}
+          />
+        </DropdownItem>
+      )}
+    </DropdownSection>
     <DropdownSection aria-label={t('Folder auth section')} items={allowNone ? [{ id: 'none' }] : []}>
       {item => (
         <DropdownItem key={item.id} aria-label={t("No auth, not the folder's")}>
@@ -116,14 +133,16 @@ export const AuthStrategyDropdown: FC<StrategyDropdownProps> = ({ authentication
       )}
     </DropdownSection>
   </Dropdown>
-);
+  );
+};
 
 interface Props {
   authTypes?: AuthType[];
   disabled?: boolean;
+  withPlugins?: boolean;
 }
 
-export const AuthDropdown: FC<Props> = ({ authTypes = defaultTypes, disabled = false }) => {
+export const AuthDropdown: FC<Props> = ({ authTypes = defaultTypes, disabled = false, withPlugins = false }) => {
   const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
   const { requestId } = useParams() as { organizationId: string; projectId: string; workspaceId: string; requestId: string };
   const patchRequest = useRequestSetter();
@@ -141,6 +160,7 @@ export const AuthDropdown: FC<Props> = ({ authTypes = defaultTypes, disabled = f
       authTypes={authTypes}
       disabled={disabled}
       allowNone
+      withPlugins={withPlugins}
     />
   );
 };

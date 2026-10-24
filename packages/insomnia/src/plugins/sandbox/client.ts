@@ -240,6 +240,10 @@ export function moduleOf(manifest: Manifest, sandbox: SandboxedPlugin): Module {
       run: (context: AnyContext, ...args: unknown[]) => sandbox.run('templateTag', index, args, context),
     })),
     requestHooks: range(manifest.requestHooks).map(index => (context: AnyContext) => sandbox.run('requestHook', index, [], context)),
+    authProviders: manifest.authProviders.map((provider, index) => ({
+      ...provider,
+      apply: (context: AnyContext, values: Record<string, string>) => sandbox.run('authProvider', index, [values], context),
+    })),
     responseHooks: range(manifest.responseHooks).map(index => (context: AnyContext) => sandbox.run('responseHook', index, [], context)),
     requestActions: actions('requestAction', manifest.requestActions),
     requestGroupActions: actions('requestGroupAction', manifest.requestGroupActions),
