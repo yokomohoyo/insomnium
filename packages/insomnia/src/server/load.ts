@@ -2,6 +2,7 @@ import fs from 'node:fs';
 
 import { scanResources } from '../common/import';
 import { importResourcesToProject } from '../common/importResourcesToProject';
+import { setEnvironmentData } from '../common/environment-secrets';
 import * as models from '../models';
 import { DEFAULT_PROJECT_ID } from '../models/project';
 import type { Workspace } from '../models/workspace';
@@ -41,7 +42,7 @@ export async function applyEnvironment(workspaces: Workspace[], name: string | u
     }
     if (Object.keys(variables).length) {
       const target = chosen || base;
-      await models.environment.update(target, { data: { ...target.data, ...variables } });
+      await setEnvironmentData(target, { ...target.data, ...variables });
     }
   }
   if (!found) {

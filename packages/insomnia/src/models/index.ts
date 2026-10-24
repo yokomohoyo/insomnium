@@ -22,6 +22,7 @@ import * as _caCertificate from './ca-certificate';
 import * as _clientCertificate from './client-certificate';
 import * as _cookieJar from './cookie-jar';
 import * as _environment from './environment';
+import * as _environmentSecret from './environment-secret';
 import * as _flow from './flow';
 import * as _gitRepository from './git-repository';
 import * as _grpcRequest from './grpc-request';
@@ -69,6 +70,7 @@ export const clientCertificate = _clientCertificate;
 export const caCertificate = _caCertificate;
 export const cookieJar = _cookieJar;
 export const environment = _environment;
+export const environmentSecret = _environmentSecret;
 export const flow = _flow;
 export const gitRepository = _gitRepository;
 export const oAuth2Token = _oAuth2Token;
@@ -108,6 +110,7 @@ export function all() {
     workspace,
     workspaceMeta,
     environment,
+    environmentSecret,
     gitRepository,
     cookieJar,
     apiSpec,

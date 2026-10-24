@@ -5,6 +5,7 @@ import type { ResponsePatch } from '../main/network/libcurl-promise';
 import * as models from '../models';
 import type { Environment } from '../models/environment';
 import type { Request, RequestBodyParameter, RequestHeader, RequestParameter } from '../models/request';
+import { setEnvironmentData, withSecretValues } from '../common/environment-secrets';
 import { isProject } from '../models/project';
 import { isWorkspace } from '../models/workspace';
 import type { AssertionResult } from '../network/assertions';
@@ -67,10 +68,12 @@ async function environmentsFor(request: Request, environmentId?: string | null) 
   if (!workspace) {
     throw new Error('Could not find the workspace to run the script in');
   }
-  const base = await models.environment.getOrCreateForParentId(workspace._id);
-  const chosen = environmentId ? await models.environment.getById(environmentId) : null;
+  // with their secret variables' values, which a script can read and set
+  const base = await withSecretValues(await models.environment.getOrCreateForParentId(workspace._id));
+  const chosen = environmentId ? await withSecretValues(await models.environment.getById(environmentId)) : null;
   const projectId = ancestors.find(isProject)?._id || null;
-  const globals = await getGlobalEnvironments(projectId, workspace._id);
+  const found = await getGlobalEnvironments(projectId, workspace._id);
+  const globals = { base: await withSecretValues(found.base), active: await withSecretValues(found.active) };
   return { base, active: chosen && chosen._id !== base._id ? chosen : null, projectId, globals };
 }
 
@@ -79,15 +82,16 @@ type Environments = Awaited<ReturnType<typeof environmentsFor>>;
 const sameData = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 async function saveEnvironments({ base, active, projectId, globals }: Environments, output: ScriptOutput) {
+  // (a secret variable's value goes back to its secrets, not the data)
   if (active && !sameData(active.data, output.environment)) {
-    await models.environment.update(active, { data: output.environment });
+    await setEnvironmentData(active, output.environment);
   }
   if (!sameData(base.data, active ? output.baseEnvironment : output.environment)) {
-    await models.environment.update(base, { data: active ? output.baseEnvironment : output.environment });
+    await setEnvironmentData(base, active ? output.baseEnvironment : output.environment);
   }
   const global: Environment | null = globals.active || globals.base;
   if (!sameData(global?.data || {}, output.globals) && projectId) {
-    await models.environment.update(global || await models.environment.getOrCreateForParentId(projectId), { data: output.globals });
+    await setEnvironmentData(global || await models.environment.getOrCreateForParentId(projectId), output.globals);
   }
 }
 

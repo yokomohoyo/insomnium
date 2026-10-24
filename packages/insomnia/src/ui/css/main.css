@@ -2144,7 +2144,8 @@ input.editable {
 }
 .environment-editor {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* the views, the editor, the note on secrets, an error */
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   height: 100%;
 }
 .environment-editor__modes {
@@ -2154,6 +2155,11 @@ input.editable {
 }
 .environment-editor__table {
   padding: 0 var(--padding-sm);
+}
+.environment-editor__value {
+  display: flex;
+  align-items: center;
+  gap: var(--padding-xs);
 }
 .header-editor {
   display: grid;

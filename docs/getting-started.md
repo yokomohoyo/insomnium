@@ -74,6 +74,8 @@ An environment is a set of variables, as JSON. Every collection has a **base env
 
 The environment editor shows the variables as a **Table** (a row for each, with its name, value, and whether it is text or JSON) or as **JSON**, which can hold nested values. Use a variable anywhere in a request as `{{ name }}`; with nested values, `{{ api.host }}`. Mark a sub environment **private** to keep it out of exports and Git Sync, for example one holding your own tokens.
 
+A single variable can be **Secret** instead (the column in the table, in a collection's and the global environments): its value is masked, kept on this computer only, and encrypted with your system keychain, like saved credentials. The environment keeps its name with an empty value, so exports and Git Sync share the name and not the value, and each teammate fills in their own. Requests, scripts and template tags get the value as usual. The JSON view shows a secret as `""`: edit it in the table, or type a new value there, which is kept as the secret. A script, the MCP server's `update_environment` and insomnium-server's `INSOMNIUM_VAR_<name>` set a secret's value the same way.
+
 See [Template tags](template-tags.md) for values that are computed when a request is sent.
 
 ### Global environments
