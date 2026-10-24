@@ -854,5 +854,8 @@
   "Enter this code at {page}:": "在 {page} 输入此代码：",
   "Copy Code": "复制代码",
   "Open the Page": "打开页面",
-  "Waiting for the sign-in to finish…": "正在等待登录完成…"
+  "Waiting for the sign-in to finish…": "正在等待登录完成…",
+  "This auth comes from the plugin {plugin}, which isn't installed or is turned off.": "此认证来自插件 {plugin}，该插件未安装或已关闭。",
+  "Plugin auth section": "插件认证部分",
+  "From Plugins": "来自插件"
 }

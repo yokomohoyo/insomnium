@@ -854,5 +854,8 @@
   "Enter this code at {page}:": "{page} でこのコードを入力してください:",
   "Copy Code": "コードをコピー",
   "Open the Page": "ページを開く",
-  "Waiting for the sign-in to finish…": "サインインの完了を待っています…"
+  "Waiting for the sign-in to finish…": "サインインの完了を待っています…",
+  "This auth comes from the plugin {plugin}, which isn't installed or is turned off.": "この認証はプラグイン {plugin} によるもので、そのプラグインはインストールされていないか無効になっています。",
+  "Plugin auth section": "プラグイン認証セクション",
+  "From Plugins": "プラグインから"
 }

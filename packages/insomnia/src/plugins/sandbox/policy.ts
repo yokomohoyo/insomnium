@@ -3,6 +3,7 @@
 // server of the plugin's choosing, and what it sends back (a hook's request,
 // its manifest, its themes) is checked before the app uses it. A plugin with
 // full access has the app's own context instead.
+import { providerManifestOf } from '../auth-providers';
 import type { Manifest } from './protocol';
 
 const fullAccessHint = 'allow it full access in Preferences → Plugins if it needs to';
@@ -133,5 +134,10 @@ export function checkManifest(manifest: unknown, plugin: string): Manifest {
   ) {
     throw new Error(`The plugin ${plugin} described what it has in a way the app can't use`);
   }
-  return { ...m, themes: m.themes.flatMap(theme => safeTheme(theme, plugin)) };
+  // what a provider's fields can be, again here: the sandbox's word isn't taken for it
+  const providers = m.authProviders === undefined ? [] : m.authProviders;
+  if (!list(providers) || providers.some(provider => !providerManifestOf(provider))) {
+    throw new Error(`The plugin ${plugin} described what it has in a way the app can't use`);
+  }
+  return { ...m, authProviders: providers.map(provider => providerManifestOf(provider)!), themes: m.themes.flatMap(theme => safeTheme(theme, plugin)) };
 }

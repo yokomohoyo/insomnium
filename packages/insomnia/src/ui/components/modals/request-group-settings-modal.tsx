@@ -135,12 +135,12 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
           <section aria-label={t('Folder auth')}>
             <div className="flex flex--center">
               <strong className="flex-1">{t('Auth')}</strong>
-              <AuthStrategyDropdown authentication={authentication} onChange={saveAuthentication} authTypes={FOLDER_AUTH_TYPES} />
+              <AuthStrategyDropdown authentication={authentication} onChange={saveAuthentication} authTypes={FOLDER_AUTH_TYPES} withPlugins />
             </div>
             <p className="faint txt-sm">
               {t('Requests in this folder, and in folders inside it, that have no auth of their own use this.')}
             </p>
-            {authentication.length > 0 && <AuthStrategiesEditor authentication={authentication} onChange={saveAuthentication} editableTypes={FOLDER_AUTH_TYPES} />}
+            {authentication.length > 0 && <AuthStrategiesEditor authentication={authentication} onChange={saveAuthentication} editableTypes={[...FOLDER_AUTH_TYPES, 'plugin']} />}
           </section>
           <section aria-label={t('Folder headers')} className="margin-top">
             <strong>{t('Headers')}</strong>

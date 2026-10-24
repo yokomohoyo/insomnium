@@ -854,5 +854,8 @@
   "Enter this code at {page}:": "Introduzca este código en {page}:",
   "Copy Code": "Copiar código",
   "Open the Page": "Abrir la página",
-  "Waiting for the sign-in to finish…": "Esperando a que termine el inicio de sesión…"
+  "Waiting for the sign-in to finish…": "Esperando a que termine el inicio de sesión…",
+  "This auth comes from the plugin {plugin}, which isn't installed or is turned off.": "Esta autenticación proviene del plugin {plugin}, que no está instalado o está desactivado.",
+  "Plugin auth section": "Sección de autenticación de plugins",
+  "From Plugins": "De plugins"
 }

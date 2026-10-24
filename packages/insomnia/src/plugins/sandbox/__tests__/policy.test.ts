@@ -90,6 +90,13 @@ describe("a sandbox's manifest", () => {
     expect(() => checkManifest(manifest({ templateTags: [{ name: 'bad name', args: [], actions: [] }] }), 'p')).toThrow();
     expect(() => checkManifest(manifest({ requestActions: Array.from({ length: 1000 }, () => ({ label: 'x' })) }), 'p')).toThrow();
     expect(() => checkManifest(null, 'p')).toThrow();
+    expect(() => checkManifest(manifest({ authProviders: [{ name: 'not a name', fields: [] }] }), 'p')).toThrow();
+  });
+
+  it("checks its auth providers' fields again, and takes none from an older sandbox", () => {
+    expect(checkManifest(manifest(), 'p').authProviders).toEqual([]);
+    const checked = checkManifest(manifest({ authProviders: [{ name: 'hmac', displayName: 'HMAC', description: '', fields: [{ name: 'type', label: 'x' }, { name: 'secret', label: 'Secret', type: 'password', onchange: 'x' }] }] }), 'p');
+    expect(checked.authProviders).toEqual([{ name: 'hmac', displayName: 'HMAC', description: '', fields: [{ name: 'secret', label: 'Secret', type: 'password' }] }]);
   });
 
   it("keeps a theme's colours, but not names or CSS that would change the window's CSS", () => {

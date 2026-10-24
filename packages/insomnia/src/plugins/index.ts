@@ -14,6 +14,7 @@ import { WebSocketRequest } from '../models/websocket-request';
 import type { Workspace } from '../models/workspace';
 import type { PluginTemplateTag } from '../templating/extensions/index';
 import { showError } from '../ui/components/modals/index';
+import { type AuthProviderManifest, providerManifestOf } from './auth-providers';
 import type { PluginTheme } from './misc';
 import { closeSandboxes, loadSandboxedPlugin } from './sandbox/client';
 import themes from './themes';
@@ -27,6 +28,8 @@ export interface Module {
   requestActions?: OmitInternal<RequestAction>[];
   workspaceActions?: OmitInternal<WorkspaceAction>[];
   documentActions?: OmitInternal<DocumentAction>[];
+  // kinds of auth (auth-providers.ts)
+  authProviders?: { name: string; apply: (context: Record<string, any>, values: Record<string, string>) => void | Promise<void> }[];
 }
 
 export interface Plugin {
@@ -104,6 +107,12 @@ export interface RequestHook extends InternalProperties {
 type ResponseHookCallback = (context: any) => void;
 export interface ResponseHook extends InternalProperties {
   hook: ResponseHookCallback;
+}
+
+// a kind of auth a plugin adds: what the Auth menu shows, and what applies it
+export interface AuthProvider extends InternalProperties {
+  provider: AuthProviderManifest;
+  apply: (context: Record<string, any>, values: Record<string, string>) => void | Promise<void>;
 }
 
 export interface Theme extends InternalProperties {
@@ -427,6 +436,19 @@ export async function getResponseHooks(): Promise<ResponseHook[]> {
   }
 
   return functions;
+}
+
+export async function getAuthProviders(): Promise<AuthProvider[]> {
+  const providers: AuthProvider[] = [];
+  for (const plugin of await getActivePlugins()) {
+    for (const given of plugin.module.authProviders || []) {
+      const provider = providerManifestOf(given);
+      if (provider && typeof given.apply === 'function') {
+        providers.push({ plugin, provider, apply: given.apply });
+      }
+    }
+  }
+  return providers;
 }
 
 export async function getThemes(): Promise<Theme[]> {
