@@ -857,5 +857,8 @@
   "Waiting for the sign-in to finish…": "サインインの完了を待っています…",
   "This auth comes from the plugin {plugin}, which isn't installed or is turned off.": "この認証はプラグイン {plugin} によるもので、そのプラグインはインストールされていないか無効になっています。",
   "Plugin auth section": "プラグイン認証セクション",
-  "From Plugins": "プラグインから"
+  "From Plugins": "プラグインから",
+  "Reconnect when the connection drops": "接続が切れたら再接続する",
+  "Seconds between attempts": "試行の間隔（秒）",
+  "Attempts in a row": "連続試行回数"
 }

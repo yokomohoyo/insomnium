@@ -6,6 +6,7 @@ import { PREVIEW_MODE_FRIENDLY, PREVIEW_MODE_RAW, PREVIEW_MODE_SOURCE, PreviewMo
 import { writeToFile } from '../../../common/write-to-file';
 import { CurlEvent, CurlMessageEvent } from '../../../main/network/curl';
 import { WebSocketEvent, WebSocketMessageEvent } from '../../../main/network/websocket';
+import { hexDump, loggedBytes } from '../../../main/network/websocket-frames';
 import { requestMeta } from '../../../models';
 import { RequestLoaderData } from '../../routes/request';
 import { CodeEditor } from '../codemirror/code-editor';
@@ -38,16 +39,9 @@ const PreviewPaneContents = styled.div({
 
 export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent>> = ({ event }) => {
   const { requestId } = useParams() as { requestId: string };
-  let raw = event.data.toString();
-  // Best effort to parse the binary data as a string
-  try {
-    if ('data' in event && typeof event.data === 'object' && 'data' in event.data && Array.isArray(event.data.data)) {
-      raw = Buffer.from(event.data.data).toString();
-    }
-  } catch (err) {
-    console.error('Failed to parse event data to string, defaulting to JSON.stringify', err);
-    raw = JSON.stringify(event.data);
-  }
+  // a binary frame's bytes (base64 in the log, or Buffer's JSON in an older one)
+  const bytes = loggedBytes(event as WebSocketMessageEvent);
+  const raw = bytes ? bytes.toString() : event.data.toString();
 
   const handleDownloadResponseBody = useCallback(async () => {
     const { canceled, filePath: outputPath } = await window.dialog.showSaveDialog({
@@ -59,7 +53,7 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
       return;
     }
 
-    const error = await writeToFile(outputPath, raw);
+    const error = await writeToFile(outputPath, bytes ?? raw);
     if (error) {
       showError({
         title: 'Save Failed',
@@ -67,11 +61,11 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
         error,
       });
     }
-  }, [raw]);
+  }, [bytes, raw]);
 
   const handleCopyResponseToClipboard = useCallback(() => {
-    window.clipboard.writeText(raw);
-  }, [raw]);
+    window.clipboard.writeText(bytes ? bytes.toString('base64') : raw);
+  }, [bytes, raw]);
 
   const setPreviewMode = async (previewMode: PreviewMode) => {
     return requestMeta.updateOrCreateByParentId(requestId, { previewMode });
@@ -88,6 +82,10 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
   }
   const { activeRequestMeta } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
+  // bytes: a hex dump to preview, base64 as source, and as text when raw
+  const shown = bytes
+    ? { [PREVIEW_MODE_FRIENDLY]: hexDump(bytes), [PREVIEW_MODE_SOURCE]: bytes.toString('base64'), [PREVIEW_MODE_RAW]: raw }[previewMode] ?? hexDump(bytes)
+    : previewMode === PREVIEW_MODE_FRIENDLY ? pretty : raw;
   return (
     <PreviewPane>
       <PreviewPaneButtons>
@@ -102,9 +100,9 @@ export const MessageEventView: FC<Props<CurlMessageEvent | WebSocketMessageEvent
         <CodeEditor
           id="websocket-body-preview"
           hideLineNumbers
-          mode={previewMode === PREVIEW_MODE_RAW ? 'text/plain' : 'text/json'}
-          defaultValue={previewMode === PREVIEW_MODE_FRIENDLY ? pretty : raw}
-          uniquenessKey={event._id}
+          mode={previewMode === PREVIEW_MODE_RAW || bytes ? 'text/plain' : 'text/json'}
+          defaultValue={shown}
+          uniquenessKey={`${event._id}-${previewMode}`}
           readOnly
         />
       </PreviewPaneContents>

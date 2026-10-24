@@ -857,5 +857,8 @@
   "Waiting for the sign-in to finish…": "Warten auf den Abschluss der Anmeldung…",
   "This auth comes from the plugin {plugin}, which isn't installed or is turned off.": "Diese Authentifizierung stammt vom Plugin {plugin}, das nicht installiert oder deaktiviert ist.",
   "Plugin auth section": "Abschnitt Plugin-Authentifizierung",
-  "From Plugins": "Aus Plugins"
+  "From Plugins": "Aus Plugins",
+  "Reconnect when the connection drops": "Neu verbinden, wenn die Verbindung abbricht",
+  "Seconds between attempts": "Sekunden zwischen den Versuchen",
+  "Attempts in a row": "Versuche hintereinander"
 }
