@@ -850,6 +850,11 @@
   "{productName} Preferences": "{productName}-Einstellungen",
   "{product} {version} is available. You have {current}.": "{product} {version} ist verfügbar. Sie haben {current}.",
   "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, one {# Test-Suite} other {# Test-Suites}} mit {tests, plural, one {# Test} other {# Tests}}",
+  "Sign In on Another Device": "Auf einem anderen Gerät anmelden",
+  "Enter this code at {page}:": "Geben Sie diesen Code unter {page} ein:",
+  "Copy Code": "Code kopieren",
+  "Open the Page": "Seite öffnen",
+  "Waiting for the sign-in to finish…": "Warten auf den Abschluss der Anmeldung…",
   "Reconnect when the connection drops": "Neu verbinden, wenn die Verbindung abbricht",
   "Seconds between attempts": "Sekunden zwischen den Versuchen",
   "Attempts in a row": "Versuche hintereinander"

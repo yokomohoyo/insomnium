@@ -62,6 +62,12 @@ describe('the collection tools', () => {
     expect(openapi).toContain('openapi: 3.0.3');
     expect(openapi).toContain('  - url: https://shop.example.com');
     expect(openapi).toContain('  /orders:\n    post:');
+    const markdown = (await call('export_workspace', { workspaceId, format: 'markdown', includePrivate: false })).body;
+    expect(markdown).toMatch(/^# Shop 1\.0\.0\n/);
+    expect(markdown).toContain('`POST /orders`');
+    const html = (await call('export_workspace', { workspaceId, format: 'html', includePrivate: false })).body;
+    expect(html).toMatch(/^<!doctype html>/);
+    expect(html).toContain('<code>POST /orders</code>');
   });
 
   it('run a folder, with each result and a summary', async () => {

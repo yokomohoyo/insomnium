@@ -41,7 +41,7 @@ Don't send requests that change data (POST, PUT, PATCH, DELETE) to a production 
 - `update_environment` changes a variable; `create_environment` adds a sub environment.
 - `add_auth_strategy` / `update_auth_strategy` set auth; a request with empty auth uses its folder's.
 - `import_collection` imports text in any format the app imports (curl, OpenAPI, Postman, Insomnia, HAR...) into a workspace.
-- `export_workspace` exports a collection, as Insomnium's format, as a Postman collection, or as an OpenAPI description of its requests.
+- `export_workspace` exports a collection, as Insomnium's format, as a Postman collection, as an OpenAPI description of its requests, or as API documentation (Markdown, or one HTML page).
 
 The app shows these changes straight away. Tell the user what you changed.
 

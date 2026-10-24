@@ -850,6 +850,11 @@
   "{productName} Preferences": "{productName} 首选项",
   "{product} {version} is available. You have {current}.": "{product} {version} 已发布。你当前的版本是 {current}。",
   "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, other {# 个测试套件}}，含 {tests, plural, other {# 个测试}}",
+  "Sign In on Another Device": "在另一台设备上登录",
+  "Enter this code at {page}:": "在 {page} 输入此代码：",
+  "Copy Code": "复制代码",
+  "Open the Page": "打开页面",
+  "Waiting for the sign-in to finish…": "正在等待登录完成…",
   "Reconnect when the connection drops": "连接断开时重新连接",
   "Seconds between attempts": "每次尝试的间隔（秒）",
   "Attempts in a row": "连续尝试次数"

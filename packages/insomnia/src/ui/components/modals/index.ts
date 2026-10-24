@@ -50,6 +50,11 @@ export function showAlert(config: AlertModalOptions) {
   return showModal(AlertModal, config);
 }
 
+// closes the alert from code, as for a wait that has finished
+export function hideAlert() {
+  modals['AlertModal']?.hide();
+}
+
 export function showError(config: ErrorModalOptions) {
   try {
     return showModal(ErrorModal, config);

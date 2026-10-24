@@ -91,8 +91,25 @@ export function replaceAuthStrategy(
 export type OAuth2ResponseType = 'code' | 'id_token' | 'id_token token' | 'none' | 'token';
 export interface AuthTypeOAuth2 {
   type: 'oauth2';
-  grantType: 'authorization_code' | 'client_credentials' | 'password' | 'implicit' | 'refresh_token';
+  grantType: 'authorization_code' | 'client_credentials' | 'password' | 'implicit' | 'refresh_token'
+    | 'urn:ietf:params:oauth:grant-type:device_code'
+    | 'urn:ietf:params:oauth:grant-type:jwt-bearer'
+    | 'urn:ietf:params:oauth:grant-type:token-exchange';
   accessTokenUrl?: string;
+  // the device code grant's first stop, for the code the user enters
+  deviceAuthorizationUrl?: string;
+  // the JWT bearer grant: an assertion as given, or else one signed here with
+  // privateKey, from this issuer about this subject (the client ID, by default)
+  assertion?: string;
+  assertionIssuer?: string;
+  assertionSubject?: string;
+  // the token exchange grant: the token traded, who acts with it, and the
+  // kind of token wanted (network/o-auth-2/constants.ts TOKEN_TYPES)
+  subjectToken?: string;
+  subjectTokenType?: string;
+  actorToken?: string;
+  actorTokenType?: string;
+  requestedTokenType?: string;
   authorizationUrl?: string;
   clientId?: string;
   clientSecret?: string;
