@@ -1,5 +1,5 @@
 import React, { FC, useEffect, useRef, useState } from 'react';
-import { useParams, useRouteLoaderData } from 'react-router-dom';
+import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { AuthType, CONTENT_TYPE_JSON } from '../../../common/constants';
@@ -13,7 +13,7 @@ import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../../util
 import { useReadyState } from '../../hooks/use-ready-state';
 import { useRequestSetter } from '../../hooks/use-request';
 import { useActiveRequestSyncVCSVersion, useGitVCSVersion } from '../../hooks/use-vcs-version';
-import { WebSocketRequestLoaderData } from '../../routes/request';
+import { ConnectActionParams, WebSocketRequestLoaderData } from '../../routes/request';
 import { RootLoaderData } from '../../routes/root';
 import { TabItem, Tabs } from '../base/tabs';
 import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
@@ -102,6 +102,10 @@ const WebSocketRequestForm: FC<FormProps> = ({
   workspaceId,
 }) => {
   const editorRef = useRef<CodeEditorHandle>(null);
+  // connecting goes through the route's connect action, as the URL bar's
+  // button does, so the new response shows (it waits for it)
+  const connectFetcher = useFetcher();
+  const { organizationId, projectId } = useParams() as { organizationId: string; projectId: string };
 
   useEffect(() => {
     const init = async () => {
@@ -159,15 +163,19 @@ const WebSocketRequestForm: FC<FormProps> = ({
             workspaceCookieJar,
           },
         });
-        window.main.webSocket.open({
-          requestId: request._id,
-          workspaceId,
+        const connectParams: ConnectActionParams = {
           url: joinUrlAndQueryString(rendered.url, buildQueryStringFromParams(rendered.parameters)),
           headers: rendered.headers,
           authentication: rendered.authentication,
           cookieJar: rendered.workspaceCookieJar,
+          suppressUserAgent: false,
           initialPayload: renderedMessage,
           initialPayloadBinary: binary,
+        };
+        connectFetcher.submit(JSON.stringify(connectParams), {
+          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${request._id}/connect`,
+          method: 'post',
+          encType: 'application/json',
         });
         return;
       }
