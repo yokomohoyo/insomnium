@@ -1,11 +1,13 @@
-import { describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+import { tryToTransformRequestWithPlugins } from '../../network/network';
 import { isPluginStrategy, newPluginStrategy, pluginAuthValues, providerManifestOf } from '../auth-providers';
+import * as pluginsModule from '../index';
 
 // what the app does with a request's plugin auth goes through the plugins' list
 jest.mock('../index', () => ({
   getAuthProviders: jest.fn(),
-  getRequestHooks: jest.fn(async () => []),
+  getRequestHooks: jest.fn(),
 }));
 
 describe('a plugin auth provider', () => {
@@ -56,9 +58,12 @@ describe('a plugin auth provider', () => {
 });
 
 describe('a request with plugin auth, before sending', () => {
-  const pluginsModule = jest.requireMock('../index') as { getAuthProviders: jest.Mock<any> };
+  // set again for each test: the preset resets mocks
+  const plugins = pluginsModule as unknown as Record<string, jest.Mock<any>>;
+  beforeEach(() => {
+    plugins.getRequestHooks.mockResolvedValue([]);
+  });
   const send = async (authentication: unknown) => {
-    const { tryToTransformRequestWithPlugins } = await import('../../network/network');
     const request = { _id: 'req_1', url: 'https://api.example.com', method: 'GET', headers: [], parameters: [], body: {}, authentication } as any;
     return tryToTransformRequestWithPlugins({ request, context: { getProjectId: () => 'proj_1' } as any });
   };
@@ -68,7 +73,7 @@ describe('a request with plugin auth, before sending', () => {
     const apply = jest.fn(async (context: any, values: Record<string, string>) => {
       context.request.setHeader('Authorization', `HMAC ${values.keyId}`);
     });
-    pluginsModule.getAuthProviders.mockResolvedValue([{ plugin, provider: providerManifestOf({ name: 'hmac', fields: [{ name: 'keyId' }] }), apply }]);
+    plugins.getAuthProviders.mockResolvedValue([{ plugin, provider: providerManifestOf({ name: 'hmac', fields: [{ name: 'keyId' }] }), apply }]);
 
     const sent = await send([
       { type: 'plugin', plugin: 'insomnia-plugin-hmac', provider: 'hmac', keyId: 'k-1' },
@@ -80,7 +85,7 @@ describe('a request with plugin auth, before sending', () => {
   });
 
   it("says so when the plugin isn't there", async () => {
-    pluginsModule.getAuthProviders.mockResolvedValue([]);
+    plugins.getAuthProviders.mockResolvedValue([]);
     await expect(send({ type: 'plugin', plugin: 'gone', provider: 'hmac' })).rejects.toThrow('comes from the plugin gone');
   });
 });

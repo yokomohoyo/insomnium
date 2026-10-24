@@ -56,6 +56,7 @@ Its `main` module exports any of:
 | `responseHooks` | Functions called with a context as each response arrives: `context.response` can read it and replace its body. |
 | `requestActions`, `requestGroupActions`, `workspaceActions`, `documentActions` | Items added to the menus of requests, folders, collections and documents: a label, an icon, and an `action(context, data)` function. |
 | `themes` | Colour themes, shown in **Preferences → Themes**. |
+| `authProviders` | Kinds of auth, added to the **Auth** menu of HTTP requests and folders under **From Plugins**: a `name`, a `displayName`, a `description`, the `fields` it asks for (each a `name`, a `label`, and a `type` of `text`, `password` or `textarea`, with an optional `placeholder` and `help`), and an `apply(context, values)` function. Before a request is sent, `apply` gets the request hook's context and the fields' values, with variables and tags rendered, and changes the request as a hook does. It runs before the request hooks. A field can't be named `type`, `plugin`, `provider`, `disabled` or `headerName`. A request whose auth comes from a plugin that's gone or turned off isn't sent, and says which plugin it needs. |
 
 ```js
 module.exports.templateTags = [{
@@ -71,6 +72,19 @@ module.exports.templateTags = [{
 module.exports.requestHooks = [
   context => context.request.setHeader('X-Sent-By', 'insomnium'),
 ];
+
+module.exports.authProviders = [{
+  name: 'hmac',
+  displayName: 'HMAC Signature',
+  fields: [
+    { name: 'keyId', label: 'Key ID' },
+    { name: 'secret', label: 'Secret', type: 'password' },
+  ],
+  async apply(context, { keyId, secret }) {
+    const signature = await sign(secret, context.request.getMethod() + ' ' + context.request.getUrl());
+    context.request.setHeader('Authorization', `HMAC ${keyId}:${signature}`);
+  },
+}];
 ```
 
 The context also has `context.app` (alerts, prompts, dialogs), `context.store` (values kept for the plugin) and `context.network` (to send a request from an action).
