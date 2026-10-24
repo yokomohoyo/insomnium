@@ -11,6 +11,7 @@ import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
+import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { EnvironmentEditor, EnvironmentEditorHandle } from '../editors/environment-editor';
 
 // The project's global environments (common/global-environments.ts): their
@@ -40,6 +41,8 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
 
   const environments = base ? [base, ...subEnvironments] : [];
   const selected = environments.find(({ _id }) => _id === selectedId);
+  // its secret values (common/environment-secrets.ts)
+  const secretValues = useSecretValues(selected?._id);
 
   const update = async (environment: Environment, patch: Partial<Environment>) => {
     await models.environment.update(environment, patch);
@@ -52,7 +55,7 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
     const value = editorRef.current?.isValid() ? editorRef.current.getValue() : null;
     const current = selected && await models.environment.getById(selected._id);
     if (current && value) {
-      await update(current, { data: value.object, dataPropertyOrder: value.propertyOrder });
+      await update(current, await environmentPatchFrom(current, value));
     }
   };
 
@@ -153,11 +156,12 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
                 )}
               </p>
               <div className="env-modal__editor flex-1 min-h-0" style={{ height: 'auto' }}>
-                {selected && (
+                {selected && secretValues && (
                   <EnvironmentEditor
                     ref={editorRef}
                     key={selected._id}
-                    environmentInfo={{ object: selected.data, propertyOrder: selected.dataPropertyOrder }}
+                    allowSecrets
+                    environmentInfo={{ object: selected.data, propertyOrder: selected.dataPropertyOrder, secretKeys: selected.secretKeys, secrets: secretValues }}
                     onBlur={save}
                   />
                 )}

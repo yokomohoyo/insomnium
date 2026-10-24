@@ -16,6 +16,7 @@ import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
+import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { EnvironmentEditor, EnvironmentEditorHandle } from '../editors/environment-editor';
 import { HelpTooltip } from '../help-tooltip';
 import { Tooltip } from '../tooltip';
@@ -242,6 +243,8 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
   useEffect(() => {
     modalRef.current?.show();
   }, []);
+  // the shown environment's secret values (common/environment-secrets.ts)
+  const secretValues = useSecretValues(routeData?.activeEnvironment?._id);
 
   if (!routeData) {
     return null;
@@ -501,27 +504,28 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
               ) : null}
             </div>
             <div className="env-modal__editor">
-              <EnvironmentEditor
+              {/* it starts from the secret values, so once they're read */}
+              {secretValues && <EnvironmentEditor
                 ref={environmentEditorRef}
                 key={`${activeEnvironment._id}`}
+                allowSecrets
                 environmentInfo={{
                   object: activeEnvironment.data,
                   propertyOrder: activeEnvironment.dataPropertyOrder,
+                  secretKeys: activeEnvironment.secretKeys,
+                  secrets: secretValues,
                 }}
-                onBlur={() => {
+                onBlur={async () => {
                   // Only save if it's valid
                   if (!environmentEditorRef.current || !environmentEditorRef.current?.isValid()) {
                     return;
                   }
                   const data = environmentEditorRef.current?.getValue();
                   if (activeEnvironment && data) {
-                    updateEnvironment(activeEnvironment._id, {
-                      data: data.object,
-                      dataPropertyOrder: data.propertyOrder,
-                    });
+                    updateEnvironment(activeEnvironment._id, await environmentPatchFrom(activeEnvironment, data));
                   }
                 }}
-              />
+              />}
             </div>
           </div>
         </ModalBody>

@@ -7,6 +7,9 @@ export const prefix = 'env';
 export const canDuplicate = true;
 export const canSync = true;
 
+// left out of a document that hasn't one, so adding it isn't a change to sync
+export const optionalKeys = ['secretKeys'];
+
 export interface BaseEnvironment {
   name: string;
   data: Record<string, any>;
@@ -15,6 +18,9 @@ export interface BaseEnvironment {
   metaSortKey: number;
   // For sync control
   isPrivate: boolean;
+  // the variables whose values are secret: kept on this computer, encrypted,
+  // and not synced or exported (common/environment-secrets.ts)
+  secretKeys?: string[];
 }
 
 export type Environment = BaseModel & BaseEnvironment;

@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+import { setEnvironmentData } from '../../../common/environment-secrets';
 import * as models from '../../../models';
 
 export function registerEnvironmentMutationTools(server: McpServer) {
@@ -39,9 +40,11 @@ export function registerEnvironmentMutationTools(server: McpServer) {
         for (const [k, v] of Object.entries(data)) {
           if (v === null) delete merged[k]; else merged[k] = v;
         }
-        patch.data = merged;
+        // a secret variable's value goes to its secrets, not the data
+        await setEnvironmentData(env, merged, patch);
+      } else {
+        await models.environment.update(env, patch);
       }
-      await models.environment.update(env, patch);
       return { content: [{ type: 'text', text: JSON.stringify({ ok: true, environmentId }) }] };
     },
   );

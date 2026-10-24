@@ -15,6 +15,7 @@ import * as templatingUtils from '../templating/utils';
 import { setDefaultProtocol } from '../utils/url/protocol';
 import { CONTENT_TYPE_GRAPHQL, JSON_ORDER_SEPARATOR } from './constants';
 import { database as db } from './database';
+import { withSecretValues } from './environment-secrets';
 import { withFolderSettings } from './folder-inheritance';
 import { getGlobalEnvironments } from './global-environments';
 
@@ -341,11 +342,13 @@ export async function getRenderContext(
     throw new Error('Failed to render. Could not find workspace');
   }
 
-  const rootEnvironment = await models.environment.getOrCreateForParentId(
+  // with their secret variables' values (environment-secrets.ts)
+  const rootEnvironment = await withSecretValues(await models.environment.getOrCreateForParentId(
     workspace ? workspace._id : 'n/a',
-  );
-  const subEnvironment = await models.environment.getById(environmentId || 'n/a');
-  const globals = await getGlobalEnvironments(project?._id, workspace._id);
+  ));
+  const subEnvironment = await withSecretValues(await models.environment.getById(environmentId || 'n/a'));
+  const found = await getGlobalEnvironments(project?._id, workspace._id);
+  const globals = { ...found, base: await withSecretValues(found.base), active: await withSecretValues(found.active) };
   const globalEnvironments = [globals.base, globals.active].filter((environment): environment is Environment => !!environment);
   const keySource: Record<string, string> = {};
 
