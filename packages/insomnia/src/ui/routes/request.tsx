@@ -14,6 +14,7 @@ import type { EventStreamConnection } from '../../main/network/event-stream-requ
 import type { GraphqlSubscription } from '../../main/network/graphql-ws';
 import type { MqttOptions } from '../../main/network/mqtt';
 import type { SocketIoOptions } from '../../main/network/socket-io';
+import type { BinaryEncoding } from '../../main/network/websocket-frames';
 import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
@@ -313,6 +314,9 @@ interface WebSocketConnectParams {
   graphqlSubscription?: GraphqlSubscription;
   socketIo?: SocketIoOptions;
   mqtt?: MqttOptions;
+  // sent once connected: the message editor's, when Send connects
+  initialPayload?: string;
+  initialPayloadBinary?: BinaryEncoding;
 }
 export type ConnectActionParams = WebSocketConnectParams | EventStreamConnection;
 export const connectAction: ActionFunction = async ({ request, params }) => {
@@ -333,6 +337,8 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
       graphqlSubscription: 'graphqlSubscription' in rendered ? rendered.graphqlSubscription : undefined,
       socketIo: 'socketIo' in rendered ? rendered.socketIo : undefined,
       mqtt: 'mqtt' in rendered ? rendered.mqtt : undefined,
+      initialPayload: 'initialPayload' in rendered ? rendered.initialPayload : undefined,
+      initialPayloadBinary: 'initialPayloadBinary' in rendered ? rendered.initialPayloadBinary : undefined,
     });
   }
   if (isEventStreamRequest(req)) {
