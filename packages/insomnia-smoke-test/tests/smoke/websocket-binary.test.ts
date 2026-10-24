@@ -26,10 +26,12 @@ test('a WebSocket sends a hex message as a binary frame, and reconnects when dro
 
   // the message goes out as 5 bytes, and the echo server sends them back
   await page.getByLabel('Request Collection').getByRole('row', { name: 'binary echo' }).click();
-  // the message's mode is the first tab's title: a menu
-  await page.getByRole('button', { name: 'JSON', exact: true }).click();
+  // the message's mode is the first tab's title, a menu: a tab's content
+  // isn't in the accessibility tree, so found by its text
+  const modeMenu = page.getByRole('tablist', { name: 'Websocket request pane tabs' }).locator('[data-testid="DropdownButton"] button');
+  await modeMenu.filter({ hasText: 'JSON' }).click();
   await page.getByRole('menuitem', { name: 'Hex (binary)' }).click();
-  await expect(page.getByRole('button', { name: 'Hex', exact: true })).toBeVisible();
+  await expect(modeMenu).toHaveText('Hex');
   await page.locator('#websocketMessageForm .CodeMirror').click();
   await page.keyboard.insertText('48 65 6c 6c 6f');
   await page.getByRole('button', { name: 'Send' }).click();
