@@ -114,6 +114,31 @@ describe('a plugin in its sandbox', () => {
     expect(fs.readFileSync(bodyPath, 'utf8')).toBe('QUIET!');
   });
 
+  it("applies its auth to the app's request, with the strategy's values", async () => {
+    const { module } = await load({
+      ...PLUGIN,
+      'index.js': `
+        module.exports.authProviders = [
+          { name: 'not a name', apply: () => {} },
+          { name: 'no-apply' },
+          {
+            name: 'hmac',
+            displayName: 'HMAC Signature',
+            fields: [{ name: 'keyId', label: 'Key ID' }, { name: 'secret', label: 'Secret', type: 'password' }],
+            apply: (context, { keyId, secret }) => {
+              context.request.setHeader('Authorization', 'HMAC ' + keyId + ':' + secret.length);
+            },
+          },
+        ];
+      `,
+    });
+    // only the usable one, counted the same on both sides
+    expect(module.authProviders?.map(({ name }) => name)).toEqual(['hmac']);
+    const renderedRequest = { _id: 'req_1', name: 'pets', url: 'https://pets.example.com', method: 'GET', headers: [], parameters: [], body: {}, authentication: {} } as any;
+    await module.authProviders?.[0].apply({ ...requestContext.init(renderedRequest, {}) }, { keyId: 'k-1', secret: 'shh' });
+    expect(renderedRequest.headers).toEqual([{ name: 'Authorization', value: 'HMAC k-1:3' }]);
+  });
+
   it('runs an action, which can wait on the app as long as it takes', async () => {
     const { module } = await load(PLUGIN, 50);
     const alert = jest.fn(() => new Promise(resolve => setTimeout(resolve, 120)));

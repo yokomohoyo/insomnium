@@ -178,7 +178,7 @@ export const RequestPane: FC<Props> = ({
             environmentId={environmentId}
           />
         </TabItem>
-        <TabItem key="auth" title={<AuthDropdown />}>
+        <TabItem key="auth" title={<AuthDropdown withPlugins />}>
           <ErrorBoundary
             key={uniqueKey}
             errorClassName="font-error pad text-center"

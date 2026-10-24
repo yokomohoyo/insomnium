@@ -2,6 +2,7 @@
 // its own, which reads the plugin's files through the main process and has no
 // Node.js modules, and given its context as data and calls back to the app.
 // This runs in the sandbox's page, without Node.js.
+import { providerManifestOf } from '../auth-providers';
 import { init as requestContext } from '../context/request';
 import { SandboxBuffer } from './buffer';
 import {
@@ -270,6 +271,7 @@ interface PluginModule {
   templateTags?: { name: string; displayName?: unknown; description?: string; args?: unknown[]; actions?: { name: string; icon?: string; run: Fn }[]; priority?: number; deprecated?: boolean; run: Fn }[];
   requestHooks?: Fn[];
   responseHooks?: Fn[];
+  authProviders?: { name: string; apply: Fn }[];
   requestActions?: { label: string; icon?: string; action: Fn }[];
   requestGroupActions?: { label: string; icon?: string; action: Fn }[];
   workspaceActions?: { label: string; icon?: string; action: Fn }[];
@@ -278,6 +280,8 @@ interface PluginModule {
 }
 
 const list = <T>(value: T[] | undefined): T[] => (Array.isArray(value) ? value : []);
+// the providers the app can use, in the order the manifest and the calls both count them
+const usableProviders = (plugin: PluginModule) => list(plugin.authProviders).filter(provider => providerManifestOf(provider) && typeof provider.apply === 'function');
 const actions = (items: { label: string; icon?: string; hideAfterClick?: boolean }[] | undefined) =>
   list(items).map(({ label, icon, hideAfterClick }) => ({ label: String(label), icon, hideAfterClick }));
 
@@ -294,6 +298,7 @@ export function manifestOf(plugin: PluginModule): Manifest {
       priority: tag.priority,
       deprecated: tag.deprecated,
     })),
+    authProviders: usableProviders(plugin).map(provider => providerManifestOf(provider)!),
     requestHooks: list(plugin.requestHooks).length,
     responseHooks: list(plugin.responseHooks).length,
     requestActions: actions(plugin.requestActions),
@@ -310,6 +315,7 @@ function entryOf(plugin: PluginModule, message: Extract<ToSandbox, { type: 'call
   const found = {
     templateTag: () => tag?.run,
     tagAction: () => list(tag?.actions)[message.action ?? -1]?.run,
+    authProvider: () => usableProviders(plugin)[index]?.apply,
     requestHook: () => list(plugin.requestHooks)[index],
     responseHook: () => list(plugin.responseHooks)[index],
     requestAction: () => list(plugin.requestActions)[index]?.action,

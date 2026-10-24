@@ -2,13 +2,12 @@ import { expect } from '@playwright/test';
 
 import { test } from '../../playwright/test';
 
-// a hex message, and a socket the server cuts off each time, with reconnecting on
+// a socket to send a hex message on, and one the server cuts off each time, with reconnecting on
 const collection = `_type: export
 __export_format: 4
 resources:
   - { _id: wrk_1, _type: workspace, parentId: null, name: Sockets, scope: collection }
   - { _id: ws-req_1, _type: websocket_request, parentId: wrk_1, name: binary echo, url: 'ws://127.0.0.1:4010' }
-  - { _id: ws-payload_1, _type: websocket_payload, parentId: ws-req_1, name: Payload, mode: binary/hex, value: '48 65 6c 6c 6f' }
   - _id: ws-req_2
     _type: websocket_request
     parentId: wrk_1
@@ -27,8 +26,12 @@ test('a WebSocket sends a hex message as a binary frame, and reconnects when dro
 
   // the message goes out as 5 bytes, and the echo server sends them back
   await page.getByLabel('Request Collection').getByRole('row', { name: 'binary echo' }).click();
-  // the message's mode, the first tab's title
+  // the message's mode is the first tab's title: a menu
+  await page.getByRole('button', { name: 'JSON', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Hex (binary)' }).click();
   await expect(page.getByRole('button', { name: 'Hex', exact: true })).toBeVisible();
+  await page.locator('#websocketMessageForm .CodeMirror').click();
+  await page.keyboard.insertText('48 65 6c 6c 6f');
   await page.getByRole('button', { name: 'Send' }).click();
   // the WebSocket's pane: there's a second, hidden response pane
   const events = page.getByTestId('response-pane').filter({ hasText: 'Connected successfully' });

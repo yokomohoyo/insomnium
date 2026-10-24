@@ -855,6 +855,9 @@
   "Copy Code": "Copier le code",
   "Open the Page": "Ouvrir la page",
   "Waiting for the sign-in to finish…": "En attente de la fin de la connexion…",
+  "This auth comes from the plugin {plugin}, which isn't installed or is turned off.": "Cette authentification vient du plugin {plugin}, qui n'est pas installé ou est désactivé.",
+  "Plugin auth section": "Section d'authentification des plugins",
+  "From Plugins": "Des plugins",
   "Reconnect when the connection drops": "Se reconnecter si la connexion est perdue",
   "Seconds between attempts": "Secondes entre les tentatives",
   "Attempts in a row": "Tentatives successives"

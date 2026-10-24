@@ -24,9 +24,11 @@ import * as models from '../models';
 import type { BaseModel } from '../models';
 import { CaCertificate } from '../models/ca-certificate';
 import { ClientCertificate } from '../models/client-certificate';
+import { getAuthStrategies } from '../models/request';
 import type { Request, RequestAuthentication, RequestParameter, RequestSegment } from '../models/request';
 import type { Settings } from '../models/settings';
 import { isWorkspace } from '../models/workspace';
+import { isPluginStrategy, pluginAuthValues } from '../plugins/auth-providers';
 import * as pluginContexts from '../plugins/context/index';
 import * as plugins from '../plugins/index';
 import { runAfterResponseScript } from '../scripting/request-scripts';
@@ -96,7 +98,8 @@ export const tryToTransformRequestWithPlugins = async (renderResult: RequestAndC
   try {
     return await _applyRequestPluginHooks(request, context);
   } catch (err) {
-    throw new Error(`Failed to transform request with plugins: ${request._id}`);
+    // with why, such as a plugin's auth whose plugin is gone
+    throw new Error(`Failed to transform request with plugins: ${request._id}: ${err instanceof Error ? err.message : String(err)}`);
   }
 };
 export async function sendCurlAndWriteTimeline(
@@ -366,6 +369,31 @@ async function _applyRequestPluginHooks(
 ) {
   const newRenderedRequest = clone(renderedRequest);
 
+  // auth from plugins (plugins/auth-providers.ts), before the hooks: each
+  // enabled strategy's provider changes the request with its rendered values
+  const strategies = getAuthStrategies(newRenderedRequest.authentication).filter(strategy => !strategy.disabled && isPluginStrategy(strategy));
+  if (strategies.length) {
+    const providers = await plugins.getAuthProviders();
+    for (const strategy of strategies) {
+      const found = providers.find(({ plugin, provider }) => plugin.name === strategy.plugin && provider.name === strategy.provider);
+      if (!found) {
+        throw new Error(`The auth ${strategy.provider} comes from the plugin ${strategy.plugin}, which isn't installed or is turned off`);
+      }
+      const context = {
+        ...(pluginContexts.app.init(RENDER_PURPOSE_NO_RENDER) as Record<string, any>),
+        ...pluginContexts.data.init(renderedContext.getProjectId()),
+        ...(pluginContexts.store.init(found.plugin) as Record<string, any>),
+        ...(pluginContexts.request.init(newRenderedRequest, renderedContext) as Record<string, any>),
+        ...(pluginContexts.network.init() as Record<string, any>),
+      };
+      try {
+        await found.apply(context, pluginAuthValues(strategy, found.provider.fields));
+      } catch (err) {
+        err.plugin = found.plugin;
+        throw err;
+      }
+    }
+  }
 
   for (const { plugin, hook } of await plugins.getRequestHooks()) {
 

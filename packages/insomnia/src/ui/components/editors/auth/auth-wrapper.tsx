@@ -46,6 +46,8 @@ import { NetrcAuth } from './netrc-auth';
 import { NTLMAuth } from './ntlm-auth';
 import { OAuth1Auth } from './o-auth-1-auth';
 import { OAuth2Auth } from './o-auth-2-auth';
+import { PluginAuth, useAuthProviders } from './plugin-auth';
+import { AUTH_PLUGIN } from '../../../../plugins/auth-providers';
 
 function renderEditor(type: string, disabled: boolean): ReactNode {
   switch (type) {
@@ -63,6 +65,7 @@ function renderEditor(type: string, disabled: boolean): ReactNode {
     case AUTH_GCP_ID_TOKEN: return <GcpIdTokenAuth disabled={disabled} />;
     case AUTH_JWT: return <JwtAuth />;
     case AUTH_EDGEGRID: return <EdgeGridAuth />;
+    case AUTH_PLUGIN: return <PluginAuth />;
     case AUTH_NONE:
       return <div className="pad super-faint text-sm">Sends no auth, and doesn't use its folder's.</div>;
     default:
@@ -73,6 +76,19 @@ function renderEditor(type: string, disabled: boolean): ReactNode {
       );
   }
 }
+
+// a strategy's name: a plugin's auth by its provider's
+const StrategyTitle: FC<{ strategy: RequestAuthenticationStrategy }> = ({ strategy }) => {
+  const providers = useAuthProviders();
+  if (strategy.type === AUTH_NONE) {
+    return <>No auth</>;
+  }
+  if (strategy.type === AUTH_PLUGIN) {
+    const found = providers.find(({ plugin, provider }) => plugin === strategy.plugin && provider.name === strategy.provider);
+    return <>{found?.provider.displayName || strategy.provider}</>;
+  }
+  return <>{getAuthTypeName(strategy.type as any, true) || 'Auth'}</>;
+};
 
 const EmptyState: FC<{ inheritedFrom?: RequestGroup }> = ({ inheritedFrom }) => (
   <div className="vertically-center text-center">
@@ -136,9 +152,10 @@ export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication
           <div className="border-bottom pad-bottom">
             <div className="flex flex--center pad-top pad-left pad-right">
               <strong className="txt-sm">
-                {strategy.type === AUTH_NONE ? 'No auth' : getAuthTypeName(strategy.type as any, true) || 'Auth'}
+                <StrategyTitle strategy={strategy} />
               </strong>
-              {strategy.type === AUTH_NONE ? <span className="flex-1" /> : (
+              {/* a plugin's auth sets the request as it likes, with no header to rename */}
+              {strategy.type === AUTH_NONE || strategy.type === AUTH_PLUGIN ? <span className="flex-1" /> : (
                 <input
                   className="margin-left form-control form-control--small flex-1"
                   placeholder="Header name override (defaults to Authorization)"
