@@ -74,7 +74,15 @@ Export a collection or document from its menu, or everything in a project from *
 
   The base URL is the spec's first server, unless you give `baseUrl`. A response that isn't 2xx throws an `ApiError` with its status and body. It runs wherever `fetch` does: browsers, Node 18 and later, Deno and Bun.
 
-Insomnium asks whether to include private environments.
+- **API documentation**, as one Markdown file (for a repo's `docs/` or a wiki) or as one HTML page (to host anywhere, or open from disk). Like the TypeScript client, it's made from a design document's OpenAPI 3 spec, or from the requests when there's no spec: then each folder is a section, its description and the requests' descriptions are the text, and [examples](getting-started.md#requests) are the responses. It has:
+  - the servers and the kinds of auth;
+  - a section for each tag (folder), each operation with its method and path, description, auth, parameters, request body and responses;
+  - each body's fields and an example: the spec's own, or one made from the schema;
+  - the schemas, with their fields and their JSON Schema.
+
+  The HTML page loads nothing: its styles are inline, it follows the reader's light or dark setting, and it works on a phone. Descriptions are Markdown. In the page, any HTML in them shows as text, and only `http(s)`, `mailto` and in-page links are kept, so a spec can't put script in it.
+
+Insomnium asks whether to include private environments. The MCP tool `export_workspace` can also export a collection, with `format` `insomnium`, `postman`, `openapi`, `markdown` or `html`.
 
 To share a collection with a team as it changes, use [Git Sync](git-sync.md) instead.
 
