@@ -74,7 +74,7 @@ When a pull brings in a file, Insomnium checks that it's one of those kinds of i
 
 Insomnia, and Insomnium before version 0.3, kept the collection in `.insomnia/` instead. A repository like that clones as usual, and its collection stays in `.insomnia/`, so people using Insomnia can keep sharing it.
 
-Insomnia 12.6 and later can also keep a collection in a repository as Insomnia v5 YAML files ("Git projects"). Git Sync doesn't read those, but you can bring one in with [Import](import-export.md).
+Insomnia 12.6 and later can also keep a project in a repository as Insomnia v5 YAML files, one for each collection or document ("Git projects"). Cloning one of those imports each file as a collection or document of its own: files anywhere in the repository, except in dot folders and `node_modules`, up to 100 of them. They aren't linked to the repository, because Git Sync keeps one collection to a repository, in its own folder, and would add that folder to a repository laid out for Insomnia. To share one with Git Sync, link it to a repository of its own. A file can also be brought in with [Import](import-export.md).
 
 ## Not yet
 
