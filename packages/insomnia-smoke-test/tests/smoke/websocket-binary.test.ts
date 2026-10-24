@@ -34,9 +34,12 @@ test('a WebSocket sends a hex message as a binary frame, and reconnects when dro
   await expect(modeMenu).toHaveText('Hex');
   await page.locator('#websocketMessageForm .CodeMirror').click();
   await page.keyboard.insertText('48 65 6c 6c 6f');
-  await page.getByRole('button', { name: 'Send' }).click();
+  // connected first, by the URL's button, which shows the new response
+  await page.getByRole('button', { name: 'Connect' }).click();
   // the WebSocket's pane: there's a second, hidden response pane
   const events = page.getByTestId('response-pane').filter({ hasText: 'Connected successfully' });
+  await expect(events).toBeVisible();
+  await page.getByRole('button', { name: 'Send' }).click();
   await expect(events.getByText('Binary, 5 bytes: 48 65 6c 6c 6f')).toHaveCount(2);
   await events.getByText('Binary, 5 bytes: 48 65 6c 6c 6f').first().click();
   await expect(events).toContainText('|Hello|');
