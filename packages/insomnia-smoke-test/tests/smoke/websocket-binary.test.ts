@@ -27,7 +27,8 @@ test('a WebSocket sends a hex message as a binary frame, and reconnects when dro
 
   // the message goes out as 5 bytes, and the echo server sends them back
   await page.getByLabel('Request Collection').getByRole('row', { name: 'binary echo' }).click();
-  await expect(page.getByRole('button', { name: 'Websocket Preview Mode Dropdown' })).toContainText('Hex');
+  // the message's mode, the first tab's title
+  await expect(page.getByRole('button', { name: 'Hex', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Send' }).click();
   // the WebSocket's pane: there's a second, hidden response pane
   const events = page.getByTestId('response-pane').filter({ hasText: 'Connected successfully' });
