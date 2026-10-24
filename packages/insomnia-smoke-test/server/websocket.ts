@@ -125,6 +125,11 @@ const handleConnection = (ws: WebSocket, req: IncomingMessage) => {
     handleMqttConnection(ws);
     return;
   }
+  // a connection that drops, for reconnecting: cut off without a close frame
+  if (req.url === '/drop') {
+    setTimeout(() => ws.terminate(), 500);
+    return;
+  }
 
   ws.on('message', (message, isBinary) => {
     if (isBinary) {

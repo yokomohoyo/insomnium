@@ -6,6 +6,7 @@ import { AuthType, CONTENT_TYPE_JSON } from '../../../common/constants';
 import * as models from '../../../models';
 import { Environment } from '../../../models/environment';
 import { socketIoArgs, socketIoEvent } from '../../../main/network/socket-io';
+import { binaryEncodingOf } from '../../../main/network/websocket-frames';
 import { WebSocketRequest } from '../../../models/websocket-request';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../../utils/url/querystring';
@@ -116,6 +117,8 @@ const WebSocketRequestForm: FC<FormProps> = ({
   const socketIo = request.socketIo?.enabled ? request.socketIo : undefined;
   // with MQTT on, it's published to a topic
   const mqtt = !socketIo && request.mqtt?.enabled ? { ...emptyMqtt(), ...request.mqtt } : undefined;
+  // a hex or base64 message is sent as a binary frame
+  const binary = binaryEncodingOf(previewMode);
 
   // NOTE: Nunjucks interpolation can throw errors
   const interpolateOpenAndSend = async (payload: string) => {
@@ -164,10 +167,11 @@ const WebSocketRequestForm: FC<FormProps> = ({
           authentication: rendered.authentication,
           cookieJar: rendered.workspaceCookieJar,
           initialPayload: renderedMessage,
+          initialPayloadBinary: binary,
         });
         return;
       }
-      window.main.webSocket.event.send({ requestId: request._id, payload: renderedMessage });
+      await window.main.webSocket.event.send({ requestId: request._id, payload: renderedMessage, binary });
     } catch (err) {
       if (err.type === 'render') {
         showModal(RequestRenderErrorModal, {
@@ -306,9 +310,9 @@ const WebSocketRequestForm: FC<FormProps> = ({
       </div>
       <CodeEditor
         id="websocket-message-editor"
-        showPrettifyButton
+        showPrettifyButton={!binary}
         uniquenessKey={request._id}
-        mode={previewMode}
+        mode={binary ? 'text/plain' : previewMode}
         ref={editorRef}
         onChange={upsertPayloadWithValue}
         enableNunjucks

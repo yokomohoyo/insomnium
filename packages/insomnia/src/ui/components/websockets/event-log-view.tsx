@@ -4,7 +4,8 @@ import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 
 import { CurlEvent } from '../../../main/network/curl';
-import { WebSocketEvent } from '../../../main/network/websocket';
+import { WebSocketEvent, WebSocketMessageEvent } from '../../../main/network/websocket';
+import { loggedBytes } from '../../../main/network/websocket-frames';
 import { SvgIcon, SvgIconProps } from '../svg-icon';
 import { Timestamp } from '../timestamp';
 
@@ -110,8 +111,11 @@ const EventMessageCell = styled('div')({
 const getMessage = (event: WebSocketEvent | CurlEvent): string => {
   switch (event.type) {
     case 'message': {
-      if ('data' in event && typeof event.data === 'object') {
-        return 'Binary data';
+      // a binary frame: its size and first bytes
+      const bytes = loggedBytes(event as WebSocketMessageEvent);
+      if (bytes) {
+        const first = [...bytes.subarray(0, 16)].map(byte => byte.toString(16).padStart(2, '0')).join(' ');
+        return `Binary, ${bytes.length} bytes: ${first}${bytes.length > 16 ? ' …' : ''}`;
       }
       return event.data.toString();
     }

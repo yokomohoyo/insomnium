@@ -3,6 +3,7 @@ import { OverlayContainer } from 'react-aria';
 import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
+import { DEFAULT_RECONNECT } from '../../../main/network/websocket-frames';
 import { tx } from '../../tx';
 import { HttpVersions } from '../../../common/settings';
 import * as models from '../../../models';
@@ -152,6 +153,55 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                       </select>
                     </label>
                   </div>
+                  <div className="form-control form-control--thin">
+                    <label>
+                      {t('Reconnect when the connection drops')}
+                      <input
+                        type="checkbox"
+                        checked={request.reconnect?.enabled === true}
+                        onChange={event => patchRequest(request._id, { reconnect: { ...DEFAULT_RECONNECT, ...request.reconnect, enabled: event.currentTarget.checked } })}
+                      />
+                    </label>
+                  </div>
+                  {request.reconnect?.enabled && (
+                    <div className="form-row">
+                      <div className="form-control form-control--outlined">
+                        <label>
+                          {t('Seconds between attempts')}
+                          <input
+                            type="number"
+                            min={1}
+                            max={300}
+                            defaultValue={request.reconnect.delaySeconds}
+                            onChange={event => {
+                              const delaySeconds = Number(event.currentTarget.value);
+                              if (delaySeconds >= 1 && delaySeconds <= 300) {
+                                patchRequest(request._id, { reconnect: { ...DEFAULT_RECONNECT, ...request.reconnect, delaySeconds } });
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <div className="form-control form-control--outlined">
+                        <label>
+                          {t('Attempts in a row')}
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            step={1}
+                            defaultValue={request.reconnect.maxAttempts}
+                            onChange={event => {
+                              const maxAttempts = Number(event.currentTarget.value);
+                              if (Number.isInteger(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 100) {
+                                patchRequest(request._id, { reconnect: { ...DEFAULT_RECONNECT, ...request.reconnect, maxAttempts } });
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </>
                 <hr />
                 <div className="form-row">

@@ -849,5 +849,8 @@
   "{name} (Copy)": "{name} (コピー)",
   "{productName} Preferences": "{productName} の設定",
   "{product} {version} is available. You have {current}.": "{product} {version} が利用可能です。現在のバージョンは {current} です。",
-  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, other {# 個のテスト スイート}}と{tests, plural, other {# 件のテスト}}"
+  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, other {# 個のテスト スイート}}と{tests, plural, other {# 件のテスト}}",
+  "Reconnect when the connection drops": "接続が切れたら再接続する",
+  "Seconds between attempts": "試行の間隔（秒）",
+  "Attempts in a row": "連続試行回数"
 }

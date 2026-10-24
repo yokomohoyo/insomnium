@@ -849,5 +849,8 @@
   "{name} (Copy)": "{name} (Kopie)",
   "{productName} Preferences": "{productName}-Einstellungen",
   "{product} {version} is available. You have {current}.": "{product} {version} ist verfügbar. Sie haben {current}.",
-  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, one {# Test-Suite} other {# Test-Suites}} mit {tests, plural, one {# Test} other {# Tests}}"
+  "{suites, plural, one {# Test Suite} other {# Test Suites}} with {tests, plural, one {# Test} other {# Tests}}": "{suites, plural, one {# Test-Suite} other {# Test-Suites}} mit {tests, plural, one {# Test} other {# Tests}}",
+  "Reconnect when the connection drops": "Neu verbinden, wenn die Verbindung abbricht",
+  "Seconds between attempts": "Sekunden zwischen den Versuchen",
+  "Attempts in a row": "Versuche hintereinander"
 }

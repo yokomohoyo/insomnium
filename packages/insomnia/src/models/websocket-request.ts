@@ -13,7 +13,7 @@ export const canDuplicate = true;
 export const canSync = true;
 
 // kept only when set, so requests without them sync as before
-export const optionalKeys = ['savedMessages', 'graphqlSubscription', 'socketIo', 'mqtt'];
+export const optionalKeys = ['savedMessages', 'graphqlSubscription', 'socketIo', 'mqtt', 'reconnect'];
 
 export interface WebSocketSavedMessage {
   name: string;
@@ -35,6 +35,13 @@ export interface BaseWebSocketRequest {
   segmentParams: RequestSegment[];
   // messages kept to send again; the editor's draft is a WebSocketPayload
   savedMessages?: WebSocketSavedMessage[];
+  // open the connection again when it drops (main/network/websocket.ts):
+  // seconds between tries, and how many in a row
+  reconnect?: {
+    enabled: boolean;
+    delaySeconds: number;
+    maxAttempts: number;
+  };
   // a GraphQL subscription to start once connected (graphql-transport-ws:
   // main/network/graphql-ws.ts); its variables are JSON text
   graphqlSubscription?: {
