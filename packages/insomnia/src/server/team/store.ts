@@ -1,0 +1,287 @@
+// The team server's records (see team/index.ts): its accounts and their access
+// tokens, its collections (each a Git repository it serves) and who may use
+// each, and an audit log. One SQLite file in the data folder, through Node's
+// own node:sqlite. Passwords are scrypt hashes; tokens are kept as SHA-256
+// hashes, shown once when made.
+import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import path from 'node:path';
+type DatabaseSync = import('node:sqlite').DatabaseSync;
+
+export type CollectionRole = 'viewer' | 'editor' | 'owner';
+export const ROLES: CollectionRole[] = ['viewer', 'editor', 'owner'];
+const RANK: Record<CollectionRole, number> = { viewer: 1, editor: 2, owner: 3 };
+export const atLeast = (role: CollectionRole | null, needed: CollectionRole) => !!role && RANK[role] >= RANK[needed];
+
+export interface User {
+  name: string;
+  admin: boolean;
+  created: number;
+}
+
+export interface Collection {
+  slug: string;
+  name: string;
+  created: number;
+  createdBy: string;
+}
+
+export interface AuditEntry {
+  id: number;
+  at: number;
+  user: string;
+  action: string;
+  collection: string | null;
+  detail: Record<string, unknown>;
+}
+
+// names that work in a URL and a path: a user's, a collection's slug
+const NAME = /^[a-z0-9][a-z0-9._-]{0,63}$/;
+export const isName = (name: unknown): name is string => typeof name === 'string' && NAME.test(name) && !name.endsWith('.git') && !name.includes('..');
+
+// a collection's slug from its name: lowercase words joined by dashes
+export const slugOf = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'collection';
+
+const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
+export function hashPassword(password: string) {
+  const salt = randomBytes(16);
+  const hash = scryptSync(password, salt, SCRYPT.keylen, { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p });
+  return `scrypt$${SCRYPT.N}$${salt.toString('base64')}$${hash.toString('base64')}`;
+}
+export function checkPassword(password: string, stored: string) {
+  const [kind, n, salt, hash] = stored.split('$');
+  if (kind !== 'scrypt' || !salt || !hash) {
+    return false;
+  }
+  const expected = Buffer.from(hash, 'base64');
+  const given = scryptSync(password, Buffer.from(salt, 'base64'), expected.length, { N: Number(n), r: SCRYPT.r, p: SCRYPT.p });
+  return timingSafeEqual(given, expected);
+}
+
+const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
+// an access token: ist_ and 32 random bytes, so it's told apart from a password
+export const TOKEN_PREFIX = 'ist_';
+const newToken = () => `${TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`;
+export const newPassword = () => randomBytes(18).toString('base64url');
+
+export class TeamStore {
+  readonly db: DatabaseSync;
+
+  constructor(dataDir: string) {
+    // getBuiltinModule loads node:sqlite even under module systems that don't know it (e.g. jest)
+    const getBuiltin = (process as NodeJS.Process & { getBuiltinModule: (id: string) => unknown }).getBuiltinModule;
+    const { DatabaseSync: Database } = getBuiltin('node:sqlite') as typeof import('node:sqlite');
+    this.db = new Database(path.join(dataDir, 'team.sqlite'));
+    this.db.exec(`
+      PRAGMA journal_mode = WAL;
+      PRAGMA foreign_keys = ON;
+      CREATE TABLE IF NOT EXISTS users (
+        name TEXT PRIMARY KEY, password TEXT NOT NULL, admin INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS tokens (
+        id TEXT PRIMARY KEY, user TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+        hash TEXT NOT NULL UNIQUE, label TEXT NOT NULL, created INTEGER NOT NULL, used INTEGER
+      );
+      CREATE TABLE IF NOT EXISTS collections (
+        slug TEXT PRIMARY KEY, name TEXT NOT NULL, created INTEGER NOT NULL, created_by TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS members (
+        collection TEXT NOT NULL REFERENCES collections(slug) ON DELETE CASCADE,
+        user TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+        role TEXT NOT NULL, PRIMARY KEY (collection, user)
+      );
+      CREATE TABLE IF NOT EXISTS audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, user TEXT NOT NULL,
+        action TEXT NOT NULL, collection TEXT, detail TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS audit_collection ON audit(collection, id);
+    `);
+  }
+
+  close() {
+    this.db.close();
+  }
+
+  // accounts
+
+  userCount() {
+    return (this.db.prepare('SELECT COUNT(*) AS n FROM users').get() as { n: number }).n;
+  }
+
+  users(): User[] {
+    return (this.db.prepare('SELECT name, admin, created FROM users ORDER BY name').all() as { name: string; admin: number; created: number }[])
+      .map(({ name, admin, created }) => ({ name, admin: !!admin, created }));
+  }
+
+  user(name: string): User | null {
+    const row = this.db.prepare('SELECT name, admin, created FROM users WHERE name = ?').get(name) as { name: string; admin: number; created: number } | undefined;
+    return row ? { name: row.name, admin: !!row.admin, created: row.created } : null;
+  }
+
+  addUser(name: string, password: string, admin = false) {
+    if (!isName(name)) {
+      throw new Error('A user name is lowercase letters, digits, dots, dashes and underscores');
+    }
+    if (password.length < 10) {
+      throw new Error('A password needs at least 10 characters');
+    }
+    if (this.user(name)) {
+      throw new Error(`There's already a user named ${name}`);
+    }
+    this.db.prepare('INSERT INTO users (name, password, admin, created) VALUES (?, ?, ?, ?)').run(name, hashPassword(password), admin ? 1 : 0, Date.now());
+  }
+
+  setPassword(name: string, password: string) {
+    if (password.length < 10) {
+      throw new Error('A password needs at least 10 characters');
+    }
+    if (!this.db.prepare('UPDATE users SET password = ? WHERE name = ?').run(hashPassword(password), name).changes) {
+      throw new Error(`No user named ${name}`);
+    }
+  }
+
+  setAdmin(name: string, admin: boolean) {
+    if (!admin && this.user(name)?.admin && this.users().filter(user => user.admin).length === 1) {
+      throw new Error('The last admin stays an admin');
+    }
+    if (!this.db.prepare('UPDATE users SET admin = ? WHERE name = ?').run(admin ? 1 : 0, name).changes) {
+      throw new Error(`No user named ${name}`);
+    }
+  }
+
+  removeUser(name: string) {
+    if (this.user(name)?.admin && this.users().filter(user => user.admin).length === 1) {
+      throw new Error("The last admin can't be removed");
+    }
+    if (!this.db.prepare('DELETE FROM users WHERE name = ?').run(name).changes) {
+      throw new Error(`No user named ${name}`);
+    }
+  }
+
+  // who a password or a token is: the user, or null. A token beats a password
+  // that happens to look like one.
+  authenticate(name: string, secret: string): User | null {
+    const user = this.user(name);
+    if (!user || !secret) {
+      return null;
+    }
+    if (secret.startsWith(TOKEN_PREFIX)) {
+      const token = this.db.prepare('SELECT id FROM tokens WHERE hash = ? AND user = ?').get(sha256(secret), name) as { id: string } | undefined;
+      if (token) {
+        this.db.prepare('UPDATE tokens SET used = ? WHERE id = ?').run(Date.now(), token.id);
+        return user;
+      }
+    }
+    const row = this.db.prepare('SELECT password FROM users WHERE name = ?').get(name) as { password: string };
+    return checkPassword(secret, row.password) ? user : null;
+  }
+
+  // a bearer token alone, for the API
+  userOfToken(secret: string): User | null {
+    if (!secret.startsWith(TOKEN_PREFIX)) {
+      return null;
+    }
+    const token = this.db.prepare('SELECT id, user FROM tokens WHERE hash = ?').get(sha256(secret)) as { id: string; user: string } | undefined;
+    if (!token) {
+      return null;
+    }
+    this.db.prepare('UPDATE tokens SET used = ? WHERE id = ?').run(Date.now(), token.id);
+    return this.user(token.user);
+  }
+
+  // access tokens: the secret is returned once, and only its hash kept
+
+  addToken(user: string, label: string) {
+    const secret = newToken();
+    const id = randomBytes(8).toString('hex');
+    this.db.prepare('INSERT INTO tokens (id, user, hash, label, created) VALUES (?, ?, ?, ?, ?)').run(id, user, sha256(secret), label.slice(0, 100) || 'token', Date.now());
+    return { id, secret };
+  }
+
+  tokens(user: string) {
+    return this.db.prepare('SELECT id, label, created, used FROM tokens WHERE user = ? ORDER BY created').all(user) as { id: string; label: string; created: number; used: number | null }[];
+  }
+
+  removeToken(user: string, id: string) {
+    return this.db.prepare('DELETE FROM tokens WHERE id = ? AND user = ?').run(id, user).changes > 0;
+  }
+
+  // collections and who may use them
+
+  collection(slug: string): Collection | null {
+    const row = this.db.prepare('SELECT slug, name, created, created_by FROM collections WHERE slug = ?').get(slug) as { slug: string; name: string; created: number; created_by: string } | undefined;
+    return row ? { slug: row.slug, name: row.name, created: row.created, createdBy: row.created_by } : null;
+  }
+
+  addCollection(slug: string, name: string, owner: string) {
+    if (!isName(slug)) {
+      throw new Error('A collection slug is lowercase letters, digits, dots, dashes and underscores');
+    }
+    if (this.collection(slug)) {
+      throw new Error(`There's already a collection ${slug}`);
+    }
+    this.db.prepare('INSERT INTO collections (slug, name, created, created_by) VALUES (?, ?, ?, ?)').run(slug, name.slice(0, 200) || slug, Date.now(), owner);
+    this.setRole(slug, owner, 'owner');
+  }
+
+  removeCollection(slug: string) {
+    return this.db.prepare('DELETE FROM collections WHERE slug = ?').run(slug).changes > 0;
+  }
+
+  // a user's role on a collection; an admin is an owner of every one
+  roleOf(user: User, slug: string): CollectionRole | null {
+    if (!this.collection(slug)) {
+      return null;
+    }
+    if (user.admin) {
+      return 'owner';
+    }
+    const row = this.db.prepare('SELECT role FROM members WHERE collection = ? AND user = ?').get(slug, user.name) as { role: CollectionRole } | undefined;
+    return row?.role ?? null;
+  }
+
+  setRole(slug: string, user: string, role: CollectionRole) {
+    if (!ROLES.includes(role)) {
+      throw new Error(`A role is one of ${ROLES.join(', ')}`);
+    }
+    if (!this.user(user)) {
+      throw new Error(`No user named ${user}`);
+    }
+    this.db.prepare('INSERT INTO members (collection, user, role) VALUES (?, ?, ?) ON CONFLICT (collection, user) DO UPDATE SET role = excluded.role').run(slug, user, role);
+  }
+
+  removeMember(slug: string, user: string) {
+    const owners = this.members(slug).filter(member => member.role === 'owner');
+    if (owners.length === 1 && owners[0].user === user) {
+      throw new Error('The last owner stays: make someone else an owner first');
+    }
+    return this.db.prepare('DELETE FROM members WHERE collection = ? AND user = ?').run(slug, user).changes > 0;
+  }
+
+  members(slug: string) {
+    return this.db.prepare('SELECT user, role FROM members WHERE collection = ? ORDER BY user').all(slug) as { user: string; role: CollectionRole }[];
+  }
+
+  // the collections a user can see, with their role on each
+  collectionsFor(user: User): (Collection & { role: CollectionRole })[] {
+    const rows = (user.admin
+      ? this.db.prepare("SELECT slug, name, created, created_by, 'owner' AS role FROM collections ORDER BY name").all()
+      : this.db.prepare('SELECT c.slug, c.name, c.created, c.created_by, m.role FROM collections c JOIN members m ON m.collection = c.slug WHERE m.user = ? ORDER BY c.name').all(user.name)
+    ) as { slug: string; name: string; created: number; created_by: string; role: CollectionRole }[];
+    return rows.map(row => ({ slug: row.slug, name: row.name, created: row.created, createdBy: row.created_by, role: row.role }));
+  }
+
+  // the audit log
+
+  log(user: string, action: string, collection: string | null, detail: Record<string, unknown> = {}) {
+    this.db.prepare('INSERT INTO audit (at, user, action, collection, detail) VALUES (?, ?, ?, ?, ?)').run(Date.now(), user, action, collection, JSON.stringify(detail));
+  }
+
+  // newest first; before: an id, for the next page
+  audit({ collection, before, limit = 100 }: { collection?: string; before?: number; limit?: number } = {}): AuditEntry[] {
+    const clauses = [collection ? 'collection = ?' : '', before ? 'id < ?' : ''].filter(Boolean);
+    const args = [collection, before].filter(value => value !== undefined) as (string | number)[];
+    const rows = this.db.prepare(`SELECT id, at, user, action, collection, detail FROM audit ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''} ORDER BY id DESC LIMIT ?`)
+      .all(...args, Math.min(Math.max(limit, 1), 500)) as { id: number; at: number; user: string; action: string; collection: string | null; detail: string }[];
+    return rows.map(row => ({ ...row, detail: JSON.parse(row.detail) }));
+  }
+}

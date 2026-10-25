@@ -16,6 +16,7 @@ import { MOCK_USAGE, MockConfig, parseMockConfig } from './mock';
 import { formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
 import { loadWorkspaces, startServer } from './server';
+import { team } from './team';
 
 const print = (text: string) => process.stdout.write(text + '\n');
 
@@ -209,6 +210,10 @@ async function main() {
   }
   if (argv[0] === 'load') {
     process.exit(await load(argv.slice(1)));
+  }
+  // a server for a team's collections (team/index.ts)
+  if (argv[0] === 'team') {
+    process.exit(await team(argv.slice(1), process.env));
   }
   await serve(argv);
 }
