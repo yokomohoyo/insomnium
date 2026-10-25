@@ -1,6 +1,6 @@
 # insomnium-server
 
-Insomnium's MCP tools without the app. It loads a collection and lets AI clients (Claude Code and other MCP clients) list its requests and send them, over MCP's Streamable HTTP transport. Run it in a container next to the APIs an agent should test: inside a cluster, a VPC, or a staging network the agent can't reach directly. It also runs a collection's requests and their assertions in CI: see [Run a collection in CI](#run-a-collection-in-ci).
+Insomnium's MCP tools without the app. It loads a collection and lets AI clients (Claude Code and other MCP clients) list its requests and send them, over MCP's Streamable HTTP transport. Run it in a container next to the APIs an agent should test: inside a cluster, a VPC, or a staging network the agent can't reach directly. It also runs a collection's requests and their assertions in CI: see [Run a collection in CI](#run-a-collection-in-ci). And it can host a team's collections on its own network, for Git Sync: see [Share collections with a team](#share-collections-with-a-team).
 
 It reads and sends; it can't change the collection, its environments or auth.
 
@@ -183,12 +183,72 @@ docker run --rm -p 4040:4040 -v "$PWD:/work" -w /work \
 | `--port <n>` | The port (`INSOMNIUM_MOCK_PORT`; default 4040). |
 | `--host <address>` | The address to listen on (`INSOMNIUM_MOCK_HOST`; default 127.0.0.1, so use 0.0.0.0 in a container). |
 
+## Share collections with a team
+
+`team` turns the image into a server a team runs on its own network, on a NAS (a Synology, say) or any machine with Docker, to share collections through Git Sync. It keeps each collection as a Git repository, with accounts, a role for each person on each collection, and a log of who did what. Nothing leaves your network.
+
+```sh
+docker run -d --name insomnium-team --restart unless-stopped \
+  -p 8080:8080 \
+  -v /volume1/docker/insomnium-team:/data \
+  -e INSOMNIUM_TEAM_ADMIN=kim \
+  ghcr.io/yokomohoyo/insomnium-server team
+docker logs insomnium-team   # the admin's password, made on the first start and shown once
+```
+
+The folder on `/data` keeps everything: the accounts (`team.sqlite`) and the repositories (`repos/`). Back it up. The container runs as uid 1000, so the folder has to be writable by it (`chown 1000 …`, or on a Synology, give the folder's permissions to everyone, or run the container with `--user` set to your account's uid). Set `INSOMNIUM_TEAM_ADMIN_PASSWORD` to choose the first admin's password instead.
+
+**Put it behind HTTPS.** Every Git and API call carries a password or token, so don't expose the plain HTTP port beyond a network you trust. On a Synology, add a reverse proxy rule in Control Panel → Login Portal → Advanced (https on, say, 8443, to localhost:8080), and set `INSOMNIUM_TEAM_URL=https://nas.example.com:8443` so the clone URLs it gives out are the HTTPS ones.
+
+**In Insomnium,** each person signs in with their user name and an access token:
+
+1. Make a token: `POST /api/tokens` (below), or an admin runs `docker exec insomnium-team node /app/dist/index.js team token <name> laptop`.
+2. In Git Sync's repository settings, use the collection's clone URL, `https://nas.example.com:8443/git/<slug>.git`, with your user name and the token as the password.
+3. Push, pull and merge as with any Git Sync repository.
+
+**Roles,** for each collection: a **viewer** can clone and pull, an **editor** can also push, and an **owner** can also manage its members and read its log. The person who makes a collection owns it. An admin owns every collection and manages the accounts. Someone who isn't a member gets a "not found", so they can't tell a collection exists.
+
+**The log** records each push (who, and which branches moved from which commit to which), fetches (at most once every 10 minutes per person and collection), and changes to collections, members, accounts and tokens. Ten failed sign-ins from one address in five minutes block it for five minutes.
+
+**Admin commands,** run in the container:
+
+```sh
+docker exec insomnium-team node /app/dist/index.js team user add lee          # prints lee's password
+docker exec insomnium-team node /app/dist/index.js team user add max --admin
+docker exec insomnium-team node /app/dist/index.js team user reset-password lee
+docker exec insomnium-team node /app/dist/index.js team user list
+```
+
+**The API,** at `/api`, signed in with Basic (your name, and your password or a token) or `Authorization: Bearer <token>`:
+
+| | |
+|---|---|
+| `GET /api/me` | Who you are. |
+| `GET /api/collections` | The collections you can use, with your role and the clone URL. |
+| `POST /api/collections` `{"name": "Shop API"}` | A new collection, which you own. Its slug comes from the name, or give `slug`. |
+| `DELETE /api/collections/<slug>` | (owner) Moved to `/data/trash`, not deleted. |
+| `GET /api/collections/<slug>/members` | Who has which role. |
+| `PUT /api/collections/<slug>/members/<user>` `{"role": "editor"}` | (owner) Add someone, or change their role. |
+| `DELETE /api/collections/<slug>/members/<user>` | (owner) Take someone off. A collection keeps one owner. |
+| `GET /api/collections/<slug>/audit` | (owner) Its log, newest first; `?before=<id>` for the next page. |
+| `GET /api/tokens`, `POST /api/tokens` `{"label": "laptop"}`, `DELETE /api/tokens/<id>` | Your access tokens. A new one's secret is shown once; only its hash is kept. |
+| `PUT /api/password` `{"current": "…", "password": "…"}` | Change your password (10 characters at least). |
+| `GET /api/users`, `POST /api/users` `{"name": "lee", "admin": false}`, `PUT /api/users/<name>` `{"admin": true, "resetPassword": true}`, `DELETE /api/users/<name>` | (admin) Accounts. A new user, or a reset, gets a password made for them, returned once. |
+| `GET /api/audit` | (admin) Everything's log. |
+
+| | |
+|---|---|
+| `--data <dir>` | Where it keeps everything (`INSOMNIUM_TEAM_DATA`; default `/data`). |
+| `--port <n>`, `--host <address>` | Where it listens (`INSOMNIUM_PORT`, `INSOMNIUM_HOST`; default 0.0.0.0:8080). |
+| `--public-url <url>` | How people reach it, for clone URLs (`INSOMNIUM_TEAM_URL`); otherwise from each request, or the reverse proxy's `X-Forwarded-Host`. |
+
 ## Not yet
 
+- The team server's own sign-in only: signing in through your identity provider (OIDC), and a Team panel in the app to find and clone collections, come next.
 - OAuth 2 flows that need a browser (authorization code, implicit) can't run here; client credentials and password grants can.
 - Tools that edit, and writing back to a repository, are planned.
 - Repositories are cloned over http(s) only; for SSH, mount a checkout.
-- The image is linux/amd64 only, until libcurl is built for arm64.
+- The image is linux/amd64 only, until libcurl is built for arm64: on a NAS, that's the Intel and AMD models (a Synology "+" model, say), not the ARM ones.
 
 ## Develop
 

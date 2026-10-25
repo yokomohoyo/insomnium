@@ -22,6 +22,10 @@ To use the address's `https://` form and a token instead, choose **HTTPS** under
 
 A public repository can be cloned and pulled without signing in: leave the username and token empty. Pushing to it needs them.
 
+### On a server of your own
+
+A team can host its collections itself, on a NAS or any machine with Docker, with insomnium-server's `team` mode: accounts, a role for each person on each collection, and a log of pushes. Each collection is a repository at `https://<server>/git/<slug>.git`, which you set up here with your user name and an access token. See [Share collections with a team](../packages/insomnium-server/README.md#share-collections-with-a-team).
+
 ### Only on this computer
 
 Leave the URL empty, and enter only the name and email for your commits, for a repository kept on this computer. It has commits, branches, history and the commit dialog's list of changes, but no push, pull or fetch. To share it later, enter a URL in **Repository Settings**, then push.

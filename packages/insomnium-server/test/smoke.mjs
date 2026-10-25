@@ -3,7 +3,8 @@
 // --bundle <file>, or an image with --image <tag>), and drives it over MCP.
 //   node test/smoke.mjs --bundle dist/index.js
 //   node test/smoke.mjs --image insomnium-server:ci
-// Then it runs the collection runner, `run`, the same way.
+// Then it runs the collection runner, `run`, the same way, and the team
+// server, `team`, with a push and a clone by the git CLI.
 import { execFileSync, spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
@@ -101,6 +102,7 @@ const env = {
 };
 const args = ['--env', 'ci', '--port', String(port)];
 let server;
+let teamServer;
 if (mode === '--bundle') {
   server = spawn(process.execPath, [target, '--collection', path.join(dir, 'collection.yaml'), ...args], { env: { ...process.env, ...env }, stdio: 'inherit' });
 } else {
@@ -115,8 +117,13 @@ const stop = () => {
       execFileSync('docker', ['logs', 'insomnium-server-smoke'], { stdio: 'inherit' });
       execFileSync('docker', ['rm', '-f', 'insomnium-server-smoke'], { stdio: 'ignore' });
     } catch { /* already gone */ }
+    try {
+      execFileSync('docker', ['logs', 'insomnium-team-smoke'], { stdio: 'inherit' });
+      execFileSync('docker', ['rm', '-f', 'insomnium-team-smoke'], { stdio: 'ignore' });
+    } catch { /* not started */ }
   } else {
     server.kill();
+    teamServer?.kill();
   }
   echo.close();
   forwardProxy.close();
@@ -201,6 +208,53 @@ try {
     ? await command(process.execPath, [target, 'run', '--repo', path.join(dir, 'checkout')], { ...process.env, ...repoEnv })
     : await command('docker', ['run', '--rm', '--network', 'host', '-v', `${dir}:/data:ro`, ...Object.entries(repoEnv).flatMap(([name, value]) => ['-e', `${name}=${value}`]), target, 'run', '--repo', '/data/checkout'], process.env);
   check(fromRepo.status === 0 && seen.some(({ url }) => url === '/run/repo'), `run reads a mounted Git Sync checkout (--repo) (${fromRepo.status}: ${fromRepo.stdout}${fromRepo.stderr})`);
+
+  // the team server: accounts, a collection, and a push and a clone with git
+  const teamPort = await freePort();
+  const teamData = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-team-'));
+  // the image runs as node (uid 1000)
+  fs.chmodSync(teamData, 0o777);
+  const teamEnv = { INSOMNIUM_TEAM_ADMIN: 'kim', INSOMNIUM_TEAM_ADMIN_PASSWORD: 'smoke test password' };
+  if (mode === '--bundle') {
+    teamServer = spawn(process.execPath, [target, 'team', '--data', teamData, '--host', '127.0.0.1', '--port', String(teamPort)], { env: { ...process.env, ...teamEnv }, stdio: 'inherit' });
+  } else {
+    execFileSync('docker', ['run', '-d', '--name', 'insomnium-team-smoke', '--network', 'host', '-v', `${teamData}:/data`, ...Object.entries(teamEnv).flatMap(([name, value]) => ['-e', `${name}=${value}`]), target, 'team', '--port', String(teamPort)], { stdio: 'inherit' });
+  }
+  const teamBase = `http://127.0.0.1:${teamPort}`;
+  let teamUp = false;
+  for (let attempt = 0; attempt < 60 && !teamUp; attempt++) {
+    teamUp = await fetch(`${teamBase}/health`).then(res => res.ok, () => false);
+    if (!teamUp) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+  check(teamUp, 'team: answers /health');
+  const kim = `Basic ${Buffer.from('kim:smoke test password').toString('base64')}`;
+  const teamApi = async (method, route, body) => {
+    const res = await fetch(`${teamBase}/api${route}`, { method, headers: { Authorization: kim, 'Content-Type': 'application/json' }, body: body && JSON.stringify(body) });
+    return { status: res.status, body: await res.json() };
+  };
+  check((await fetch(`${teamBase}/api/me`)).status === 401, 'team: refuses a call without a sign-in');
+  check((await teamApi('GET', '/me')).body.admin === true, 'team: makes the first admin from INSOMNIUM_TEAM_ADMIN');
+  const made = await teamApi('POST', '/collections', { name: 'Smoke API' });
+  check(made.status === 201 && made.body.cloneUrl === `${teamBase}/git/smoke-api.git`, `team: makes a collection (${JSON.stringify(made.body)})`);
+  const { secret } = (await teamApi('POST', '/tokens', { label: 'smoke' })).body;
+  const authed = `${teamBase.replace('http://', `http://kim:${secret}@`)}/git/smoke-api.git`;
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'insomnium-team-work-'));
+  const gitEnv = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+  await command('git', ['-C', work, 'init', '-q', '--initial-branch=main'], gitEnv);
+  fs.writeFileSync(path.join(work, 'request.yml'), 'name: smoke\n');
+  await command('git', ['-C', work, 'add', '.'], gitEnv);
+  await command('git', ['-C', work, '-c', 'user.name=Smoke', '-c', 'user.email=smoke@example.com', 'commit', '-q', '-m', 'first'], gitEnv);
+  const pushed = await command('git', ['-C', work, 'push', authed, 'main'], gitEnv);
+  check(pushed.status === 0, `team: takes a push with a token (${pushed.stderr})`);
+  const clone = path.join(work, 'clone');
+  const cloned = await command('git', ['clone', '-q', authed, clone], gitEnv);
+  check(cloned.status === 0 && fs.existsSync(path.join(clone, 'request.yml')), `team: serves a clone (${cloned.stderr})`);
+  const refused = await command('git', ['-C', work, 'push', `${teamBase.replace('http://', 'http://kim:wrong-password@')}/git/smoke-api.git`, 'main'], gitEnv);
+  check(refused.status !== 0, 'team: refuses a push with a wrong password');
+  const audit = (await teamApi('GET', '/collections/smoke-api/audit')).body;
+  check(audit.some(entry => entry.action === 'push' && entry.user === 'kim'), 'team: logs the push');
 } catch (err) {
   check(false, `ran without errors: ${err.stack}`);
 } finally {
