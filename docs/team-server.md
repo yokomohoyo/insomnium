@@ -245,7 +245,7 @@ The sign-in stays in the **Team Server** list, so other collections on the same 
 
 ## Set up single sign-on
 
-With OpenID Connect, people sign in at your identity provider: Authentik, Keycloak, Authelia, Entra ID, Google, Okta or another.
+With OpenID Connect, people sign in at your identity provider: Authentik, Keycloak, Authelia, Entra ID, Google, Okta or another. Step-by-step setup for Synology SSO Server, Authentik, Keycloak and Google is in [Team server single sign-on](team-server-sso.md).
 
 ```mermaid
 sequenceDiagram
