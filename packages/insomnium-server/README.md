@@ -214,6 +214,8 @@ By hand, or with git on the command line: make a token (`POST /api/tokens`, belo
 | `INSOMNIUM_TEAM_OIDC_CREATE_USERS` | `true` makes an account for someone who has none. Otherwise an admin adds the account first, and the sign-in claims it. |
 | `INSOMNIUM_TEAM_OIDC_NAME` | The provider's name, as the server reports it. |
 
+Step by step, with a Synology NAS's SSO Server and others: [Team server single sign-on](../../docs/team-server-sso.md).
+
 Set `INSOMNIUM_TEAM_URL` too, so the redirect URL is the one you registered. The server uses the authorization code flow with PKCE, and checks the ID token's signature against the provider's keys, plus its issuer, audience, expiry and nonce.
 - **Account linking.** The first sign-in links the account to the provider's subject id. From then on, that id decides who someone is, whatever the name claim says later. An account already linked to someone else can't be claimed.
 - **Accounts made by SSO** have no password until an admin resets one.
