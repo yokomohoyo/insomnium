@@ -1,13 +1,15 @@
 
 import { isDevelopment } from '../common/constants';
 import { database } from '../common/database';
+import { t } from '../common/i18n';
+import { describeUpdateCheck, type UpdateCheckResult } from '../common/update-check';
 import * as models from '../models';
 import { isNotDefaultProject } from '../models/project';
 import * as plugins from '../plugins';
 import * as themes from '../plugins/misc';
 import * as templating from '../templating';
 
-import { showModal } from './components/modals';
+import { showAlert, showModal } from './components/modals';
 import { AskModal } from './components/modals/ask-modal';
 import { SelectModal } from './components/modals/select-modal';
 import { SettingsModal, TAB_INDEX_SHORTCUTS } from './components/modals/settings-modal';
@@ -79,4 +81,23 @@ window.main.on('reload-plugins', async () => {
 
 window.main.on('toggle-preferences-shortcuts', () => {
   showModal(SettingsModal, { tab: TAB_INDEX_SHORTCUTS });
+});
+
+// Help → Check for Updates…
+window.main.on('check-for-updates', async () => {
+  const title = t('Check for Updates');
+  showAlert({ title, message: t('Checking…') });
+  let result: UpdateCheckResult;
+  try {
+    result = await window.main.checkForUpdatesNow();
+  } catch (err) {
+    result = { status: 'failed', current: '', error: (err as Error).message };
+  }
+  const message = describeUpdateCheck(result);
+  if (result.status === 'newer') {
+    const { url } = result;
+    showAlert({ title, message, okLabel: t('View release'), addCancel: true, onConfirm: () => window.main.openInBrowser(url) });
+    return;
+  }
+  showAlert({ title, message });
 });
