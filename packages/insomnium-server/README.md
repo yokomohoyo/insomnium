@@ -187,6 +187,8 @@ docker run --rm -p 4040:4040 -v "$PWD:/work" -w /work \
 
 `team` turns the image into a server a team runs on its own network, on a NAS (a Synology, say) or any machine with Docker, to share collections through Git Sync. It keeps each collection as a Git repository, with accounts, a role for each person on each collection, and a log of who did what. Nothing leaves your network.
 
+For a walk-through, with Docker Compose and HTTPS, single sign-on, backups, troubleshooting and a diagram of how it fits together, see [docs/team-server.md](../../docs/team-server.md).
+
 ```sh
 docker run -d --name insomnium-team --restart unless-stopped \
   -p 8080:8080 \
