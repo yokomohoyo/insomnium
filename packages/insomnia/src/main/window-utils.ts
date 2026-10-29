@@ -381,7 +381,12 @@ export function createMenu() {
       },
       {
         label: label('Check for &Updates…'),
-        click: () => {
+        click: (_menuItem, w) => {
+          // in the window's own (themed) modal; the native dialog only with no window open
+          if (w instanceof BrowserWindow) {
+            w.webContents.send('check-for-updates');
+            return;
+          }
           showUpdateCheck().catch(err => console.warn('[release-check] Check for Updates failed', err));
         },
       },
