@@ -198,7 +198,6 @@
   "Current body will be lost. Are you sure you want to continue?": "Se perderá el cuerpo actual. ¿Seguro que quieres continuar?",
   "Dashboard Sort Dropdown": "Desplegable de ordenación del panel",
   "Data": "Datos",
-  "debug": "Depuración",
   "Default": "Predeterminado",
   "Delay": "Espera",
   "Delay in seconds": "Retraso en segundos",
@@ -860,5 +859,7 @@
   "From Plugins": "De plugins",
   "Reconnect when the connection drops": "Volver a conectar si se corta la conexión",
   "Seconds between attempts": "Segundos entre intentos",
-  "Attempts in a row": "Intentos seguidos"
+  "Attempts in a row": "Intentos seguidos",
+  "requests": "solicitudes",
+  "Back to Requests": "Volver a las solicitudes"
 }

@@ -198,7 +198,6 @@
   "Current body will be lost. Are you sure you want to continue?": "Le corps actuel sera perdu. Voulez-vous vraiment continuer ?",
   "Dashboard Sort Dropdown": "Menu de tri du tableau de bord",
   "Data": "Données",
-  "debug": "Débogage",
   "Default": "Par défaut",
   "Delay": "Délai",
   "Delay in seconds": "Délai en secondes",
@@ -860,5 +859,7 @@
   "From Plugins": "Des plugins",
   "Reconnect when the connection drops": "Se reconnecter si la connexion est perdue",
   "Seconds between attempts": "Secondes entre les tentatives",
-  "Attempts in a row": "Tentatives successives"
+  "Attempts in a row": "Tentatives successives",
+  "requests": "requêtes",
+  "Back to Requests": "Retour aux requêtes"
 }

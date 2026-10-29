@@ -198,7 +198,6 @@
   "Current body will be lost. Are you sure you want to continue?": "当前正文将丢失。确定要继续吗？",
   "Dashboard Sort Dropdown": "仪表板排序下拉菜单",
   "Data": "数据",
-  "debug": "调试",
   "Default": "默认",
   "Delay": "等待",
   "Delay in seconds": "延迟（秒）",
@@ -860,5 +859,7 @@
   "From Plugins": "来自插件",
   "Reconnect when the connection drops": "连接断开时重新连接",
   "Seconds between attempts": "每次尝试的间隔（秒）",
-  "Attempts in a row": "连续尝试次数"
+  "Attempts in a row": "连续尝试次数",
+  "requests": "请求",
+  "Back to Requests": "返回请求"
 }

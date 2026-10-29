@@ -285,7 +285,7 @@ const Root = () => {
                               } no-underline transition-colors text-center outline-none min-w-[4rem] uppercase text-[--color-font] text-xs px-[--padding-xs] py-[--padding-xxs] rounded-full`
                             }
                           >
-                            {item === 'spec' ? t('spec') : item === 'debug' ? t('debug') : item === 'test' ? t('test') : t('flows')}
+                            {item === 'spec' ? t('spec') : item === 'debug' ? t('requests') : item === 'test' ? t('test') : t('flows')}
                           </NavLink>
                         ))}
                       </nav>

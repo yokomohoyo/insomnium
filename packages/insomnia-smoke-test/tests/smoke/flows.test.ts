@@ -53,7 +53,8 @@ test('a flow sends its requests in order, branching on a response and carrying a
   await page.screenshot({ path: 'traces/flows.png' });
 
   // the flow was saved: it's there after leaving and coming back
-  await page.getByRole('link', { name: 'debug', exact: true }).click();
+  await page.getByTestId('back-to-requests').click();
+  await expect(page.getByRole('link', { name: 'requests', exact: true })).toHaveAttribute('aria-current', 'page');
   await page.getByRole('link', { name: 'flows', exact: true }).click();
   await page.getByRole('list', { name: 'Flows' }).getByRole('button', { name: 'New Flow' }).click();
   await expect(page.getByTestId('flow-node-request')).toHaveCount(2);

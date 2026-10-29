@@ -8,6 +8,7 @@ import * as models from '../../models';
 import type { Flow } from '../../models/flow';
 import { listRunnableRequests } from '../../network/runner';
 import { guard } from '../../utils/guard';
+import { BackToRequests } from '../components/back-to-requests';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../components/base/dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
 import { FlowEditor } from '../components/flows/flow-editor';
@@ -110,6 +111,7 @@ const FlowsRoute: FC = () => {
       renderPageSidebar={
         <ErrorBoundary showAlert>
           <div className="flex flex-col h-full overflow-hidden">
+            <BackToRequests />
             <div className="pad-sm">
               <Button variant="outlined" onClick={newFlow}>{t('New Flow')}</Button>
             </div>
