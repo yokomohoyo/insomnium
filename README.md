@@ -118,7 +118,7 @@ Put it behind HTTPS (a NAS's reverse proxy does), as every call carries a passwo
 
 **Sign Out** in the same tab forgets the sign-in and revokes its token. Git on the command line works too, with your user name and a token.
 
-Setting it up, managing accounts and roles, the API and every option: [Share collections with a team](packages/insomnium-server/README.md#share-collections-with-a-team). Git Sync itself: [docs/git-sync.md](docs/git-sync.md).
+How to set it up, with HTTPS, roles, single sign-on, backups and a diagram of how it fits together: [docs/team-server.md](docs/team-server.md). Every option and the API: [Share collections with a team](packages/insomnium-server/README.md#share-collections-with-a-team). Git Sync itself: [docs/git-sync.md](docs/git-sync.md).
 
 
 ## Saved credentials

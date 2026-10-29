@@ -24,7 +24,7 @@ A public repository can be cloned and pulled without signing in: leave the usern
 
 ### On a server of your own
 
-A team can host its collections itself, on a NAS or any machine with Docker, with insomnium-server's `team` mode: accounts, a role for each person on each collection, and a log of pushes. Each collection is a repository at `https://<server>/git/<slug>.git`, which you set up here with your user name and an access token. See [Share collections with a team](../packages/insomnium-server/README.md#share-collections-with-a-team).
+A team can host its collections itself, on a NAS or any machine with Docker, with insomnium-server's `team` mode: accounts, a role for each person on each collection, and a log of pushes. Each collection is a repository at `https://<server>/git/<slug>.git`, which you set up here with your user name and an access token. See [Team server](team-server.md) for how to set one up, and [Share collections with a team](../packages/insomnium-server/README.md#share-collections-with-a-team) for every option.
 
 The **Team Server** tab, in **Git Clone** and in a workspace's **Git Settings**, does that for you. Sign in once with the server's address, your user name and your password: Insomnium makes an access token for this computer and keeps only that, encrypted. Then pick a collection from the list: clone it, or sync the open workspace to it (an editor or owner's collection, or a new one you create there). **Sign Out** forgets the sign-in and revokes its token. If the server has single sign-on set up, **Sign In with SSO** signs in at your organization's identity provider in your browser instead.
 
