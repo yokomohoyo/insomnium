@@ -3,6 +3,7 @@ import React, { FC, useCallback } from 'react';
 import styled from 'styled-components';
 
 import { documentationLinks } from '../../common/documentation';
+import { petstoreExample } from '../../common/petstore-example';
 import { selectFileOrFolder } from '../../common/select-file-or-folder';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from './base/dropdown';
 import { showPrompt } from './modals';
@@ -104,16 +105,7 @@ const ImportSpecButton: FC<Props> = ({ onImport }) => {
 };
 
 const SecondaryAction: FC<Props> = ({ onImport }) => {
-  const PETSTORE_EXAMPLE_URI = 'https://gist.githubusercontent.com/gschier/4e2278d5a50b4bbf1110755d9b48a9f9/raw/801c05266ae102bcb9288ab92c60f52d45557425/petstore-spec.yaml';
-
-  const onClick = useCallback(async () => {
-    const response = await window.fetch(PETSTORE_EXAMPLE_URI);
-    if (!response) {
-      return;
-    }
-    const contents = await response.text();
-    onImport(contents);
-  }, [onImport]);
+  const onClick = useCallback(() => onImport(petstoreExample), [onImport]);
 
   return (
     <div>
