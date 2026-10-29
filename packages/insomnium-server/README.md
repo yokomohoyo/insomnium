@@ -200,11 +200,25 @@ The folder on `/data` keeps everything: the accounts (`team.sqlite`) and the rep
 
 **Put it behind HTTPS.** Every Git and API call carries a password or token, so don't expose the plain HTTP port beyond a network you trust. On a Synology, add a reverse proxy rule in Control Panel → Login Portal → Advanced (https on, say, 8443, to localhost:8080), and set `INSOMNIUM_TEAM_URL=https://nas.example.com:8443` so the clone URLs it gives out are the HTTPS ones.
 
-**In Insomnium,** each person signs in with their user name and an access token:
+**In Insomnium,** open the **Team Server** tab in Git Clone, or in a workspace's Git Settings. Sign in with the server's address, your user name and your password (or **Sign In with SSO**, below). Insomnium makes an access token for that computer and keeps only that. Then pick a collection to clone, or one to sync the workspace to.
 
-1. Make a token: `POST /api/tokens` (below), or an admin runs `docker exec insomnium-team node /app/dist/index.js team token <name> laptop`.
-2. In Git Sync's repository settings, use the collection's clone URL, `https://nas.example.com:8443/git/<slug>.git`, with your user name and the token as the password.
-3. Push, pull and merge as with any Git Sync repository.
+By hand, or with git on the command line: make a token (`POST /api/tokens`, below, or an admin runs `docker exec insomnium-team node /app/dist/index.js team token <name> laptop`). Then use the collection's clone URL, `https://nas.example.com:8443/git/<slug>.git`, with your user name and the token as the password.
+
+**Single sign-on.** To sign in through your identity provider with OpenID Connect (Authentik, Keycloak, Authelia, Entra ID, Google, Okta…), register the team server there as a confidential client (one with a secret). Give it the redirect URL `<your server's URL>/auth/oidc/callback`, such as `https://nas.example.com:8443/auth/oidc/callback`, and set:
+
+| | |
+|---|---|
+| `INSOMNIUM_TEAM_OIDC_ISSUER` | The provider's issuer URL: its `/.well-known/openid-configuration` is read from there. |
+| `INSOMNIUM_TEAM_OIDC_CLIENT_ID`, `INSOMNIUM_TEAM_OIDC_CLIENT_SECRET` | The client's id and secret. |
+| `INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM` | The claim that names someone's account on their first sign-in: `preferred_username` by default, or `email` (verified addresses only; the part before the @). |
+| `INSOMNIUM_TEAM_OIDC_CREATE_USERS` | `true` makes an account for someone who has none. Otherwise an admin adds the account first, and the sign-in claims it. |
+| `INSOMNIUM_TEAM_OIDC_NAME` | The provider's name, as the server reports it. |
+
+Set `INSOMNIUM_TEAM_URL` too, so the redirect URL is the one you registered. The server uses the authorization code flow with PKCE, and checks the ID token's signature against the provider's keys, plus its issuer, audience, expiry and nonce.
+- **Account linking.** The first sign-in links the account to the provider's subject id. From then on, that id decides who someone is, whatever the name claim says later. An account already linked to someone else can't be claimed.
+- **Accounts made by SSO** have no password until an admin resets one.
+- **In the app,** **Sign In with SSO** opens the provider in your browser and comes back to Insomnium with a token.
+- **For git on the command line,** open `<your server's URL>/auth/oidc/start` in a browser: after signing in, it shows a new access token once.
 
 **Roles,** for each collection: a **viewer** can clone and pull, an **editor** can also push, and an **owner** can also manage its members and read its log. The person who makes a collection owns it. An admin owns every collection and manages the accounts. Someone who isn't a member gets a "not found", so they can't tell a collection exists.
 
@@ -244,7 +258,7 @@ docker exec insomnium-team node /app/dist/index.js team user list
 
 ## Not yet
 
-- The team server's own sign-in only: signing in through your identity provider (OIDC), and a Team panel in the app to find and clone collections, come next.
+- Team secrets (shared environment values kept on the team server) come next.
 - OAuth 2 flows that need a browser (authorization code, implicit) can't run here; client credentials and password grants can.
 - Tools that edit, and writing back to a repository, are planned.
 - Repositories are cloned over http(s) only; for SSH, mount a checkout.

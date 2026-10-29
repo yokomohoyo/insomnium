@@ -1,10 +1,11 @@
 // The team server's HTTP side: /health, the Git repositories at /git, and the
-// API at /api, behind sign-in. Plain HTTP: put it behind HTTPS (a reverse
+// API at /api, behind sign-in; and single sign-on at /auth (oidc.ts). Plain HTTP: put it behind HTTPS (a reverse
 // proxy, such as a NAS's), as Basic sign-in sends the password with each call.
 import http from 'node:http';
 
-import { ApiError, handleApi } from './api';
+import { ApiError, handleApi, readJson } from './api';
 import { gitHandler, gitRoute, reposDir } from './git-http';
+import { escapeHtml, OidcError, type OidcConfig, OidcLogin } from './oidc';
 import { TeamStore, type User } from './store';
 
 export interface TeamConfig {
@@ -13,6 +14,8 @@ export interface TeamConfig {
   port: number;
   // how clients reach the server, for clone URLs; from the request when unset
   publicUrl?: string;
+  // single sign-on with OpenID Connect, when set
+  oidc?: OidcConfig;
 }
 
 // who a request is from: Basic (name and password or token) or Bearer (a token)
@@ -53,6 +56,7 @@ export function startTeamServer(config: TeamConfig) {
   const store = new TeamStore(config.dataDir);
   const git = gitHandler(store, config.dataDir);
   const limiter = new SignInLimiter();
+  const oidc = config.oidc ? new OidcLogin(config.oidc, store) : null;
   const publicUrl = (req: http.IncomingMessage) => {
     if (config.publicUrl) {
       return config.publicUrl.replace(/\/+$/, '');
@@ -74,6 +78,9 @@ export function startTeamServer(config: TeamConfig) {
       const url = new URL(req.url || '/', 'http://localhost');
       if (url.pathname === '/health' && req.method === 'GET') {
         return reply(200, { ok: true });
+      }
+      if (url.pathname.startsWith('/auth/')) {
+        return await handleAuth(req, res, url, reply);
       }
       const route = gitRoute(url.pathname);
       if (!route && !url.pathname.startsWith('/api/')) {
@@ -104,6 +111,65 @@ export function startTeamServer(config: TeamConfig) {
       return reply(500, { error: 'internal error' });
     }
   });
+
+  async function handleAuth(req: http.IncomingMessage, res: http.ServerResponse, url: URL, reply: (status: number, body: unknown) => void) {
+    const page = (status: number, title: string, body: string) => {
+      res.writeHead(status, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+        'Referrer-Policy': 'no-referrer',
+      });
+      res.end(`<!doctype html><meta charset="utf-8"><title>${escapeHtml(title)}</title><body style="font-family: system-ui, sans-serif; margin: 4rem auto; max-width: 40rem"><h1>${escapeHtml(title)}</h1>${body}</body>`);
+    };
+    const callbackUrl = (request: http.IncomingMessage) => `${publicUrl(request)}/auth/oidc/callback`;
+    if (url.pathname === '/auth/methods' && req.method === 'GET') {
+      return reply(200, { password: true, sso: oidc ? { name: oidc.config.name || 'single sign-on' } : null });
+    }
+    if (!oidc) {
+      return reply(404, { error: "This server has no single sign-on set up" });
+    }
+    try {
+      if (url.pathname === '/auth/oidc/start' && req.method === 'GET') {
+        const redirectUri = url.searchParams.get('redirect_uri');
+        const app = redirectUri ? {
+          redirectUri,
+          state: url.searchParams.get('state') || '',
+          challenge: url.searchParams.get('code_challenge') || '',
+        } : undefined;
+        res.writeHead(302, { Location: await oidc.start(callbackUrl(req), app), 'Cache-Control': 'no-store' });
+        return res.end();
+      }
+      if (url.pathname === '/auth/oidc/callback' && req.method === 'GET') {
+        const { user, app } = await oidc.callback(url.searchParams);
+        if (app) {
+          res.writeHead(302, { Location: app.redirect, 'Cache-Control': 'no-store' });
+          return res.end();
+        }
+        // opened in a browser: a token for git, shown once
+        const token = store.addToken(user.name, 'Browser sign-in');
+        store.log(user.name, 'token.create', null, { id: token.id, label: 'Browser sign-in', sso: true });
+        return page(200, `Signed in as ${user.name}`, `<p>Your new access token, shown only this once. Use it as the password when git asks, with the user name <b>${escapeHtml(user.name)}</b>:</p><pre style="padding: 1rem; background: #eee; overflow-wrap: anywhere; white-space: pre-wrap">${escapeHtml(token.secret)}</pre><p>In Insomnium, sign in with single sign-on from the Team Server tab instead.</p>`);
+      }
+      if (url.pathname === '/auth/oidc/token' && req.method === 'POST') {
+        const { code, code_verifier, label } = await readJson(req);
+        return reply(200, oidc.exchange(String(code || ''), String(code_verifier || ''), typeof label === 'string' ? label : 'token'));
+      }
+    } catch (err) {
+      if (err instanceof OidcError) {
+        console.warn('[team] single sign-on failed:', err.message);
+        if (err.appRedirect) {
+          res.writeHead(302, { Location: err.appRedirect, 'Cache-Control': 'no-store' });
+          return res.end();
+        }
+        return url.pathname === '/auth/oidc/token'
+          ? reply(400, { error: err.message })
+          : page(400, "Couldn't sign in", `<p>${escapeHtml(err.message)}</p>`);
+      }
+      throw err;
+    }
+    return reply(404, { error: 'not found' });
+  }
 
   return new Promise<{ server: http.Server; store: TeamStore; reposDir: string }>((resolve, reject) => {
     server.once('error', reject);
