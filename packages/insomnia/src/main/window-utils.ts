@@ -19,6 +19,7 @@ import { docsBase } from '../common/documentation';
 import { menuLabel } from '../common/i18n';
 import * as log from '../common/log';
 import LocalStorage from './local-storage';
+import { showUpdateCheck } from './release-check';
 
 const { app, Menu, shell, dialog, clipboard, BrowserWindow } = electron;
 
@@ -376,6 +377,12 @@ export function createMenu() {
           }
 
           w.webContents.send('toggle-preferences-shortcuts');
+        },
+      },
+      {
+        label: label('Check for &Updates…'),
+        click: () => {
+          showUpdateCheck().catch(err => console.warn('[release-check] Check for Updates failed', err));
         },
       },
       {

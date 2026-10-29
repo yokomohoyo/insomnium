@@ -861,5 +861,12 @@
   "Seconds between attempts": "每次尝试的间隔（秒）",
   "Attempts in a row": "连续尝试次数",
   "requests": "请求",
-  "Back to Requests": "返回请求"
+  "Back to Requests": "返回请求",
+  "Check for &Updates…": "检查更新(&U)…",
+  "Check for Updates": "检查更新",
+  "Checking…": "正在检查…",
+  "Later": "稍后",
+  "OK": "确定",
+  "You have the latest version of {product} ({current}).": "{product} 已是最新版本 ({current})。",
+  "Couldn't check for updates: {error}": "无法检查更新：{error}"
 }

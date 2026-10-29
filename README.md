@@ -5,7 +5,7 @@ Insomnium is a 100% local and privacy-focused open-source API client for testing
 - ✅ works 100% offline, the way a local testing tool should behave <br>
 - ✅ no cloud services, no tracking/communication to external servers behind the scene <br>
 - ✅ share collections with your team from a [server on your own network](#team-server) <br>
-- ✅ an optional new-release check (Preferences → General → Updates) is off unless you turn it on <br>
+- ✅ an optional new-release check (Preferences → General → Updates) is off unless you turn it on; Help → Check for Updates… checks once, when you ask <br>
 
 [![license](https://img.shields.io/github/license/yokomohoyo/insomnium.svg)](LICENSE)
 [![GitHub Discussions](https://img.shields.io/github/discussions/yokomohoyo/insomnium)](https://github.com/yokomohoyo/insomnium/discussions)
@@ -253,7 +253,7 @@ Please read through our [contributing guidelines](CONTRIBUTING.md) and [code of 
 
 ## Privacy
 
-This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Insomnium has no account, telemetry or analytics. It contacts only what you point it at: the requests you send, your Git remotes, a team server you sign in to, the plugin registry when you install a plugin, an AI model's endpoint if you set one up, and, only if you turn on "Check for new releases" (off by default), api.github.com once a day for the latest release.
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Insomnium has no account, telemetry or analytics. It contacts only what you point it at: the requests you send, your Git remotes, a team server you sign in to, the plugin registry when you install a plugin, an AI model's endpoint if you set one up, and api.github.com for the latest release: once a day only if you turn on "Check for new releases" (off by default), and once each time you choose Check for Updates.
 
 ## License
 

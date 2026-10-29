@@ -5,6 +5,7 @@ import fs from 'fs';
 import { credentialStorageStatus } from '../../common/database';
 import type { NativeThemeSource } from '../../plugins/native-theme';
 import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
+import type { UpdateCheckResult } from '../../common/update-check';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
 import { type TeamBridgeAPI, teamCollections, teamConnect, teamConnectSso, teamCreateCollection, teamDisconnect } from '../team-client';
@@ -18,7 +19,7 @@ import * as models from '../../models';
 import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
 import { axiosRequest } from '../network/axios-request';
 import type { GitSshRequest, GitSshResponse } from '../git-ssh/transport';
-import { checkForNewRelease } from '../release-check';
+import { checkForNewRelease, checkForUpdatesNow } from '../release-check';
 import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
@@ -70,6 +71,8 @@ export interface MainBridgeAPI {
   webUtilsGetPathForFile: (file: File) => string;
   getMcpStatus: () => Promise<{ running: boolean; port: number | null }>;
   checkForNewRelease: () => Promise<ToastNotification | null>;
+  // asked for now, opted in to the daily check or not
+  checkForUpdatesNow: () => Promise<UpdateCheckResult>;
   credentialStorageNotices: () => Promise<ToastNotification[]>;
   listSnapshots: () => Promise<Snapshot[]>;
   takeSnapshot: () => Promise<string>;
@@ -128,6 +131,7 @@ export function registerMainHandlers() {
   ipcMain.handle('mockServer.status', (_, workspaceId: string) => collectionMockStatus(workspaceId));
   ipcMain.handle('runScript', (_, { code, input, timeoutMs }: { code: string; input: object; timeoutMs: number }) => runInSandbox(code, input, { timeoutMs }));
   ipcMain.handle('checkForNewRelease', () => checkForNewRelease());
+  ipcMain.handle('checkForUpdatesNow', () => checkForUpdatesNow());
   ipcMain.handle('credentialStorageNotices', () => credentialStorageNotices(credentialStorageStatus()));
   ipcMain.handle('listSnapshots', () => listSnapshots());
   ipcMain.handle('takeSnapshot', () => takeSnapshot('manual'));

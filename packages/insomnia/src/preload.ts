@@ -86,6 +86,7 @@ const main: Window['main'] = {
   halfSecondAfterAppStart: () => ipcRenderer.send('halfSecondAfterAppStart'),
   getMcpStatus: () => ipcRenderer.invoke('getMcpStatus'),
   checkForNewRelease: () => ipcRenderer.invoke('checkForNewRelease'),
+  checkForUpdatesNow: () => ipcRenderer.invoke('checkForUpdatesNow'),
   credentialStorageNotices: () => ipcRenderer.invoke('credentialStorageNotices'),
   listSnapshots: () => ipcRenderer.invoke('listSnapshots'),
   takeSnapshot: () => ipcRenderer.invoke('takeSnapshot'),
