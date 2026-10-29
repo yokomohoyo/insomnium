@@ -7,6 +7,7 @@ import type { NativeThemeSource } from '../../plugins/native-theme';
 import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
+import { type TeamBridgeAPI, teamCollections, teamConnect, teamCreateCollection, teamDisconnect } from '../team-client';
 import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
 import { type CaptureBridgeAPI, registerCaptureHandlers } from '../capture-proxy';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
@@ -53,6 +54,7 @@ export interface MainBridgeAPI {
   on: (channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void) => () => void;
   webSocket: WebSocketBridgeAPI;
   ai: AiBridgeAPI;
+  team: TeamBridgeAPI;
   capture: CaptureBridgeAPI;
   mcpClient: McpClientBridgeAPI;
   folderSync: FolderSyncBridgeAPI;
@@ -154,6 +156,11 @@ export function registerMainHandlers() {
 
   ipcMain.handle('ai.chat', (_, options: { messages: ChatMessage[] }) => aiChat(options));
   ipcMain.handle('ai.models', () => aiModels());
+
+  ipcMain.handle('team.connect', (_, options: Parameters<typeof teamConnect>[0]) => teamConnect(options));
+  ipcMain.handle('team.disconnect', (_, options: Parameters<typeof teamDisconnect>[0]) => teamDisconnect(options));
+  ipcMain.handle('team.collections', (_, options: Parameters<typeof teamCollections>[0]) => teamCollections(options));
+  ipcMain.handle('team.create', (_, options: Parameters<typeof teamCreateCollection>[0]) => teamCreateCollection(options));
 
   ipcMain.handle('installPlugin', async (_, lookupName: string) => {
     await revokeFullAccess(await installPlugin(lookupName, await pluginInstallOptions(await models.settings.getOrCreate())));

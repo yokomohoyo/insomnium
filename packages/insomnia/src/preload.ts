@@ -6,6 +6,7 @@ import type { AiBridgeAPI } from './main/ai';
 import type { CaptureBridgeAPI } from './main/capture-proxy';
 import type { FolderSyncBridgeAPI } from './main/folder-sync';
 import type { McpClientBridgeAPI } from './main/network/mcp-client';
+import type { TeamBridgeAPI } from './main/team-client';
 import type { WebSocketBridgeAPI } from './main/network/websocket';
 
 const folderSync: FolderSyncBridgeAPI = {
@@ -26,6 +27,13 @@ const capture: CaptureBridgeAPI = {
 const ai: AiBridgeAPI = {
   chat: options => ipcRenderer.invoke('ai.chat', options),
   models: () => ipcRenderer.invoke('ai.models'),
+};
+
+const team: TeamBridgeAPI = {
+  connect: options => ipcRenderer.invoke('team.connect', options),
+  disconnect: options => ipcRenderer.invoke('team.disconnect', options),
+  collections: options => ipcRenderer.invoke('team.collections', options),
+  create: options => ipcRenderer.invoke('team.create', options),
 };
 
 const mcpClient: McpClientBridgeAPI = {
@@ -129,6 +137,7 @@ const main: Window['main'] = {
   mcpClient,
   folderSync,
   ai,
+  team,
   capture,
   grpc,
   curl,

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { type Key, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -13,6 +13,7 @@ import { PanelContainer, TabItem, Tabs } from '../../base/tabs';
 import { ErrorBoundary } from '../../error-boundary';
 import { showAlert } from '..';
 import { CustomRepositorySettingsFormGroup } from './custom-repository-settings-form-group';
+import { TeamRepositoryFormGroup } from './team-repository-form-group';
 
 const TabPill = styled.div({
   display: 'flex',
@@ -28,6 +29,8 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
   const modalRef = useRef<ModalHandle>(null);
   const updateGitRepositoryFetcher = useFetcher();
   const deleteGitRepositoryFetcher = useFetcher();
+  // the footer's Sync submits the form of the tab shown
+  const [tab, setTab] = useState<Key>('custom');
 
 
   useEffect(() => {
@@ -87,6 +90,8 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
             <Tabs
               isDisabled={isLoading || hasGitRepository}
               aria-label={t('Git repository settings tabs')}
+              selectedKey={tab}
+              onSelectionChange={setTab}
             >
               <TabItem key='custom' title={<TabPill><i className="fa fa-code-fork" /> Git</TabPill>}>
                 <PanelContainer className="pad pad-top-sm">
@@ -94,6 +99,11 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
                     gitRepository={gitRepository}
                     onSubmit={onSubmit}
                   />
+                </PanelContainer>
+              </TabItem>
+              <TabItem key='team' title={<TabPill><i className="fa fa-users" /> {t('Team Server')}</TabPill>}>
+                <PanelContainer className="pad pad-top-sm">
+                  <TeamRepositoryFormGroup mode="share" onSubmit={onSubmit} />
                 </PanelContainer>
               </TabItem>
             </Tabs>
@@ -131,7 +141,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
               <button
                 type="submit"
                 disabled={isLoading}
-                form="custom"
+                form={String(tab)}
                 className="btn"
                 data-testid="git-repository-settings-modal__sync-btn"
               >
