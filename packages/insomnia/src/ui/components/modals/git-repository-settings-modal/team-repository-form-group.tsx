@@ -93,6 +93,12 @@ export const TeamRepositoryFormGroup: FunctionComponent<Props> = ({ mode, onSubm
     await loadServers(connected);
   });
 
+  const connectSso = () => run(async () => {
+    const connected = await window.main.team.connectSso({ url: signIn.url });
+    setSignIn({ url: '', username: '', password: '' });
+    await loadServers(connected);
+  });
+
   const disconnect = () => server && run(async () => {
     await window.main.team.disconnect({ url: server.url, username: server.username });
     await loadServers();
@@ -201,6 +207,16 @@ export const TeamRepositoryFormGroup: FunctionComponent<Props> = ({ mode, onSubm
             data-testid="team-server-sign-in"
           >
             {busy ? <i className="fa fa-spin fa-refresh" /> : t('Sign In')}
+          </button>
+          <button
+            type="button"
+            className="btn btn--clicky space-left"
+            disabled={busy || !signIn.url.trim()}
+            onClick={connectSso}
+            title={t("Sign in at your organization's identity provider, in your browser")}
+            data-testid="team-server-sso"
+          >
+            {t('Sign In with SSO')}
           </button>
         </>
       )}
