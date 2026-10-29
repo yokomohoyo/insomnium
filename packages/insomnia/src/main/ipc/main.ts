@@ -8,7 +8,7 @@ import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
 import type { UpdateCheckResult } from '../../common/update-check';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
-import { type TeamBridgeAPI, teamCollections, teamConnect, teamCreateCollection, teamDisconnect } from '../team-client';
+import { type TeamBridgeAPI, teamCollections, teamConnect, teamConnectSso, teamCreateCollection, teamDisconnect } from '../team-client';
 import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
 import { type CaptureBridgeAPI, registerCaptureHandlers } from '../capture-proxy';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
@@ -162,6 +162,7 @@ export function registerMainHandlers() {
   ipcMain.handle('ai.models', () => aiModels());
 
   ipcMain.handle('team.connect', (_, options: Parameters<typeof teamConnect>[0]) => teamConnect(options));
+  ipcMain.handle('team.connectSso', (_, options: { url: string }) => teamConnectSso(options));
   ipcMain.handle('team.disconnect', (_, options: Parameters<typeof teamDisconnect>[0]) => teamDisconnect(options));
   ipcMain.handle('team.collections', (_, options: Parameters<typeof teamCollections>[0]) => teamCollections(options));
   ipcMain.handle('team.create', (_, options: Parameters<typeof teamCreateCollection>[0]) => teamCreateCollection(options));

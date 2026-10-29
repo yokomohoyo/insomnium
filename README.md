@@ -4,6 +4,7 @@ Insomnium is a 100% local and privacy-focused open-source API client for testing
 
 - ✅ works 100% offline, the way a local testing tool should behave <br>
 - ✅ no cloud services, no tracking/communication to external servers behind the scene <br>
+- ✅ share collections with your team from a [server on your own network](#team-server) <br>
 - ✅ an optional new-release check (Preferences → General → Updates) is off unless you turn it on; Help → Check for Updates… checks once, when you ask <br>
 
 [![license](https://img.shields.io/github/license/yokomohoyo/insomnium.svg)](LICENSE)
@@ -97,9 +98,32 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 **For coding agents:** `npx insomnium-cli agent install` installs a skill for Claude Code that tells it how to use your collections: find a request, check the environment, send it, read the response and its assertions, and run a folder. See [insomnium-cli](packages/insomnium-cli/README.md).
 
 
+## Team server
+
+A team can share its collections from a server of its own: a NAS (a Synology, say), a home server, or any machine with Docker. Nothing goes through a cloud service. `insomnium-server team` keeps each collection as a Git repository and serves it for Git Sync. It adds accounts, a role for each person on each collection (viewer, editor or owner), and a log of who pushed what.
+
+Start it with a folder for its data:
+
+```sh
+docker run -d --name insomnium-team --restart unless-stopped   -p 8080:8080   -v /volume1/docker/insomnium-team:/data   -e INSOMNIUM_TEAM_ADMIN=kim   ghcr.io/yokomohoyo/insomnium-server team
+docker logs insomnium-team   # the admin's password, shown once on the first start
+```
+
+Put it behind HTTPS (a NAS's reverse proxy does), as every call carries a password or token. Then, in Insomnium:
+
+1. Open **Git Clone** in a project, or **Git Settings** in a collection, and choose the **Team Server** tab.
+2. Sign in with the server's address, your user name and your password. Insomnium makes an access token for this computer and keeps only that, encrypted (see [Saved credentials](#saved-credentials)).
+3. Pick a collection to clone, or one to sync the open collection to. In Git Settings you can also start a new one.
+4. Commit, push and pull as with any Git Sync repository.
+
+**Sign Out** in the same tab forgets the sign-in and revokes its token. Git on the command line works too, with your user name and a token.
+
+Setting it up, managing accounts and roles, the API and every option: [Share collections with a team](packages/insomnium-server/README.md#share-collections-with-a-team). Git Sync itself: [docs/git-sync.md](docs/git-sync.md).
+
+
 ## Saved credentials
 
-Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials, client certificate passphrases, and the proto and MCP tokens in Settings. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
+Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials, client certificate passphrases, and the proto and MCP tokens in Settings, and team server sign-ins. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
 
 What this does not cover:
 
@@ -229,7 +253,7 @@ Please read through our [contributing guidelines](CONTRIBUTING.md) and [code of 
 
 ## Privacy
 
-This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Insomnium has no account, telemetry or analytics. It contacts only what you point it at: the requests you send, your Git remotes, the plugin registry when you install a plugin, an AI model's endpoint if you set one up, and api.github.com for the latest release: once a day only if you turn on "Check for new releases" (off by default), and once each time you choose Check for Updates.
+This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it. Insomnium has no account, telemetry or analytics. It contacts only what you point it at: the requests you send, your Git remotes, a team server you sign in to, the plugin registry when you install a plugin, an AI model's endpoint if you set one up, and api.github.com for the latest release: once a day only if you turn on "Check for new releases" (off by default), and once each time you choose Check for Updates.
 
 ## License
 

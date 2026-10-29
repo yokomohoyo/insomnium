@@ -62,6 +62,8 @@ const sha256 = (text: string) => createHash('sha256').update(text).digest('hex')
 export const TOKEN_PREFIX = 'ist_';
 const newToken = () => `${TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`;
 export const newPassword = () => randomBytes(18).toString('base64url');
+// no password matches it: checkPassword takes only scrypt hashes
+const NO_PASSWORD = '!';
 
 export class TeamStore {
   readonly db: DatabaseSync;
@@ -94,6 +96,11 @@ export class TeamStore {
         action TEXT NOT NULL, collection TEXT, detail TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS audit_collection ON audit(collection, id);
+      CREATE TABLE IF NOT EXISTS identities (
+        issuer TEXT NOT NULL, subject TEXT NOT NULL,
+        user TEXT NOT NULL REFERENCES users(name) ON DELETE CASCADE,
+        created INTEGER NOT NULL, PRIMARY KEY (issuer, subject), UNIQUE (issuer, user)
+      );
     `);
   }
 
@@ -128,6 +135,29 @@ export class TeamStore {
       throw new Error(`There's already a user named ${name}`);
     }
     this.db.prepare('INSERT INTO users (name, password, admin, created) VALUES (?, ?, ?, ?)').run(name, hashPassword(password), admin ? 1 : 0, Date.now());
+  }
+
+  // an account for single sign-on (oidc.ts), with no password until an admin resets one
+  addSsoUser(name: string) {
+    if (!isName(name)) {
+      throw new Error('A user name is lowercase letters, digits, dots, dashes and underscores');
+    }
+    this.db.prepare('INSERT INTO users (name, password, admin, created) VALUES (?, ?, 0, ?)').run(name, NO_PASSWORD, Date.now());
+  }
+
+  // who signed in at a provider, by its subject id
+  userOfIdentity(issuer: string, subject: string) {
+    const row = this.db.prepare('SELECT user FROM identities WHERE issuer = ? AND subject = ?').get(issuer, subject) as { user: string } | undefined;
+    return row ? this.user(row.user) : null;
+  }
+
+  identityOf(user: string, issuer: string) {
+    const row = this.db.prepare('SELECT subject FROM identities WHERE user = ? AND issuer = ?').get(user, issuer) as { subject: string } | undefined;
+    return row?.subject ?? null;
+  }
+
+  linkIdentity(issuer: string, subject: string, user: string) {
+    this.db.prepare('INSERT INTO identities (issuer, subject, user, created) VALUES (?, ?, ?, ?)').run(issuer, subject, user, Date.now());
   }
 
   setPassword(name: string, password: string) {

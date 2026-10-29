@@ -31,7 +31,7 @@ export class ApiError extends Error {
   }
 }
 
-const readJson = (req: http.IncomingMessage) => new Promise<Record<string, any>>((resolve, reject) => {
+export const readJson = (req: http.IncomingMessage) => new Promise<Record<string, any>>((resolve, reject) => {
   let size = 0;
   const chunks: Buffer[] = [];
   req.on('data', (chunk: Buffer) => {

@@ -31,6 +31,7 @@ const ai: AiBridgeAPI = {
 
 const team: TeamBridgeAPI = {
   connect: options => ipcRenderer.invoke('team.connect', options),
+  connectSso: options => ipcRenderer.invoke('team.connectSso', options),
   disconnect: options => ipcRenderer.invoke('team.disconnect', options),
   collections: options => ipcRenderer.invoke('team.collections', options),
   create: options => ipcRenderer.invoke('team.create', options),

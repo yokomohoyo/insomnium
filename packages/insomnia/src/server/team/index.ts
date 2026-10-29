@@ -5,6 +5,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
+import { parseOidcConfig } from './oidc';
 import { startTeamServer, type TeamConfig } from './server';
 import { newPassword, TeamStore } from './store';
 
@@ -23,7 +24,16 @@ which members clone and push with their user name and an access token.
 
 The first start makes an admin: INSOMNIUM_TEAM_ADMIN names it (default admin), and
 INSOMNIUM_TEAM_ADMIN_PASSWORD sets its password; without one, a password is made
-and printed once. Put the server behind HTTPS: sign-in sends the password or token.`;
+and printed once. Put the server behind HTTPS: sign-in sends the password or token.
+
+Single sign-on with OpenID Connect (Authentik, Keycloak, Entra ID, Google, ...):
+register a confidential client with the redirect URL <url>/auth/oidc/callback, and set
+  INSOMNIUM_TEAM_OIDC_ISSUER          the provider's issuer URL
+  INSOMNIUM_TEAM_OIDC_CLIENT_ID       the client's id
+  INSOMNIUM_TEAM_OIDC_CLIENT_SECRET   its secret
+  INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM  the claim naming the account (default preferred_username)
+  INSOMNIUM_TEAM_OIDC_CREATE_USERS    true: make an account for someone who has none
+  INSOMNIUM_TEAM_OIDC_NAME            the provider's name, for the sign-in button`;
 
 export interface TeamCliConfig extends TeamConfig {
   command: string[];
@@ -35,6 +45,7 @@ export function parseTeamConfig(argv: string[], env: NodeJS.ProcessEnv): TeamCli
     host: env.INSOMNIUM_HOST || '0.0.0.0',
     port: Number(env.INSOMNIUM_PORT || 8080),
     publicUrl: env.INSOMNIUM_TEAM_URL || undefined,
+    oidc: parseOidcConfig(env),
     command: [],
   };
   for (let index = 0; index < argv.length; index++) {
