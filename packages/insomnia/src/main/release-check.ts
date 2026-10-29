@@ -1,8 +1,9 @@
-import { session } from 'electron';
+import { dialog, session, shell } from 'electron';
 
 import appConfig from '../../config/config.json';
 import { getAppVersion, getProductName } from '../common/constants';
 import { t } from '../common/i18n';
+import { describeUpdateCheck, type UpdateCheckResult } from '../common/update-check';
 import * as models from '../models';
 import type { ToastNotification } from '../ui/components/toast';
 
@@ -50,25 +51,33 @@ const toNotification = (latest: { tag: string; url: string } | null): ToastNotif
     message: t('{product} {version} is available. You have {current}.', { product: getProductName(), version: latest.tag, current: getAppVersion() }),
   } : null;
 
+// The latest release, or null when it isn't downloadable for this platform yet
+async function latestRelease(fetchImpl: typeof fetch) {
+  const response = await fetchImpl(LATEST_RELEASE_URL, {
+    headers: { Accept: 'application/vnd.github+json' },
+    credentials: 'omit',
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  const release = await response.json() as { tag_name?: string; html_url?: string; assets?: { name: string }[] };
+  const { tag_name: tag, html_url: url } = release;
+  if (!tag || !url?.startsWith('https://github.com/')) {
+    throw new Error('GitHub sent no release');
+  }
+  if (isNewerVersion(tag, getAppVersion()) && !release.assets?.some(asset => installerPattern().test(asset.name))) {
+    return null;
+  }
+  return { tag, url };
+}
+
 async function askGitHub(fetchImpl: typeof fetch, now: number) {
   let latest: { tag: string; url: string } | null = null;
   let nextCheckAt = now + DAY_MS;
   try {
-    const response = await fetchImpl(LATEST_RELEASE_URL, {
-      headers: { Accept: 'application/vnd.github+json' },
-      credentials: 'omit',
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const release = await response.json() as { tag_name?: string; html_url?: string; assets?: { name: string }[] };
-    const { tag_name: tag, html_url: url } = release;
-    if (tag && url?.startsWith('https://github.com/')) {
-      if (isNewerVersion(tag, getAppVersion()) && !release.assets?.some(asset => installerPattern().test(asset.name))) {
-        nextCheckAt = now + HOUR_MS; // not downloadable yet
-      } else {
-        latest = { tag, url };
-      }
+    latest = await latestRelease(fetchImpl);
+    if (!latest) {
+      nextCheckAt = now + HOUR_MS; // not downloadable yet
     }
   } catch (err) {
     console.warn('[release-check] Could not check for a new release', err);
@@ -76,6 +85,23 @@ async function askGitHub(fetchImpl: typeof fetch, now: number) {
   }
   await models.stats.update({ releaseCheck: { nextCheckAt, latest } });
   return toNotification(latest);
+}
+
+// Asked for (Help → Check for Updates…, or Preferences): one request now, opted in
+// to the daily check or not. What it finds also serves the daily check's notice.
+export async function checkForUpdatesNow(fetchImpl: typeof fetch = fetchAnonymously, now = Date.now()): Promise<UpdateCheckResult> {
+  const current = getAppVersion();
+  let latest: { tag: string; url: string } | null;
+  try {
+    latest = await latestRelease(fetchImpl);
+  } catch (err) {
+    console.warn('[release-check] Could not check for updates', err);
+    return { status: 'failed', current, error: (err as Error).message };
+  }
+  await models.stats.update({ releaseCheck: { nextCheckAt: now + (latest ? DAY_MS : HOUR_MS), latest } });
+  return latest && isNewerVersion(latest.tag, current)
+    ? { status: 'newer', current, version: latest.tag, url: latest.url }
+    : { status: 'current', current };
 }
 
 let pending: Promise<ToastNotification | null> | null = null;
@@ -95,4 +121,25 @@ export async function checkForNewRelease(fetchImpl: typeof fetch = fetchAnonymou
     pending = null;
   });
   return pending;
+}
+
+// Help → Check for Updates…: the answer in a dialog, with the release a click away
+export async function showUpdateCheck() {
+  const result = await checkForUpdatesNow();
+  const view = t('View release');
+  const buttons = result.status === 'newer' ? [view, t('Later')] : [t('OK')];
+  const { response } = await dialog.showMessageBox({
+    type: result.status === 'failed' ? 'warning' : 'info',
+    title: t('Check for Updates'),
+    message: describeUpdateCheck(result),
+    buttons,
+    defaultId: 0,
+    cancelId: buttons.length - 1,
+    noLink: true,
+  });
+  if (result.status === 'newer' && buttons[response] === view) {
+    // a github.com release page (latestRelease checks)
+    // eslint-disable-next-line no-restricted-properties
+    shell.openExternal(result.url);
+  }
 }

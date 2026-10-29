@@ -861,5 +861,12 @@
   "Seconds between attempts": "試行の間隔（秒）",
   "Attempts in a row": "連続試行回数",
   "requests": "リクエスト",
-  "Back to Requests": "リクエストに戻る"
+  "Back to Requests": "リクエストに戻る",
+  "Check for &Updates…": "アップデートを確認(&U)…",
+  "Check for Updates": "アップデートを確認",
+  "Checking…": "確認しています…",
+  "Later": "後で",
+  "OK": "OK",
+  "You have the latest version of {product} ({current}).": "{product} は最新バージョンです ({current})。",
+  "Couldn't check for updates: {error}": "アップデートを確認できませんでした: {error}"
 }

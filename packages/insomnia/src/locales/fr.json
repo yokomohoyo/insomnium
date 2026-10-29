@@ -861,5 +861,12 @@
   "Seconds between attempts": "Secondes entre les tentatives",
   "Attempts in a row": "Tentatives successives",
   "requests": "requêtes",
-  "Back to Requests": "Retour aux requêtes"
+  "Back to Requests": "Retour aux requêtes",
+  "Check for &Updates…": "Rechercher des &mises à jour…",
+  "Check for Updates": "Rechercher des mises à jour",
+  "Checking…": "Vérification…",
+  "Later": "Plus tard",
+  "OK": "OK",
+  "You have the latest version of {product} ({current}).": "Vous avez la dernière version de {product} ({current}).",
+  "Couldn't check for updates: {error}": "Impossible de rechercher des mises à jour : {error}"
 }

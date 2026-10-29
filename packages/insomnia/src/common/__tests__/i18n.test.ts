@@ -64,7 +64,7 @@ const MENUS: Record<string, string[]> = {
   ],
   window: ['&New', '&Minimize', '&Close'],
   tools: ['&Reload Plugins'],
-  help: ['&Help and Support', '&Keyboard Shortcuts', 'Show App &Data Folder', 'Show App &Logs Folder', 'Show Open Source Licenses', 'Show Software License', '&About'],
+  help: ['&Help and Support', '&Keyboard Shortcuts', 'Check for &Updates…', 'Show App &Data Folder', 'Show App &Logs Folder', 'Show Open Source Licenses', 'Show Software License', '&About'],
   developer: ['&Reload', 'Take &Screenshot', '&Clear a model', 'Clear &all models', 'R&estart', 'Set window for &FHD Screenshot'],
 };
 // on macOS only, which shows no mnemonics

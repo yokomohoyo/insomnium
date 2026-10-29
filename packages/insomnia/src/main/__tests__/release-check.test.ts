@@ -4,7 +4,8 @@ import { globalBeforeEach } from '../../__jest__/before-each';
 import { getAppVersion } from '../../common/constants';
 import { setLanguage } from '../../common/i18n';
 import * as models from '../../models';
-import { checkForNewRelease, isNewerVersion } from '../release-check';
+import { describeUpdateCheck } from '../../common/update-check';
+import { checkForNewRelease, checkForUpdatesNow, isNewerVersion } from '../release-check';
 
 describe('isNewerVersion()', () => {
   it.each([
@@ -25,6 +26,11 @@ describe('isNewerVersion()', () => {
     expect(isNewerVersion(candidate, current)).toBe(expected);
   });
 });
+
+const HOUR_MS = 60 * 60 * 1000;
+const assetsFor = [{ name: 'Insomnium.Core-99.0.0.dmg' }, { name: 'Insomnium.Core-99.0.0.exe' }, { name: 'Insomnium.Core-99.0.0.AppImage' }];
+const githubRelease = (tag: string, assets = assetsFor) =>
+  jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ tag_name: tag, html_url: `https://github.com/yokomohoyo/insomnium/releases/tag/${tag}`, assets }) }) as unknown as Response);
 
 describe('checkForNewRelease()', () => {
   const HOUR = 60 * 60 * 1000;
@@ -127,5 +133,37 @@ describe('checkForNewRelease()', () => {
   ])('ignores a release link that is not on https://github.com/ (%s)', async url => {
     await optIn();
     expect(await checkForNewRelease(release('99.0.0', { url }), 0)).toBeNull();
+  });
+});
+
+describe('checkForUpdatesNow()', () => {
+  beforeEach(globalBeforeEach);
+
+  it('asks GitHub when asked to, even without the daily check', async () => {
+    const fetch = githubRelease('99.0.0');
+    const result = await checkForUpdatesNow(fetch, 0);
+    expect(result).toEqual({ status: 'newer', current: getAppVersion(), version: '99.0.0', url: 'https://github.com/yokomohoyo/insomnium/releases/tag/99.0.0' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(describeUpdateCheck(result)).toBe(`Insomnium 99.0.0 is available. You have ${getAppVersion()}.`);
+    // and the daily check, if turned on, starts from what it found
+    expect((await models.stats.get()).releaseCheck).toEqual({ nextCheckAt: 24 * HOUR_MS, latest: { tag: '99.0.0', url: 'https://github.com/yokomohoyo/insomnium/releases/tag/99.0.0' } });
+  });
+
+  it('asks again on every click, rather than from the daily answer', async () => {
+    await models.stats.update({ releaseCheck: { nextCheckAt: Infinity, latest: null } });
+    const fetch = githubRelease(getAppVersion());
+    expect(await checkForUpdatesNow(fetch, 0)).toEqual({ status: 'current', current: getAppVersion() });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(describeUpdateCheck({ status: 'current', current: '1.2.3' })).toBe('You have the latest version of Insomnium (1.2.3).');
+  });
+
+  it("counts a release without this platform's installer yet as not out", async () => {
+    expect(await checkForUpdatesNow(githubRelease('99.0.0', []), 0)).toEqual({ status: 'current', current: getAppVersion() });
+  });
+
+  it("says why when it can't check", async () => {
+    const result = await checkForUpdatesNow(jest.fn(async () => ({ ok: false, status: 503 }) as unknown as Response), 0);
+    expect(result).toEqual({ status: 'failed', current: getAppVersion(), error: 'HTTP 503' });
+    expect(describeUpdateCheck(result)).toBe("Couldn't check for updates: HTTP 503");
   });
 });

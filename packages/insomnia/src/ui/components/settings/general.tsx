@@ -1,4 +1,4 @@
-import React, { FC, Fragment } from 'react';
+import React, { FC, Fragment, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import {
@@ -12,6 +12,7 @@ import {
 import { docsKeyMaps } from '../../../common/documentation';
 import { LANGUAGES, resolveLanguage, t } from '../../../common/i18n';
 import { HttpVersion, HttpVersions } from '../../../common/settings';
+import { describeUpdateCheck, type UpdateCheckResult } from '../../../common/update-check';
 import * as models from '../../../models';
 import { initNewOAuthSession } from '../../../network/o-auth-2/get-token';
 import { RootLoaderData } from '../../routes/root';
@@ -54,6 +55,35 @@ const LanguageSetting: FC<{ value: string }> = ({ value }) => {
           {LANGUAGES.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
         </select>
       </label>
+    </div>
+  );
+};
+
+// one check now, with or without the daily one: the same request it makes
+const CheckForUpdates: FC = () => {
+  const [checking, setChecking] = useState(false);
+  const [result, setResult] = useState<UpdateCheckResult | null>(null);
+  const check = async () => {
+    setChecking(true);
+    try {
+      setResult(await window.main.checkForUpdatesNow());
+    } catch (err) {
+      setResult({ status: 'failed', current: '', error: (err as Error).message });
+    } finally {
+      setChecking(false);
+    }
+  };
+  return (
+    <div className="form-control" data-testid="check-for-updates">
+      <button type="button" className="btn btn--clicky" disabled={checking} onClick={check}>
+        {checking ? <><i className="fa fa-spin fa-refresh" /> {t('Checking…')}</> : t('Check for Updates')}
+      </button>
+      {result && (
+        <span className={`space-left ${result.status === 'failed' ? 'warning' : result.status === 'newer' ? 'success' : 'faint'}`} role="status">
+          {describeUpdateCheck(result)}
+          {result.status === 'newer' && <>{' '}<Link href={result.url}>{t('View release')}</Link></>}
+        </span>
+      )}
     </div>
   );
 };
@@ -389,6 +419,7 @@ export const General: FC = () => {
         setting="checkForNewReleases"
         help={t("Off by default. At most once a day, asks api.github.com for the latest Insomnium release and shows a notice when it's newer. It's a plain request with no account, token or workspace data; like any web request, GitHub sees your IP address.")}
       />
+      <CheckForUpdates />
 
       <hr className="pad-top" />
 
