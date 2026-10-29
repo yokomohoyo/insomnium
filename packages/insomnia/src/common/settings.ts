@@ -97,6 +97,14 @@ export interface PluginConfig {
 
 export type PluginConfigMap = Record<string, PluginConfig>;
 
+export interface TeamServerSignIn {
+  url: string;
+  username: string;
+  token: string;
+  // the token's id on the server, to revoke it on sign-out; '' for a token pasted in
+  tokenId: string;
+}
+
 export interface Settings {
   // the theme follows the OS's light or dark (lightTheme, darkTheme); on out of the box
   autoDetectColorScheme: boolean;
@@ -191,4 +199,7 @@ export interface Settings {
   aiBaseUrl: string;
   aiModel: string;
   aiApiKey: string;
+
+  // the team servers signed in to (main/team-client.ts), each with its access token
+  teamServers: TeamServerSignIn[];
 }

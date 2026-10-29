@@ -13,7 +13,7 @@ export const CREDENTIAL_FIELDS: Readonly<Record<string, readonly string[]>> = {
   OAuth2Token: ['accessToken', 'refreshToken', 'identityToken'],
   ClientCertificate: ['passphrase'],
   EnvironmentSecret: ['values'],
-  Settings: ['githubToken', 'bufToken', 'mcpToken', 'aiApiKey'],
+  Settings: ['githubToken', 'bufToken', 'mcpToken', 'aiApiKey', 'teamServers'],
   WorkspaceMeta: ['githubToken', 'bufToken'],
   // legacy: imported NeDB rows can still carry passphrases here
   Workspace: ['certificates'],

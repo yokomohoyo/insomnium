@@ -88,6 +88,7 @@ export function init(): BaseSettings {
     aiBaseUrl: '',
     aiModel: '',
     aiApiKey: '',
+    teamServers: [],
   };
 }
 

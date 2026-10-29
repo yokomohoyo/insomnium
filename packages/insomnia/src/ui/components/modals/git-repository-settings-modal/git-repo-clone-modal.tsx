@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { type Key, useEffect, useRef, useState } from 'react';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -15,6 +15,7 @@ import { ErrorBoundary } from '../../error-boundary';
 import { HelpTooltip } from '../../help-tooltip';
 import { showAlert } from '..';
 import { CustomRepositorySettingsFormGroup } from './custom-repository-settings-form-group';
+import { TeamRepositoryFormGroup } from './team-repository-form-group';
 
 const TabPill = styled.div({
   display: 'flex',
@@ -26,6 +27,8 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
   const { organizationId, projectId } = useParams() as { organizationId: string; projectId: string };
   const modalRef = useRef<ModalHandle>(null);
   const cloneGitRepositoryFetcher = useFetcher();
+  // the footer's Clone submits the form of the tab shown
+  const [tab, setTab] = useState<Key>('custom');
 
 
   useEffect(() => {
@@ -85,6 +88,8 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
         <ErrorBoundary>
           <Tabs
             aria-label={t('Git repository settings tabs')}
+            selectedKey={tab}
+            onSelectionChange={setTab}
           >
 
             <TabItem key='custom' title={<TabPill><i className="fa fa-code-fork" /> Git</TabPill>}>
@@ -92,6 +97,11 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
                 <CustomRepositorySettingsFormGroup
                   onSubmit={onSubmit}
                 />
+              </PanelContainer>
+            </TabItem>
+            <TabItem key='team' title={<TabPill><i className="fa fa-users" /> {t('Team Server')}</TabPill>}>
+              <PanelContainer className="pad pad-top-sm">
+                <TeamRepositoryFormGroup mode="clone" onSubmit={onSubmit} />
               </PanelContainer>
             </TabItem>
           </Tabs>
@@ -102,7 +112,7 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
           <button className="btn" onClick={() => modalRef.current?.hide()}>
             {t('Cancel')}
           </button>
-          <button type="submit" disabled={isSubmitting} form="custom" className="btn" data-testid="git-repository-settings-modal__sync-btn">
+          <button type="submit" disabled={isSubmitting} form={String(tab)} className="btn" data-testid="git-repository-settings-modal__sync-btn">
             {t('Clone')}
           </button>
         </div>
