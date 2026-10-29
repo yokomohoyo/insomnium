@@ -14,7 +14,7 @@ import { globalBeforeEach } from '../../__jest__/before-each';
 import { teamCollections, teamConnectSso } from '../../main/team-client';
 import * as models from '../../models';
 import { signJws } from '../../network/jws';
-import { parseOidcConfig, pkceChallenge } from '../team/oidc';
+import { escapeHtml, parseOidcConfig, pkceChallenge } from '../team/oidc';
 import { startTeamServer } from '../team/server';
 import type { TeamStore } from '../team/store';
 
@@ -223,7 +223,7 @@ describe('single sign-on for the team server', () => {
     provider.tamper = tamper;
     const page = await browse(`${base}/auth/oidc/start`);
     expect(page.status).toBe(400);
-    expect(page.text).toContain(message.replace("'", '&#39;'));
+    expect(page.text).toContain(escapeHtml(message));
     expect(store.tokens('kim')).toEqual([]);
   });
 
