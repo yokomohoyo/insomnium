@@ -7,6 +7,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
+import { petstoreExample } from '../../common/petstore-example';
 import { lintSpec } from '../spectral-lint';
 
 const spec = `openapi: 3.0.0
@@ -35,6 +36,10 @@ describe('lintSpec()', () => {
 
   it('lints with the built-in OpenAPI rules', async () => {
     expect(codes(await lintSpec({ contents: spec }))).toContain('info-contact');
+  });
+
+  it('finds nothing wrong with the example a design document starts from', async () => {
+    expect(codes(await lintSpec({ contents: petstoreExample }))).toEqual([]);
   });
 
   it('lints an AsyncAPI document with the built-in AsyncAPI rules', async () => {
