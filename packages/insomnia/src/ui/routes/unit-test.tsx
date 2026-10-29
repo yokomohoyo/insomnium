@@ -14,6 +14,7 @@ import {
 import * as models from '../../models';
 import type { UnitTestSuite } from '../../models/unit-test-suite';
 import { guard } from '../../utils/guard';
+import { BackToRequests } from '../components/back-to-requests';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../components/base/dropdown';
 
 import { ErrorBoundary } from '../components/error-boundary';
@@ -70,6 +71,7 @@ const TestRoute: FC = () => {
       renderPageSidebar={
         <ErrorBoundary showAlert>
           <div className="unit-tests__sidebar">
+            <BackToRequests />
             <div className="pad-sm">
               <Button
                 variant="outlined"

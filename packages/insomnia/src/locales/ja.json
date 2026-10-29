@@ -198,7 +198,6 @@
   "Current body will be lost. Are you sure you want to continue?": "現在の本文は失われます。続行してもよろしいですか?",
   "Dashboard Sort Dropdown": "ダッシュボード並べ替えドロップダウン",
   "Data": "データ",
-  "debug": "デバッグ",
   "Default": "既定",
   "Delay": "待機",
   "Delay in seconds": "遅延 (秒)",
@@ -860,5 +859,7 @@
   "From Plugins": "プラグインから",
   "Reconnect when the connection drops": "接続が切れたら再接続する",
   "Seconds between attempts": "試行の間隔（秒）",
-  "Attempts in a row": "連続試行回数"
+  "Attempts in a row": "連続試行回数",
+  "requests": "リクエスト",
+  "Back to Requests": "リクエストに戻る"
 }
