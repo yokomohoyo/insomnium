@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // a Postman-style visualization: a Handlebars template, a script in it that
@@ -27,7 +28,7 @@ test("the Visualize tab renders what the script set, and keeps it off the networ
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet one' }).click();
+  await openRequest(page, 'pet one');
 
   await page.getByTestId('request-pane').getByRole('button', { name: 'Send' }).click();
   await expect(page.locator('[data-testid="response-status-tag"]:visible')).toContainText('200');

@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const collection = JSON.stringify({
@@ -31,7 +32,7 @@ test("a model's streamed reply is put together, with its tokens and timing @ci",
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'ask the fake model' }).click();
+  await openRequest(page, 'ask the fake model');
 
   await page.getByTestId('request-pane').getByRole('button', { name: 'Connect' }).click();
   await page.getByRole('tab', { name: 'LLM' }).click();

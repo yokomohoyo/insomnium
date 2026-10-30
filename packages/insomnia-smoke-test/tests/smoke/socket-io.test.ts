@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const collection = `_type: export
@@ -21,7 +22,7 @@ test('a WebSocket request speaks Socket.IO: a namespace, auth, and events @ci', 
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pets socket' }).click();
+  await openRequest(page, 'pets socket');
 
   await page.getByRole('button', { name: 'Connect' }).click();
   // the namespace's connect, with the auth, and the server's welcome

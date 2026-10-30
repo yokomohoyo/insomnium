@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // a Bruno collection export: a request variable and two assertions
@@ -38,7 +39,7 @@ test('a Bruno collection imports with its assertions, which run on send @ci', as
   await page.getByRole('button', { name: 'Scan' }).click();
   await expect(page.getByRole('dialog')).toContainText('Bruno');
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet seven' }).click();
+  await openRequest(page, 'pet seven');
 
   await expect(requestPane.getByRole('tab', { name: /Assertions/ })).toContainText('2');
   await requestPane.getByRole('button', { name: 'Send' }).click();

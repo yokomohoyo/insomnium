@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const collection = JSON.stringify({
@@ -17,7 +18,7 @@ test('a response saved as an example shows in the request\'s Examples tab @ci', 
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet with example' }).click();
+  await openRequest(page, 'pet with example');
 
   await requestPane.getByRole('button', { name: 'Send' }).click();
   await expect(responsePane).toContainText('200 OK');

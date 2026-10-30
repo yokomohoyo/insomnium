@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const collection = `_type: export
@@ -16,7 +17,7 @@ test("an MCP request connects to a server, lists its tools, and calls one @ci", 
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'smoke mcp' }).click();
+  await openRequest(page, 'smoke mcp');
 
   await page.getByRole('button', { name: 'Connect' }).click();
   await expect(page.getByTestId('mcp-server')).toContainText('smoke-pets');
