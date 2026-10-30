@@ -28,8 +28,9 @@ describe('fsClient', () => {
     }
 
     expect(torn).toEqual([]);
-    // nothing left beside it
-    expect(fs.readdirSync(base)).toEqual(['index']);
-    expect(fs.readdirSync(`${base}.tmp`)).toEqual([]);
+    // nothing left over, and nothing beside the store
+    expect(await client.readdir('.')).toEqual(['index']);
+    expect(fs.readdirSync(path.join(base, '.insomnium-writes'))).toEqual([]);
+    expect(fs.existsSync(`${base}.tmp`)).toBe(false);
   });
 });

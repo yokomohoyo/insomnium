@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
@@ -13,16 +14,19 @@ type FSWraps =
   | typeof fs.promises.readlink
   | typeof fs.promises.symlink;
 
-let temps = 0;
+// where a write waits to replace its file: in the store, so it goes with it,
+// and left out of its listing, so git (which lists refs/heads and walks the
+// work tree) never sees it
+const WRITES_DIR = '.insomnium-writes';
 
 // isomorphic-git rewrites HEAD, refs and the index in place, and a plain write
 // empties the file first: a read meanwhile (the branch shown, the status) finds
-// no HEAD. Written in a folder beside the store (git lists refs/heads and walks
-// the work tree, so not in it) and renamed over it, a file is either old or new.
-const atomicWriter = (tempDir: string) => async (filePath: string, ...args: any[]) => {
-  const temp = path.join(tempDir, `${process.pid}.${++temps}`);
-  // @ts-expect-error -- TSCONVERSION
-  await fs.promises.writeFile(temp, ...args);
+// no HEAD. Written aside and renamed over it, a file is either old or new.
+const atomicWriter = (writesDir: string) => async (filePath: string, ...args: any[]) => {
+  await fs.promises.mkdir(writesDir, { recursive: true });
+  const temp = path.join(writesDir, crypto.randomBytes(16).toString('hex'));
+  const [data, options] = args;
+  await fs.promises.writeFile(temp, data, { ...(typeof options === 'string' ? { encoding: options } : options), flag: 'wx' });
   try {
     await fs.promises.rename(temp, filePath);
   } catch {
@@ -37,10 +41,9 @@ const atomicWriter = (tempDir: string) => async (filePath: string, ...args: any[
 export const fsClient = (basePath: string) => {
   console.log(`[fsClient] Created in ${basePath}`);
   fs.mkdirSync(basePath, { recursive: true });
-  const tempDir = `${path.resolve(basePath)}.tmp`;
-  fs.mkdirSync(tempDir, { recursive: true });
+  const writesDir = path.join(basePath, WRITES_DIR);
 
-  const wrap = (fn: FSWraps | ReturnType<typeof atomicWriter>) => async (filePath: string, ...args: any[]) => {
+  const wrap = (fn: FSWraps | ReturnType<typeof atomicWriter> | typeof readdir) => async (filePath: string, ...args: any[]) => {
     const modifiedPath = path.join(basePath, path.normalize(filePath));
     const relative = path.relative(basePath, modifiedPath);
     if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
@@ -50,12 +53,19 @@ export const fsClient = (basePath: string) => {
     return fn(modifiedPath, ...args);
   };
 
+  const readdir = async (dirPath: string, ...args: any[]) => {
+    const entries: (string | fs.Dirent)[] = await fs.promises.readdir(dirPath, ...args);
+    return path.resolve(dirPath) === path.resolve(basePath)
+      ? entries.filter(entry => (typeof entry === 'string' ? entry : entry.name) !== WRITES_DIR)
+      : entries;
+  };
+
   return {
     promises: {
       readFile: wrap(fs.promises.readFile),
-      writeFile: wrap(atomicWriter(tempDir)),
+      writeFile: wrap(atomicWriter(writesDir)),
       unlink: wrap(fs.promises.unlink),
-      readdir: wrap(fs.promises.readdir),
+      readdir: wrap(readdir),
       mkdir: wrap(fs.promises.mkdir),
       rmdir: wrap(fs.promises.rmdir),
       stat: wrap(fs.promises.stat),
