@@ -33,4 +33,16 @@ describe('fsClient', () => {
     expect(fs.readdirSync(path.join(base, '.insomnium-writes'))).toEqual([]);
     expect(fs.existsSync(`${base}.tmp`)).toBe(false);
   });
+
+  it('writes a file only its owner can read, keeping an executable one executable', async () => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'fs-client-'));
+    const { promises: client } = fsClient(base);
+    await client.writeFile('config', 'x');
+    await client.writeFile('run.sh', 'x', { mode: 0o755 });
+
+    if (process.platform !== 'win32') {
+      expect(fs.statSync(path.join(base, 'config')).mode & 0o777).toBe(0o600);
+      expect(fs.statSync(path.join(base, 'run.sh')).mode & 0o777).toBe(0o700);
+    }
+  });
 });

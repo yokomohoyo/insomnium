@@ -26,7 +26,10 @@ const atomicWriter = (writesDir: string) => async (filePath: string, ...args: an
   await fs.promises.mkdir(writesDir, { recursive: true });
   const temp = path.join(writesDir, crypto.randomBytes(16).toString('hex'));
   const [data, options] = args;
-  await fs.promises.writeFile(temp, data, { ...(typeof options === 'string' ? { encoding: options } : options), flag: 'wx' });
+  const { mode, ...rest }: { mode?: number; [option: string]: unknown } = typeof options === 'string' ? { encoding: options } : options || {};
+  // new, and the owner's only (the store can sit in the OS temp folder): an
+  // executable keeps its bit, which is all git records of a file's mode
+  await fs.promises.writeFile(temp, data, { ...rest, flag: 'wx', mode: (mode ?? 0) & 0o100 ? 0o700 : 0o600 });
   try {
     await fs.promises.rename(temp, filePath);
   } catch {
