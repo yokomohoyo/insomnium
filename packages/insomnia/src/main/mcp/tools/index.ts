@@ -2,7 +2,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { registerAuthTools } from './auth';
 import { registerCollectionTools } from './collections';
+import { registerDesignTools } from './design';
 import { registerEnvironmentTools } from './environments';
+import { registerExampleTools } from './examples';
 import { registerGrpcTools } from './grpc';
 import { registerEnvironmentMutationTools } from './mutate-environments';
 import { registerRequestMutationTools } from './mutate-requests';
@@ -27,4 +29,6 @@ export function registerTools(server: McpServer, include?: (name: string) => boo
   registerProtoTools(target);
   registerGrpcTools(target);
   registerCollectionTools(target);
+  registerExampleTools(target);
+  registerDesignTools(target);
 }
