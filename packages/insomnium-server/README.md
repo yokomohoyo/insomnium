@@ -87,7 +87,7 @@ The server can reach whatever its network can, so it only sends where you say:
 - Redirects aren't followed.
 - The `file` template tag is off, so a template can't read the container's files into a request.
 - The `env` template tag reads only the variables `INSOMNIUM_ALLOWED_ENV` names.
-- Only the tools that read and send are offered: listing and reading workspaces, requests, responses, environments and auth, choosing the active environment, and sending HTTP and gRPC requests.
+- Only the tools that read and send are offered: listing and reading workspaces, requests, responses, environments and auth, choosing the active environment, sending HTTP and gRPC requests, and running a folder's requests or a flow.
 
 Keep the token secret and serve it over TLS (a reverse proxy or ingress) when it leaves a private network.
 

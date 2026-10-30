@@ -7,11 +7,10 @@ import { database } from '../../../common/database';
 import * as models from '../../../models';
 import * as requestOperations from '../../../models/helpers/request-operations';
 import type { GrpcRequest } from '../../../models/grpc-request';
-import { isGrpcRequest } from '../../../models/grpc-request';
+import type { McpRequest } from '../../../models/mcp-request';
 import type { Request } from '../../../models/request';
 import type { WebSocketRequest } from '../../../models/websocket-request';
-import { isWebSocketRequest } from '../../../models/websocket-request';
-import { redactSecrets } from './util';
+import { redactSecrets, requestTypeLabel } from './util';
 
 // Byte-capped decode that drops a trailing split multibyte sequence.
 function truncateUtf8(body: string | Buffer | null | undefined, maxBytes: number): string {
@@ -25,13 +24,14 @@ function truncateUtf8(body: string | Buffer | null | undefined, maxBytes: number
 export function registerRequestTools(server: McpServer) {
   server.tool(
     'list_requests',
-    'List all HTTP/gRPC/WebSocket requests in a workspace (across all folders).',
+    'List all requests in a workspace (across all folders): HTTP, Event Stream, gRPC, WebSocket and MCP.',
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
-      const filtered = await database.findDescendants<Request | GrpcRequest | WebSocketRequest>(workspaceId, [
+      const filtered = await database.findDescendants<Request | GrpcRequest | WebSocketRequest | McpRequest>(workspaceId, [
         models.request.type,
         models.grpcRequest.type,
         models.webSocketRequest.type,
+        models.mcpRequest.type,
       ]);
       return {
         content: [{
@@ -40,7 +40,7 @@ export function registerRequestTools(server: McpServer) {
             filtered.map(r => ({
               id: r._id,
               name: r.name,
-              type: isGrpcRequest(r) ? 'gRPC' : isWebSocketRequest(r) ? 'WebSocket' : 'HTTP',
+              type: requestTypeLabel(r),
               method: 'method' in r ? r.method : undefined,
               url: r.url,
               parentId: r.parentId,

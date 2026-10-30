@@ -87,11 +87,12 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 **What connected tools can do** — the exposed tool surface covers:
 
 - **Projects & workspaces** — list/create projects, workspaces (collections or design docs), and folders.
-- **Request introspection** — list HTTP/gRPC/WebSocket requests, read full request details, and read recent responses (including the last response body).
+- **Organizing** — rename, move, convert and copy workspaces (`update_workspace`, `duplicate_workspace`); rename projects and delete empty ones; rename, move, copy and delete folders.
+- **Request introspection** — list HTTP, Event Stream, gRPC, WebSocket and MCP requests, read full request details, and read recent responses (including the last response body).
 - **Execution** — `send_http_request` and `send_grpc_request` (all four gRPC method types), with optional environment and timeout overrides.
-- **Mutation** — create, update, and delete requests; create folders.
-- **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium, Postman or OpenAPI (`export_workspace`), and list cookies (values only on request).
-- **Design documents** — read and set a design document's spec (`get_spec`, `set_spec`), and list, create, change and delete its unit test suites and tests and its flows.
+- **Mutation** — create requests of every type the app makes (HTTP, GraphQL, Event Stream, gRPC, WebSocket, MCP), update, copy and delete them; create folders.
+- **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium, Postman or OpenAPI (`export_workspace`), and list, set and delete cookies (values only on request).
+- **Design documents** — read and set a design document's spec (`get_spec`, `set_spec`), lint it with Spectral (`lint_spec`) and generate its requests from it (`generate_requests_from_spec`), list, create, change and delete its unit test suites and tests and its flows, and run a flow step by step (`run_flow`).
 - **Response examples** — list, create, change and delete a request's examples, which the mock server answers with.
 - **Auth strategies** — list, add, update, and remove authentication on a request.
 - **Environments** — list environments, read the active one, and switch it.

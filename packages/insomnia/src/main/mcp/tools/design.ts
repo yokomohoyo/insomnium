@@ -3,11 +3,13 @@ import YAML from 'yaml';
 import { z } from 'zod';
 
 import { database } from '../../../common/database';
-import { checkFlow, type FlowGraph } from '../../../flows/run-flow';
+import { appFlowRunner } from '../../../flows/flow-runner';
+import { checkFlow, type FlowGraph, runFlow } from '../../../flows/run-flow';
 import { ASSERTION_OPERATORS, ASSERTION_SOURCES, type AssertionOperator, type AssertionSource } from '../../../network/assertions';
 import * as models from '../../../models';
 import type { UnitTest } from '../../../models/unit-test';
 import { isDesign } from '../../../models/workspace';
+import { redactSecrets } from './util';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
 
@@ -115,8 +117,22 @@ export function registerDesignTools(server: McpServer) {
   );
 
   server.tool(
+    'update_test_suite',
+    'Rename a unit test suite.',
+    { suiteId: z.string(), name: z.string().min(1) },
+    async ({ suiteId, name }) => {
+      const suite = await models.unitTestSuite.getById(suiteId);
+      if (!suite) {
+        return notFound('test suite');
+      }
+      await models.unitTestSuite.update(suite, { name });
+      return text({ ok: true, id: suiteId, name });
+    },
+  );
+
+  server.tool(
     'delete_test_suite',
-    'Delete a unit test suite and its tests.',
+    'Delete a unit test suite and its tests. This cannot be undone.',
     { suiteId: z.string() },
     async ({ suiteId }) => {
       const suite = await models.unitTestSuite.getById(suiteId);
@@ -231,6 +247,40 @@ export function registerDesignTools(server: McpServer) {
         ...(graph ? { graph: toGraph(graph) } : {}),
       });
       return text({ ok: true, id: flowId, problem: checkFlow(updated.graph) });
+    },
+  );
+
+  server.tool(
+    'run_flow',
+    "Run a flow as its Run button does: from its start along its arrows, each request sent with its scripts and assertions (and its response stored), each condition checked, each variable set, each delay waited. Returns whether it passed, its message, each step's result (nodeId, kind, status passed/failed/true/false, message, the response's status and time), and the variables it ended with. variables are values for {{ name }} before it starts; stopAfterSeconds stops a flow that runs too long.",
+    {
+      flowId: z.string(),
+      environmentId: z.string().nullable().optional().describe('a sub environment to run in; the active one when left out, null for the base environment'),
+      variables: z.record(z.string(), z.string()).optional(),
+      stopAfterSeconds: z.number().int().min(1).max(3600).default(600),
+    },
+    async ({ flowId, environmentId, variables, stopAfterSeconds }) => {
+      const flow = await models.flow.getById(flowId);
+      if (!flow) {
+        return notFound('flow');
+      }
+      const workspaceId = flow.parentId;
+      const environment = environmentId === undefined ? (await models.workspaceMeta.getOrCreateByParentId(workspaceId)).activeEnvironmentId : environmentId;
+      const stop = new AbortController();
+      const timer = setTimeout(() => stop.abort(), stopAfterSeconds * 1000);
+      try {
+        const result = await runFlow(flow.graph, appFlowRunner({ workspaceId, environmentId: environment || undefined }), { signal: stop.signal, variables });
+        // a variable taken from a response can be a token: masked as
+        // get_request masks one, in its step's message too
+        const shown = redactSecrets(result.variables);
+        const steps = result.steps.map(step => {
+          const name = step.kind === 'setVariable' && step.status === 'passed' ? step.message.split(' = ')[0] : '';
+          return name && shown[name] !== result.variables[name] ? { ...step, message: `${name} = ${shown[name]}` } : step;
+        });
+        return text({ passed: result.passed, message: result.message, steps, variables: shown }, !result.passed);
+      } finally {
+        clearTimeout(timer);
+      }
     },
   );
 

@@ -70,6 +70,10 @@ describe('the design tools', () => {
     expect(await call('create_unit_test', { suiteId: suite.id, name: 'x', code, requestId: 'req_nope' })).toEqual({ body: { error: 'request not found' }, isError: true });
     expect(await call('create_unit_test', { suiteId: 'uts_nope', name: 'x', code })).toEqual({ body: { error: 'test suite not found' }, isError: true });
 
+    expect((await call('update_test_suite', { suiteId: suite.id, name: 'All orders' })).body).toEqual({ ok: true, id: suite.id, name: 'All orders' });
+    expect((await call('list_test_suites', { workspaceId })).body[0].name).toBe('All orders');
+    expect(await call('update_test_suite', { suiteId: 'uts_nope', name: 'x' })).toEqual({ body: { error: 'test suite not found' }, isError: true });
+
     expect((await call('delete_unit_test', { testId: test.id })).body).toEqual({ ok: true, id: test.id });
     expect((await call('list_test_suites', { workspaceId })).body[0].tests).toEqual([]);
 
@@ -115,8 +119,49 @@ describe('the design tools', () => {
     expect(forked.body).toMatchObject({ ok: true, problem: 'A step has one arrow out of it: add a condition to go two ways.' });
     expect(await models.flow.getById(created.id)).toMatchObject({ name: 'Forked', description: 'lists orders' });
 
+    expect(await call('run_flow', { flowId: 'flw_nope', stopAfterSeconds: 10 })).toEqual({ body: { error: 'flow not found' }, isError: true });
     expect((await call('delete_flow', { flowId: created.id })).body).toEqual({ ok: true, id: created.id });
     expect(await call('get_flow', { flowId: created.id })).toEqual({ body: { error: 'flow not found' }, isError: true });
     expect(await call('create_flow', { workspaceId: 'wrk_nope', name: 'x' })).toEqual({ body: { error: 'workspace not found' }, isError: true });
+  });
+
+  it("run a flow and return each step's result, with secret variables masked", async () => {
+    const graph = {
+      nodes: [
+        { id: 'start', kind: 'start', data: {} },
+        { id: 'token', kind: 'setVariable', data: { name: 'token', source: 'value', value: 'abc123' } },
+        { id: 'greeting', kind: 'setVariable', data: { name: 'greeting', source: 'value', value: 'hi {{ who }}' } },
+        { id: 'wait', kind: 'delay', data: { milliseconds: 1 } },
+      ],
+      edges: [
+        { source: 'start', target: 'token' },
+        { source: 'token', target: 'greeting' },
+        { source: 'greeting', target: 'wait' },
+      ],
+    };
+    const { id } = (await call('create_flow', { workspaceId, name: 'Greets', graph })).body;
+    const { body, isError } = await call('run_flow', { flowId: id, variables: { who: 'there' }, stopAfterSeconds: 10 });
+    expect(isError).toBe(false);
+    expect(body).toMatchObject({ passed: true, message: 'Done', variables: { who: 'there', token: '***REDACTED***', greeting: 'hi there' } });
+    expect(body.steps.map(({ nodeId, status }: { nodeId: string; status: string }) => `${nodeId}:${status}`)).toEqual(['start:passed', 'token:passed', 'greeting:passed', 'wait:passed']);
+    expect(body.steps[1].message).toBe('token = ***REDACTED***');
+    expect(body.steps[2].message).toBe('greeting = "hi there"');
+  });
+
+  it("report a flow that fails: a request that isn't the workspace's, or no start", async () => {
+    const otherId = (await models.workspace.create({ name: 'Other' }))._id;
+    const foreignId = (await models.request.create({ parentId: otherId, name: 'Elsewhere' }))._id;
+    const graph = {
+      nodes: [{ id: 'start', kind: 'start', data: {} }, { id: 'send', kind: 'request', data: { requestId: foreignId } }],
+      edges: [{ source: 'start', target: 'send' }],
+    };
+    const { id } = (await call('create_flow', { workspaceId, name: 'Foreign', graph })).body;
+    const failed = await call('run_flow', { flowId: id, stopAfterSeconds: 10 });
+    expect(failed.isError).toBe(true);
+    expect(failed.body.passed).toBe(false);
+    expect(failed.body.steps.at(-1)).toMatchObject({ nodeId: 'send', status: 'failed', message: 'The request it sends is no longer in this collection: choose another.' });
+
+    const startless = (await call('create_flow', { workspaceId, name: 'Startless', graph: { nodes: [], edges: [] } })).body;
+    expect((await call('run_flow', { flowId: startless.id, stopAfterSeconds: 10 })).body).toMatchObject({ passed: false, message: 'Add a Flow Start, where the flow begins.', steps: [] });
   });
 });
