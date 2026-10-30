@@ -88,6 +88,25 @@ export function registerWorkspaceTools(server: McpServer) {
   );
 
   server.tool(
+    'delete_workspace',
+    'Delete a workspace and everything in it (requests, folders, environments, spec, tests, flows, responses). It cannot be undone, so `name` must repeat the workspace\'s name exactly, as a check that this is the one meant.',
+    { workspaceId: z.string(), name: z.string() },
+    async ({ workspaceId, name }) => {
+      const workspace = await models.workspace.getById(workspaceId);
+      if (!workspace) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: 'workspace not found' }) }], isError: true };
+      }
+      if (workspace.name !== name) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: `name does not match: the workspace is named ${JSON.stringify(workspace.name)}` }) }], isError: true };
+      }
+      // as the app's own delete does
+      await models.stats.incrementDeletedRequestsForDescendents(workspace);
+      await models.workspace.remove(workspace);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, workspaceId, name }) }] };
+    },
+  );
+
+  server.tool(
     'list_request_groups',
     'List request folders (groups) inside a workspace.',
     { workspaceId: z.string() },

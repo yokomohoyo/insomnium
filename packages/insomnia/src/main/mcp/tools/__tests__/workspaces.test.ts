@@ -37,4 +37,22 @@ describe('the workspace tools', () => {
     expect(await models.workspace.getById(id)).toEqual(expect.objectContaining({ scope: 'collection' }));
     expect(await models.apiSpec.getByParentId(id)).toBeNull();
   });
+
+  it('delete a workspace and what is in it, only when its name is repeated', async () => {
+    const { id } = await call('create_workspace', { name: 'Shop API', scope: 'design', parentId });
+    const folder = await models.requestGroup.create({ parentId: id, name: 'Orders' });
+    const request = await models.request.create({ parentId: folder._id, name: 'List orders' });
+    const other = (await call('create_workspace', { name: 'Keep me', scope: 'collection', parentId })).id;
+
+    expect(await handlers.delete_workspace({ workspaceId: id, name: 'Shop' })).toMatchObject({ isError: true });
+    expect(await models.workspace.getById(id)).toBeTruthy();
+    expect(await handlers.delete_workspace({ workspaceId: 'wrk_nope', name: 'Shop API' })).toMatchObject({ isError: true });
+
+    expect(await call('delete_workspace', { workspaceId: id, name: 'Shop API' })).toEqual({ ok: true, workspaceId: id, name: 'Shop API' });
+    expect(await models.workspace.getById(id)).toBeNull();
+    expect(await models.requestGroup.getById(folder._id)).toBeNull();
+    expect(await models.request.getById(request._id)).toBeNull();
+    expect(await models.apiSpec.getByParentId(id)).toBeNull();
+    expect(await models.workspace.getById(other)).toBeTruthy();
+  });
 });
