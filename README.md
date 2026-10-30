@@ -91,6 +91,8 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Execution** — `send_http_request` and `send_grpc_request` (all four gRPC method types), with optional environment and timeout overrides.
 - **Mutation** — create, update, and delete requests; create folders.
 - **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium, Postman or OpenAPI (`export_workspace`), and list cookies (values only on request).
+- **Design documents** — read and set a design document's spec (`get_spec`, `set_spec`), and list, create, change and delete its unit test suites and tests and its flows.
+- **Response examples** — list, create, change and delete a request's examples, which the mock server answers with.
 - **Auth strategies** — list, add, update, and remove authentication on a request.
 - **Environments** — list environments, read the active one, and switch it.
 - **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.

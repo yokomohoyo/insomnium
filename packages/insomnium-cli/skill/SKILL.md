@@ -38,6 +38,8 @@ Don't send requests that change data (POST, PUT, PATCH, DELETE) to a production 
 
 - `create_request` (in a workspace or folder, `parentId`), `update_request` and `delete_request`. Read `get_request` first and patch only what changes.
 - `create_request_group` adds a folder.
+- `create_response_example` (and `update_`, `delete_`, `list_response_examples`) fills a request's Examples tab: name, status, headers and body.
+- In a design document: `set_spec` sets the Spec tab's YAML or JSON (`get_spec` reads it); `create_test_suite` and `create_unit_test` fill the Test tab; `create_flow` and `update_flow` fill the Flows tab (`get_flow` reads one's graph).
 - `update_environment` changes a variable; `create_environment` adds a sub environment.
 - `add_auth_strategy` / `update_auth_strategy` set auth; a request with empty auth uses its folder's.
 - `import_collection` imports text in any format the app imports (curl, OpenAPI, Postman, Insomnia, HAR...) into a workspace.

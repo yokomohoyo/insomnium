@@ -32,12 +32,11 @@ export const McpAutomation: FC = () => {
 };
   }, [settings.mcpEnabled, settings.mcpPort]);
 
-  // Prefer the actual running port - that's what clients have to connect to.
-  const effectivePort = runningPort ?? settings.mcpPort;
-  const sseUrl = effectivePort > 0 ? `http://${HOST}:${effectivePort}/sse` : `http://${HOST}:<starting...>/sse`;
-  const claudeCmd = token && effectivePort > 0
-    ? `claude mcp add --transport sse insomnium ${sseUrl} --header "Authorization: Bearer ${token}"`
-    : t('(enable the server to get a one-line install command)');
+  // Only the running server's port: the configured one isn't listening while
+  // it's off, and may not be what it gets (0 lets the OS pick)
+  const running = runningPort !== null;
+  const sseUrl = `http://${HOST}:${runningPort}/sse`;
+  const claudeCmd = `claude mcp add --transport sse insomnium ${sseUrl} --header "Authorization: Bearer ${token}"`;
 
   const copy = useCallback((label: string, value: string) => {
     navigator.clipboard.writeText(value).catch(() => { });
@@ -74,6 +73,12 @@ export const McpAutomation: FC = () => {
         help={t('0 = let the OS pick a free port. Set a fixed port to make the connection URL stable across restarts.')}
       />
 
+      <p className={running ? 'notice info' : 'notice warning'}>
+        {running
+          ? t('Running on port {port}: MCP clients can connect with the URL and token below.', { port: runningPort })
+          : t('Not running. The connection URL and the install command show here once the server is on.')}
+      </p>
+
       <div className="form-control form-control--outlined margin-top-sm">
         <label>
           {t('Auth token')}
@@ -82,11 +87,12 @@ export const McpAutomation: FC = () => {
               readOnly
               type="text"
               value={token || t('(not yet generated — enable the server)')}
+              disabled={!running}
               style={{ fontFamily: 'monospace' }}
             />
             <button
               className="btn btn--clicky space-left"
-              disabled={!token}
+              disabled={!token || !running}
               onClick={() => copy('token', token)}
             >
               {copied === 'token' ? t('Copied') : t('Copy')}
@@ -98,7 +104,7 @@ export const McpAutomation: FC = () => {
         </label>
       </div>
 
-      <div className="form-control form-control--outlined margin-top-sm">
+      {running && <div className="form-control form-control--outlined margin-top-sm">
         <label>
           {t('Connection URL')}
           <div className="row no-wrap">
@@ -110,16 +116,15 @@ export const McpAutomation: FC = () => {
             />
             <button
               className="btn btn--clicky space-left"
-              disabled={effectivePort <= 0}
               onClick={() => copy('url', sseUrl)}
             >
               {copied === 'url' ? t('Copied') : t('Copy')}
             </button>
           </div>
         </label>
-      </div>
+      </div>}
 
-      <div className="form-control form-control--outlined margin-top-sm">
+      {running && <div className="form-control form-control--outlined margin-top-sm">
         <label>
           {t('Claude Code install command')}
           <div className="row no-wrap">
@@ -131,14 +136,14 @@ export const McpAutomation: FC = () => {
             />
             <button
               className="btn btn--clicky space-left"
-              disabled={!token || effectivePort <= 0}
+              disabled={!token}
               onClick={() => copy('cmd', claudeCmd)}
             >
               {copied === 'cmd' ? t('Copied') : t('Copy')}
             </button>
           </div>
         </label>
-      </div>
+      </div>}
     </div>
   );
 };
