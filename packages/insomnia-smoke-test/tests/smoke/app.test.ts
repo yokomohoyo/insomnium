@@ -46,7 +46,7 @@ test('can send requests', async ({ app, page }) => {
   await page.getByRole('menuitem', { name: 'Raw Data' }).click();
   await expect(responseBody).toContainText('{"id":"1"}');
 
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'connects to event stream and shows ping response' }).click();
+  await openRequest(page, 'connects to event stream and shows ping response');
   await page.getByTestId('request-pane').getByRole('button', { name: 'Connect' }).click();
   await expect(statusTag).toContainText('200 OK');
   await page.getByRole('tab', { name: 'Timeline' }).click();

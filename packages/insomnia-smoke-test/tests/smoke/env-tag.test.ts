@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // set before the fixture launches the app, which passes its environment on
@@ -20,7 +21,7 @@ test('the env tag reads only the variables Preferences allow @ci', async ({ app,
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet from env' }).click();
+  await openRequest(page, 'pet from env');
 
   // none are allowed to begin with
   await requestPane.getByRole('button', { name: 'Send' }).click();

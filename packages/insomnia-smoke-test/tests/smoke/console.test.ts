@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 const collection = `_type: export
@@ -22,7 +23,7 @@ test('the console lists each send, with what its scripts logged @ci', async ({ a
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'pet one' }).click();
+  await openRequest(page, 'pet one');
 
   await page.getByTestId('request-pane').getByRole('button', { name: 'Send' }).click();
   await expect(page.locator('[data-testid="response-status-tag"]:visible')).toContainText('200');

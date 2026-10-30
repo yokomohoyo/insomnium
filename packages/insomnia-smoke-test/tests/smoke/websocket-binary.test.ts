@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // a socket to send a hex message on, and one the server cuts off each time, with reconnecting on
@@ -44,7 +45,7 @@ test('a WebSocket sends a hex message as a binary frame, and reconnects when dro
   await page.getByRole('button', { name: 'Disconnect' }).click();
 
   // dropped after half a second: it comes back twice, then gives up
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'dropping socket' }).click();
+  await openRequest(page, 'dropping socket');
   await page.getByRole('button', { name: 'Connect' }).click();
   const dropping = page.getByTestId('response-pane').filter({ hasText: 'Connected successfully' });
   await expect(dropping.getByText('Connected successfully')).toHaveCount(3, { timeout: 15_000 });

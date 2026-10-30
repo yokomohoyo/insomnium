@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test';
 
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 // the pets route answers { "id": "<id>" }
@@ -28,7 +29,7 @@ test('a JSON Schema assertion checks the response in the app @ci', async ({ app,
   await page.getByText('Clipboard').click();
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'checked pet' }).click();
+  await openRequest(page, 'checked pet');
 
   await requestPane.getByRole('button', { name: 'Send' }).click();
   await responsePane.getByRole('tab', { name: /Tests/ }).click();

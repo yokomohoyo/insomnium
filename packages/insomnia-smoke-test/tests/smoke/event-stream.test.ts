@@ -1,6 +1,7 @@
 import { expect } from '@playwright/test';
 
 import { loadFixture } from '../../playwright/paths';
+import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
 
 test('event stream sends rendered headers and auth @ci', async ({ app, page }) => {
@@ -18,7 +19,7 @@ test('event stream sends rendered headers and auth @ci', async ({ app, page }) =
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
 
-  await page.getByLabel('Request Collection').getByRole('row', { name: 'connects to event stream with rendered headers and auth' }).click();
+  await openRequest(page, 'connects to event stream with rendered headers and auth');
   await page.getByTestId('request-pane').getByRole('button', { name: 'Connect' }).click();
   await expect(statusTag).toContainText('200 OK');
   // the events arrive as the server sends them: its first, and a tick a second
