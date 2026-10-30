@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "insomnium-server",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Headless Insomnium MCP server: loads a collection and lets AI clients list and send its requests over Streamable HTTP, for running in a container next to the APIs under test.",
   "license": "MIT",
   "author": "yokomohoyo <yokomohoyo@users.noreply.github.com>",
