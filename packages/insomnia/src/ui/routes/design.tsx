@@ -89,10 +89,10 @@ export const loader: LoaderFunction = async ({
 }): Promise<LoaderData> => {
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
-  const apiSpec = await models.apiSpec.getByParentId(workspaceId);
-  guard(apiSpec, 'API spec not found');
   const workspace = await models.workspace.getById(workspaceId);
   guard(workspace, 'Workspace not found');
+  // a design doc made without one (by MCP before it made them) gets its spec here
+  const apiSpec = await models.apiSpec.getOrCreateForParentId(workspaceId);
 
   let lintMessages: LintMessage[] = [];
   const { rulesetPath, source: rulesetSource } = await spectralRulesetFor(workspaceId);

@@ -71,6 +71,13 @@ export function registerWorkspaceTools(server: McpServer) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: `project ${parentId} not found - use list_projects to see valid ids` }) }], isError: true };
       }
       const ws = await models.workspace.create({ name, scope, parentId });
+      // as the app's own create does: a design doc's Spec needs its spec
+      if (scope === 'design') {
+        await models.apiSpec.getOrCreateForParentId(ws._id);
+      }
+      await models.environment.getOrCreateForParentId(ws._id);
+      await models.cookieJar.getOrCreateForParentId(ws._id);
+      await models.workspaceMeta.getOrCreateByParentId(ws._id);
       return {
         content: [{
           type: 'text',
