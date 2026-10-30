@@ -22,7 +22,8 @@ export function registerCollectionTools(server: McpServer) {
         return text({ error: 'parentId is not a workspace or folder' }, true);
       }
       const folder = await models.requestGroup.create({ parentId, name, ...(description ? { description } : {}) });
-      return text({ ok: true, requestGroupId: folder._id });
+      // id as create_request's; requestGroupId as before
+      return text({ ok: true, id: folder._id, requestGroupId: folder._id, name: folder.name, parentId });
     },
   );
 

@@ -35,7 +35,9 @@ describe('the collection tools', () => {
 
   it('create folders, in a workspace or a folder', async () => {
     const { body } = await call('create_request_group', { parentId: workspaceId, name: 'Orders' });
-    expect(await models.requestGroup.getById(body.requestGroupId)).toEqual(expect.objectContaining({ name: 'Orders', parentId: workspaceId }));
+    expect(await models.requestGroup.getById(body.id)).toEqual(expect.objectContaining({ name: 'Orders', parentId: workspaceId }));
+    // as before, for clients that read it
+    expect(body.requestGroupId).toBe(body.id);
     expect(await call('create_request_group', { parentId: 'nope', name: 'x' })).toEqual({ body: { error: 'parentId is not a workspace or folder' }, isError: true });
   });
 
