@@ -694,6 +694,11 @@ export const Debug: FC = () => {
     overscan: 30,
     getItemKey: index => visibleCollection[index].doc._id,
   });
+  // react-aria-components (alpha) builds a list's rows in a document of its
+  // own, which a render React drops (an urgent update interrupting the
+  // router's) can leave behind its items: rows just imported never show. Built
+  // afresh whenever the rows change, the list can't keep stale ones.
+  const rowsKey = visibleCollection.map(item => item.doc._id).join();
 
   return (
     <SidebarLayout
@@ -1010,7 +1015,7 @@ export const Debug: FC = () => {
                 className="relative"
                 aria-label={t('Request Collection')}
                 disallowEmptySelection
-                key={sortOrder}
+                key={`${sortOrder}:${rowsKey}`}
                 dragAndDropHooks={sortOrder === 'type-manual' ? collectionDragAndDrop.dragAndDropHooks : undefined}
                 selectedKeys={[requestId]}
                 selectionMode="single"
