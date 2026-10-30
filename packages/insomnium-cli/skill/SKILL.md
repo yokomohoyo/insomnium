@@ -33,11 +33,15 @@ Don't send requests that change data (POST, PUT, PATCH, DELETE) to a production 
 
 - A request's assertions and after-response script tests run on every send. Their results come back with the response.
 - `run_requests` with a workspace or folder id runs its requests in order, with a pass or fail for each and a summary. Use it to check a whole API, or a flow such as sign in, then create, then read.
+- `run_flow` runs one of a workspace's flows (the Flows tab) from its start, and returns each step's result and the variables it set.
+- In a design document, `lint_spec` lints the spec as the Spec tab does; `generate_requests_from_spec` makes (or updates) a request for each of its operations.
 
 ## Changing a collection
 
-- `create_request` (in a workspace or folder, `parentId`), `update_request` and `delete_request`. Read `get_request` first and patch only what changes.
-- `create_request_group` adds a folder.
+- `create_request` (in a workspace or folder, `parentId`; HTTP, GraphQL, Event Stream, gRPC, WebSocket or MCP), `update_request`, `duplicate_request` and `delete_request`. Read `get_request` first and patch only what changes.
+- `create_request_group` adds a folder; `update_request_group` renames or moves one, `duplicate_request_group` copies one, and `delete_request_group` deletes one with everything in it.
+- `update_workspace` renames, moves (to another project) or converts a workspace; `duplicate_workspace` copies one; `update_project` renames a project and `delete_project` deletes an empty one.
+- `set_cookie`, `delete_cookie` and `clear_cookies` change a workspace's cookie jar (`list_cookies` reads it).
 - `create_response_example` (and `update_`, `delete_`, `list_response_examples`) fills a request's Examples tab: name, status, headers and body.
 - In a design document: `set_spec` sets the Spec tab's YAML or JSON (`get_spec` reads it); `create_test_suite` and `create_unit_test` fill the Test tab; `create_flow` and `update_flow` fill the Flows tab (`get_flow` reads one's graph).
 - `update_environment` changes a variable; `create_environment` adds a sub environment.

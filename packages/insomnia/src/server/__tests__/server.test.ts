@@ -91,8 +91,8 @@ describe('insomnium-server', () => {
     const names = result.tools.map((tool: any) => tool.name).sort();
     expect(names).toContain('send_http_request');
     expect(names).toContain('get_last_response');
-    expect(names).toEqual(expect.arrayContaining(['get_spec', 'list_response_examples', 'list_test_suites', 'list_flows', 'get_flow']));
-    expect(names.filter((name: string) => /^(create|update|delete|add|remove|import)_/.test(name))).toEqual([]);
+    expect(names).toEqual(expect.arrayContaining(['get_spec', 'list_response_examples', 'list_test_suites', 'list_flows', 'get_flow', 'run_flow']));
+    expect(names.filter((name: string) => /^(create|update|delete|duplicate|add|remove|import|clear|generate)_|^set_(spec|cookie)$/.test(name))).toEqual([]);
   });
 
   it('loads the collection with the chosen environment and the variables', async () => {

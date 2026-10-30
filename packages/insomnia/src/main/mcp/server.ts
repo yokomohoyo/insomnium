@@ -9,6 +9,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import * as models from '../../models';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerTools } from './tools';
+import { registerSpecTools } from './tools/spec';
 
 interface RunningServer {
   http: http.Server;
@@ -153,5 +154,7 @@ function buildMcpServer(): McpServer {
     version: '1.0.0',
   });
   registerTools(server);
+  // the app's only: Spectral stays out of the headless server's bundle
+  registerSpecTools(server);
   return server;
 }

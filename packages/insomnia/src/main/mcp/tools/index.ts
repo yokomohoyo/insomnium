@@ -2,15 +2,18 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { registerAuthTools } from './auth';
 import { registerCollectionTools } from './collections';
+import { registerCookieTools } from './cookies';
 import { registerDesignTools } from './design';
 import { registerEnvironmentTools } from './environments';
 import { registerExampleTools } from './examples';
+import { registerFolderTools } from './folders';
 import { registerGrpcTools } from './grpc';
 import { registerEnvironmentMutationTools } from './mutate-environments';
 import { registerRequestMutationTools } from './mutate-requests';
 import { registerProtoTools } from './proto';
 import { registerRequestTools } from './requests';
 import { registerSendTool } from './send';
+import { registerWorkspaceAdminTools } from './workspace-admin';
 import { registerWorkspaceTools } from './workspaces';
 
 // `include` limits the tools by name (the headless server's read and send
@@ -31,4 +34,7 @@ export function registerTools(server: McpServer, include?: (name: string) => boo
   registerCollectionTools(target);
   registerExampleTools(target);
   registerDesignTools(target);
+  registerWorkspaceAdminTools(target);
+  registerFolderTools(target);
+  registerCookieTools(target);
 }

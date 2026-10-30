@@ -1,6 +1,20 @@
 import * as models from '../../../models';
+import type { BaseModel } from '../../../models';
+import { isGrpcRequest } from '../../../models/grpc-request';
+import { isMcpRequest } from '../../../models/mcp-request';
+import { isEventStreamRequest, isRequest } from '../../../models/request';
+import { isWebSocketRequest } from '../../../models/websocket-request';
 import type { Workspace } from '../../../models/workspace';
 import { checkRequestPolicy } from '../../../network/request-policy';
+
+// A request's type as the tools name it: an Event Stream is an HTTP request
+// that accepts text/event-stream
+export const requestTypeLabel = (req: Pick<BaseModel, 'type'>) =>
+  isGrpcRequest(req) ? 'gRPC'
+    : isWebSocketRequest(req) ? 'WebSocket'
+      : isMcpRequest(req) ? 'MCP'
+        : isEventStreamRequest(req) ? 'Event Stream'
+          : isRequest(req) ? 'HTTP' : 'unknown';
 
 // Re-exported from the network layer so gRPC metadata can reuse it.
 export { assertSafeHeaders } from '../../../network/header-injection';

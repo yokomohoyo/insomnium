@@ -40,8 +40,9 @@ export const SERVER_TOOLS = new Set([
   'get_proto_methods',
   'send_http_request',
   'send_grpc_request',
-  // sends and reads: the runner, and an export of what's loaded
+  // sends and reads: the runner and flows, and an export of what's loaded
   'run_requests',
+  'run_flow',
   'export_workspace',
 ]);
 
