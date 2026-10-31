@@ -104,6 +104,16 @@ jobs:
             echo "::error::insomnium-mcp didn't start cleanly (exit $code): $err"; exit 1
           fi
 
+          # status must report an app that isn't listening as down, by exit code.
+          echo '{"port":9,"token":"x"}' > "$RUNNER_TEMP/down.json"
+          set +e
+          INSOMNIUM_MCP_DISCOVERY_FILE="$RUNNER_TEMP/down.json" "$bin/insomnium" status
+          code=$?
+          set -e
+          if [ "$code" != 1 ]; then
+            echo "::error::insomnium status exited $code with no app listening, expected 1"; exit 1
+          fi
+
           # The MCP registry entry must name the version being published.
           want=$(node -p "require('./packages/insomnium-mcp/package.json').version")
           for v in $(node -p "const s = require('./packages/insomnium-mcp/server.json'); [s.version, ...s.packages.map(p => p.version)].join(' ')"); do
