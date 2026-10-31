@@ -163,7 +163,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
               <div>
                 <p>{t('The request failed due to an unhandled error:')}</p>
                 <code className="wide selectable">
-                  <pre>{err.message}</pre>
+                  <pre className="force-pre-wrap">{err.message}</pre>
                 </code>
               </div>
             ),
