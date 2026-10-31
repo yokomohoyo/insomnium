@@ -82,6 +82,22 @@ describe('runLoadTest()', () => {
     expect(fs.existsSync(responses) ? fs.readdirSync(responses) : []).toEqual([]);
   });
 
+  it('fails an answer of 400 or above, unless the request checks its own status', async () => {
+    const folder = await models.requestGroup.create({ parentId: workspaceId, name: 'Statuses' });
+    await models.request.create({ parentId: folder._id, name: 'expects 404', url: 'http://localhost/status/404', metaSortKey: 1, assertions: [{ id: 's1', source: 'status', operator: 'equals', value: '404' }] });
+    await models.request.create({ parentId: folder._id, name: 'unchecked 404', url: 'http://localhost/status/404', metaSortKey: 2 });
+    await models.request.create({ parentId: folder._id, name: 'disabled check', url: 'http://localhost/status/500', metaSortKey: 3, assertions: [{ id: 's2', disabled: true, source: 'status', operator: 'equals', value: '500' }] });
+
+    const summary = await runLoadTest(await listRunnableRequests(folder._id), { virtualUsers: 1, durationMs: 1000, thinkTimeMs: 5 });
+
+    const [expects404, unchecked, disabled] = summary.byRequest;
+    expect([expects404.name, unchecked.name, disabled.name]).toEqual(['expects 404', 'unchecked 404', 'disabled check']);
+    expect(expects404.failed).toBe(0);
+    expect(unchecked.failed).toBe(unchecked.count);
+    expect(disabled.failed).toBe(disabled.count);
+    expect(summary.statusCodes).toMatchObject({ 404: expects404.count + unchecked.count, 500: disabled.count });
+  });
+
   it('stops when asked', async () => {
     const controller = new AbortController();
     setTimeout(() => controller.abort(), 300);

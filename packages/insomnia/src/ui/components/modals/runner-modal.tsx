@@ -4,10 +4,12 @@ import React, { FC, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
-import { jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
+import { csvReport, htmlReport, jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
+import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { LoadTestPanel } from '../load-test-panel';
+import { RunStatsTable } from '../run-stats-table';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -15,6 +17,15 @@ import { ModalHeader } from '../base/modal-header';
 import { AssertionResultsViewer } from '../viewers/assertion-results-viewer';
 
 const elapsed = (ms?: number) => ms === undefined ? '' : ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(1)} s`;
+
+// what a finished run saves as: a page to read or share, rows for a
+// spreadsheet, and the JSON and JUnit XML that CI reads
+const REPORTS = {
+  html: { button: 'Save HTML', label: 'HTML report', extension: 'html', write: (summary: RunSummary, name: string) => htmlReport(summary, name) },
+  csv: { button: 'Save CSV', label: 'CSV report', extension: 'csv', write: (summary: RunSummary) => csvReport(summary) },
+  json: { button: 'Save JSON', label: 'JSON report', extension: 'json', write: jsonReport },
+  junit: { button: 'Save JUnit', label: 'JUnit report', extension: 'xml', write: junitReport },
+};
 
 interface Props {
   // the folder or workspace whose requests run
@@ -98,19 +109,20 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
     }
   };
 
-  const save = async (kind: 'junit' | 'json') => {
+  const save = async (kind: keyof typeof REPORTS) => {
     if (!summary) {
       return;
     }
+    const report = REPORTS[kind];
     const { canceled, filePath } = await window.dialog.showSaveDialog({
-      title: kind === 'junit' ? 'Save JUnit report' : 'Save JSON report',
+      title: `Save ${report.label}`,
       buttonLabel: 'Save',
-      defaultPath: `${name.replace(/[\\/:*?"<>|]/g, '-')}-run.${kind === 'junit' ? 'xml' : 'json'}`,
+      defaultPath: `${name.replace(/[\\/:*?"<>|]/g, '-')}-run.${report.extension}`,
     });
     if (canceled || !filePath) {
       return;
     }
-    await fs.promises.writeFile(filePath, kind === 'junit' ? junitReport(summary, name) : jsonReport(summary, name));
+    await fs.promises.writeFile(filePath, report.write(summary, name));
   };
 
   const openRequest = (requestId: string) => {
@@ -208,6 +220,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
                   ? `${passed} of ${summary.requests.total} requests passed · ${summary.assertions.total - summary.assertions.failed} of ${summary.assertions.total} assertions passed · ${elapsed(summary.elapsedTime)}${summary.bailed ? ' · stopped at the first failure' : ''}${summary.stopped ? ' · stopped' : ''}`
                   : `Running: ${results.length} sent`}
               </p>
+              {summary && summary.results.length > 0 && <RunStatsTable stats={requestRunStats(summary.results, resultName)} />}
               <ul aria-label="Run results" className="list-none m-0 p-0">
                 {results.map(result => (
                   <li key={`${result.iteration}-${result.requestId}`} aria-label={resultName(result)} className="pad-bottom-sm">
@@ -235,12 +248,9 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
         <ModalFooter>
           <div className="margin-left flex gap-2">
             {/* the run's report: a load test has its own */}
-            {mode === 'run' && summary && (
-              <>
-                <button className="btn btn--compact" onClick={() => save('junit')}>Save JUnit</button>
-                <button className="btn btn--compact" onClick={() => save('json')}>Save JSON</button>
-              </>
-            )}
+            {mode === 'run' && summary && (Object.keys(REPORTS) as (keyof typeof REPORTS)[]).map(kind => (
+              <button key={kind} className="btn btn--compact modal__footer-secondary" onClick={() => save(kind)}>{REPORTS[kind].button}</button>
+            ))}
           </div>
           {mode === 'run' && (running
             ? <button className="btn" onClick={() => controller.current?.abort()}>Stop</button>

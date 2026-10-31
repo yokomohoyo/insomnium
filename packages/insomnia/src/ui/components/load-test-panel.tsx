@@ -69,8 +69,8 @@ export const LoadTestPanel: FC<{
 
   return (
     <section aria-label="Load test">
-      <p className="faint txt-sm">
-        Each virtual user sends these requests in order, again and again, until the time is up. A request fails when it can&apos;t be sent, answers 400 or above, or fails an assertion.
+      <p className="faint txt-sm margin-top">
+        Each virtual user sends these requests in order, again and again, until the time is up. A request fails when it can&apos;t be sent, answers 400 or above (unless it has its own status assertion), or fails an assertion.
         Responses aren&apos;t kept. Load test only APIs you&apos;re allowed to.
       </p>
       <div className="form-row">

@@ -27,7 +27,8 @@ export const LOAD_USAGE = `Usage: insomnium-server load --collection <file> [--u
 Load tests the collection's HTTP requests: each virtual user sends them in
 order, again and again, until the time is up. Prints the latency percentiles,
 throughput and errors, and exits 1 when a threshold is broken. A request fails
-when it can't be sent, answers 400 or above, or fails an assertion.
+when it can't be sent, answers 400 or above (unless it has its own status
+assertion), or fails an assertion.
 
 ${SOURCES_USAGE}
   --folder       only the requests in this folder: its name, or a path like "Users/Admin"

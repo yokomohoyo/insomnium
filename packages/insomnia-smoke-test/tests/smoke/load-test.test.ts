@@ -8,6 +8,7 @@ resources:
   - { _id: wrk_1, _type: workspace, parentId: null, name: Load, scope: collection }
   - { _id: req_1, _type: request, parentId: wrk_1, name: pet one, method: GET, url: 'http://127.0.0.1:4010/pets/1', metaSortKey: 1 }
   - { _id: req_2, _type: request, parentId: wrk_1, name: missing, method: GET, url: 'http://127.0.0.1:4010/nothing-here', metaSortKey: 2 }
+  - { _id: req_3, _type: request, parentId: wrk_1, name: expected 404, method: GET, url: 'http://127.0.0.1:4010/nothing-here', metaSortKey: 3, assertions: [{ id: a1, source: status, operator: equals, value: '404' }] }
 `;
 
 test('the runner load tests a collection with virtual users @ci', async ({ app, page }) => {
@@ -34,11 +35,12 @@ test('the runner load tests a collection with virtual users @ci', async ({ app, 
   const petOne = results.getByRole('row', { name: 'pet one' });
   const missing = results.getByRole('row', { name: 'missing' });
   await expect(petOne).toBeVisible();
-  // every 404 fails; every pet one passes
+  // every unchecked 404 fails; a 404 its request expects, and every pet one, pass
   const sent = Number(await missing.locator('td').nth(1).textContent());
   expect(sent).toBeGreaterThan(0);
   await expect(missing.locator('td').nth(2)).toHaveText(String(sent));
   await expect(petOne.locator('td').nth(2)).toHaveText('0');
+  await expect(results.getByRole('row', { name: 'expected 404' }).locator('td').nth(2)).toHaveText('0');
   await expect(runner.getByRole('list', { name: 'Load test failures' })).toContainText('HTTP 404');
   await expect(summary).toContainText('requests');
 });

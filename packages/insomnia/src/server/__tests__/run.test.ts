@@ -10,7 +10,7 @@ import { parseRunConfig, selectRequests } from '../run';
 describe('parseRunConfig()', () => {
   it('reads the options, and allows any host unless told otherwise', () => {
     expect(parseRunConfig(
-      ['--collection', 'a.yaml', '--folder', 'Users/Admin', '--env', 'ci', '--iterations', '3', '--data', 'rows.csv', '--delay', '50', '--bail', '--junit', 'report.xml', '--json', 'report.json'],
+      ['--collection', 'a.yaml', '--folder', 'Users/Admin', '--env', 'ci', '--iterations', '3', '--data', 'rows.csv', '--delay', '50', '--bail', '--junit', 'report.xml', '--json', 'report.json', '--html', 'report.html', '--csv', 'report.csv'],
       { INSOMNIUM_VAR_token: 't', INSOMNIUM_VALIDATE_SSL: 'false', INSOMNIUM_ALLOWED_ENV: 'CI_*' },
     )).toEqual({
       collections: ['a.yaml'],
@@ -23,6 +23,8 @@ describe('parseRunConfig()', () => {
       bail: true,
       junit: 'report.xml',
       json: 'report.json',
+      html: 'report.html',
+      csv: 'report.csv',
       allowedHosts: ['*'],
       variables: { token: 't' },
       validateSSL: false,

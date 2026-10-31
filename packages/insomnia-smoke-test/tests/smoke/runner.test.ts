@@ -46,5 +46,15 @@ test('the runner sends a folder in order and reports its assertions @ci', async 
   await expect(results.getByRole('listitem').nth(0)).toContainText('Pets / pet one');
   await results.getByRole('listitem', { name: 'Pets / pet two' }).locator('summary').click();
   await expect(results).toContainText('JSON path $.id equals 3: got "2"');
+
+  // each request over the run: its numbers, and where its time went
+  const stats = runner.getByRole('table', { name: 'Each request over the run' });
+  const petTwo = stats.getByRole('row', { name: 'Pets / pet two' });
+  await expect(petTwo.getByRole('cell').nth(1)).toHaveText('1');
+  await expect(petTwo.getByRole('cell').nth(2)).toHaveText('1');
+  await expect(petTwo.getByRole('img')).toHaveAttribute('aria-label', /^DNS lookup .* ms, Connecting .* ms, Waiting \(time to first byte\) .* ms, Download .* ms$/);
+  for (const report of ['Save HTML', 'Save CSV', 'Save JSON', 'Save JUnit']) {
+    await expect(runner.getByRole('button', { name: report })).toBeVisible();
+  }
   await page.screenshot({ path: 'traces/runner.png' });
 });

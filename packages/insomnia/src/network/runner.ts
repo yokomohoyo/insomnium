@@ -2,6 +2,7 @@ import { RENDER_PURPOSE_SEND } from '../common/render';
 import { metaSortKeySort } from '../common/sorting';
 import * as models from '../models';
 import type { Request } from '../models/request';
+import type { ResponseTimings } from '../models/response';
 import { runPreRequestScript } from '../scripting/request-scripts';
 import type { AssertionResult } from './assertions';
 import {
@@ -33,6 +34,11 @@ export interface RunResult {
   statusCode?: number;
   statusMessage?: string;
   elapsedTime?: number;
+  // when each part of the exchange was done, as on a response
+  timings?: ResponseTimings;
+  // the body's size, as received
+  bytes?: number;
+  httpVersion?: string;
   error?: string;
   assertions: AssertionResult[];
   // sent, and every assertion passed
@@ -125,6 +131,8 @@ export async function runRequests(requests: RunnableRequest[], options: RunOptio
           statusCode: stored.statusCode,
           statusMessage: stored.statusMessage,
           elapsedTime: stored.elapsedTime,
+          ...(stored.timings ? { timings: stored.timings } : {}),
+          ...(stored.error ? {} : { bytes: stored.bytesRead, httpVersion: stored.httpVersion }),
           ...(stored.error ? { error: stored.error } : {}),
           assertions,
           passed: !stored.error && assertions.every(assertion => assertion.passed),

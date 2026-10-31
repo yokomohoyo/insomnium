@@ -68,11 +68,13 @@ async function loadSend(request: Request, data: RequestData, environmentId: stri
     const checked = await transformedResponse(response, environmentId, rendered, renderResult.context, { preRequestLogs: scripted.logs, iteration });
     files.push(checked.bodyPath || '');
     const statusCode = checked.error ? undefined : checked.statusCode;
+    // a request that checks its own status (a 404 test) is judged by that
+    const checksStatus = (request.assertions || []).some(assertion => !assertion.disabled && assertion.source === 'status');
     return {
       requestId: request._id,
       name: request.name,
       elapsed: checked.error ? Date.now() - started : checked.elapsedTime,
-      ok: !checked.error && (statusCode ?? 0) < 400 && (checked.assertionResults || []).every(result => result.passed),
+      ok: !checked.error && (checksStatus || (statusCode ?? 0) < 400) && (checked.assertionResults || []).every(result => result.passed),
       ...(statusCode !== undefined ? { statusCode } : {}),
       ...(checked.error ? { error: checked.error } : {}),
     };
