@@ -281,6 +281,10 @@ export const runAllTestsAction: ActionFunction = async ({
     parentId: testSuiteId,
   });
   guard(unitTests, 'No unit tests found');
+  // no tests, nothing run: not a green "Tests Passed 0/0"
+  if (!unitTests.length) {
+    return null;
+  }
 
   const tests: Test[] = unitTests
     .filter(t => t !== null)

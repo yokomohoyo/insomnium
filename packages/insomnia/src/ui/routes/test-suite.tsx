@@ -318,7 +318,7 @@ const TestSuiteRoute = () => {
             );
           }}
           size="default"
-          disabled={testsRunning}
+          disabled={testsRunning || unitTests.length === 0}
         >
           {testsRunning ? 'Running... ' : 'Run Tests'}
           <i className="fa fa-play space-left" />
