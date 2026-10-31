@@ -24,6 +24,8 @@ export const SERVER_TOOLS = new Set([
   'list_requests',
   'get_request',
   'get_request_type',
+  'search',
+  'generate_code',
   'list_responses',
   'get_response',
   'get_last_response',

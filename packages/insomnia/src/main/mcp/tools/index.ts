@@ -4,6 +4,7 @@ import { registerAuthTools } from './auth';
 import { registerCollectionTools } from './collections';
 import { registerCookieTools } from './cookies';
 import { registerDesignTools } from './design';
+import { registerDiscoveryTools } from './discover';
 import { registerEnvironmentTools } from './environments';
 import { registerExampleTools } from './examples';
 import { registerFolderTools } from './folders';
@@ -37,4 +38,5 @@ export function registerTools(server: McpServer, include?: (name: string) => boo
   registerWorkspaceAdminTools(target);
   registerFolderTools(target);
   registerCookieTools(target);
+  registerDiscoveryTools(target);
 }

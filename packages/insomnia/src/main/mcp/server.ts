@@ -9,6 +9,7 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { getAppVersion } from '../../common/constants';
 import * as models from '../../models';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
+import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
 import { registerTools } from './tools';
 import { registerSpecTools } from './tools/spec';
 
@@ -153,7 +154,8 @@ function buildMcpServer(): McpServer {
   const server = new McpServer({
     name: 'insomnium',
     version: getAppVersion(),
-  });
+  }, { instructions: SERVER_INSTRUCTIONS });
+  registerInstructions(server);
   registerTools(server);
   // the app's only: Spectral stays out of the headless server's bundle
   registerSpecTools(server);
