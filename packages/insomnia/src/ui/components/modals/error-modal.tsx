@@ -34,12 +34,14 @@ export const ErrorModal = forwardRef<ErrorModalHandle, ModalProps>((_, ref) => {
     },
   }), []);
   const { error, title, addCancel } = state;
-  const message = state.message || error?.message;
+  // what went wrong, without Electron's "Error invoking remote method 'x':
+  // Error: " when it went wrong in the main process
+  const message = (state.message || error?.message)?.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
   return (
     <Modal ref={modalRef}>
       <ModalHeader>{title || 'Uh Oh!'}</ModalHeader>
       <ModalBody className="wide pad">
-        {message ? <div className="notice error pre">{message}</div> : null}
+        {message ? <div className="notice error pre force-pre-wrap selectable">{message}</div> : null}
         {error && (
           <details>
             <summary>Stack trace</summary>
