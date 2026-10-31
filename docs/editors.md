@@ -25,7 +25,7 @@ An edit you save is in the app at once, and a change in the app is in the file. 
 
 ## Your editor's agent, sending requests
 
-Insomnium's [MCP server](../README.md#mcp-automation-server) lets an AI agent list your collections, send requests, and read the responses, with your environments and auth. Turn it on in **Preferences → Automation (MCP)**, which shows its address and token, then add it to your editor:
+Insomnium's [MCP server](mcp-server.md) lets an AI agent list your collections, send requests, and read the responses, with your environments and auth. Turn it on in **Preferences → Automation (MCP)**, which shows its address and token, then add it to your editor:
 
 - **VS Code** (agent mode), in `.vscode/mcp.json`:
 

@@ -21,7 +21,7 @@ I have removed user login, tracking, analytics, etc, from Insomnia so it is now 
 
 **Getting around:** the rail on the left switches between a collection's requests, tests and flows (and its spec, for a design document). The top bar shows where you are: the project's name leads back to all its collections, and the collection's name opens its menu, including **Switch to** another one. **Ctrl+P** (**⌘P**) searches the collection's requests and jumps to other collections too. On Windows and Linux the menu bar stays hidden in new installs; press **Alt** to show it.
 
-**[Documentation](docs/README.md)**: getting started, template tags, scripts, tests and the runner, Git Sync, import and export, and plugins.
+**[Documentation](docs/README.md)**: getting started; a guide for each kind of request ([GraphQL](docs/graphql.md), [gRPC](docs/grpc.md), [WebSocket, Socket.IO and MQTT](docs/websockets.md), [event streams](docs/event-streams.md) and [MCP](docs/mcp-requests.md)); template tags, scripts, tests and the runner, flows, the mock server, Git Sync and Folder Sync, import and export, design documents, plugins, and the [MCP automation server](docs/mcp-server.md).
 
 
 ## Download
@@ -65,9 +65,10 @@ Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type
 - **URL schemes** — use `grpc://host:port` for plaintext or `grpcs://host:port` for TLS. If you omit the scheme, TLS is inferred for common conventions (port `:443`, `*.run.app` Cloud Run, and `*.googleapis.com`) so you don't silently send plaintext to a host that requires TLS.
 - **Metadata & auth** — attach per-request metadata (headers), chain authentication strategies (Bearer, Basic, GCP ID Token, and more), and use client certificates inherited from the workspace.
 - **Request templates** — selecting a method auto-generates a skeleton JSON message from the request type, so you have a starting point to edit.
-- **Safety knobs** — configurable per-request timeout, plus a cap on the number of streamed messages to avoid runaway memory use.
 
-> Fetching protos from a reflection server that sits behind auth? Add the bearer/token under **Settings → Proto Tokens**.
+> Importing protos from a private GitHub repository or the Buf Schema Registry? Add a token under **Preferences → Proto Tokens**. A reflection server behind auth gets the request's own headers.
+
+How to use all of it: [docs/grpc.md](docs/grpc.md).
 
 
 ## Runner, reports and load tests
@@ -86,7 +87,7 @@ The same runner works in CI from the container: `insomnium-server run` (with `--
 
 Insomnium can expose **itself** as a [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so MCP-aware tools — like Claude Code — can list, inspect, create, and run your saved requests programmatically. This lets an AI assistant understand and drive your API collections directly.
 
-**Enable it:** open **Settings → Automation (MCP)** and toggle on *Enable MCP automation server*. The server is **disabled by default**.
+**Enable it:** open **Preferences → Automation (MCP)** and toggle on *Enable MCP automation server*. The server is **disabled by default**.
 
 - Optionally set a fixed **port** (`0` lets the OS pick a free one; a fixed port keeps the connection URL stable across restarts).
 - Copy the auto-generated **Bearer token**, the **connection URL**, or the ready-to-paste one-line install command, e.g.:
@@ -118,6 +119,8 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 Connected tools also get an `insomnium://instructions` resource: how to find, send and check requests with these tools. For clients that do better with fewer tools, `npx insomnium-mcp --minimal` (or `…/sse?tools=minimal`) offers just the core ones: search, read and edit requests, environments, send, run, and generate code.
 
 To connect an MCP client without copying the token, use the `insomnium-mcp` launcher, which reads it from the running app: `claude mcp add insomnium npx insomnium-mcp`.
+
+The whole guide, with what a client can see: [docs/mcp-server.md](docs/mcp-server.md). To try out an MCP server of your own instead, use an [MCP request](docs/mcp-requests.md).
 
 
 ## Command line

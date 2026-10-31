@@ -17,7 +17,7 @@ insomnia.environment.set('token', insomnia.response.json().token);
 
 `pm` is the same API as `insomnia`, so common Postman scripts work as written. What a script logs with `console.log` (also `info`, `warn`, `error` and `debug`) is shown under **Console** in the Tests tab.
 
-Scripts run when you send a request, in the [runner](testing.md#run-a-collection-or-folder), in `insomnium-server run`, and when an AI client sends a request [over MCP](../README.md#mcp-automation-server).
+Scripts run when you send a request, in the [runner](testing.md#run-a-collection-or-folder), in `insomnium-server run`, and when an AI client sends a request [over MCP](mcp-server.md).
 
 ## The sandbox
 
