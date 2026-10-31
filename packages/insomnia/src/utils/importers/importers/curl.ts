@@ -110,10 +110,12 @@ const importCommand = (parseEntries: ParseEntry[]): ImportRequest => {
     'user',
   ]).split(/:(.*)$/);
 
+  // -u is basic auth, as curl's default; -u user alone has no password
   const authentication = username
     ? {
+      type: 'basic' as const,
       username: username.trim(),
-      password: password.trim(),
+      password: (password || '').trim(),
     }
     : {};
 
