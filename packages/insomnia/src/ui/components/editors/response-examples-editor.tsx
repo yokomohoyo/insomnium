@@ -13,6 +13,13 @@ const headersFromText = (text: string): ResponseExampleHeader[] => text.split('\
   .filter((match): match is RegExpMatchArray => !!match)
   .map(([, name, value]) => ({ name, value }));
 
+// a status an HTTP server can send, else null (the mock server would answer
+// 500 for, say, 9999)
+export const statusCodeFrom = (text: string) => {
+  const code = Number(text);
+  return Number.isInteger(code) && code >= 100 && code <= 599 ? code : null;
+};
+
 // A request's saved responses (models/response-example.ts): what it should
 // answer, which the mock server serves
 export const ResponseExamplesEditor: FC = () => {
@@ -78,8 +85,18 @@ export const ResponseExamplesEditor: FC = () => {
           className="w-20"
           aria-label="Status code"
           type="number"
+          min={100}
+          max={599}
           defaultValue={selected.statusCode}
-          onBlur={event => update(selected._id, { statusCode: Number(event.currentTarget.value) || 200 })}
+          onBlur={event => {
+            const statusCode = statusCodeFrom(event.currentTarget.value);
+            if (statusCode === null) {
+              // back to what it was
+              event.currentTarget.value = String(selected.statusCode);
+              return;
+            }
+            update(selected._id, { statusCode });
+          }}
         />
         <input
           className="flex-1"
