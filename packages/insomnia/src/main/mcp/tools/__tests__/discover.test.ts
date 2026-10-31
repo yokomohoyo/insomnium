@@ -6,6 +6,7 @@ import * as models from '../../../../models';
 import { INSTRUCTIONS, INSTRUCTIONS_URI, registerInstructions } from '../../instructions';
 import { registerTools } from '../index';
 import { registerDiscoveryTools } from '../discover';
+import { registerTestRunTools } from '../test-run';
 
 window.app = electron.app;
 
@@ -90,6 +91,8 @@ describe('the instructions', () => {
 
     const tools = new Set<string>();
     registerTools({ tool: (name: string) => tools.add(name) } as any);
+    // and the app's own, which the app's server adds
+    registerTestRunTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
     const named = [...INSTRUCTIONS.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map(match => match[1]);
     expect(named.length).toBeGreaterThan(10);
     expect(named.filter(name => !tools.has(name))).toEqual([]);
