@@ -8,6 +8,7 @@ import { registerTools } from '../index';
 import { registerDiscoveryTools } from '../discover';
 import { registerGitTools } from '../git';
 import { registerMockTools } from '../mocks';
+import { registerStreamTools } from '../streams';
 import { registerTestRunTools } from '../test-run';
 
 window.app = electron.app;
@@ -97,6 +98,7 @@ describe('the instructions', () => {
     registerTestRunTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
     registerMockTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerGitTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
+    registerStreamTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     const named = [...INSTRUCTIONS.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map(match => match[1]);
     expect(named.length).toBeGreaterThan(10);
     expect(named.filter(name => !tools.has(name))).toEqual([]);
