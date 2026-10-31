@@ -41,6 +41,9 @@ test("a model's streamed reply is put together, with its tokens and timing @ci",
   await expect(reply.getByTestId('llm-usage')).toHaveText('12 in · 5 out · 17 total');
   await expect(reply).toContainText('fake-model');
   await expect(reply).toContainText('stop');
+  // timed from the request: the fake model's first word comes 50 ms after it
+  await expect(reply.getByTestId('llm-first-token')).toHaveText(/^\d+ ms$/);
+  await expect(reply.getByTestId('llm-first-token')).not.toHaveText('0 ms');
 
   // a new one starts from a chat completion to stream
   await page.getByLabel('Create in collection').click();
