@@ -68,6 +68,29 @@ const isSchemaCheck = (operator: AssertionOperator) => operator === 'matchesSche
 
 const asText = (value: unknown) => typeof value === 'string' ? value : JSON.stringify(value);
 
+// jsonpath-plus reads past an unclosed bracket or quote, and a trailing dot:
+// $[ finds the whole body, and $.data[ finds data. Such a path is refused
+const whole = (path: string) => {
+  let depth = 0;
+  let quote = '';
+  for (const char of path) {
+    if (quote) {
+      quote = char === quote ? '' : quote;
+    } else if (char === '\'' || char === '"') {
+      quote = char;
+    } else if (char === '[' || char === ']') {
+      depth += char === '[' ? 1 : -1;
+      if (depth < 0) {
+        break;
+      }
+    }
+  }
+  if (quote || depth !== 0 || path.endsWith('.')) {
+    throw new Error(`${path} isn't a whole JSON path: check its brackets, quotes and dots`);
+  }
+  return path;
+};
+
 const actualValue = ({ source, property = '' }: RequestAssertion, response: ResponseUnderTest): string | undefined => {
   switch (source) {
     case 'status':
@@ -89,7 +112,7 @@ const actualValue = ({ source, property = '' }: RequestAssertion, response: Resp
       } catch {
         throw new Error('the body is not JSON');
       }
-      const found: unknown[] = JSONPath({ path: property.trim(), json: json as object, wrap: true });
+      const found: unknown[] = JSONPath({ path: whole(property.trim()), json: json as object, wrap: true });
       return found.length === 0 ? undefined : asText(found.length === 1 ? found[0] : found);
     }
     case 'responseTime':
@@ -155,7 +178,7 @@ const actualJson = ({ source, property = '' }: RequestAssertion, response: Respo
   if (!property.trim()) {
     throw new Error('give the JSON path, for example $.data');
   }
-  const found: unknown[] = JSONPath({ path: property.trim(), json: json as object, wrap: true });
+  const found: unknown[] = JSONPath({ path: whole(property.trim()), json: json as object, wrap: true });
   if (!found.length) {
     throw new Error('the JSON path finds nothing');
   }

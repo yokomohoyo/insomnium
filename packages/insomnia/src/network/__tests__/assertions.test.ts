@@ -53,6 +53,18 @@ describe('evaluateAssertions()', () => {
     expect(check({ source: 'header', operator: 'exists' }).message).toMatch(/give the header name/);
   });
 
+  // jsonpath-plus would read $[ as the whole body, which contains "Rex"
+  it.each(['$[', '$]', '$.data[', "$['data", '$.data.'])('refuses a JSON path that is not whole: %s', property => {
+    expect(check({ source: 'jsonpath', property, operator: 'contains', value: 'Rex' })).toMatchObject({
+      passed: false,
+      message: expect.stringContaining(`${property} isn't a whole JSON path`),
+    });
+  });
+
+  it("reads the other quote in a JSON path's quotes as part of the name", () => {
+    expect(evaluateAssertions([{ id: 'a', source: 'jsonpath', property: '$[\'say "hi"\']', operator: 'equals', value: '1' }], { ...response, body: '{"say \\"hi\\"":1}' })[0].passed).toBe(true);
+  });
+
   it('skips disabled assertions, and fails everything on a response that never came', () => {
     expect(evaluateAssertions([{ id: 'a', disabled: true, source: 'status', operator: 'equals', value: '201' }], response)).toEqual([]);
     expect(evaluateAssertions([{ id: 'a', source: 'status', operator: 'exists' }], { body: '' })[0].passed).toBe(false);
