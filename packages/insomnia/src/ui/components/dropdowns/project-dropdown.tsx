@@ -14,6 +14,8 @@ import {
   Project,
 } from '../../../models/project';
 import { Icon } from '../icon';
+import { showModal } from '../modals';
+import { AskModal } from '../modals/ask-modal';
 import ProjectSettingsModal from '../modals/project-settings-modal';
 
 interface Props {
@@ -42,14 +44,24 @@ export const ProjectDropdown: FC<Props> = ({ project, organizationId }) => {
       id: 'delete',
       name: t('Delete'),
       icon: 'trash',
-      action: projectId =>
-        deleteProjectFetcher.submit(
-          {},
-          {
-            method: 'post',
-            action: `/organization/${organizationId}/project/${projectId}/delete`,
+      // its collections and documents go with it: asked first, as deleting one of them is
+      action: projectId => showModal(AskModal, {
+        title: t('Delete Project'),
+        message: t('Do you really want to delete "{name}", and all its collections and documents?', { name: project.name }),
+        yesText: t('Yes'),
+        noText: t('Cancel'),
+        onDone: async (isYes: boolean) => {
+          if (isYes) {
+            deleteProjectFetcher.submit(
+              {},
+              {
+                method: 'post',
+                action: `/organization/${organizationId}/project/${projectId}/delete`,
+              }
+            );
           }
-        ),
+        },
+      }),
     },
   ];
   return (
