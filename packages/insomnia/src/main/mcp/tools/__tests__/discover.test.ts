@@ -10,6 +10,7 @@ import { registerGitTools } from '../git';
 import { registerMockTools } from '../mocks';
 import { registerStreamTools } from '../streams';
 import { registerTestRunTools } from '../test-run';
+import { registerWebSocketTools } from '../websockets';
 
 window.app = electron.app;
 
@@ -96,6 +97,7 @@ describe('the instructions', () => {
     registerTools({ tool: (name: string) => tools.add(name) } as any);
     // and the app's own, which the app's server adds
     registerTestRunTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
+    registerWebSocketTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerMockTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerGitTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerStreamTools({ tool: (name: string) => tools.add(name) } as any, {} as any);

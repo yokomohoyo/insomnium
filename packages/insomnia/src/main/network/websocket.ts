@@ -705,6 +705,19 @@ export interface WebSocketBridgeAPI {
     send: typeof sendWebSocketEvent;
   };
 }
+// the same connections, for an MCP client (main/mcp/tools/websockets.ts); the
+// window sees them as it sees its own
+export const webSockets = {
+  open: (options: OpenWebSocketRequestOptions) => openWebSocketConnection(null, options),
+  send: sendWebSocketEvent,
+  close: (requestId: string) => closeWebSocketConnection({ requestId }),
+  isOpen: (requestId: string) => getWebSocketReadyState({ requestId }),
+  events: async (requestId: string) => {
+    const response = await models.webSocketResponse.getLatestByParentId(requestId);
+    return response ? findMany({ responseId: response._id }) : [];
+  },
+};
+
 export const registerWebSocketHandlers = () => {
   ipcMain.handle('webSocket.open', openWebSocketConnection);
   ipcMain.handle('webSocket.event.send', (_, options: Parameters<typeof sendWebSocketEvent>[0]) => sendWebSocketEvent(options));
