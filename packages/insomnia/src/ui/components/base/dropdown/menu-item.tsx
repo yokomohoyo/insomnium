@@ -20,7 +20,9 @@ const StyledListItem = styled.li<StyledListItemProps>(({ isFocused, isDisabled }
   margin: 0,
   whiteSpace: 'nowrap',
   color: 'var(--color-font)',
-  background: isFocused ? 'var(--hl-sm)' : 'transparent',
+  // a disabled item looks it, not just ignoring its click
+  opacity: isDisabled ? 0.5 : 1,
+  background: isFocused && !isDisabled ? 'var(--hl-sm)' : 'transparent',
   cursor: isDisabled ? 'not-allowed' : 'pointer',
 
   '&:focus': {
@@ -67,6 +69,7 @@ export const MenuItem = <T extends object>({
     key: item.key,
     'aria-label': item['aria-label'],
     closeOnSelect: closeOnSelect || !shouldRemainOpen,
+    isDisabled,
     onAction: !withPrompt && !isDisabled && onClick,
   }, state, ref);
 
