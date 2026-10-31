@@ -269,6 +269,23 @@ export const deleteTestSuiteAction: ActionFunction = async ({ params }) => {
   return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test`);
 };
 
+const notRun = (unitTests: UnitTest[], err: Error) => {
+  const failures = unitTests.map(test => ({
+    title: test.name,
+    fullTitle: test.name,
+    currentRetry: 0,
+    err: { message: err.message, stack: err.stack || '' },
+  }));
+  const now = new Date();
+  return {
+    failures,
+    passes: [],
+    pending: [],
+    tests: failures,
+    stats: { suites: 1, tests: failures.length, passes: 0, pending: 0, failures: failures.length, start: now, end: now, duration: 0 },
+  };
+};
+
 export const runAllTestsAction: ActionFunction = async ({
   params,
 }) => {
@@ -294,7 +311,8 @@ export const runAllTestsAction: ActionFunction = async ({
 
   const sendRequest = getSendRequestCallback();
 
-  const results = await runTests(src, { sendRequest });
+  // code that doesn't parse throws before any test runs: each fails with it
+  const results = await runTests(src, { sendRequest }).catch((err: Error) => notRun(unitTests, err));
 
   const testResult = await models.unitTestResult.create({
     results,
@@ -403,7 +421,7 @@ export const runTestAction: ActionFunction = async ({ params }) => {
 
   const sendRequest = getSendRequestCallback();
 
-  const results = await runTests(src, { sendRequest });
+  const results = await runTests(src, { sendRequest }).catch((err: Error) => notRun([unitTest], err));
 
   const testResult = await models.unitTestResult.create({
     results,

@@ -63,6 +63,14 @@ const runInternal = async <TReturn, TNetworkResponse>(
       });
     });
   } catch (err) {
+    // the test file didn't load: nothing ran, so tidy up here
+    // @ts-expect-error -- global hack
+    delete global.insomnia;
+    // @ts-expect-error -- global hack
+    delete global.chai;
+    if (!keepFile) {
+      mocha.files.forEach(file => unlink(file, () => {}));
+    }
     reject(err);
   }
 });
