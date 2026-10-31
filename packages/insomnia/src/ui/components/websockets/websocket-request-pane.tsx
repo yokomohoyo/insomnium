@@ -318,6 +318,7 @@ const WebSocketRequestForm: FC<FormProps> = ({
       </div>
       <CodeEditor
         id="websocket-message-editor"
+        ariaLabel="Message"
         showPrettifyButton={!binary}
         uniquenessKey={request._id}
         mode={binary ? 'text/plain' : previewMode}

@@ -44,6 +44,7 @@ export const ResponseTimelineViewer: FC<Props> = ({ timeline, pinToBottom }) => 
   return (
     <CodeEditor
       id="response-timeline-viewer"
+      ariaLabel="Timeline"
       ref={editorRef}
       hideLineNumbers
       readOnly

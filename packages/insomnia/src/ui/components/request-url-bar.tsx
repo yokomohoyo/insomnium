@@ -187,6 +187,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
       <div className="urlbar__flex__right">
         <OneLineEditor
           id="request-url-bar"
+          ariaLabel="URL"
           key={uniquenessKey}
           ref={inputRef}
           type="text"

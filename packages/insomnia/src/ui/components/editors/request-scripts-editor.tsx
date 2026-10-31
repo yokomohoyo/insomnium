@@ -37,6 +37,7 @@ export const RequestScriptsEditor: FC = () => {
         <div className="flex-1 overflow-hidden">
           <CodeEditor
             id="pre-request-script"
+            ariaLabel="Pre-request script"
             mode="javascript"
             placeholder={PRE_REQUEST_PLACEHOLDER}
             defaultValue={request.preRequestScript || ''}
@@ -52,6 +53,7 @@ export const RequestScriptsEditor: FC = () => {
         <div className="flex-1 overflow-hidden">
           <CodeEditor
             id="after-response-script"
+            ariaLabel="After-response script"
             mode="javascript"
             placeholder={AFTER_RESPONSE_PLACEHOLDER}
             defaultValue={request.afterResponseScript || ''}

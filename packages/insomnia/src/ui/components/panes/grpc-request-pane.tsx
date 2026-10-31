@@ -327,6 +327,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                       <TabItem key="body" title={t('Body')}>
                         <CodeEditor
                           id="grpc-request-editor"
+                          ariaLabel="Message"
                           ref={editorRef}
                           defaultValue={activeRequest.body.text}
                           onChange={text => patchRequest(requestId, { body: { text } })}
@@ -339,6 +340,7 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
                           <TabItem key={m.id} title={t('Stream {number}', { number: index + 1 })}>
                             <CodeEditor
                               id={'grpc-request-editor-tab' + m.id}
+                              ariaLabel="Message"
                               defaultValue={m.text}
                               mode="application/json"
                               enableNunjucks

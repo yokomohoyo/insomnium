@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useId } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import { useToggle } from 'react-use';
 
@@ -21,6 +21,7 @@ export const MaskedSetting: FC<{
   setting,
 }) => {
   const [isHidden, setHidden] = useToggle(true);
+  const id = useId();
 
   const {
     settings,
@@ -33,12 +34,13 @@ export const MaskedSetting: FC<{
 
   return (
     <div>
-      <label>
+      <label htmlFor={id}>
         {label}
         {help && <HelpTooltip className="space-left">{help}</HelpTooltip>}
       </label>
       <div className="form-control form-control--outlined form-control--btn-right">
         <input
+          id={id}
           defaultValue={String(settings[setting])}
           disabled={disabled}
           name={setting}

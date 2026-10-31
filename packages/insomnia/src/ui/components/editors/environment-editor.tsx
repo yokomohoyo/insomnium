@@ -149,6 +149,7 @@ export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
         <CodeEditor
           key={jsonKey}
           id="environment-editor"
+          ariaLabel="Environment data"
           ref={editorRef}
           autoPrettify
           enableNunjucks

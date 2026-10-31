@@ -252,6 +252,7 @@ export const ResponseViewer = ({
       <div className="scrollable-container tall wide">
         <div className="scrollable">
           <img
+            alt="Response image"
             src={`data:${justContentType};base64,${base64Body}`}
             className="pad block"
             style={{
@@ -338,6 +339,7 @@ export const ResponseViewer = ({
     return (
       <CodeEditor
         id="raw-response-viewer"
+        ariaLabel="Response body"
         key={responseId}
         ref={editorRef}
         className="raw-editor"
@@ -356,6 +358,7 @@ export const ResponseViewer = ({
   return (
     <CodeEditor
       id="response-viewer"
+      ariaLabel="Response body"
       key={disablePreviewLinks ? 'links-disabled' : 'links-enabled'}
       ref={editorRef}
       autoPrettify

@@ -20,6 +20,7 @@ export const RawEditor: FC<Props> = ({
   <Fragment>
     <CodeEditor
       id="raw-editor"
+      ariaLabel="Request body"
       showPrettifyButton
       uniquenessKey={uniquenessKey}
       defaultValue={content}
