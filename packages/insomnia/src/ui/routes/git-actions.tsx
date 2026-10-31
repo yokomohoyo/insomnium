@@ -662,6 +662,9 @@ export const commitToGitRepoAction: ActionFunction = async ({
 
   const message = formData.get('message');
   guard(typeof message === 'string', 'Commit message is required');
+  if (!message.trim()) {
+    return { errors: ['Enter a commit message.'] };
+  }
 
   const stagedChangesPaths = [...formData.getAll('paths')] as string[];
   const allModified = Boolean(formData.get('allModified'));
@@ -678,6 +681,9 @@ export const commitToGitRepoAction: ActionFunction = async ({
       }
       return stagedChangesPaths.includes(change.path);
     });
+    if (!changesToCommit.length) {
+      return { errors: ['Choose the changes to commit.'] };
+    }
 
     for (const item of changesToCommit) {
       item.status.includes('deleted')

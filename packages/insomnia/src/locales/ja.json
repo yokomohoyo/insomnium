@@ -158,7 +158,7 @@
   "Color": "色",
   "Commit": "コミット",
   "Commit Changes": "変更をコミット",
-  "Commited. Ready to push": "コミットしました。プッシュできます",
+  "Committed.": "コミットしました。",
   "Confirm": "確認",
   "Confirm?": "よろしいですか?",
   "Connect": "接続",
@@ -869,5 +869,7 @@
   "Later": "後で",
   "OK": "OK",
   "You have the latest version of {product} ({current}).": "{product} は最新バージョンです ({current})。",
-  "Couldn't check for updates: {error}": "アップデートを確認できませんでした: {error}"
+  "Couldn't check for updates: {error}": "アップデートを確認できませんでした: {error}",
+  "Commit Failed": "コミットに失敗しました",
+  "Rollback Failed": "ロールバックに失敗しました"
 }

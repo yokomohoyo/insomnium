@@ -71,16 +71,27 @@ export const GitStagingModal: FC<ModalProps> = ({
   const modifiedChanges = changes.filter(i => !i.status.includes('added'));
   const unversionedChanges = changes.filter(i => i.status.includes('added'));
 
-  const errors = gitCommitFetcher.data?.errors || rollbackFetcher.data?.errors;
+  const commitErrors = gitCommitFetcher.data?.errors;
+  const rollbackErrors = rollbackFetcher.data?.errors;
+  const errors = commitErrors || rollbackErrors;
 
   useEffect(() => {
-    if (errors && errors?.length > 0) {
+    if (commitErrors && commitErrors.length > 0) {
       showAlert({
-        title: t('Push Failed'),
-        message: errors.join('\n'),
+        title: t('Commit Failed'),
+        message: commitErrors.join('\n'),
       });
     }
-  }, [errors]);
+  }, [commitErrors]);
+
+  useEffect(() => {
+    if (rollbackErrors && rollbackErrors.length > 0) {
+      showAlert({
+        title: t('Rollback Failed'),
+        message: rollbackErrors.join('\n'),
+      });
+    }
+  }, [rollbackErrors]);
 
   const [hasDone, setHasDone] = useState(false);
 
@@ -376,7 +387,7 @@ export const GitStagingModal: FC<ModalProps> = ({
               <div className="txt-sm faint italic">
                 {isLoadingGitChanges ? <>
                   <i className="fa fa-spinner fa-spin space-right" />
-                  {t('Loading changes...')}</> : errors && errors?.length > 0 ? t('network error..') : hasDone ? t('Commited. Ready to push') : t('No new changes to commit.')}
+                  {t('Loading changes...')}</> : errors && errors?.length > 0 ? t('network error..') : hasDone ? t('Committed.') : t('No new changes to commit.')}
               </div>
             )}
           </gitCommitFetcher.Form>

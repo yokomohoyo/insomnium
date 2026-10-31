@@ -24,7 +24,7 @@ test('a stash keeps a change aside and brings it back, and a tag goes on the cur
   await commitDialog.getByPlaceholder('A descriptive message to describe changes made').fill('first');
   await commitDialog.locator('input[name="allUnversioned"]').check();
   await commitDialog.getByRole('button', { name: 'Commit' }).click();
-  await expect(commitDialog).toContainText('Commited. Ready to push');
+  await expect(commitDialog).toContainText('Committed.');
   await commitDialog.getByRole('button', { name: 'Close' }).click();
 
   // a change, stashed: it's undone here
