@@ -267,6 +267,45 @@ interface Props {
   className?: string;
 }
 
+// a resize handle the keyboard can use too: a focusable separator that the
+// arrow keys move a step, and Home and End take to its limits
+const Splitter: FC<{
+  label: string;
+  // the line's: a vertical one moves left and right
+  orientation: 'horizontal' | 'vertical';
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+  onMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void;
+  onDoubleClick: () => void;
+}> = ({ label, orientation, value, min, max, step, onChange, onMouseDown, onDoubleClick }) => (
+  <div
+    role="separator"
+    tabIndex={0}
+    aria-label={label}
+    aria-orientation={orientation}
+    aria-valuemin={min}
+    aria-valuemax={max}
+    aria-valuenow={Math.round(value * 100) / 100}
+    onMouseDown={onMouseDown}
+    onDoubleClick={onDoubleClick}
+    onKeyDown={event => {
+      const keys: Record<string, number> = {
+        [orientation === 'vertical' ? 'ArrowLeft' : 'ArrowUp']: value - step,
+        [orientation === 'vertical' ? 'ArrowRight' : 'ArrowDown']: value + step,
+        Home: min,
+        End: max,
+      };
+      if (event.key in keys) {
+        event.preventDefault();
+        onChange(Math.min(Math.max(keys[event.key], min), max));
+      }
+    }}
+  />
+);
+
 export const SidebarLayout: FC<Props> = ({
   renderPaneHeader,
   renderPaneOne,
@@ -463,7 +502,14 @@ export const SidebarLayout: FC<Props> = ({
           </Sidebar>
 
           <div className="drag drag--sidebar">
-            <div
+            <Splitter
+              label="Resize the sidebar"
+              orientation="vertical"
+              value={sidebarWidth}
+              min={MIN_SIDEBAR_REMS}
+              max={MAX_SIDEBAR_REMS}
+              step={1}
+              onChange={handleSetSidebarWidth}
               onDoubleClick={handleResetDragSidebar}
               onMouseDown={startDragSidebar}
             />
@@ -488,14 +534,28 @@ export const SidebarLayout: FC<Props> = ({
       {renderPaneTwo && (
         <>
           <div className="drag drag--pane-horizontal">
-            <div
+            <Splitter
+              label="Resize the panes"
+              orientation="vertical"
+              value={paneWidth}
+              min={MIN_PANE_WIDTH}
+              max={MAX_PANE_WIDTH}
+              step={0.02}
+              onChange={handleSetPaneWidth}
               onMouseDown={handleStartDragPaneHorizontal}
               onDoubleClick={handleResetDragPaneHorizontal}
             />
           </div>
 
           <div className="drag drag--pane-vertical">
-            <div
+            <Splitter
+              label="Resize the panes"
+              orientation="horizontal"
+              value={paneHeight}
+              min={MIN_PANE_HEIGHT}
+              max={MAX_PANE_HEIGHT}
+              step={0.02}
+              onChange={handleSetPaneHeight}
               onMouseDown={handleStartDragPaneVertical}
               onDoubleClick={handleResetDragPaneVertical}
             />
