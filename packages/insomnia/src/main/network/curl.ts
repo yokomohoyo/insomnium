@@ -139,6 +139,10 @@ const openCurlConnection = async (
       systemProxy,
     });
     setCurlMethod(curl, req.method);
+    // the request timeout still bounds connecting, so a dead host fails
+    if (settings.timeout > 0) {
+      curl.setOpt(Curl.option.CONNECTTIMEOUT_MS, settings.timeout);
+    }
     if (requestBody !== undefined) {
       curl.setOpt(Curl.option.POSTFIELDS, requestBody);
     }

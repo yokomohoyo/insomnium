@@ -96,6 +96,10 @@ describe('buildEventStreamCurlRequest()', () => {
     });
   });
 
+  it('has no overall timeout, so the request timeout setting doesn\'t cut the stream off', () => {
+    expect(buildEventStreamCurlRequest(connection()).req.settingTimeout).toBe(0);
+  });
+
   it('rejects a header that would inject another header line', () => {
     expect(() => buildEventStreamCurlRequest(connection({
       headers: [{ name: 'X-Evil', value: 'a\r\nX-Injected: 1' }],

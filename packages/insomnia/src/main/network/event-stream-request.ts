@@ -31,7 +31,9 @@ export const buildEventStreamCurlRequest = (connection: EventStreamConnection) =
   if (body.fileName || body.mimeType === CONTENT_TYPE_FORM_DATA) {
     throw new Error('An event stream can only send a text or form URL-encoded body');
   }
-  const req = { ...connection };
+  // a stream stays open until it's closed, so no overall timeout: the request
+  // timeout setting would cut it off after 30 s
+  const req = { ...connection, settingTimeout: 0 };
   const requestBody = parseRequestBody({ body, method });
   return { req, requestBody, headerStrings: parseHeaderStrings({ req, requestBody, finalUrl: connection.url }) };
 };
