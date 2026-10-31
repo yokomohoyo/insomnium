@@ -129,6 +129,8 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 | `--json <file>` | Write the results as JSON, with each send's phases and each request's numbers over the run. |
 | `--html <file>` | Write an HTML report: each request's percentiles, cold start, size and where its time goes, then the failures. One page, no scripts. |
 | `--csv <file>` | Write a row per request sent: status, time, phases (DNS, connect, TLS, wait, download), size and failures. |
+| `--baseline <file>` | Compare with an earlier run's `--json` report: print what got slower or faster, add the comparison to the JSON and HTML reports, and exit 1 when a request's p95 grew by more than `--max-slowdown` allows. Requests match by id, then by name. |
+| `--max-slowdown <percent>` | How much a request's p95 may grow over the baseline's (default 20). Changes of 5 ms or less don't count, so fast requests don't fail on noise. |
 
 `INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL`, `INSOMNIUM_ALLOWED_ENV` and the proxy variables work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 

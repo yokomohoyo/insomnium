@@ -20,6 +20,8 @@ This fork is being actively maintained — Insomnium is a useful tool worth keep
 
 I have removed user login, tracking, analytics, etc, from Insomnia so it is now a 100% local app. (And runs faster!)
 
+**Getting around:** the rail on the left switches between a collection's requests, tests and flows (and its spec, for a design document). The top bar shows where you are: the project's name leads back to all its collections, and the collection's name opens its menu, including **Switch to** another one. **Ctrl+P** (**⌘P**) searches the collection's requests and jumps to other collections too. On Windows and Linux the menu bar stays hidden in new installs; press **Alt** to show it.
+
 **[Documentation](docs/README.md)**: getting started, template tags, scripts, tests and the runner, Git Sync, import and export, and plugins.
 
 
@@ -69,6 +71,18 @@ Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type
 > Fetching protos from a reflection server that sits behind auth? Add the bearer/token under **Settings → Proto Tokens**.
 
 
+## Runner, reports and load tests
+
+**Run Collection** (in a collection's menu, or a folder's) sends its requests in order and checks their assertions, once or over many iterations, with a CSV or JSON data file for a row of variables per iteration.
+
+- **Numbers per request:** p50, p95, max and standard deviation, the first iteration's time against the rest (the cold start), response size, and a bar of where the time goes: DNS, connecting, TLS, waiting for the first byte, and download.
+- **Reports to keep or share:** save the run as HTML (one page, no scripts), CSV, JSON or JUnit XML.
+- **Compare with an earlier run:** choose a saved JSON report and each request's p95 shows its change, red when slower and green when faster.
+- **Load test mode:** virtual users send the requests again and again for a set time, with ramp-up and think time. A chart shows each second's requests, failures and latency, and thresholds (p95, p99, error rate) say whether the API held up.
+
+The same runner works in CI from the container: `insomnium-server run` (with `--baseline last.json` to fail when a request got slower) and `insomnium-server load`. Every option: [Run a collection in CI](packages/insomnium-server/README.md#run-a-collection-in-ci) and [Load test a collection](packages/insomnium-server/README.md#load-test-a-collection).
+
+
 ## MCP automation server
 
 Insomnium can expose **itself** as a [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so MCP-aware tools — like Claude Code — can list, inspect, create, and run your saved requests programmatically. This lets an AI assistant understand and drive your API collections directly.
@@ -97,6 +111,12 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Auth strategies** — list, add, update, and remove authentication on a request.
 - **Environments** — list environments, read the active one, and switch it.
 - **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.
+- **Search and code** — find requests, folders and environments by name or URL across workspaces (`search`), and turn a request into code in any language Generate Code offers, such as cURL, fetch or Python requests (`generate_code`).
+- **Live connections** — open a WebSocket, Socket.IO, MQTT or GraphQL subscription and send and read its messages; open an event stream (Server-Sent Events) and read what it received; connect an MCP request to its server and call its tools. The app's window shows the same connection.
+- **Mock servers** — start and stop a collection's mock server and read the requests it got.
+- **Asks you first** — running a design document's unit tests (`run_test_suite`), Git commit, pull and push, and an MCP request that runs a command each open a confirmation in the app, with **Cancel** the default.
+
+Connected tools also get an `insomnium://instructions` resource: how to find, send and check requests with these tools. For clients that do better with fewer tools, `npx insomnium-mcp --minimal` (or `…/sse?tools=minimal`) offers just the core ones: search, read and edit requests, environments, send, run, and generate code.
 
 To connect an MCP client without copying the token, use the `insomnium-mcp` launcher, which reads it from the running app: `claude mcp add insomnium npx insomnium-mcp`.
 
@@ -133,11 +153,28 @@ A team can share its collections from a server of its own: a NAS (a Synology, sa
 Start it with a folder for its data:
 
 ```sh
-docker run -d --name insomnium-team --restart unless-stopped   -p 8080:8080   -v /volume1/docker/insomnium-team:/data   -e INSOMNIUM_TEAM_ADMIN=kim   ghcr.io/yokomohoyo/insomnium-server team
+docker run -d --name insomnium-team --restart unless-stopped \
+  -p 8080:8080 \
+  -v /volume1/docker/insomnium-team:/data \
+  -e INSOMNIUM_TEAM_ADMIN=kim \
+  ghcr.io/yokomohoyo/insomnium-server team
 docker logs insomnium-team   # the admin's password, shown once on the first start
 ```
 
-Put it behind HTTPS (a NAS's reverse proxy does), as every call carries a password or token. Then, in Insomnium:
+Serve it over HTTPS, as every call carries a password or token. Either put a reverse proxy in front (a NAS has one built in; the guide has Caddy and nginx set-ups), or give the server a certificate of its own: mount the PEM files and set `INSOMNIUM_TLS_CERT` and `INSOMNIUM_TLS_KEY`, and it speaks HTTPS on its port, picking up a renewed certificate without a restart:
+
+```sh
+docker run -d --name insomnium-team --restart unless-stopped \
+  -p 8443:8080 \
+  -v /volume1/docker/insomnium-team:/data \
+  -v /volume1/docker/tls:/tls:ro \
+  -e INSOMNIUM_TLS_CERT=/tls/fullchain.pem \
+  -e INSOMNIUM_TLS_KEY=/tls/privkey.pem \
+  -e INSOMNIUM_TEAM_ADMIN=kim \
+  ghcr.io/yokomohoyo/insomnium-server team
+```
+
+The MCP server in the same image takes the same two settings. Then, in Insomnium:
 
 1. Open **Git Clone** in a project, or **Git Settings** in a collection, and choose the **Team Server** tab.
 2. Sign in with the server's address, your user name and your password. Insomnium makes an access token for this computer and keeps only that, encrypted (see [Saved credentials](#saved-credentials)).
@@ -146,7 +183,7 @@ Put it behind HTTPS (a NAS's reverse proxy does), as every call carries a passwo
 
 **Sign Out** in the same tab forgets the sign-in and revokes its token. Git on the command line works too, with your user name and a token.
 
-How to set it up, with HTTPS, roles, single sign-on, backups and a diagram of how it fits together: [docs/team-server.md](docs/team-server.md). Every option and the API: [Share collections with a team](packages/insomnium-server/README.md#share-collections-with-a-team). Git Sync itself: [docs/git-sync.md](docs/git-sync.md).
+How to set it up, with HTTPS (behind a proxy or without one), roles, single sign-on, backups and a diagram of how it fits together: [docs/team-server.md](docs/team-server.md). Every option and the API: [Share collections with a team](packages/insomnium-server/README.md#share-collections-with-a-team). Git Sync itself: [docs/git-sync.md](docs/git-sync.md).
 
 
 ## Saved credentials
