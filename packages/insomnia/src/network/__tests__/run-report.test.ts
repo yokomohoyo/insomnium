@@ -84,7 +84,7 @@ describe('run reports', () => {
     expect(data[1].failedAssertions).toBe('Response time (ms) is less than 60');
     // a name that looks like a formula is escaped, so a spreadsheet won't run it
     expect(data[2].request.startsWith("'=")).toBe(true);
-    expect(data[2]).toMatchObject({ status: '', time: '', error: 'Could not connect <here>' });
+    expect(data[2]).toMatchObject({ status: '', time: '', error: 'Could not connect <here>', failedAssertions: '' });
   });
 
   it('HTML: one page with the numbers, escaped, and no scripts', () => {

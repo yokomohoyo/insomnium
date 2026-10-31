@@ -15,6 +15,8 @@ export interface LoadConfig extends Sources {
   thinkTimeMs: number;
   thresholds: LoadThresholds;
   json?: string;
+  html?: string;
+  csv?: string;
   allowedHosts: string[];
   variables: Record<string, string>;
   validateSSL: boolean;
@@ -41,6 +43,8 @@ ${SOURCES_USAGE}
   --max-p99      fail when the 99th percentile latency is over this, in ms
   --max-errors   fail when more than this percentage of requests fail, such as 1 or 0.5
   --json         write the results as JSON to this file
+  --html         write an HTML report to this file: second by second, and each request's phases
+  --csv          write each second (users, requests, failures, p50, p95) as CSV to this file
 
 Environment: as for run (insomnium-server run --help). Load test only APIs
 you're allowed to.`;
@@ -124,6 +128,12 @@ export const parseLoadConfig = (argv: string[], env: Record<string, string | und
         break;
       case '--json':
         config.json = value();
+        break;
+      case '--html':
+        config.html = value();
+        break;
+      case '--csv':
+        config.csv = value();
         break;
       default:
         throw new Error(`Unknown option ${option}`);

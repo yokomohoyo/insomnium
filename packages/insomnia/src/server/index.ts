@@ -6,6 +6,7 @@ import fs from 'node:fs';
 
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
+import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../network/load-report';
 import { brokenThresholds } from '../network/load-stats';
 import { runLoadTest } from '../network/load-test';
 import { csvReport, htmlReport, jsonReport, junitReport } from '../network/run-files';
@@ -136,7 +137,13 @@ async function load(argv: string[]) {
   print(`\n${formatLoadSummary(summary)}`);
   const broken = brokenThresholds(summary, config.thresholds);
   if (config.json) {
-    await fs.promises.writeFile(config.json, JSON.stringify({ name, ...summary, thresholds: config.thresholds, broken }, null, 2));
+    await fs.promises.writeFile(config.json, loadJsonReport(summary, name, config.thresholds));
+  }
+  if (config.html) {
+    await fs.promises.writeFile(config.html, loadHtmlReport(summary, name, config.thresholds));
+  }
+  if (config.csv) {
+    await fs.promises.writeFile(config.csv, loadCsvReport(summary));
   }
   for (const reason of broken) {
     print(`✗ ${reason}`);
