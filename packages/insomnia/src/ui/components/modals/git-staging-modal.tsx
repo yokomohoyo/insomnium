@@ -7,9 +7,11 @@ import { cleanCommitMessage, commitPrompt } from '../../../common/ai-prompts';
 import { t } from '../../../common/i18n';
 import { strings } from '../../../common/strings';
 import * as models from '../../../models';
+import { isCollection } from '../../../models/workspace';
 import type { DocDiff } from '../../../sync/git/doc-diff';
 import { CommitToGitRepoResult, GitChangesLoaderData, GitRollbackChangesResult } from '../../routes/git-actions';
 import type { RootLoaderData } from '../../routes/root';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { IndeterminateCheckbox } from '../base/indeterminate-checkbox';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -446,8 +448,10 @@ const ChangedFields = ({ diff }: { diff?: DocDiff }) => {
 };
 
 const OperationTooltip = ({ item }: { item: Item }) => {
-  const type =
-    item.type === models.workspace.type ? strings.document.singular : item.type;
+  // the workspace committed is the one open, a collection or a design document
+  const { activeWorkspace } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const type = item.type !== models.workspace.type ? item.type
+    : isCollection(activeWorkspace) ? strings.collection.singular : strings.document.singular;
   if (item.status.includes('added')) {
     return (
       <Tooltip message={t('Added')}>
