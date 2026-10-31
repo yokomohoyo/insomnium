@@ -877,5 +877,7 @@
   "You have the latest version of {product} ({current}).": "Você tem a versão mais recente do {product} ({current}).",
   "Couldn't check for updates: {error}": "Não foi possível verificar atualizações: {error}",
   "Commit Failed": "Falha no commit",
-  "Rollback Failed": "Falha ao reverter"
+  "Rollback Failed": "Falha ao reverter",
+  "App": "Aplicativo",
+  "Search requests": "Pesquisar requisições"
 }

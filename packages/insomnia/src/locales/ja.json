@@ -877,5 +877,7 @@
   "You have the latest version of {product} ({current}).": "{product} は最新バージョンです ({current})。",
   "Couldn't check for updates: {error}": "アップデートを確認できませんでした: {error}",
   "Commit Failed": "コミットに失敗しました",
-  "Rollback Failed": "ロールバックに失敗しました"
+  "Rollback Failed": "ロールバックに失敗しました",
+  "App": "アプリ",
+  "Search requests": "リクエストを検索"
 }

@@ -299,7 +299,7 @@ const Root = () => {
                 </Breadcrumbs>
               )}
               <span className="flex-1" />
-              {workspaceData && location.pathname.endsWith('/debug') && (
+              {workspaceData && /\/debug(\/|$)/.test(location.pathname) && (
                 <Button
                   aria-label={t('Search requests')}
                   onPress={() => window.dispatchEvent(new Event(QUICK_SWITCH_EVENT))}
