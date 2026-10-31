@@ -90,6 +90,17 @@ describe('syncSpecToWorkspace()', () => {
     expect(server.data).toMatchObject({ host: 'pets.example.com', base_path: '/v1' });
   });
 
+  it("makes the folders and requests in the spec's order", async () => {
+    await generate(v1);
+    const docs = (await db.withDescendants(await models.workspace.getById(workspaceId))).filter(doc => isRequest(doc) || isRequestGroup(doc));
+    const inOrder = (parentId: string) => docs.filter(doc => doc.parentId === parentId)
+      .sort((a, b) => (a as Request).metaSortKey - (b as Request).metaSortKey).map(doc => doc.name);
+    expect(new Set(docs.map(doc => (doc as Request).metaSortKey)).size).toBe(docs.length);
+    expect(inOrder(workspaceId)).toEqual(['pets', 'orders']);
+    const pets = docs.find(doc => doc.name === 'pets')!;
+    expect(inOrder(pets._id)).toEqual(['List pets', 'Get a pet']);
+  });
+
   it('updates the requests it made instead of adding copies, and keeps what was set', async () => {
     await generate(v1);
     const list = await byName('List pets');

@@ -260,4 +260,29 @@ resources:
     expect(after.dataPropertyOrder).toEqual({ '&': ['token', 'base_url'] });
     expect((await request.findByParentId(existing._id)).map(({ url }) => url)).toEqual(['{{ base_url }}/orders']);
   });
+
+  it("keeps a format's order when it gives no sort keys, as a curl list or Postman collection doesn't", async () => {
+    const existing = await workspace.create({ name: 'Mine', parentId: DEFAULT_PROJECT_ID });
+    const names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+    await importUtil.scanResources({
+      content: JSON.stringify({
+        info: { name: 'Ordered', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+        item: names.map(name => ({ name, request: { method: 'GET', url: `https://example.com/${name}` } })),
+      }),
+    });
+    await importUtil.importResourcesToWorkspace({ workspaceId: existing._id });
+
+    // wherever the importer put them
+    const imported = (await request.all()).filter(({ url }) => url.startsWith('https://example.com/'));
+    // no ties, which the sidebar breaks by id
+    expect(new Set(imported.map(({ metaSortKey }) => metaSortKey)).size).toBe(names.length);
+    expect(imported.sort((a, b) => a.metaSortKey - b.metaSortKey).map(({ name }) => name)).toEqual(names);
+  });
+
+  it("keeps an export's own sort keys", async () => {
+    const existing = await workspace.create({ name: 'Mine', parentId: DEFAULT_PROJECT_ID });
+    await importUtil.scanResources({ content: exported.replace("url: '{{ base_url }}/orders' }", "url: '{{ base_url }}/orders', metaSortKey: -42 }") });
+    await importUtil.importResourcesToWorkspace({ workspaceId: existing._id });
+    expect((await request.findByParentId(existing._id))[0].metaSortKey).toBe(-42);
+  });
 });

@@ -239,8 +239,17 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
     model && ResourceIdMap.set(resource._id, generateId(model.prefix));
   }
 
+  // in the order they came: one sort key each where the format gives none, as
+  // the same millisecond's -Date.now() would tie and sort by id
+  const sortBase = -Date.now();
+  const sortKeyed = (resource: BaseModel & { metaSortKey?: number }, index: number) =>
+    resource.metaSortKey === undefined && 'metaSortKey' in (getModel(resource.type)?.init() || {})
+      ? { ...resource, metaSortKey: sortBase + index }
+      : resource;
+
   // Preserve optionalResource relationships
-  for (const resource of optionalResources) {
+  for (const [index, unsorted] of optionalResources.entries()) {
+    const resource = sortKeyed(unsorted, index);
     const model = getModel(resource.type);
     if (model) {
       // Make sure we point to the new proto file
