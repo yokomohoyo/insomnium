@@ -8,7 +8,8 @@ test("an empty spec has no lint warning, and one that's started does @ci", async
   await expect(page.getByText('start from an example')).toBeVisible();
 
   const editor = page.locator('.CodeMirror').first();
-  const markers = editor.locator('[class*="CodeMirror-lint-marker"]');
+  // a marker, not the gutter that holds them (CodeMirror-lint-markers)
+  const markers = editor.locator('.CodeMirror-lint-marker');
   // the editor lints a second after a change
   await page.waitForTimeout(2500);
   await expect(markers).toHaveCount(0);
