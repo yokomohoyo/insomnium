@@ -54,6 +54,9 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
   const existingFolders = descendants.filter(isRequestGroup);
   const result: SpecSyncResult = { added: [], updated: [], unchanged: [], notInSpec: [] };
 
+  // what's made goes in the spec's order: one sort key each, as the same
+  // millisecond's -Date.now() would tie and sort by id
+  let sortKey = -Date.now();
   const bufferId = await db.bufferChanges();
   try {
     // a tag's folder: the workspace's top-level folder of that name, made only
@@ -70,7 +73,7 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
         return workspaceId;
       }
       const folder = existingFolders.find(existing => existing.parentId === workspaceId && existing.name === specFolder.name)
-        || await models.requestGroup.create({ name: specFolder.name, description: specFolder.description, parentId: workspaceId });
+        || await models.requestGroup.create({ name: specFolder.name, description: specFolder.description, parentId: workspaceId, metaSortKey: sortKey++ });
       folderIds.set(specParentId, folder._id);
       return folder._id;
     };
@@ -91,7 +94,8 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
 
       if (!matches.length) {
         const { _id: _specId, parentId, ...fields } = fromSpec;
-        const created = await models.request.create({ ...fields, parentId: await folderFor(parentId || SPEC_WORKSPACE_ID), specRequestId });
+        const folderId = await folderFor(parentId || SPEC_WORKSPACE_ID);
+        const created = await models.request.create({ ...fields, parentId: folderId, specRequestId, metaSortKey: sortKey++ });
         result.added.push(created);
         continue;
       }
