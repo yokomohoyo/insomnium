@@ -19,14 +19,14 @@ test("the open request's tab scrolls into view @ci", async ({ app, page }) => {
   const sidebar = page.getByLabel('Request Collection');
   const tabs = page.getByLabel('Open requests').getByTestId('request-tab');
   for (const name of names) {
-    await sidebar.getByRole('row', { name }).click();
+    await sidebar.getByRole('row', { name, exact: true }).click();
     await expect(tabs.filter({ hasText: name })).toHaveAttribute('aria-current', 'page');
   }
   // more tabs than fit: the last one opened is still in view
   await expect(tabs.last()).toBeInViewport();
 
   // and switching back to the first scrolls back to it
-  await sidebar.getByRole('row', { name: names[0] }).click();
+  await sidebar.getByRole('row', { name: names[0], exact: true }).click();
   await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
   await expect(tabs.first()).toBeInViewport();
 });
