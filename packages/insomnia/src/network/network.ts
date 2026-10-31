@@ -43,7 +43,7 @@ import {
 } from '../utils/url/querystring';
 import { evaluateAssertions } from './assertions';
 import { getAuthHeaders, getAuthQueryParamsList } from './authentication';
-import { cancellableCurlRequest } from './cancellation';
+import { cancellableCurlRequest, cancelRequestById } from './cancellation';
 import { assertSafeHeaders } from './header-injection';
 import { checkRequestPolicy, hasRequestPolicy } from './request-policy';
 import { addSetCookiesToToughCookieJar } from './set-cookie-util';
@@ -184,6 +184,18 @@ export async function sendCurlAndWriteTimeline(
     statusMessage: lastRedirect.reason,
     ...patch,
   };
+}
+// cancels a sendCurlAndWriteTimeline in flight, wherever it runs
+export async function cancelCurlAndWriteTimeline(requestId: string) {
+  try {
+    if (process.type === 'renderer') {
+      await cancelRequestById(requestId);
+    } else {
+      (await import('../main/network/libcurl-promise')).cancelCurlRequest(requestId);
+    }
+  } catch {
+    // nothing in flight: it was still rendering or running its script
+  }
 }
 // Server-sent events stream from the main process, which uses the result as
 // given. Resolve it the way a send does (render, plugin hooks, final URL with

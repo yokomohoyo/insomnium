@@ -7,7 +7,7 @@ import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 import { type Baseline, compareRuns, parseBaseline, type RunComparison } from '../../../network/run-compare';
 import { csvReport, htmlReport, jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
 import { requestRunStats } from '../../../network/run-stats';
-import { listRunnableRequests, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
+import { listRunnableRequests, notRunnable, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { LoadTestPanel } from '../load-test-panel';
 import { RunStatsTable } from '../run-stats-table';
@@ -65,7 +65,11 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
 
   useEffect(() => {
     modalRef.current?.show();
-    listRunnableRequests(parentId, JSON.parse(folderKey)).then(setRequests);
+    listRunnableRequests(parentId, JSON.parse(folderKey)).then(listed => {
+      setRequests(listed);
+      // an event stream never ends, so the runner doesn't send one: leave them out unless asked
+      setSkipped(new Set(listed.filter(({ request }) => notRunnable(request)).map(({ request }) => request._id)));
+    });
   }, [parentId, folderKey]);
 
   const chosen = (requests || []).filter(({ request }) => !skipped.has(request._id));
@@ -197,6 +201,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
                   />
                   <span className="faint monospace txt-sm">{request.method}</span>
                   {resultName({ folders: requestFolders, name: request.name })}
+                  {notRunnable(request) && <span className="faint txt-sm">(event stream, not run)</span>}
                 </label>
               </li>
             ))}

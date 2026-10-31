@@ -14,7 +14,7 @@ import {
   tryToInterpolateRequest,
   tryToTransformRequestWithPlugins,
 } from './network';
-import type { RunnableRequest } from './runner';
+import { notRunnable, type RunnableRequest } from './runner';
 
 // A load test: virtual users, each sending the requests in order, again and
 // again, until the time is up. Every send is a real one (render, scripts,
@@ -92,6 +92,10 @@ export async function runLoadTest(requests: RunnableRequest[], options: LoadOpti
   const { virtualUsers, durationMs, rampUpMs = 0, thinkTimeMs = 0, signal, onProgress } = options;
   if (!requests.length) {
     throw new Error('There are no requests to load test');
+  }
+  const stream = requests.find(({ request }) => notRunnable(request));
+  if (stream) {
+    throw new Error(`${stream.request.name} is an event stream: event streams aren't supported by the load test`);
   }
   if (!Number.isInteger(virtualUsers) || virtualUsers < 1 || virtualUsers > MAX_VIRTUAL_USERS) {
     throw new Error(`Virtual users must be a whole number from 1 to ${MAX_VIRTUAL_USERS}`);
