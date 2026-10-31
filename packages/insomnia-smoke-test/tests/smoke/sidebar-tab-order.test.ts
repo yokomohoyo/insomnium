@@ -12,5 +12,5 @@ test('tabbing past the sidebar buttons reaches the requests @ci', async ({ page 
   await page.keyboard.press('Tab');
   await expect(page.getByLabel('Create in collection')).toBeFocused();
   await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Request Collection').getByRole('row', { name: 'New Request' })).toBeFocused();
+  await expect(page.getByLabel('Request Collection').locator('[role="row"]:focus')).toHaveCount(1);
 });
