@@ -75,6 +75,7 @@ The repository's `.insomnium` folder (or `.insomnia`, from Insomnia) is read the
 | `INSOMNIUM_ALLOWED_ENV` | Comma-separated environment variables that collections may read with `{% env 'NAME' %}`: names, or prefixes ending in `*`. None by default, so a collection can't read the container's environment unless you allow it. |
 | `INSOMNIUM_ALLOWED_SECRETS` | The secret-manager secrets the [secret tags](../../docs/template-tags.md#secrets-from-a-secret-manager) may read, such as `vault:secret/data/app` or `aws:prod/*`. None by default. |
 | `INSOMNIUM_GIT_TOKEN`, `INSOMNIUM_GIT_USERNAME` | A token for cloning private repositories (sent as the password), and the username to send with it. |
+| `INSOMNIUM_TLS_CERT`, `INSOMNIUM_TLS_KEY` | PEM files for the server to serve HTTPS itself, without a reverse proxy: the certificate (with its chain) and its private key. Set both or neither. A renewed certificate is picked up within a minute, with no restart. |
 
 `GET /health` answers without a token, for health checks.
 
@@ -89,7 +90,7 @@ The server can reach whatever its network can, so it only sends where you say:
 - The `env` template tag reads only the variables `INSOMNIUM_ALLOWED_ENV` names.
 - Only the tools that read and send are offered: listing and reading workspaces, requests, responses, environments and auth, choosing the active environment, sending HTTP and gRPC requests, and running a folder's requests or a flow.
 
-Keep the token secret and serve it over TLS (a reverse proxy or ingress) when it leaves a private network.
+Keep the token secret and serve it over TLS when it leaves a private network: from a reverse proxy or ingress, or from the server itself with `INSOMNIUM_TLS_CERT` and `INSOMNIUM_TLS_KEY`.
 
 ## Run a collection in CI
 
@@ -204,7 +205,7 @@ docker logs insomnium-team   # the admin's password, made on the first start and
 
 The folder on `/data` keeps everything: the accounts (`team.sqlite`) and the repositories (`repos/`). Back it up. The container runs as uid 1000, so the folder has to be writable by it (`chown 1000 …`, or on a Synology, give the folder's permissions to everyone, or run the container with `--user` set to your account's uid). Set `INSOMNIUM_TEAM_ADMIN_PASSWORD` to choose the first admin's password instead.
 
-**Put it behind HTTPS.** Every Git and API call carries a password or token, so don't expose the plain HTTP port beyond a network you trust. On a Synology, add a reverse proxy rule in Control Panel → Login Portal → Advanced (https on, say, 8443, to localhost:8080), and set `INSOMNIUM_TEAM_URL=https://nas.example.com:8443` so the clone URLs it gives out are the HTTPS ones.
+**Serve it over HTTPS.** Every Git and API call carries a password or token, so don't expose the plain HTTP port beyond a network you trust. On a Synology, add a reverse proxy rule in Control Panel → Login Portal → Advanced (https on, say, 8443, to localhost:8080), and set `INSOMNIUM_TEAM_URL=https://nas.example.com:8443` so the clone URLs it gives out are the HTTPS ones. Or, with a certificate of your own, mount it and set `INSOMNIUM_TLS_CERT` and `INSOMNIUM_TLS_KEY`: the server then speaks HTTPS on its port, with no proxy.
 
 **In Insomnium,** open the **Team Server** tab in Git Clone, or in a workspace's Git Settings. Sign in with the server's address, your user name and your password (or **Sign In with SSO**, below). Insomnium makes an access token for that computer and keeps only that. Then pick a collection to clone, or one to sync the workspace to.
 

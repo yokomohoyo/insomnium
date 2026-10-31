@@ -50,7 +50,7 @@ flowchart LR
 - **`/auth/oidc`** handles single sign-on, when it's set up.
 - **`/data`** holds everything: the accounts, tokens, roles and log in one SQLite file, `team.sqlite`, and the repositories under `repos/`.
 
-The server speaks plain HTTP on port 8080. Each call carries a user name with a password or an access token, so put HTTPS in front of it.
+The server speaks plain HTTP on port 8080. Each call carries a user name with a password or an access token, so serve it over HTTPS: put a reverse proxy in front of it, or give it a certificate ([without a proxy](#without-a-proxy), below).
 
 ## Run the server
 
@@ -154,6 +154,25 @@ server {
 ```
 
 Check it answers: `curl https://insomnium.example.com/health` gives `{"ok":true}`.
+
+### Without a proxy
+
+On a small network with a certificate of your own (from your company's certificate authority, say, or one your people's computers already trust), the server can serve HTTPS itself. Mount the certificate and its key, and name them:
+
+```sh
+docker run -d --name insomnium-team --restart unless-stopped \
+  -p 8443:8080 \
+  -v /srv/insomnium-team:/data \
+  -v /etc/insomnium/tls:/tls:ro \
+  -e INSOMNIUM_TLS_CERT=/tls/fullchain.pem \
+  -e INSOMNIUM_TLS_KEY=/tls/privkey.pem \
+  -e INSOMNIUM_TEAM_URL=https://insomnium.office.lan:8443 \
+  ghcr.io/yokomohoyo/insomnium-server:0.7.0 team
+```
+
+The certificate file holds the certificate followed by any intermediate ones, as `fullchain.pem` from Let's Encrypt does. The key must be readable by uid 1000, which the container runs as. When the files change (a renewal), the server loads them within a minute, with no restart. Its health check asks itself over HTTPS.
+
+A reverse proxy is still the better fit when the server faces the internet, or when you want automatic certificates: Caddy, above, gets and renews them for you.
 
 ## Add people
 

@@ -20,5 +20,6 @@ USER node
 # the team server's accounts and repositories
 VOLUME /data
 EXPOSE 8080
-HEALTHCHECK CMD node -e "fetch('http://127.0.0.1:' + process.env.INSOMNIUM_PORT + '/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"
+# over HTTPS when it serves its own certificate, which needn't name 127.0.0.1
+HEALTHCHECK CMD node -e "require(process.env.INSOMNIUM_TLS_CERT ? 'https' : 'http').get({ host: '127.0.0.1', port: process.env.INSOMNIUM_PORT, path: '/health', rejectUnauthorized: false }, r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 ENTRYPOINT ["node", "/app/dist/index.js"]
