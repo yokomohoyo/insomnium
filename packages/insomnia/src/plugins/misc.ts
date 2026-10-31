@@ -4,7 +4,7 @@ import { getAppDefaultTheme } from '../common/constants';
 import { ThemeSettings } from '../models/settings';
 import type { Theme } from './index';
 import { ColorScheme, getThemes } from './index';
-import { nativeThemeSourceFor } from './native-theme';
+import { colorSchemeFor, nativeThemeSourceFor } from './native-theme';
 
 export type HexColor = `#${string}`;
 export type RGBColor = `rgb(${string})`;
@@ -358,7 +358,9 @@ export async function setTheme(themeName: string, followSystem = false) {
   }
 
   body.setAttribute('theme', themeName);
-  window.main?.setNativeTheme?.(nativeThemeSourceFor(themes.find(t => t.theme.name === themeName)?.theme, followSystem));
+  const active = themes.find(t => t.theme.name === themeName)?.theme;
+  window.main?.setNativeTheme?.(nativeThemeSourceFor(active, followSystem));
+  document.documentElement.style.colorScheme = colorSchemeFor(active) || '';
 
   for (const theme of themes) {
     let themeCSS = generateThemeCSS(theme.theme);

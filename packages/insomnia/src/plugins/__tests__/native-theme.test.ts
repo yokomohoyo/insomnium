@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { nativeThemeSourceFor } from '../native-theme';
+import { colorSchemeFor, nativeThemeSourceFor } from '../native-theme';
 import builtInThemes from '../themes';
 
 describe('nativeThemeSourceFor', () => {
@@ -24,5 +24,13 @@ describe('nativeThemeSourceFor', () => {
   it('leaves the OS to it for a theme it cannot read', () => {
     expect(nativeThemeSourceFor(undefined, false)).toBe('system');
     expect(nativeThemeSourceFor({ theme: { background: { default: 'not a colour' } } }, false)).toBe('system');
+  });
+});
+
+describe('colorSchemeFor', () => {
+  it('gives the page a dark color-scheme for a dark theme and a light one for a light theme', () => {
+    expect(colorSchemeFor(builtInThemes.find(({ name }) => name === 'default'))).toBe('dark');
+    expect(colorSchemeFor(builtInThemes.find(({ name }) => name === 'light'))).toBe('light');
+    expect(colorSchemeFor(undefined)).toBeUndefined();
   });
 });

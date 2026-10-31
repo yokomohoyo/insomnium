@@ -382,7 +382,7 @@ const Root = () => {
                 <a
                   className="flex focus:outline-none focus:underline gap-1 items-center text-xs text-[--color-font] px-[--padding-md]"
                 >
-                  {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-white" icon="heart" />
+                  {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-[--color-danger]" icon="heart" />
                 </a>
               </Link>
             </div>

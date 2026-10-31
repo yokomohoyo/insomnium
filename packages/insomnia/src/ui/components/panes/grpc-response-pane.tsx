@@ -92,9 +92,9 @@ const GrpcUnaryResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
   );
 };
 
-const TEXT_COLOR = "rgb(150 150 150)";
-const BG_COLOR = "rgb(34 34 34)";
-const BORDER_COLOR = "rgb(56 56 56)";
+const TEXT_COLOR = 'var(--hl)';
+const BG_COLOR = 'var(--hl-xs)';
+const BORDER_COLOR = 'var(--hl-md)';
 
 const GrpcStreamingResponseHeader: FunctionComponent<{ message: GrpcMessage }> = ({ message }) => {
   return (
