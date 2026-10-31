@@ -2,10 +2,11 @@ import React, { FunctionComponent, ReactNode } from 'react';
 import styled from 'styled-components';
 
 import { IconEnum, SvgIcon } from '../../svg-icon';
+import { pressable } from './sidebar-item';
 
 export interface SidebarHeaderProps {
   headerTitle: string;
-  toggleSection: React.MouseEventHandler<HTMLLIElement>;
+  toggleSection: () => void;
   toggleFilter?: () => void;
   sectionVisible: boolean;
   children?: ReactNode;
@@ -62,7 +63,7 @@ export const SidebarHeader: FunctionComponent<SidebarHeaderProps> = ({
   sectionVisible,
   children,
 }) => {
-  const handleFilterClick: React.MouseEventHandler<HTMLSpanElement> | undefined =
+  const handleFilterClick: ((event: React.SyntheticEvent) => void) | undefined =
     sectionVisible && toggleFilter // only handle a click if the section is open
       ? event => {
         event.stopPropagation(); // Prevent a parent from also handling the click
@@ -71,12 +72,13 @@ export const SidebarHeader: FunctionComponent<SidebarHeaderProps> = ({
       }
       : undefined;
   return (
-    <StyledHeader onClick={toggleSection}>
+    <StyledHeader {...pressable(toggleSection)} aria-expanded={sectionVisible}>
       <h6>{headerTitle}</h6>
       <div>
         {children || (
           <span
-            onClick={handleFilterClick}
+            {...pressable(handleFilterClick)}
+            aria-label={handleFilterClick ? 'Filter' : undefined}
             style={{ opacity: sectionVisible ? 0.6 : 0 }}
           >
             <SvgIcon icon={IconEnum.search} />

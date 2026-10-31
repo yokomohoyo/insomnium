@@ -5,7 +5,7 @@ import { IconEnum, SvgIcon } from '../../svg-icon';
 import { Tooltip } from '../../tooltip';
 import { SidebarBadge } from './sidebar-badge';
 import { SidebarInvalidSection } from './sidebar-invalid-section';
-import { SidebarItem } from './sidebar-item';
+import { pressable, SidebarItem } from './sidebar-item';
 import { SidebarSection } from './sidebar-section';
 
 export interface SidebarRequestsProps {
@@ -60,15 +60,14 @@ export class SidebarRequests extends Component<SidebarRequestsProps> {
                     <StyledRequestFormat>
                       <SvgIcon icon={IconEnum.indentation} />
                       <span
-                        onClick={() =>
+                        {...pressable(() =>
                           onClick(
                             'components',
                             'requestBodies',
                             requestName,
                             'content',
                             requestFormat,
-                          )
-                        }
+                          ))}
                       >
                         {requestFormat}
                       </span>
