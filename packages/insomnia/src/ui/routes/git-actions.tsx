@@ -3,12 +3,10 @@ import { Errors } from 'isomorphic-git';
 import { env as processEnv } from 'node:process';
 import path from 'path';
 import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';
-import YAML from 'yaml';
 
 import { ACTIVITY_SPEC } from '../../common/constants';
 import { database } from '../../common/database';
 import * as models from '../../models';
-import { isApiSpec } from '../../models/api-spec';
 import { GitRepository } from '../../models/git-repository';
 import { createGitRepository } from '../../models/helpers/git-repository-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
@@ -32,7 +30,6 @@ import type { DocConflict, MergeChoice } from '../../sync/git/merge-docs';
 import { MemClient } from '../../sync/git/mem-client';
 import { findInsomniaProjectFiles, importInsomniaProjectFiles } from '../../sync/git/insomnia-git-project';
 import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
-import parseGitPath from '../../sync/git/parse-git-path';
 import { convertToPosixSep } from '../../sync/git/path-sep';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
 import { shallowClone } from '../../sync/git/shallow-clone';
@@ -40,7 +37,7 @@ import { isSshUrl } from '../../sync/git/ssh-url';
 import {
   addDotGit,
 } from '../../sync/git/utils';
-import { type DocDiff, docDiff } from '../../sync/git/doc-diff';
+import { type GitChange, getGitChanges } from '../../sync/git/workspace-git';
 import { guard } from '../../utils/guard';
 
 // Loaders
@@ -1097,105 +1094,7 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
   return {};
 };
 
-export interface GitChange {
-  path: string;
-  type: string;
-  status: string;
-  staged: boolean;
-  added: boolean;
-  editable: boolean;
-  // what changed since the last commit, by field (sync/git/doc-diff.ts)
-  diff?: DocDiff;
-}
-
-async function getGitVCSPaths(vcs: typeof GitVCS) {
-  const gitFS = vcs.getFs();
-
-  const fs = 'promises' in gitFS ? gitFS.promises : gitFS;
-
-  const fsPaths: string[] = [];
-  const dataDir = path.join(GIT_CLONE_DIR, vcs.dataDirName);
-  for (const type of await fs.readdir(dataDir)) {
-    const typeDir = path.join(dataDir, type);
-    for (const name of await fs.readdir(typeDir)) {
-      // NOTE: git paths don't start with '/' so we're omitting
-      //  it here too.
-      const gitPath = path.join(vcs.dataDirName, type, name);
-      fsPaths.push(path.join(gitPath));
-    }
-  }
-  // To get all possible paths, we need to combine the paths already in Git
-  // with the paths on the FS. This is required to cover the case where a
-  // file can be deleted from FS or from Git.
-  const gitPaths = await vcs.listFiles();
-  const uniquePaths = new Set([...fsPaths, ...gitPaths]);
-  return Array.from(uniquePaths).sort();
-}
-
-async function getGitChanges(vcs: typeof GitVCS, workspace: Workspace) {
-  // Cache status names
-  const docs = await database.withDescendants(workspace);
-  const allPaths = await getGitVCSPaths(vcs);
-  const statusNames: Record<string, string> = {};
-  for (const doc of docs) {
-    const name = (isApiSpec(doc) && doc.fileName) || doc.name || '';
-    statusNames[path.join(vcs.dataDirName, doc.type, `${doc._id}.json`)] =
-      name;
-    statusNames[path.join(vcs.dataDirName, doc.type, `${doc._id}.yml`)] =
-      name;
-  }
-  // Create status items
-  const items: Record<string, GitChange> = {};
-  const log = (await vcs.log({ depth: 1 })) || [];
-
-  for (const gitPath of allPaths) {
-    const status = await vcs.status(gitPath);
-    if (status === 'unmodified') {
-      continue;
-    }
-    if (!statusNames[gitPath] && log.length > 0) {
-      const docYML = await vcs.readObjFromTree(log[0].commit.tree, gitPath);
-      if (docYML) {
-        try {
-          statusNames[gitPath] = YAML.parse(docYML.toString()).name || '';
-        } catch (err) { }
-      }
-    }
-    // We know that type is in the path; extract it. If the model is not found, set to Unknown.
-    let { type } = parseGitPath(gitPath);
-
-    if (type && !models.types().includes(type as any)) {
-      type = 'Unknown';
-    }
-    const added = status.includes('added');
-    let staged = !added;
-    let editable = true;
-    // We want to enforce that workspace changes are always committed because otherwise
-    // others won't be able to clone from it. We also make fundamental migrations to the
-    // scope property which need to be committed.
-    // So here we're preventing people from un-staging the workspace.
-    if (type === models.workspace.type) {
-      editable = false;
-      staged = true;
-    }
-    const committed = log.length > 0 ? await vcs.readObjFromTree(log[0].commit.tree, gitPath) : null;
-    const current = status.includes('deleted') ? null : await vcs.readWorkingFile(gitPath);
-    items[gitPath] = {
-      type: type as any,
-      staged,
-      editable,
-      status,
-      added,
-      path: gitPath,
-      diff: docDiff(committed ? committed.toString() : null, current),
-    };
-  }
-
-  return {
-    changes: Object.values(items),
-    statusNames,
-  };
-}
+export type { GitChange } from '../../sync/git/workspace-git';
 
 export interface GitTagsLoaderData {
   tags: GitTag[];

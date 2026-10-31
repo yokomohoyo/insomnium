@@ -50,11 +50,14 @@ async function askToTrust(window: BrowserWindow | null, host: HostToTrust) {
   return response === 0;
 }
 
+// an SSH request, its trust dialog over `window` (or the app's first window)
+export const gitSshRequestFrom = (window: BrowserWindow | null) => (request: GitSshRequest) => gitSshRequest(request, {
+  home: os.homedir(),
+  agents: agentsHere(),
+  appKnownHostsFile: path.join(app.getPath('userData'), 'ssh', 'known_hosts'),
+  askToTrust: host => askToTrust(window || BrowserWindow.getAllWindows()[0] || null, host),
+});
+
 export function registerGitSshHandlers() {
-  ipcMain.handle('gitSshRequest', (event, request: GitSshRequest) => gitSshRequest(request, {
-    home: os.homedir(),
-    agents: agentsHere(),
-    appKnownHostsFile: path.join(app.getPath('userData'), 'ssh', 'known_hosts'),
-    askToTrust: host => askToTrust(BrowserWindow.fromWebContents(event.sender), host),
-  }));
+  ipcMain.handle('gitSshRequest', (event, request: GitSshRequest) => gitSshRequestFrom(BrowserWindow.fromWebContents(event.sender))(request));
 }

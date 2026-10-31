@@ -14,12 +14,18 @@ const collect = async (body: AsyncIterable<Uint8Array> | Uint8Array[] | undefine
   return all;
 };
 
-/** This is a client for isomorphic-git {@link https://isomorphic-git.org/docs/en/http} */
-export const httpClient = {
+// how a request leaves: the main process's SSH and HTTP (main/git-ssh, axios-request)
+export interface GitTransport {
+  gitSshRequest: Window['main']['gitSshRequest'];
+  axiosRequest: Window['main']['axiosRequest'];
+}
+
+/** A client for isomorphic-git {@link https://isomorphic-git.org/docs/en/http}, over a transport */
+export const makeHttpClient = (transport: () => GitTransport) => ({
   request: async (config: any) => {
     // an SSH remote (ssh-url.ts), which the main process speaks to over SSH
     if (isSshTransportUrl(config.url)) {
-      const response = await window.main.gitSshRequest({
+      const response = await transport().gitSshRequest({
         url: config.url,
         method: config.method,
         headers: config.headers || {},
@@ -43,7 +49,7 @@ export const httpClient = {
     }
     // hosted-git-info was adding git+ to the beginning of the url which isn't supported by axios after 0.27.0
     const withoutGitPlus = config.url.replace(/^git\+/, '');
-    const response = await window.main.axiosRequest({
+    const response = await transport().axiosRequest({
       url: withoutGitPlus,
       method: config.method,
       headers,
@@ -60,4 +66,7 @@ export const httpClient = {
       statusMessage: response.statusText,
     };
   },
-};
+});
+
+// the window's, through the main process
+export const httpClient = makeHttpClient(() => window.main);

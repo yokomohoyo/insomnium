@@ -2,17 +2,26 @@
 
 import { randomBytes } from 'node:crypto';
 import http from 'node:http';
+import { env } from 'node:process';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
+import { app } from 'electron';
+
 import { getAppVersion } from '../../common/constants';
 import * as models from '../../models';
+import { makeHttpClient } from '../../sync/git/http-client';
+import { openWorkspaceGit } from '../../sync/git/workspace-git';
+import { gitSshRequestFrom } from '../git-ssh';
 import { collectionMockStatus, recentMockRequests, startCollectionMock, stopCollectionMock } from '../mock-servers';
+import { axiosRequest } from '../network/axios-request';
+import { confirmGitAction } from './confirm-git';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
 import { filterTools, MINIMAL_TOOLS, registerTools } from './tools';
+import { registerGitTools } from './tools/git';
 import { registerMockTools } from './tools/mocks';
 import { registerSpecTools } from './tools/spec';
 import { registerTestRunTools } from './tools/test-run';
@@ -155,6 +164,9 @@ function checkAuth(req: http.IncomingMessage, token: string): boolean {
   return diff === 0;
 }
 
+// Git's requests from here: the same HTTP and SSH the window's go through
+const gitHttp = makeHttpClient(() => ({ axiosRequest, gitSshRequest: gitSshRequestFrom(null) }));
+
 // minimal: only the core tools (MINIMAL_TOOLS), for a client with little room
 function buildMcpServer(minimal = false): McpServer {
   const mcpServer = new McpServer({
@@ -174,6 +186,14 @@ function buildMcpServer(minimal = false): McpServer {
     stop: stopCollectionMock,
     status: collectionMockStatus,
     recent: recentMockRequests,
+  });
+  // and the Git a workspace syncs with: commit, pull and push ask the user too
+  registerGitTools(server, {
+    open: workspaceId => openWorkspaceGit(workspaceId, {
+      dataPath: env.INSOMNIA_DATA_PATH || app.getPath('userData'),
+      http: gitHttp,
+    }),
+    confirm: confirmGitAction,
   });
   return mcpServer;
 }

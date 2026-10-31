@@ -99,6 +99,8 @@ interface InitOptions {
   uri?: string;
   repoId: string;
   dataDirName?: GitDataDirName;
+  // how it reaches remotes: the window's, through the main process, by default
+  http?: git.HttpClient;
 }
 
 interface InitFromCloneOptions {
@@ -198,7 +200,7 @@ export class GitVCS {
   // the repository's folder for the app's data, at its root
   dataDirName: GitDataDirName = GIT_INSOMNIA_DIR_NAME;
 
-  async init({ directory, fs, gitDirectory, gitCredentials, uri = '', repoId, dataDirName = GIT_INSOMNIA_DIR_NAME }: InitOptions) {
+  async init({ directory, fs, gitDirectory, gitCredentials, uri = '', repoId, dataDirName = GIT_INSOMNIA_DIR_NAME, http = httpClient }: InitOptions) {
     this.dataDirName = dataDirName;
     this._baseOpts = {
       ...this._baseOpts,
@@ -206,7 +208,7 @@ export class GitVCS {
       ...gitCallbacks(gitCredentials),
       gitdir: gitDirectory,
       fs,
-      http: httpClient,
+      http,
       uri: remoteUrlFor(uri),
       repoId,
     };

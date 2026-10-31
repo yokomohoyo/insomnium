@@ -36,6 +36,10 @@ Everything here works on the user's own collections, on their computer. Changes 
 - \`start_mock_server\` serves a collection's response examples (\`create_response_example\`) on 127.0.0.1, matched by method and path, so a frontend or a test can call the API before it exists. \`get_mock_server\` shows its routes and the requests it answered; \`stop_mock_server\` stops it.
 - Deleting can't be undone: \`delete_workspace\` wants the workspace's exact name, and \`delete_project\` only takes an empty project. Check with the user before you delete what they didn't ask you to.
 
+## Git
+- For a workspace synced with Git, \`git_status\` shows its branch and what changed since the last commit, and \`git_log\` its recent commits.
+- \`git_commit\`, \`git_pull\` and \`git_push\` change history, so the app asks the user each time. Say what you'll commit or push before you ask, and accept a no. Conflicts from a pull are settled in the app, not here.
+
 ## Fewer tools
 A client that connected with the minimal set (\`/sse?tools=minimal\`, or \`insomnium-mcp --minimal\`) has only the core: \`search\`, the workspace, request and environment basics, \`send_http_request\`, \`get_last_response\`, \`run_requests\` and \`generate_code\`. If a tool named here isn't offered, that's why; reconnect without it for the rest.
 
