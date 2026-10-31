@@ -14,7 +14,7 @@ test('a merge where both branches changed a request lets you choose which to kee
       await dialog.locator('input[name="allUnversioned"]').check();
     }
     await dialog.getByRole('button', { name: 'Commit' }).click();
-    await expect(dialog).toContainText('Commited. Ready to push');
+    await expect(dialog).toContainText('Committed.');
     await dialog.getByRole('button', { name: 'Close' }).click();
   };
   const setMethod = async (method: string) => {

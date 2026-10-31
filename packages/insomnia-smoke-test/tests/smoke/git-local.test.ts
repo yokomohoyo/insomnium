@@ -23,7 +23,7 @@ test('a repository on this computer commits, and says what changed in each reque
   await dialog.getByPlaceholder('A descriptive message to describe changes made').fill('first');
   await dialog.locator('input[name="allUnversioned"]').check();
   await dialog.getByRole('button', { name: 'Commit' }).click();
-  await expect(dialog).toContainText('Commited. Ready to push');
+  await expect(dialog).toContainText('Committed.');
   await dialog.getByRole('button', { name: 'Close' }).click();
 
   // change the request, and see the change before committing it
