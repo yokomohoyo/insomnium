@@ -1,11 +1,12 @@
 import { RENDER_PURPOSE_SEND } from '../common/render';
 import { metaSortKeySort } from '../common/sorting';
 import * as models from '../models';
-import type { Request } from '../models/request';
+import { isEventStreamRequest, type Request } from '../models/request';
 import type { ResponseTimings } from '../models/response';
 import { runPreRequestScript } from '../scripting/request-scripts';
 import type { AssertionResult } from './assertions';
 import {
+  cancelCurlAndWriteTimeline,
   fetchRequestData,
   responseTransform,
   sendCurlAndWriteTimeline,
@@ -56,7 +57,7 @@ export interface RunOptions {
   // stop at the first request that fails
   bail?: boolean;
   onResult?: (result: RunResult) => void;
-  // stops the run before its next request
+  // stops the run, cancelling the request in flight
   signal?: AbortSignal;
 }
 
@@ -90,7 +91,32 @@ export async function listRunnableRequests(parentId: string, folders: string[] =
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// why a request can't be sent as a run sends it: an event stream never ends
+export const notRunnable = (request: Pick<Request, 'type' | 'headers'>) => isEventStreamRequest(request)
+  ? "not run: event streams aren't supported by the runner"
+  : undefined;
+
+// Stop ends the run at once: the send in flight is cancelled and its result dropped
+class Stopped extends Error {}
+const untilStopped = <T>(promise: Promise<T>, signal: AbortSignal | undefined, onStop: () => void) => signal
+  ? new Promise<T>((resolve, reject) => {
+    const stop = () => {
+      onStop();
+      reject(new Stopped());
+    };
+    if (signal.aborted) {
+      return stop();
+    }
+    signal.addEventListener('abort', stop, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', stop));
+  })
+  : promise;
+
 export async function sendForRun(request: Request, { environmentId, iterationData, iteration }: { environmentId?: string; iterationData?: Record<string, unknown>; iteration?: number }) {
+  const unsupported = notRunnable(request);
+  if (unsupported) {
+    throw new Error(unsupported);
+  }
   const { environment, settings, clientCertificates, caCert } = await fetchRequestData(request._id);
   const envId = environmentId ?? environment._id;
   const scripted = await runPreRequestScript(request, { environmentId: envId, iterationData, iteration });
@@ -122,7 +148,7 @@ export async function runRequests(requests: RunnableRequest[], options: RunOptio
       const base = { iteration, requestId: request._id, name: request.name, folders, method: request.method };
       let result: RunResult;
       try {
-        const { stored, url } = await sendForRun(request, { environmentId, iterationData, iteration });
+        const { stored, url } = await untilStopped(sendForRun(request, { environmentId, iterationData, iteration }), signal, () => cancelCurlAndWriteTimeline(request._id));
         const assertions = stored.assertionResults || [];
         result = {
           ...base,
@@ -138,7 +164,10 @@ export async function runRequests(requests: RunnableRequest[], options: RunOptio
           passed: !stored.error && assertions.every(assertion => assertion.passed),
         };
       } catch (err) {
-        // a render error, or a send the request policy refused
+        if (err instanceof Stopped) {
+          break run;
+        }
+        // a render error, a send the request policy refused, or one the runner can't make
         result = { ...base, error: (err as Error).message, assertions: [], passed: false };
       }
       results.push(result);

@@ -4,6 +4,8 @@ import electron from 'electron';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
 import type { RequestAssertion } from '../assertions';
+import { runLoadTest } from '../load-test';
+import * as networkUtils from '../network';
 import { listRunnableRequests, runRequests } from '../runner';
 
 window.app = electron.app;
@@ -97,5 +99,41 @@ describe('runner', () => {
     const summary = await runRequests(await listRunnableRequests(workspaceId), { onResult: () => controller.abort(), signal: controller.signal });
     expect(summary.results.map(({ name }) => name)).toEqual(['one']);
     expect(summary.stopped).toBe(true);
+  });
+
+  it("doesn't send an event stream, which never ends, and runs on past it", async () => {
+    await request('one', 1);
+    await request('New Event Stream', 2, { headers: [{ name: 'Accept', value: 'text/event-stream' }] });
+    await request('three', 3);
+
+    const summary = await runRequests(await listRunnableRequests(workspaceId));
+    expect(summary.results.map(({ name, passed, error }) => ({ name, passed, error }))).toEqual([
+      { name: 'one', passed: true, error: undefined },
+      { name: 'New Event Stream', passed: false, error: "not run: event streams aren't supported by the runner" },
+      { name: 'three', passed: true, error: undefined },
+    ]);
+    await expect(runLoadTest(await listRunnableRequests(workspaceId), { virtualUsers: 1, durationMs: 1000 })).rejects.toThrow('New Event Stream is an event stream');
+  });
+
+  it('cancels the request in flight when its signal aborts', async () => {
+    await request('hangs', 1);
+    await request('after', 2);
+    const send = jest.spyOn(networkUtils, 'sendCurlAndWriteTimeline').mockReturnValue(new Promise(() => {}));
+    const cancel = jest.spyOn(networkUtils, 'cancelCurlAndWriteTimeline').mockResolvedValue();
+    const controller = new AbortController();
+    try {
+      const running = runRequests(await listRunnableRequests(workspaceId), { signal: controller.signal });
+      await new Promise(resolve => setTimeout(resolve, 200));
+      controller.abort();
+
+      const summary = await running;
+      expect(summary.results).toEqual([]);
+      expect(summary.stopped).toBe(true);
+      expect(send).toHaveBeenCalledTimes(1);
+      expect(cancel).toHaveBeenCalledWith(send.mock.calls[0][0]._id);
+    } finally {
+      send.mockRestore();
+      cancel.mockRestore();
+    }
   });
 });
