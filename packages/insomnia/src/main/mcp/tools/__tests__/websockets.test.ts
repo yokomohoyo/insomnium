@@ -5,8 +5,12 @@ import { globalBeforeEach } from '../../../../__jest__/before-each';
 import * as models from '../../../../models';
 import { registerWebSocketTools, type WebSocketControls } from '../websockets';
 
-interface Logged { type: string; timestamp: number; direction?: string; data?: string }
-interface Opened { requestId: string; workspaceId: string; url: string; headers: { name: string; value: string }[] }
+interface Logged {
+ type: string; timestamp: number; direction?: string; data?: string;
+}
+interface Opened {
+ requestId: string; workspaceId: string; url: string; headers: { name: string; value: string }[];
+}
 
 window.app = electron.app;
 
