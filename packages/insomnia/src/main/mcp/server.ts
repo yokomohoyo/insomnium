@@ -17,13 +17,16 @@ import { gitSshRequestFrom } from '../git-ssh';
 import { collectionMockStatus, recentMockRequests, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import { axiosRequest } from '../network/axios-request';
 import { eventStreams } from '../network/curl';
+import { mcpCall, mcpConnect, mcpDisconnect, mcpIsConnected } from '../network/mcp-client';
 import { webSockets } from '../network/websocket';
+import { confirmMcpCommand } from './confirm-command';
 import { confirmGitAction } from './confirm-git';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
 import { filterTools, MINIMAL_TOOLS, registerTools } from './tools';
 import { registerGitTools } from './tools/git';
+import { registerMcpRequestTools } from './tools/mcp-requests';
 import { registerMockTools } from './tools/mocks';
 import { registerSpecTools } from './tools/spec';
 import { registerStreamTools } from './tools/streams';
@@ -203,5 +206,7 @@ function buildMcpServer(minimal = false): McpServer {
   registerStreamTools(server, eventStreams);
   // and WebSocket connections, which run in the app
   registerWebSocketTools(server, webSockets);
+  // and MCP requests' connections to their servers: a command asks the user first
+  registerMcpRequestTools(server, { connect: mcpConnect, call: mcpCall, disconnect: mcpDisconnect, isConnected: mcpIsConnected, confirmCommand: confirmMcpCommand });
   return mcpServer;
 }
