@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "ループバックのみ。Bearer トークンで保護されています。",
   "MCP Request": "MCP リクエスト",
   "Made": "作成日時",
-  "Manage Cookies": "Cookie を管理",
   "Manage Environments": "環境を管理",
   "Manual": "手動",
   "Max timeline chunk size (KiB)": "タイムライン チャンクの最大サイズ (KiB)",

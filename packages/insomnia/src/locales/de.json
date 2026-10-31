@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "Nur Loopback; durch Bearer-Token geschützt.",
   "MCP Request": "MCP-Anfrage",
   "Made": "Erstellt",
-  "Manage Cookies": "Cookies verwalten",
   "Manage Environments": "Umgebungen verwalten",
   "Manual": "Manuell",
   "Max timeline chunk size (KiB)": "Max. Chunk-Größe der Zeitleiste (KiB)",

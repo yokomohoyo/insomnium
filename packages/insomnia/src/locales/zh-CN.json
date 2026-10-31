@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "仅限本地回环；需要 Bearer 令牌。",
   "MCP Request": "MCP 请求",
   "Made": "创建时间",
-  "Manage Cookies": "管理 Cookie",
   "Manage Environments": "管理环境",
   "Manual": "手动",
   "Max timeline chunk size (KiB)": "最大时间线块大小（KiB）",

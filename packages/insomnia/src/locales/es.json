@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "Solo loopback; protegido con token Bearer.",
   "MCP Request": "Solicitud MCP",
   "Made": "Creada",
-  "Manage Cookies": "Gestionar cookies",
   "Manage Environments": "Gestionar entornos",
   "Manual": "Manual",
   "Max timeline chunk size (KiB)": "Tamaño máximo de fragmento de la cronología (KiB)",
