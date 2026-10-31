@@ -63,6 +63,13 @@ export const RequestTabs: FC = () => {
     }
   }, [loaded]);
 
+  // the open request's tab is in view: one opened from the sidebar, or switched
+  // to, can be past the end of a strip of many
+  const strip = useRef<HTMLElement>(null);
+  useEffect(() => {
+    strip.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [requestId, open?.length]);
+
   const docs = useMemo(() => new Map(collection.map(({ doc }) => [doc._id, doc])), [collection]);
   // a request deleted since has no tab
   const tabs = (open || []).filter(id => docs.has(id) && !isRequestGroup(docs.get(id)!));
@@ -88,8 +95,9 @@ export const RequestTabs: FC = () => {
 
   return (
     <nav
+      ref={strip}
       aria-label="Open requests"
-      className="flex items-stretch h-[--line-height-sm] overflow-x-auto overflow-y-hidden border-b border-solid border-[--hl-md] bg-[--color-bg]"
+      className="flex items-stretch h-[--line-height-sm] overflow-x-auto overflow-y-hidden [scrollbar-width:thin] border-b border-solid border-[--hl-md] bg-[--color-bg]"
     >
       {tabs.map(id => {
         const doc = docs.get(id)!;
@@ -100,7 +108,7 @@ export const RequestTabs: FC = () => {
             key={id}
             data-testid="request-tab"
             aria-current={active ? 'page' : undefined}
-            className={`group flex flex-shrink-0 items-center gap-1 max-w-[14rem] pl-3 pr-1 border-r border-solid border-[--hl-sm] text-[length:var(--font-size-sm)] ${active ? 'bg-[--hl-xs] text-[--color-font]' : 'text-[--hl]'}`}
+            className={`group flex flex-shrink-0 items-center gap-1 max-w-[14rem] pl-3 pr-1 border-r border-solid border-[--hl-sm] text-[length:var(--font-size-sm)] ${active ? 'bg-[--hl-xs] text-[--color-font] shadow-[inset_0_-2px_0_var(--color-surprise)]' : 'text-[--hl]'}`}
             onMouseDown={event => {
               if (event.button === 1) {
                 event.preventDefault();
