@@ -46,7 +46,7 @@ test("a project's global environments reach its collections, and each collection
   await dialog.getByRole('button', { name: 'Use in This Collection' }).click();
   await expect(dialog.getByRole('list', { name: 'Global environments' })).toContainText('Staging(in use)');
   await page.screenshot({ path: 'traces/global-environments.png' });
-  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
 
   await expect(page.getByRole('button', { name: 'Global Environments' })).toContainText('Globals: Staging');
   await requestPane.getByRole('button', { name: 'Send' }).click();

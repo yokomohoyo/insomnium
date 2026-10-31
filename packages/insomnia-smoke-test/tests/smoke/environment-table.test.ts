@@ -33,7 +33,7 @@ test('a variable added in the environment table is sent @ci', async ({ app, page
   // the JSON view shows the same variables
   await dialog.getByRole('button', { name: 'JSON' }).click();
   await expect(dialog.locator('.CodeMirror')).toContainText('"petId": "42"');
-  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
 
   await openRequest(page, 'pet from the table');
   await requestPane.getByRole('button', { name: 'Send' }).click();

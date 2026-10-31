@@ -38,7 +38,7 @@ test("a secret variable is masked, kept out of the environment's JSON, and sent 
   await dialog.getByRole('button', { name: 'JSON' }).click();
   await expect(dialog.locator('.CodeMirror')).toContainText('"petId": ""');
   await expect(dialog).toContainText('Secret values (petId) are kept apart');
-  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
 
   await openRequest(page, 'pet from a secret');
   await requestPane.getByRole('button', { name: 'Send' }).click();

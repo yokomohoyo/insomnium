@@ -1,10 +1,13 @@
 import classnames from 'classnames';
-import React, { forwardRef, ReactNode, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { createContext, forwardRef, ReactNode, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 
 import { createKeybindingsHandler } from '../keydown-binder';
 // Keep global z-index reference so that every modal will
 // appear over top of an existing one.
 let globalZIndex = 1000;
+
+// the id of the modal's title, which its ModalHeader renders: the dialog's name
+export const ModalTitleId = createContext<string | undefined>(undefined);
 
 export interface ModalProps {
   centered?: boolean;
@@ -34,6 +37,7 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
   wide,
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
   const [open, setOpen] = useState(false);
   const [zIndex, setZIndex] = useState(globalZIndex);
   const [onHideArgument, setOnHideArgument] = useState<() => void>();
@@ -103,11 +107,15 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
       style={{ zIndex }}
       aria-hidden={false}
       role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
     >
       <div className="modal__backdrop overlay theme--transparent-overlay" data-close-modal />
       <div className={classnames('modal__content__wrapper', { 'modal--centered': centered })}>
         <div className="modal__content">
-          {children}
+          <ModalTitleId.Provider value={titleId}>
+            {children}
+          </ModalTitleId.Provider>
         </div>
       </div>
     </div>
