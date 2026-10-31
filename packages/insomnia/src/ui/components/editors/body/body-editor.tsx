@@ -10,6 +10,7 @@ import {
   CONTENT_TYPE_GRAPHQL,
   getContentTypeFromHeaders,
 } from '../../../../common/constants';
+import { t } from '../../../../common/i18n';
 import { getContentTypeHeader } from '../../../../common/misc';
 import {
   isEventStreamRequest,
@@ -130,7 +131,8 @@ export const BodyEditor: FC<Props> = ({
       />;
     }
 
-    return <EmptyStatePane icon={<SvgIcon icon="globe" />} documentationLinks={[]} secondaryAction={secondaryAction} title={"Enter a URL and send to get a response"} />;
+    // the Body tab of a request with none: what it shows is the body, not a response
+    return <EmptyStatePane icon={<SvgIcon icon="globe" />} documentationLinks={[]} secondaryAction={t('Choose a body type from the Body menu above to add one')} title={t('This request has no body')} />;
   };
 
   return <NunjucksEnabledProvider disable={noRender}>{_render()}</NunjucksEnabledProvider>;
