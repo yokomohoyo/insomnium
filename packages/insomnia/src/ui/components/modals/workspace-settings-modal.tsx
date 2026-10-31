@@ -179,6 +179,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
           </button>
           <PromptButton
             className="btn btn--super-compact width-auto"
+            title={t('Delete')}
             confirmMessage=""
             onClick={() => deleteClientCert(certificate)}
           >
@@ -348,6 +349,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                         <PromptButton
                           disabled={caCertificate === null}
                           className="btn btn--super-compact width-auto"
+                          title={t('Delete')}
                           confirmMessage=""
                           doneMessage=""
                           onClick={deleteCaCert}

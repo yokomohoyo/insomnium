@@ -582,7 +582,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
                   key="history"
                   className="tall"
                   triggerButton={
-                    <DropdownButton className="btn btn--compact">
+                    <DropdownButton className="btn btn--compact" aria-label="Filter history">
                       <i className="fa fa-clock-o" />
                     </DropdownButton>
                   }
@@ -610,7 +610,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
                 </Dropdown>
               )) : null}
             {showFilter ?
-              (<button key="help" className="btn btn--compact" onClick={() => showModal(FilterHelpModal, { isJSON: Boolean(mode?.includes('json')) })}>
+              (<button key="help" className="btn btn--compact" aria-label="Filter help" onClick={() => showModal(FilterHelpModal, { isJSON: Boolean(mode?.includes('json')) })}>
                 <i className="fa fa-question-circle" />
               </button>) : null}
             {showPrettify ?

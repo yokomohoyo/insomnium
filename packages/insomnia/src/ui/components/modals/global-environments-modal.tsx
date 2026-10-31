@@ -139,7 +139,7 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
                   <button className="btn btn--clicky space-left" disabled={selected._id === activeId} onClick={() => use(selected._id)}>
                     {t('Use in This Collection')}
                   </button>
-                  <PromptButton className="btn btn--clicky space-left" onClick={() => remove(selected)}>
+                  <PromptButton className="btn btn--clicky space-left" title={t('Delete')} onClick={() => remove(selected)}>
                     <i className="fa fa-trash-o" />
                   </PromptButton>
                 </>

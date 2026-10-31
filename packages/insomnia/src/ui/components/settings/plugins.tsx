@@ -199,7 +199,7 @@ export const Plugins: FC = () => {
 
       {error && (
         <div className="notice error text-left margin-bottom">
-          <button className="pull-right icon" onClick={() => setState(state => ({ ...state, error: null }))}>
+          <button className="pull-right icon" aria-label={t('Dismiss')} onClick={() => setState(state => ({ ...state, error: null }))}>
             <i className="fa fa-times" />
           </button>
           <div className="selectable force-pre-wrap">

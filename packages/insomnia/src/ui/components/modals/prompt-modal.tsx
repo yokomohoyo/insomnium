@@ -143,6 +143,7 @@ export const PromptModal = forwardRef<PromptModalHandle, ModalProps>((_, ref) =>
         </button>
         <PromptButton
           confirmMessage=""
+          title={t('Delete')}
           className="tall space-left icon"
           onClick={() => {
             state.onDeleteHint?.(hint);

@@ -239,6 +239,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   message={item.added ? t('Delete') : t('Rollback')}
                                 >
                                   <button
+                                    aria-label={item.added ? t('Delete') : t('Rollback')}
                                     className="btn btn--micro space-right"
                                     onClick={e => {
                                       e.preventDefault();
@@ -346,6 +347,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   message={item.added ? t('Delete') : t('Rollback')}
                                 >
                                   <button
+                                    aria-label={item.added ? t('Delete') : t('Rollback')}
                                     className="btn btn--micro space-right"
                                     onClick={e => {
                                       e.preventDefault();

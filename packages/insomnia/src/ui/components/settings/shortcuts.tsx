@@ -63,6 +63,7 @@ export const Shortcuts: FC = () => {
                     closeOnSelect={false}
                     triggerButton={
                       <DropdownButton
+                        aria-label={`${t('Edit')}: ${t(keyboardShortcutDescriptions[keyboardShortcut])}`}
                         removePaddings={false}
                         removeBorderRadius={false}
                         disableHoverBehavior={false}

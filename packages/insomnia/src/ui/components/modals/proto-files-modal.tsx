@@ -324,7 +324,7 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
                     placeholder="leave blank to use global"
                     style={{ flex: 1 }}
                   />
-                  <button type="button" className="btn btn--compact" onClick={() => setBufHidden(v => !v)}>
+                  <button type="button" className="btn btn--compact" aria-label={bufHidden ? 'Show token' : 'Hide token'} onClick={() => setBufHidden(v => !v)}>
                     <i className={`fa fa-eye${bufHidden ? "-slash" : ""}`} />
                   </button>
                 </div>
@@ -339,7 +339,7 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
                     placeholder="leave blank to use global"
                     style={{ flex: 1 }}
                   />
-                  <button type="button" className="btn btn--compact" onClick={() => setGithubHidden(v => !v)}>
+                  <button type="button" className="btn btn--compact" aria-label={githubHidden ? 'Show token' : 'Hide token'} onClick={() => setGithubHidden(v => !v)}>
                     <i className={`fa fa-eye${githubHidden ? "-slash" : ""}`} />
                   </button>
                 </div>
