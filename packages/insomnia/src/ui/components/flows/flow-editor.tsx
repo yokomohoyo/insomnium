@@ -393,7 +393,7 @@ const Editor: FC<{ flow: Flow; requests: FlowRequest[] }> = ({ flow, requests })
             <ol className="list-none m-0 p-0 flex flex-col gap-[--padding-xxs]">
               {log.map(step => (
                 <li key={step.seq}>
-                  <button className="w-full text-left flex items-start gap-[--padding-xs] text-[--font-size-sm] hover:bg-[--hl-xs] rounded-sm px-[--padding-xxs]" onClick={() => setSelectedId(step.nodeId)}>
+                  <button className="w-full text-left whitespace-normal flex items-start gap-[--padding-xs] text-[--font-size-sm] hover:bg-[--hl-xs] rounded-sm px-[--padding-xxs]" onClick={() => setSelectedId(step.nodeId)}>
                     <i className={`fa fa-fw mt-[2px] ${STEP_ICONS[step.status]}`} />
                     <span className="min-w-0">
                       <span className="font-semibold">{nameOf(step.nodeId)}</span>
