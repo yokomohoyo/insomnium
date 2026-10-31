@@ -193,7 +193,7 @@ const WebSocketRequestForm: FC<FormProps> = ({
             <div>
               <p>The request failed due to an unhandled error:</p>
               <code className="wide selectable">
-                <pre>{err.message}</pre>
+                <pre className="force-pre-wrap">{err.message}</pre>
               </code>
             </div>
           ),
