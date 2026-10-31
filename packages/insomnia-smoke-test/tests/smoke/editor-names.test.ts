@@ -22,5 +22,5 @@ test('the URL bar and the editors have names @ci', async ({ app, page }) => {
 
   const responsePane = page.getByTestId('response-pane');
   await expect(responsePane).toContainText('"id": "1"');
-  await expect(responsePane.getByRole('textbox', { name: 'Response body' })).toHaveCount(1);
+  await expect(responsePane.getByRole('textbox', { name: 'Response body', exact: true })).toHaveCount(1);
 });
