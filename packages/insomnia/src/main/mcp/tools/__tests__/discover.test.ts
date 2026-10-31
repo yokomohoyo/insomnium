@@ -7,6 +7,7 @@ import { INSTRUCTIONS, INSTRUCTIONS_URI, registerInstructions } from '../../inst
 import { registerTools } from '../index';
 import { registerDiscoveryTools } from '../discover';
 import { registerGitTools } from '../git';
+import { registerMcpRequestTools } from '../mcp-requests';
 import { registerMockTools } from '../mocks';
 import { registerTestRunTools } from '../test-run';
 
@@ -95,6 +96,7 @@ describe('the instructions', () => {
     registerTools({ tool: (name: string) => tools.add(name) } as any);
     // and the app's own, which the app's server adds
     registerTestRunTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
+    registerMcpRequestTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerMockTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerGitTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     const named = [...INSTRUCTIONS.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map(match => match[1]);
