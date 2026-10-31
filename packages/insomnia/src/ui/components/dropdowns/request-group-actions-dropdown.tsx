@@ -202,6 +202,15 @@ export const RequestGroupActionsDropdown = ({
         }),
       },
       {
+        id: 'LLM Request',
+        name: t('LLM Request'),
+        icon: 'plus-circle',
+        action: () => createRequest({
+          requestType: 'LLM',
+          parentId: requestGroup._id,
+        }),
+      },
+      {
         id: 'New Folder',
         name: t('New Folder'),
         icon: 'folder',
