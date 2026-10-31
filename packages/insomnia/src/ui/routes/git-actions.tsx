@@ -868,7 +868,8 @@ export const mergeGitBranchAction: ActionFunction = async ({
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return { errors: [errorMessage] };
   } finally {
-    await database.flushChanges(bufferId, true);
+    // sent, not dropped: editors showing a doc git rewrote remount on it
+    await database.flushChanges(bufferId);
   }
 
   return {};
@@ -898,7 +899,8 @@ export const rebaseGitBranchAction: ActionFunction = async ({
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return { errors: [errorMessage] };
   } finally {
-    await database.flushChanges(bufferId, true);
+    // sent, not dropped: editors showing a doc git rewrote remount on it
+    await database.flushChanges(bufferId);
   }
 
   return {};
@@ -1295,7 +1297,8 @@ export const gitStashAction: ActionFunction = async ({ request, params }): Promi
     }
     return { errors: [err instanceof Error ? err.message : String(err)] };
   } finally {
-    await database.flushChanges(bufferId, true);
+    // sent, not dropped: editors showing a doc git rewrote remount on it
+    await database.flushChanges(bufferId);
   }
   return {};
 };
