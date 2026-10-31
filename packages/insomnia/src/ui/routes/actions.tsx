@@ -192,11 +192,9 @@ export const updateWorkspaceAction: ActionFunction = async ({ request }) => {
   const workspace = await models.workspace.getById(workspaceId);
   guard(workspace, 'Workspace not found');
 
+  // a design document made without its spec (by MCP before 0.7.2) gets one
   if (workspace.scope === 'design') {
-    const apiSpec = await models.apiSpec.getByParentId(workspaceId);
-    guard(apiSpec, 'No Api Spec found for this workspace');
-
-    await models.apiSpec.update(apiSpec, {
+    await models.apiSpec.updateOrCreateForParentId(workspaceId, {
       fileName: patch.name || workspace.name,
     });
   }
