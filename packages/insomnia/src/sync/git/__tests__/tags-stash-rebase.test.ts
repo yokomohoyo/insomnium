@@ -85,6 +85,15 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
       ]);
     });
 
+    it("refuses a name git can't have, which it would ignore", async () => {
+      for (const name of ['bad tag', 'a..b', 'a~1', 'what?', '-v1', 'v1.', 'v1.lock', 'a//b', '.hidden', 'a/.b', 'v1@{0}', '@']) {
+        await expect(GitVCS.createTag(name)).rejects.toThrow(`"${name}" can't be a tag's name`);
+      }
+      await GitVCS.createTag('v1.0.0');
+      await GitVCS.createTag('release/2026-10');
+      expect((await GitVCS.listTags()).map(tag => tag.name).sort()).toEqual(['release/2026-10', 'v1.0.0']);
+    });
+
     it('pushes a tag, and deletes it there too', async () => {
       await GitVCS.createTag('v1', 'first release');
       await GitVCS.pushTag('v1');

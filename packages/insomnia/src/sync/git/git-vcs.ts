@@ -162,6 +162,9 @@ const ALL_HISTORY = 2147483647;
 // first, and the remote's tags are kept here (_followTags)
 const branchRef = (name: string) => (name.startsWith('refs/') ? name : `refs/heads/${name}`);
 
+// git check-ref-format's rules: isomorphic-git checks a branch's name, not a tag's
+const isRefName = (name: string) => !/[\x00-\x20\x7f~^:?*[\\]|\.\.|@\{|\/\/|^[/.-]|[/.]$|\.lock$|\/\.|\.lock\//.test(name) && name !== '@';
+
 // what a pull, merge or switch of branch would write over: changes here that
 // were never committed, to documents (or files) it brings changes to
 export class GitLocalChangesError extends Error {
@@ -784,6 +787,9 @@ export class GitVCS {
   // a tag on the current commit; one with a message is annotated, as git tag -a makes
   async createTag(name: string, message = '') {
     console.log(`[git] Tag ${name}`);
+    if (!isRefName(name)) {
+      throw new Error(`"${name}" can't be a tag's name: git allows no spaces, ~ ^ : ? * [ \\ or .. in one.`);
+    }
     // git takes a name both have as the tag, so it would stand in for the branch
     const branches = [...await git.listBranches({ ...this._baseOpts }), ...await git.listBranches({ ...this._baseOpts, remote: 'origin' })];
     if (branches.includes(name)) {
