@@ -66,7 +66,7 @@ export const RunStatsTable: FC<{ stats: RequestRunStats[] }> = ({ stats }) => {
                 <td className="text-right">{ms(row.sd)}</td>
                 {cold && <td className="text-right">{row.first === undefined ? '' : `${ms(row.first)} / ${ms(row.warmP50)}`}</td>}
                 <td className="text-right">{size(row.bytes)}</td>
-                <td><PhaseBar phases={row.phases} /></td>
+                <td className="align-middle"><PhaseBar phases={row.phases} /></td>
               </tr>
             ))}
           </tbody>
