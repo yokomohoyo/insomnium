@@ -14,7 +14,7 @@
 @tailwind utilities;
 
 body{
-  background-color: #000;
+  background-color: var(--color-bg, #000);
 }
 
 .grid-template-app-layout {

@@ -141,7 +141,7 @@ const ErrorCount = styled.div`
 const JumpButton = styled.button`
   outline: 0;
   border: 0;
-  ebackground: transparent;
+  background: transparent;
   font-size: var(--font-size-md);
   margin: 0;
   display: none;
