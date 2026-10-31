@@ -125,6 +125,7 @@ export async function startServer(config: ServerConfig) {
     host: config.host,
     port: config.port,
     token: config.token,
+    tls: config.tls,
     buildServer: () => {
       const server = new McpServer({ name: 'insomnium-server', version }, { instructions: HEADLESS_SERVER_INSTRUCTIONS });
       registerInstructions(server, HEADLESS_INSTRUCTIONS);

@@ -1,7 +1,10 @@
 // The team server's HTTP side: /health, the Git repositories at /git, and the
-// API at /api, behind sign-in; and single sign-on at /auth (oidc.ts). Plain HTTP: put it behind HTTPS (a reverse
-// proxy, such as a NAS's), as Basic sign-in sends the password with each call.
+// API at /api, behind sign-in; and single sign-on at /auth (oidc.ts). Basic
+// sign-in sends the password with each call, so serve HTTPS: from a reverse proxy
+// (such as a NAS's), or itself with a certificate (tls.ts).
 import http from 'node:http';
+
+import { createListener, type TlsFiles } from '../tls';
 
 import { ApiError, handleApi, readJson } from './api';
 import { gitHandler, gitRoute, reposDir } from './git-http';
@@ -16,6 +19,8 @@ export interface TeamConfig {
   publicUrl?: string;
   // single sign-on with OpenID Connect, when set
   oidc?: OidcConfig;
+  // HTTPS from these files, when set
+  tls?: TlsFiles;
 }
 
 // who a request is from: Basic (name and password or token) or Bearer (a token)
@@ -62,12 +67,12 @@ export function startTeamServer(config: TeamConfig) {
       return config.publicUrl.replace(/\/+$/, '');
     }
     // behind a reverse proxy, as it was asked for
-    const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
+    const proto = String(req.headers['x-forwarded-proto'] || (config.tls ? 'https' : 'http')).split(',')[0].trim();
     const host = String(req.headers['x-forwarded-host'] || req.headers.host || `${config.host}:${config.port}`).split(',')[0].trim();
     return `${proto}://${host}`;
   };
 
-  const server = http.createServer(async (req, res) => {
+  const server = createListener(async (req, res) => {
     const reply = (status: number, body: unknown, headers: Record<string, string> = {}) => {
       if (!res.headersSent) {
         res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', ...headers });
@@ -110,7 +115,7 @@ export function startTeamServer(config: TeamConfig) {
       console.error('[team] request failed:', err);
       return reply(500, { error: 'internal error' });
     }
-  });
+  }, config.tls);
 
   async function handleAuth(req: http.IncomingMessage, res: http.ServerResponse, url: URL, reply: (status: number, body: unknown) => void) {
     const page = (status: number, title: string, body: string) => {

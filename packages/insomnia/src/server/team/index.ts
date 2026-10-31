@@ -5,6 +5,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
+import { parseTls, TLS_USAGE } from '../tls';
 import { parseOidcConfig } from './oidc';
 import { startTeamServer, type TeamConfig } from './server';
 import { newPassword, TeamStore } from './store';
@@ -24,7 +25,9 @@ which members clone and push with their user name and an access token.
 
 The first start makes an admin: INSOMNIUM_TEAM_ADMIN names it (default admin), and
 INSOMNIUM_TEAM_ADMIN_PASSWORD sets its password; without one, a password is made
-and printed once. Put the server behind HTTPS: sign-in sends the password or token.
+and printed once. Serve it over HTTPS, as sign-in sends the password or token: put
+a reverse proxy in front, or give it a certificate:
+${TLS_USAGE}
 
 Single sign-on with OpenID Connect (Authentik, Keycloak, Entra ID, Google, ...):
 register a confidential client with the redirect URL <url>/auth/oidc/callback, and set
@@ -46,6 +49,7 @@ export function parseTeamConfig(argv: string[], env: NodeJS.ProcessEnv): TeamCli
     port: Number(env.INSOMNIUM_PORT || 8080),
     publicUrl: env.INSOMNIUM_TEAM_URL || undefined,
     oidc: parseOidcConfig(env),
+    tls: parseTls(env),
     command: [],
   };
   for (let index = 0; index < argv.length; index++) {

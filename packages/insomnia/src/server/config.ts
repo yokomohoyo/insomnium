@@ -1,4 +1,5 @@
 import { emptySources, GIT_USAGE, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
+import { parseTls, type TlsFiles, TLS_USAGE } from './tls';
 
 export interface ServerConfig extends Sources {
   environment?: string;
@@ -12,6 +13,8 @@ export interface ServerConfig extends Sources {
   validateSSL: boolean;
   allowedEnvironmentVariables: string;
   allowedSecrets: string;
+  // HTTPS from these files, when set
+  tls?: TlsFiles;
 }
 
 export const USAGE = `Usage: insomnium-server (--collection <file> | --repo <url or directory>) ... [--env <name>] [--host <address>] [--port <port>]
@@ -35,6 +38,7 @@ Environment:
   INSOMNIUM_ALLOWED_SECRETS secret-manager secrets templates may read (vault:<path>, op://…,
                            aws:<id>, gcp:projects/…, azure:<vault>/<name>), or prefixes
                            ending in *; none by default
+${TLS_USAGE}
 ${GIT_USAGE}`;
 
 const VAR_PREFIX = 'INSOMNIUM_VAR_';
@@ -112,5 +116,6 @@ export const parseConfig = (argv: string[], env: Record<string, string | undefin
     validateSSL: env.INSOMNIUM_VALIDATE_SSL !== 'false',
     allowedEnvironmentVariables: env.INSOMNIUM_ALLOWED_ENV || '',
     allowedSecrets: env.INSOMNIUM_ALLOWED_SECRETS || '',
+    tls: parseTls(env),
   };
 };
