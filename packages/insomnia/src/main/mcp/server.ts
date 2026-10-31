@@ -8,10 +8,12 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
 import { getAppVersion } from '../../common/constants';
 import * as models from '../../models';
+import { collectionMockStatus, recentMockRequests, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
 import { registerTools } from './tools';
+import { registerMockTools } from './tools/mocks';
 import { registerSpecTools } from './tools/spec';
 import { registerTestRunTools } from './tools/test-run';
 
@@ -163,5 +165,12 @@ function buildMcpServer(): McpServer {
   registerSpecTools(server);
   // the app's only too: it asks the user before each run
   registerTestRunTools(server, confirmTestRun);
+  // and the collections' mock servers, which run in the app
+  registerMockTools(server, {
+    start: (workspaceId, port) => startCollectionMock(workspaceId, port),
+    stop: stopCollectionMock,
+    status: collectionMockStatus,
+    recent: recentMockRequests,
+  });
   return server;
 }

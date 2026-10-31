@@ -31,6 +31,9 @@ Everything here works on the user's own collections, on their computer. Changes 
 - \`create_request\`, \`update_request\` (a partial patch; \`parentId\` moves it), \`duplicate_request\`, \`delete_request\`, and the same for folders (\`*_request_group\`), environments, workspaces, projects, response examples, test suites and flows.
 - \`import_collection\` brings in Postman, Insomnia, Bruno, OpenAPI, HAR, curl or WSDL; \`export_workspace\` writes Insomnium, Postman, OpenAPI, Markdown or HTML.
 - \`generate_code\` writes the code that sends a request: curl, fetch, Python requests and many more.
+
+## Mock an API
+- \`start_mock_server\` serves a collection's response examples (\`create_response_example\`) on 127.0.0.1, matched by method and path, so a frontend or a test can call the API before it exists. \`get_mock_server\` shows its routes and the requests it answered; \`stop_mock_server\` stops it.
 - Deleting can't be undone: \`delete_workspace\` wants the workspace's exact name, and \`delete_project\` only takes an empty project. Check with the user before you delete what they didn't ask you to.
 
 ## Good habits
