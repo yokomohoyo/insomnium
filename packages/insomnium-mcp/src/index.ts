@@ -54,6 +54,10 @@ async function readDiscovery(): Promise<Discovery> {
 async function main(): Promise<void> {
   const disc = await readDiscovery();
   const endpoint = new URL(disc.url ?? `http://127.0.0.1:${disc.port}/sse`);
+  // --minimal: only the core tools, for a client with little room for them
+  if (process.argv.includes('--minimal')) {
+    endpoint.searchParams.set('tools', 'minimal');
+  }
   const authHeader = `Bearer ${disc.token}`;
 
   // requestInit.headers is applied to both the SSE stream and POST messages.

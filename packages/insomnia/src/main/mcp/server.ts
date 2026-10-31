@@ -12,7 +12,7 @@ import { collectionMockStatus, recentMockRequests, startCollectionMock, stopColl
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
-import { registerTools } from './tools';
+import { filterTools, MINIMAL_TOOLS, registerTools } from './tools';
 import { registerMockTools } from './tools/mocks';
 import { registerSpecTools } from './tools/spec';
 import { registerTestRunTools } from './tools/test-run';
@@ -68,8 +68,9 @@ export async function startMcpServer(): Promise<{ port: number }> {
         return;
       }
 
-      if (req.method === 'GET' && url === '/sse') {
-        const mcpServer = buildMcpServer();
+      const { pathname, searchParams } = new URL(url, 'http://localhost');
+      if (req.method === 'GET' && pathname === '/sse') {
+        const mcpServer = buildMcpServer(searchParams.get('tools') === 'minimal');
         const transport = new SSEServerTransport('/message', res);
         transports.set(transport.sessionId, transport);
         res.on('close', () => {
@@ -154,11 +155,13 @@ function checkAuth(req: http.IncomingMessage, token: string): boolean {
   return diff === 0;
 }
 
-function buildMcpServer(): McpServer {
-  const server = new McpServer({
+// minimal: only the core tools (MINIMAL_TOOLS), for a client with little room
+function buildMcpServer(minimal = false): McpServer {
+  const mcpServer = new McpServer({
     name: 'insomnium',
     version: getAppVersion(),
   }, { instructions: SERVER_INSTRUCTIONS });
+  const server = minimal ? filterTools(mcpServer, name => MINIMAL_TOOLS.has(name)) : mcpServer;
   registerInstructions(server);
   registerTools(server);
   // the app's only: Spectral stays out of the headless server's bundle
@@ -172,5 +175,5 @@ function buildMcpServer(): McpServer {
     status: collectionMockStatus,
     recent: recentMockRequests,
   });
-  return server;
+  return mcpServer;
 }

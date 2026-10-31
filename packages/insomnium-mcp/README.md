@@ -45,6 +45,10 @@ The app must be running with the server enabled whenever the client connects.
 
 ## Configuration
 
+- `--minimal` — offer only the core tools (search, read and edit requests,
+  environments, send, run, generate code) for a client with little room for
+  tool descriptions: `npx insomnium-mcp --minimal`. Over SSE, connect to
+  `…/sse?tools=minimal` instead.
 - `INSOMNIUM_MCP_DISCOVERY_FILE` — override the discovery file path (must match
   the path the app writes to).
 
