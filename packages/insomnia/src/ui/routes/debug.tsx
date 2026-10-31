@@ -96,7 +96,7 @@ import {
   RequestLoaderData,
   WebSocketRequestLoaderData,
 } from './request';
-import { RootLoaderData } from './root';
+import { QUICK_SWITCH_EVENT, RootLoaderData } from './root';
 import { Child, WorkspaceLoaderData } from './workspace';
 import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 
@@ -422,6 +422,11 @@ export const Debug: FC = () => {
       }
     },
   });
+  useEffect(() => {
+    const openSwitcher = () => setRequestSwitcher('all');
+    window.addEventListener(QUICK_SWITCH_EVENT, openSwitcher);
+    return () => window.removeEventListener(QUICK_SWITCH_EVENT, openSwitcher);
+  }, []);
   // Close all websocket connections when the active environment changes
   useEffect(() => {
     return () => {
@@ -706,7 +711,7 @@ export const Debug: FC = () => {
       className="new-sidebar"
       renderPageSidebar={
         <div className="flex flex-1 flex-col overflow-hidden divide-solid divide-y divide-[--hl-md]">
-          <div className="flex flex-col items-start gap-2 justify-between p-[--padding-sm]">
+          <div className="flex flex-col items-start gap-1 justify-between p-[--padding-sm]">
             <div className="flex w-full items-center gap-2 justify-between">
               <Select
                 aria-label={t('Select an environment')}
@@ -808,29 +813,31 @@ export const Debug: FC = () => {
                 <Icon icon="gear" />
               </Button>
             </div>
-            <Button
-              onPress={() => setIsCookieModalOpen(true)}
-              className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
-            >
-              <Icon icon="cookie-bite" />
-              {activeCookieJar.cookies.length === 0 ? t('Add Cookies') : t('Manage Cookies')}
-            </Button>
-            <Button
-              aria-label={t('Global Environments')}
-              onPress={() => setGlobalEnvironmentsModalOpen(true)}
-              className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
-            >
-              <Icon icon="globe" />
-              {activeGlobalEnvironment ? t('Globals: {name}', { name: activeGlobalEnvironment.name }) : t('Globals')}
-            </Button>
-            <Button
-              aria-label={t('History')}
-              onPress={() => setHistoryModalOpen(true)}
-              className="px-4 py-1 flex-1 flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] rounded-sm text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-sm"
-            >
-              <Icon icon="clock-rotate-left" />
-              {t('History')}
-            </Button>
+            <div className="flex w-full gap-1">
+              <Button
+                onPress={() => setIsCookieModalOpen(true)}
+                className="px-2 py-1 flex-1 min-w-0 flex items-center justify-center gap-1.5 aria-pressed:bg-[--hl-sm] rounded-sm text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-xs"
+              >
+                <Icon icon="cookie-bite" />
+                <span className="truncate">{activeCookieJar.cookies.length === 0 ? t('Add Cookies') : t('Cookies')}</span>
+              </Button>
+              <Button
+                aria-label={t('Global Environments')}
+                onPress={() => setGlobalEnvironmentsModalOpen(true)}
+                className="px-2 py-1 flex-1 min-w-0 flex items-center justify-center gap-1.5 aria-pressed:bg-[--hl-sm] rounded-sm text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-xs"
+              >
+                <Icon icon="globe" />
+                <span className="truncate" title={activeGlobalEnvironment?.name}>{activeGlobalEnvironment ? t('Globals: {name}', { name: activeGlobalEnvironment.name }) : t('Globals')}</span>
+              </Button>
+              <Button
+                aria-label={t('History')}
+                onPress={() => setHistoryModalOpen(true)}
+                className="px-2 py-1 flex-1 min-w-0 flex items-center justify-center gap-1.5 aria-pressed:bg-[--hl-sm] rounded-sm text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-xs"
+              >
+                <Icon icon="clock-rotate-left" />
+                <span className="truncate">{t('History')}</span>
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-col flex-1 overflow-hidden">

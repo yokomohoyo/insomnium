@@ -21,8 +21,7 @@ body{
   grid-template:
     'Header Header' auto
     'Navbar Content' 1fr
-    'Statusbar Statusbar' 30px [row-end]
-    / 50px 1fr;
+    / 64px 1fr;
 }
 
 .react-aria-Breadcrumbs ol {

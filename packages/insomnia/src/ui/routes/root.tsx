@@ -1,5 +1,6 @@
 import '../css/styles.css';
 
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import type { IpcRendererEvent } from 'electron';
 import React, { Fragment, useEffect, useState } from 'react';
 import {
@@ -78,6 +79,39 @@ export const loader: LoaderFunction = async (): Promise<RootLoaderData> => {
 /**** ><> ↑ --------- Root Loader Data */
 
 /**** ><> ↑ --------- Helper Function */
+
+// the request switcher's own event, so the header's search box can open it
+export const QUICK_SWITCH_EVENT = 'insomnium:quick-switch';
+
+// a workspace's views, in the rail; each link's text stays the route's own word
+const WORKSPACE_VIEWS: { path: string; icon: IconProp; label: () => string }[] = [
+  { path: 'spec', icon: 'file-lines', label: () => t('spec') },
+  { path: 'debug', icon: 'arrow-right-arrow-left', label: () => t('requests') },
+  { path: 'test', icon: 'flask', label: () => t('test') },
+  { path: 'flows', icon: 'diagram-project', label: () => t('flows') },
+];
+
+const RAIL_ITEM = 'flex flex-col items-center justify-center gap-[2px] w-[52px] py-[--padding-xs] rounded-md no-underline hover:no-underline text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] outline-none focus-visible:ring-1 focus-visible:ring-[--hl-md] transition-colors';
+const RAIL_BUTTON = 'flex items-center justify-center w-9 h-9 rounded-md text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] aria-pressed:bg-[--hl-sm] aria-pressed:text-[--color-font] outline-none focus-visible:ring-1 focus-visible:ring-[--hl-md] transition-colors';
+const TOOLTIP = 'border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md focus:outline-none';
+
+// a place in the rail: an icon over its name
+const RailLink = ({ label, icon, to, isProjects }: { label: string; icon: IconProp; to: string; isProjects?: boolean }) => (
+  <NavLink
+    to={to}
+    aria-label={isProjects ? label : undefined}
+    className={({ isActive }) => `${RAIL_ITEM} ${isActive && !isProjects ? 'bg-[--hl-sm] text-[--color-font]' : ''}`}
+  >
+    {({ isActive }) => (
+      <Fragment>
+        <span className={`flex items-center justify-center w-7 h-7 rounded-md ${isProjects ? 'bg-gradient-to-br from-[#4000BF] to-[#154B62] text-[--color-font-surprise]' : ''} ${isProjects && isActive ? 'outline outline-2 outline-offset-2 outline-[--color-font]' : ''}`}>
+          <Icon icon={icon} />
+        </span>
+        <span className="text-[10px] leading-tight capitalize">{label}</span>
+      </Fragment>
+    )}
+  </NavLink>
+);
 
 const Root = () => {
   const navigate = useNavigate();
@@ -254,141 +288,93 @@ const Root = () => {
             />
           )}
           <div className="w-full h-full divide-x divide-solid divide-y divide-[--hl-md] grid-template-app-layout grid relative bg-[--color-bg]">
-            <header className="[grid-area:Header] grid grid-cols-3 items-center">
-              <div className="flex items-center">
-                <div className="flex w-[50px] py-2">
-                &nbsp;
-                </div>
-
-              </div>
-              <div className="flex gap-2 flex-nowrap items-center justify-center">
-                {workspaceData && (
-                  <Fragment>
-                  <Breadcrumbs items={crumbs}>
-                      {item => (
-                        <Item key={item.id} id={item.id}>
-                          {item.node}
-                        </Item>
-                    )}
-                    </Breadcrumbs>
-                    {workspaceData?.activeWorkspace && (
-                      <nav className="flex rounded-full justify-between content-evenly font-semibold bg-[--hl-xs] p-[--padding-xxs]">
-                        {(isDesign(workspaceData.activeWorkspace) ? ['spec', 'debug', 'test', 'flows'] : ['debug', 'test', 'flows']).map(item => (
-                          <NavLink
-                            key={item}
-                            to={`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${item}`}
-                            className={({ isActive }) =>
-                              `${
-                                isActive
-                                  ? 'text-[--color-font] bg-[--color-bg]'
-                                  : ''
-                              } no-underline transition-colors text-center outline-none min-w-[4rem] uppercase text-[--color-font] text-xs px-[--padding-xs] py-[--padding-xxs] rounded-full`
-                            }
-                          >
-                            {item === 'spec' ? t('spec') : item === 'debug' ? t('requests') : item === 'test' ? t('test') : t('flows')}
-                          </NavLink>
-                        ))}
-                      </nav>
-                    )}
-                  </Fragment>
-                )}
-            </div>
-
-              {/* /**** ><> ↑ --------- Root Component */}
+            <header className="[grid-area:Header] flex items-center gap-[--padding-md] min-h-[--line-height-sm] px-[--padding-md]">
+              {workspaceData && (
+                <Breadcrumbs items={crumbs}>
+                  {item => (
+                    <Item key={item.id} id={item.id}>
+                      {item.node}
+                    </Item>
+                  )}
+                </Breadcrumbs>
+              )}
+              <span className="flex-1" />
+              {workspaceData && location.pathname.endsWith('/debug') && (
+                <Button
+                  aria-label={t('Search requests')}
+                  onPress={() => window.dispatchEvent(new Event(QUICK_SWITCH_EVENT))}
+                  className="flex items-center gap-2 w-64 max-w-[30vw] px-[--padding-sm] py-[--padding-xxs] rounded-md border border-solid border-[--hl-md] text-[--hl] text-xs hover:border-[--hl] hover:bg-[--hl-xxs] focus:ring-1 focus:ring-[--hl-md] transition-colors"
+                >
+                  <Icon icon="search" />
+                  <span className="flex-1 text-left">{t('Search requests')}</span>
+                  <Hotkey keyBindings={settings.hotKeyRegistry.request_quickSwitch} />
+                </Button>
+              )}
+              <span className="flex-1" />
+              <span className="flex items-center gap-1 text-xs text-[--hl] whitespace-nowrap">
+                {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-[--color-danger]" icon="heart" />
+              </span>
             </header>
-            <div className="[grid-area:Navbar] overflow-hidden">
-              <nav className="flex flex-col items-center place-content-stretch gap-[--padding-md] w-full h-full overflow-y-auto py-[--padding-md]">
+            <nav aria-label={t('App')} className="[grid-area:Navbar] flex flex-col items-center gap-[--padding-xs] w-full h-full overflow-y-auto py-[--padding-sm]">
+              <RailLink
+                label={t('Projects')}
+                icon="home"
+                to={(() => {
+                  // from outside a project, back to the last requester location
+                  if (!location.pathname.includes('organization')) {
+                    const prevLocationHistoryEntry = localStorage.getItem('requester_locationHistoryEntry');
+                    if (prevLocationHistoryEntry) {
+                      return prevLocationHistoryEntry;
+                    }
+                  }
+                  return `/organization/${DEFAULT_ORGANIZATION_ID}`;
+                })()}
+                isProjects
+              />
+              {workspaceData?.activeWorkspace && (
+                <Fragment>
+                  <span className="w-8 border-t border-solid border-[--hl-md] my-[--padding-xxs]" />
+                  {(isDesign(workspaceData.activeWorkspace) ? WORKSPACE_VIEWS : WORKSPACE_VIEWS.filter(view => view.path !== 'spec')).map(view => (
+                    <RailLink
+                      key={view.path}
+                      label={view.label()}
+                      icon={view.icon}
+                      to={`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${view.path}`}
+                    />
+                  ))}
+                </Fragment>
+              )}
+              <span className="flex-1" />
               <TooltipTrigger>
-                    <Link>
-                      <NavLink
-                        aria-label={t('Projects')}
-                        className={({ isActive }) =>
-                          `select-none text-[--color-font-surprise] flex-shrink-0 hover:no-underline transition-all duration-150 bg-gradient-to-br box-border from-[#4000BF] to-[#154B62] p-[--padding-sm] font-bold outline-[3px] rounded-md w-[28px] h-[28px] flex items-center justify-center active:outline overflow-hidden outline-offset-[3px] outline ${
-                            isActive
-                              ? 'outline-[--color-font]'
-                              : 'outline-transparent focus:outline-[--hl-md] hover:outline-[--hl-md]'
-                          }`
-                        }
-
-                        to={(() => {
-
-                      const currentLocation = location.pathname;
-
-                      if (!currentLocation.includes('organization')) {
-                        // jump to the previous requester location
-                        // if coming from none requester tab
-                        const prevLocationHistoryEntry = localStorage.getItem('requester_locationHistoryEntry');
-
-                        if (prevLocationHistoryEntry) {
- return prevLocationHistoryEntry;
-}
-                      }
-
-                      return `/organization/${DEFAULT_ORGANIZATION_ID}`;
-
-                        })()}
-                      >
-
-                        <Icon icon="home" />
-                      </NavLink>
-                    </Link>
-                    <Tooltip
-                      placement="right"
-                      offset={8}
-                      className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
-                    >
-                  <span>{t('Projects')}</span>
-                    </Tooltip>
-                  </TooltipTrigger>
-
-              </nav>
-            </div>
-            {/* /**** ><> ↑ --------- Navbar */}
-            <Outlet />
-            {isConsoleOpen && <ConsoleDrawer onClose={() => setConsoleOpen(false)} />}
-            <div className="relative [grid-area:Statusbar] flex items-center justify-between overflow-hidden">
-              <div className="flex h-full">
+                <Button
+                  data-testid="console-button"
+                  aria-label={t('Console')}
+                  aria-pressed={isConsoleOpen}
+                  className={RAIL_BUTTON}
+                  onPress={() => setConsoleOpen(!isConsoleOpen)}
+                >
+                  <Icon icon="terminal" />
+                </Button>
+                <Tooltip placement="right" offset={8} className={TOOLTIP}>{t('Console')}</Tooltip>
+              </TooltipTrigger>
               <TooltipTrigger>
                 <Button
                   data-testid="settings-button"
-                  className="px-4 py-1 h-full flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] text-[--color-font] text-xs hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all"
+                  aria-label={t('Preferences')}
+                  className={RAIL_BUTTON}
                   onPress={showSettingsModal}
                 >
-                  <Icon icon="gear" /> {t('Preferences')}
+                  <Icon icon="gear" />
                 </Button>
-                <Tooltip
-                  placement="top"
-                  offset={8}
-                  className="border flex items-center gap-2 select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
-                >
+                <Tooltip placement="right" offset={8} className={`${TOOLTIP} flex items-center gap-2`}>
                   {t('Preferences')}
-                  <Hotkey
-                    keyBindings={
-                      settings.hotKeyRegistry.preferences_showGeneral
-                    }
-                  />
+                  <Hotkey keyBindings={settings.hotKeyRegistry.preferences_showGeneral} />
                 </Tooltip>
               </TooltipTrigger>
-              <Button
-                data-testid="console-button"
-                aria-pressed={isConsoleOpen}
-                className="px-4 py-1 h-full flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] text-[--color-font] text-xs hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all"
-                onPress={() => setConsoleOpen(!isConsoleOpen)}
-              >
-                <Icon icon="terminal" /> {t('Console')}
-              </Button>
-              </div>
-              <Link>
-
-                <a
-                  className="flex focus:outline-none focus:underline gap-1 items-center text-xs text-[--color-font] px-[--padding-md]"
-                >
-                  {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-[--color-danger]" icon="heart" />
-                </a>
-              </Link>
-            </div>
+            </nav>
+            <Outlet />
+            {isConsoleOpen && <ConsoleDrawer onClose={() => setConsoleOpen(false)} />}
           </div>
-          {/* /**** ><> ↑ --------- Statusbar */}
 
           <Toast checkForNewReleases={settings.checkForNewReleases} />
         </div>
