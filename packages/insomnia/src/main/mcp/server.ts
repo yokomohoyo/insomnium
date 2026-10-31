@@ -17,6 +17,7 @@ import { gitSshRequestFrom } from '../git-ssh';
 import { collectionMockStatus, recentMockRequests, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import { axiosRequest } from '../network/axios-request';
 import { eventStreams } from '../network/curl';
+import { webSockets } from '../network/websocket';
 import { confirmGitAction } from './confirm-git';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
@@ -27,6 +28,7 @@ import { registerMockTools } from './tools/mocks';
 import { registerSpecTools } from './tools/spec';
 import { registerStreamTools } from './tools/streams';
 import { registerTestRunTools } from './tools/test-run';
+import { registerWebSocketTools } from './tools/websockets';
 
 interface RunningServer {
   http: http.Server;
@@ -199,5 +201,7 @@ function buildMcpServer(minimal = false): McpServer {
   });
   // and event stream connections, which run in the app
   registerStreamTools(server, eventStreams);
+  // and WebSocket connections, which run in the app
+  registerWebSocketTools(server, webSockets);
   return mcpServer;
 }
