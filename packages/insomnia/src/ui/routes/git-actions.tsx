@@ -33,6 +33,7 @@ import { MemClient } from '../../sync/git/mem-client';
 import { findInsomniaProjectFiles, importInsomniaProjectFiles } from '../../sync/git/insomnia-git-project';
 import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
 import parseGitPath from '../../sync/git/parse-git-path';
+import { convertToPosixSep } from '../../sync/git/path-sep';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
 import { shallowClone } from '../../sync/git/shallow-clone';
 import { isSshUrl } from '../../sync/git/ssh-url';
@@ -1252,7 +1253,9 @@ export const gitStashesLoader: LoaderFunction = async ({ params }): Promise<GitS
   const workspace = await models.workspace.getById(workspaceId);
   guard(workspace, 'Workspace not found');
   const { changes, statusNames } = await getGitChanges(GitVCS, workspace);
-  return { stashes: await GitVCS.listStashes(), changes: changes.filter(change => change.editable).length, statusNames };
+  // a stash's files are git paths, with / where Windows' names have \
+  const names = Object.fromEntries(Object.entries(statusNames).map(([file, name]) => [convertToPosixSep(file), name]));
+  return { stashes: await GitVCS.listStashes(), changes: changes.filter(change => change.editable).length, statusNames: names };
 };
 
 export interface GitStashResult {
