@@ -1116,6 +1116,13 @@ button {
   margin: 0;
   white-space: nowrap;
 }
+/* Where the keyboard's focus is. The resets above and the components'
+   outline-none took every ring away, so tabbing showed nothing; this outranks
+   them. Text fields keep their own focused border */
+:root :focus-visible:not(input, textarea, select, [contenteditable]) {
+  outline: 2px solid var(--color-surprise);
+  outline-offset: -2px;
+}
 option {
   background-color: var(--color-bg);
   color: var(--color-font);
