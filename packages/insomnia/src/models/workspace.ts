@@ -85,8 +85,18 @@ export function update(workspace: Workspace, patch: Partial<Workspace>) {
   return db.docUpdate(workspace, patch);
 }
 
-export function remove(workspace: Workspace) {
-  return db.remove(workspace);
+export async function remove(workspace: Workspace) {
+  const meta = await models.workspaceMeta.getByParentId(workspace._id);
+  await db.remove(workspace);
+  // its git repository goes too, as Reset does it: else its sign-in stays
+  // saved, and is offered to other repositories
+  const repoId = meta?.gitRepositoryId;
+  if (repoId && !await models.workspaceMeta.getByGitRepositoryId(repoId)) {
+    const repository = await models.gitRepository.getById(repoId);
+    if (repository) {
+      await models.gitRepository.remove(repository);
+    }
+  }
 }
 
 function _migrateExtractClientCertificates(workspace: Workspace) {

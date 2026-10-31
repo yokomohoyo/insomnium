@@ -103,3 +103,26 @@ describe('migrate()', () => {
     expect(collectionW.scope).toBe(WorkspaceScopeKeys.collection);
   });
 });
+
+describe('remove()', () => {
+  beforeEach(globalBeforeEach);
+
+  const withRepository = async (gitRepositoryId: string) => {
+    const workspace = await models.workspace.create({ name: 'Pets' });
+    await models.workspaceMeta.getOrCreateByParentId(workspace._id, { gitRepositoryId });
+    return workspace;
+  };
+
+  it('removes its git repository, and the sign-in saved with it', async () => {
+    const repository = await models.gitRepository.create({ uri: 'https://example.com/pets.git', credentials: { username: 'kim', password: 'token' } });
+    await models.workspace.remove(await withRepository(repository._id));
+    expect(await models.gitRepository.getById(repository._id)).toBeNull();
+  });
+
+  it('keeps a git repository another workspace still uses', async () => {
+    const repository = await models.gitRepository.create({ uri: 'https://example.com/pets.git' });
+    await withRepository(repository._id);
+    await models.workspace.remove(await withRepository(repository._id));
+    expect(await models.gitRepository.getById(repository._id)).not.toBeNull();
+  });
+});
