@@ -2,6 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import { render, within } from '@testing-library/react';
 import React from 'react';
 
+import { compareRuns } from '../../../network/run-compare';
 import type { RequestRunStats } from '../../../network/run-stats';
 import { RunStatsTable } from '../run-stats-table';
 
@@ -32,5 +33,16 @@ describe('the runner summary', () => {
   it('leaves out the cold start column with one iteration', () => {
     const view = render(<RunStatsTable stats={[row({ first: undefined, warmP50: undefined })]} />);
     expect(view.queryByRole('columnheader', { name: 'First / later' })).toBeNull();
+    expect(view.queryByRole('columnheader', { name: 'p95 vs baseline' })).toBeNull();
+  });
+
+  it('compares each p95 with the baseline', () => {
+    const stats = [row({}), row({ requestId: 'req_b', name: 'Create' })];
+    const comparison = compareRuns(stats, { byRequest: [{ requestId: 'req_a', name: 'Users / List', p50: 40, p95: 60 }] });
+    const view = render(<RunStatsTable stats={stats} comparison={comparison} />);
+    const versus = (name: string) => within(view.getByRole('row', { name })).getAllByRole('cell')[9];
+    expect(versus('Users / List').textContent).toBe('+50% (60 ms → 90 ms)');
+    expect(versus('Users / List').className).toContain('danger');
+    expect(versus('Create').textContent).toBe('new');
   });
 });

@@ -4,6 +4,7 @@ import React, { FC, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
+import { type Baseline, compareRuns, parseBaseline, type RunComparison } from '../../../network/run-compare';
 import { csvReport, htmlReport, jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
 import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
@@ -21,10 +22,10 @@ const elapsed = (ms?: number) => ms === undefined ? '' : ms < 1000 ? `${Math.rou
 // what a finished run saves as: a page to read or share, rows for a
 // spreadsheet, and the JSON and JUnit XML that CI reads
 const REPORTS = {
-  html: { button: 'Save HTML', label: 'HTML report', extension: 'html', write: (summary: RunSummary, name: string) => htmlReport(summary, name) },
+  html: { button: 'Save HTML', label: 'HTML report', extension: 'html', write: (summary: RunSummary, name: string, comparison?: RunComparison) => htmlReport(summary, name, undefined, comparison) },
   csv: { button: 'Save CSV', label: 'CSV report', extension: 'csv', write: (summary: RunSummary) => csvReport(summary) },
   json: { button: 'Save JSON', label: 'JSON report', extension: 'json', write: jsonReport },
-  junit: { button: 'Save JUnit', label: 'JUnit report', extension: 'xml', write: junitReport },
+  junit: { button: 'Save JUnit', label: 'JUnit report', extension: 'xml', write: (summary: RunSummary, name: string) => junitReport(summary, name) },
 };
 
 interface Props {
@@ -48,6 +49,8 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
   const [delay, setDelay] = useState(0);
   const [bail, setBail] = useState(false);
   const [data, setData] = useState<{ file: string; rows: Record<string, unknown>[] }>();
+  // an earlier run's JSON report, to compare this run's times with
+  const [baseline, setBaseline] = useState<{ file: string; report: Baseline }>();
   const [error, setError] = useState('');
   const [results, setResults] = useState<RunResult[]>([]);
   const [summary, setSummary] = useState<RunSummary>();
@@ -109,6 +112,27 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
     }
   };
 
+  const chooseBaseline = async () => {
+    const { canceled, filePaths } = await window.dialog.showOpenDialog({
+      title: 'Compare with a run report',
+      buttonLabel: 'Compare',
+      properties: ['openFile'],
+      filters: [{ name: 'Run report (JSON)', extensions: ['json'] }],
+    });
+    if (canceled || !filePaths[0]) {
+      return;
+    }
+    try {
+      setBaseline({ file: filePaths[0], report: parseBaseline(await fs.promises.readFile(filePaths[0], 'utf8')) });
+      setError('');
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const stats = summary ? requestRunStats(summary.results, resultName) : [];
+  const comparison = summary && baseline ? compareRuns(stats, baseline.report) : undefined;
+
   const save = async (kind: keyof typeof REPORTS) => {
     if (!summary) {
       return;
@@ -122,7 +146,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
     if (canceled || !filePath) {
       return;
     }
-    await fs.promises.writeFile(filePath, report.write(summary, name));
+    await fs.promises.writeFile(filePath, report.write(summary, name, comparison));
   };
 
   const openRequest = (requestId: string) => {
@@ -207,6 +231,21 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
                 </span>
               </label>
             </div>
+            <div className="form-control">
+              <label>
+                Compare with an earlier run (its JSON report)
+                <span className="flex items-center gap-2">
+                  <button className="btn btn--clicky btn--compact" disabled={running} onClick={chooseBaseline}>
+                    {baseline ? path.basename(baseline.file) : 'Choose a run report'}
+                  </button>
+                  {baseline && (
+                    <button className="btn btn--super-compact" aria-label="Clear the run to compare with" disabled={running} onClick={() => setBaseline(undefined)}>
+                      <i className="fa fa-times" />
+                    </button>
+                  )}
+                </span>
+              </label>
+            </div>
           </div>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={bail} disabled={running} onChange={event => setBail(event.currentTarget.checked)} />
@@ -215,12 +254,12 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
           {error && <p className="notice error">{error}</p>}
           {(running || results.length > 0) && (
             <section className="margin-top">
-              <p data-testid="run-summary" className={summary ? (summary.requests.failed ? 'danger' : 'success') : 'faint'}>
+              <p data-testid="run-summary" className={summary ? (summary.requests.failed || comparison?.slower ? 'danger' : 'success') : 'faint'}>
                 {summary
-                  ? `${passed} of ${summary.requests.total} requests passed · ${summary.assertions.total - summary.assertions.failed} of ${summary.assertions.total} assertions passed · ${elapsed(summary.elapsedTime)}${summary.bailed ? ' · stopped at the first failure' : ''}${summary.stopped ? ' · stopped' : ''}`
+                  ? `${passed} of ${summary.requests.total} requests passed · ${summary.assertions.total - summary.assertions.failed} of ${summary.assertions.total} assertions passed · ${elapsed(summary.elapsedTime)}${summary.bailed ? ' · stopped at the first failure' : ''}${summary.stopped ? ' · stopped' : ''}${comparison ? ` · ${comparison.slower} slower than ${path.basename(baseline!.file)}` : ''}`
                   : `Running: ${results.length} sent`}
               </p>
-              {summary && summary.results.length > 0 && <RunStatsTable stats={requestRunStats(summary.results, resultName)} />}
+              {summary && summary.results.length > 0 && <RunStatsTable stats={stats} comparison={comparison} />}
               <ul aria-label="Run results" className="list-none m-0 p-0">
                 {results.map(result => (
                   <li key={`${result.iteration}-${result.requestId}`} aria-label={resultName(result)} className="pad-bottom-sm">
