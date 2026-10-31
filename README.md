@@ -98,7 +98,32 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Environments** — list environments, read the active one, and switch it.
 - **Proto/gRPC** — list and import `.proto` files (single file or directory), inspect services/methods, and update gRPC metadata.
 
-**For coding agents:** `npx insomnium-cli agent install` installs a skill for Claude Code that tells it how to use your collections: find a request, check the environment, send it, read the response and its assertions, and run a folder. See [insomnium-cli](packages/insomnium-cli/README.md).
+To connect an MCP client without copying the token, use the `insomnium-mcp` launcher, which reads it from the running app: `claude mcp add insomnium npx insomnium-mcp`.
+
+
+## Command line
+
+`insomnium-cli` drives a running Insomnium from your terminal, a script or a coding agent. It talks to the [MCP automation server](#mcp-automation-server) above, so turn that on first. Anything it changes shows up in the app straight away.
+
+```sh
+npm i -g insomnium-cli        # or run it without installing: npx insomnium-cli …
+```
+
+- `insomnium tools` lists every tool the app offers, and `insomnium describe <tool>` shows its arguments.
+- `insomnium call <tool>` runs one, with `--arg key=value` (repeatable) or `--args '<json>'`.
+- `insomnium status` checks the app is reachable.
+- `--json` prints raw JSON for scripts and agents. A tool that fails exits with `2`, so a script can stop on it.
+
+```sh
+insomnium call list_workspaces                                # your collections, with ids
+insomnium call list_requests --arg workspaceId=wrk_123        # every request in one
+insomnium call send_http_request --arg requestId=req_123      # send it, with its environment, auth and scripts
+insomnium call run_requests --arg parentId=fld_123 --json     # run a folder and check its assertions
+```
+
+**For coding agents:** `insomnium agent install` installs a skill for Claude Code (`--dir` for another agent's skills folder) that tells it how to use your collections: find a request, check the environment, send it, read the response and its assertions, and run a folder. The agent can then use the CLI, or connect to the tools directly with `claude mcp add insomnium npx insomnium-mcp`.
+
+Every option: [insomnium-cli](packages/insomnium-cli/README.md).
 
 
 ## Team server
