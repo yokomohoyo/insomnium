@@ -877,5 +877,9 @@
   "Commit Failed": "Error en el commit",
   "Rollback Failed": "Error al revertir",
   "App": "Aplicación",
-  "Search requests": "Buscar solicitudes"
+  "Search requests": "Buscar solicitudes",
+  "Version {version}": "Versión {version}",
+  "A 100% local and privacy-focused fork of Insomnia": "Un fork de Insomnia 100 % local y centrado en la privacidad",
+  "Build details": "Detalles de la compilación",
+  "Copy details": "Copiar detalles"
 }

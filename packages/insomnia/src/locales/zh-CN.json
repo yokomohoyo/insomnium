@@ -877,5 +877,9 @@
   "Commit Failed": "提交失败",
   "Rollback Failed": "回滚失败",
   "App": "应用",
-  "Search requests": "搜索请求"
+  "Search requests": "搜索请求",
+  "Version {version}": "版本 {version}",
+  "A 100% local and privacy-focused fork of Insomnia": "100% 本地、注重隐私的 Insomnia 分支",
+  "Build details": "构建详情",
+  "Copy details": "复制详情"
 }

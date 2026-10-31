@@ -10,9 +10,15 @@ import * as themes from '../plugins/misc';
 import * as templating from '../templating';
 
 import { showAlert, showModal } from './components/modals';
+import { AboutModal, type AboutDetails } from './components/modals/about-modal';
 import { AskModal } from './components/modals/ask-modal';
 import { SelectModal } from './components/modals/select-modal';
 import { SettingsModal, TAB_INDEX_SHORTCUTS } from './components/modals/settings-modal';
+
+// Help → About
+window.main.on('show-about', (_: unknown, details: AboutDetails) => {
+  showModal(AboutModal, details);
+});
 
 window.main.on('toggle-preferences', () => {
   showModal(SettingsModal);

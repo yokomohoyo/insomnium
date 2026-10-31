@@ -11,7 +11,6 @@ import {
   getLicenseURL,
   getProductName,
   isDevelopment,
-  isLinux,
   isMac,
   MNEMONIC_SYM,
 } from '../common/constants';
@@ -21,7 +20,7 @@ import * as log from '../common/log';
 import LocalStorage from './local-storage';
 import { showUpdateCheck } from './release-check';
 
-const { app, Menu, shell, dialog, clipboard, BrowserWindow } = electron;
+const { app, Menu, shell, dialog, BrowserWindow } = electron;
 
 const DEFAULT_WIDTH = 1280;
 const DEFAULT_HEIGHT = 720;
@@ -428,34 +427,23 @@ export function createMenu() {
   };
 
   const aboutMenuClickHandler = async () => {
-    const copy = 'Copy';
-    const ok = 'OK';
-    const buttons = isLinux() ? [copy, ok] : [ok, copy];
-    const detail = [
-      `Version: ${getProductName()} ${getAppVersion()}`,
-      `Build date: ${getAppBuildDate()}`,
-      `OS: ${os.type()} ${os.arch()} ${os.release()}`,
-      `Electron: ${process.versions.electron}`,
-      `Node: ${process.versions.node}`,
-      `Node ABI: ${process.versions.modules}`,
-      `V8: ${process.versions.v8}`,
-      `Architecture: ${process.arch}`,
-    ].join('\n');
-
-    const msgBox = await dialog.showMessageBox({
-      type: 'info',
-      title: getProductName(),
-      message: getProductName(),
-      detail: `A 100% local and privacy-focused fork of Insomnia.\n\n${detail}`,
-      buttons,
-      defaultId: buttons.indexOf(ok),
-      cancelId: buttons.indexOf(ok),
-      noLink: true,
-    });
-
-    if (msgBox.response === buttons.indexOf(copy)) {
-      clipboard.writeText(detail);
+    const rows: [string, string][] = [
+      ['Build date', getAppBuildDate()],
+      ['OS', `${os.type()} ${os.arch()} ${os.release()}`],
+      ['Electron', process.versions.electron],
+      ['Node', process.versions.node],
+      ['Node ABI', process.versions.modules],
+      ['V8', process.versions.v8],
+      ['Architecture', process.arch],
+    ];
+    // shown by the app's own About dialog, in its look
+    const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0];
+    if (window) {
+      window.webContents.send('show-about', { productName: getProductName(), version: getAppVersion(), rows });
+      return;
     }
+    const detail = [`Version: ${getProductName()} ${getAppVersion()}`, ...rows.map(([label, value]) => `${label}: ${value}`)].join('\n');
+    await dialog.showMessageBox({ type: 'info', title: getProductName(), message: getProductName(), detail, noLink: true });
   };
 
   if (isMac()) {

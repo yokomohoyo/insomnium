@@ -4,6 +4,7 @@ import { useRouteLoaderData } from 'react-router-dom';
 import { showDeviceCodePrompt } from '../components/editors/auth/device-code-prompt';
 import { ErrorBoundary } from '../components/error-boundary';
 import { registerModal } from '../components/modals';
+import { AboutModal } from '../components/modals/about-modal';
 import { AddKeyCombinationModal } from '../components/modals/add-key-combination-modal';
 import { AlertModal } from '../components/modals/alert-modal';
 import { AskModal } from '../components/modals/ask-modal';
@@ -35,6 +36,7 @@ const Modals: FC = () => {
     <div key="modals" className="modals">
       <ErrorBoundary showAlert>
         <AlertModal ref={instance => registerModal(instance, 'AlertModal')} />
+        <AboutModal ref={instance => registerModal(instance, 'AboutModal')} />
         <ErrorModal ref={instance => registerModal(instance, 'ErrorModal')} />
         <PromptModal
           ref={instance => registerModal(instance, 'PromptModal')}
