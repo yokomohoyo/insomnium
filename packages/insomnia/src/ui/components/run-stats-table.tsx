@@ -1,6 +1,7 @@
 import React, { FC } from 'react';
 
 import { PHASE_LABELS, type PhaseDurations } from '../../common/timings';
+import type { RequestComparison, RunComparison } from '../../network/run-compare';
 import type { RequestRunStats } from '../../network/run-stats';
 
 const PHASES = Object.keys(PHASE_LABELS) as (keyof PhaseDurations)[];
@@ -32,10 +33,24 @@ export const PhaseBar: FC<{ phases?: PhaseDurations }> = ({ phases }) => {
   );
 };
 
+// a request's p95 against the baseline's
+const Versus: FC<{ row?: RequestComparison }> = ({ row }) => {
+  if (!row?.before) {
+    return <td className="text-right faint">new</td>;
+  }
+  const percent = row.change === undefined ? '' : `${row.change > 0 ? '+' : ''}${Math.round(row.change * 100)}% `;
+  return (
+    <td className={`text-right ${row.slower ? 'danger' : row.faster ? 'success' : ''}`} title={`p95 ${ms(row.before.p95)} in the baseline, ${ms(row.now.p95)} now`}>
+      {percent}<span className="faint">({ms(row.before.p95)} → {ms(row.now.p95)})</span>
+    </td>
+  );
+};
+
 // The runner's numbers for each request over the run: how fast, how steady,
-// what a cold start costs, how big, and where the time goes
-export const RunStatsTable: FC<{ stats: RequestRunStats[] }> = ({ stats }) => {
+// what a cold start costs, how big, where the time goes, and against a baseline
+export const RunStatsTable: FC<{ stats: RequestRunStats[]; comparison?: RunComparison }> = ({ stats, comparison }) => {
   const cold = stats.some(row => row.first !== undefined);
+  const compared = new Map(comparison?.requests.map(row => [row.requestId, row]));
   return (
     <div className="margin-top-sm">
       <div className="overflow-x-auto">
@@ -51,6 +66,7 @@ export const RunStatsTable: FC<{ stats: RequestRunStats[] }> = ({ stats }) => {
               <th className="text-right">Std dev</th>
               {cold && <th className="text-right" title="The first iteration's time, and the median of the others">First / later</th>}
               <th className="text-right">Size</th>
+              {comparison && <th className="text-right">p95 vs baseline</th>}
               <th className="min-w-[8rem]">Where the time goes</th>
             </tr>
           </thead>
@@ -66,6 +82,7 @@ export const RunStatsTable: FC<{ stats: RequestRunStats[] }> = ({ stats }) => {
                 <td className="text-right">{ms(row.sd)}</td>
                 {cold && <td className="text-right">{row.first === undefined ? '' : `${ms(row.first)} / ${ms(row.warmP50)}`}</td>}
                 <td className="text-right">{size(row.bytes)}</td>
+                {comparison && <Versus row={compared.get(row.requestId)} />}
                 <td className="align-middle"><PhaseBar phases={row.phases} /></td>
               </tr>
             ))}

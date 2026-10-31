@@ -34,7 +34,14 @@ describe('parseRunConfig()', () => {
     expect(parseRunConfig(['--collection', 'a.yaml'], { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com' }).allowedHosts).toEqual(['api.example.com']);
   });
 
+  it('reads a baseline to compare with, and how much slower a request may get', () => {
+    expect(parseRunConfig(['--collection', 'a.yaml', '--baseline', 'last.json', '--max-slowdown', '35'], {})).toMatchObject({ baseline: 'last.json', maxSlowdown: 0.35 });
+    expect(parseRunConfig(['--collection', 'a.yaml', '--baseline', 'last.json'], {}).maxSlowdown).toBeUndefined();
+  });
+
   it.each([
+    [['--collection', 'a', '--max-slowdown', '-5'], /--max-slowdown must be a percentage/],
+    [['--collection', 'a', '--max-slowdown', 'lots'], /--max-slowdown must be a percentage/],
     [[], /at least one --collection/],
     [['--collection'], /--collection needs a value/],
     [['--collection', 'a', '--iterations', '0'], /--iterations must be a whole number of at least 1/],

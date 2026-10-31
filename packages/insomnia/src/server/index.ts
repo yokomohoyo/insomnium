@@ -9,12 +9,14 @@ import { startMockServer } from '../mock/mock-server';
 import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../network/load-report';
 import { brokenThresholds } from '../network/load-stats';
 import { runLoadTest } from '../network/load-test';
-import { csvReport, htmlReport, jsonReport, junitReport } from '../network/run-files';
+import { compareRuns, parseBaseline } from '../network/run-compare';
+import { csvReport, htmlReport, jsonReport, junitReport, resultName } from '../network/run-files';
+import { requestRunStats } from '../network/run-stats';
 import { runRequests } from '../network/runner';
 import { parseConfig, ServerConfig, USAGE } from './config';
 import { formatLoadSummary, LOAD_USAGE, LoadConfig, parseLoadConfig } from './load-test';
 import { MOCK_USAGE, MockConfig, parseMockConfig } from './mock';
-import { formatResult, formatSummary } from './report';
+import { formatComparison, formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
 import { loadWorkspaces, startServer } from './server';
 import { team } from './team';
@@ -41,18 +43,20 @@ async function run(argv: string[]) {
   let prepared;
   try {
     const data = config.data ? await readDataFile(config.data) : undefined;
+    // read first: a baseline that can't be used stops the run before it starts
+    const baseline = config.baseline ? parseBaseline(await fs.promises.readFile(config.baseline, 'utf8')) : undefined;
     const workspaces = await loadWorkspaces(config);
     const requests = await selectRequests(workspaces, config.folder);
     if (!requests.length) {
       throw new Error(`No HTTP requests to run${config.folder ? ` in '${config.folder}'` : ''}`);
     }
-    prepared = { data, requests, name: workspaces.map(workspace => workspace.name).join(', ') };
+    prepared = { data, baseline, requests, name: workspaces.map(workspace => workspace.name).join(', ') };
   } catch (err) {
     console.error(`[run] ${(err as Error).message}`);
     return 2;
   }
 
-  const { data, requests, name } = prepared;
+  const { data, baseline, requests, name } = prepared;
   const iterations = Math.max(1, config.iterations ?? (data?.length || 1));
   print(`[run] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}${iterations > 1 ? `, ${iterations} iterations` : ''}`);
   let iteration = 0;
@@ -70,19 +74,23 @@ async function run(argv: string[]) {
     },
   });
   print(`\n${formatSummary(summary)}`);
+  const comparison = baseline ? compareRuns(requestRunStats(summary.results, resultName), baseline, { maxSlowdown: config.maxSlowdown }) : undefined;
+  if (comparison) {
+    print(`\n${formatComparison(comparison, config.baseline!)}`);
+  }
   if (config.junit) {
     await fs.promises.writeFile(config.junit, junitReport(summary, name));
   }
   if (config.json) {
-    await fs.promises.writeFile(config.json, jsonReport(summary, name));
+    await fs.promises.writeFile(config.json, jsonReport(summary, name, comparison));
   }
   if (config.html) {
-    await fs.promises.writeFile(config.html, htmlReport(summary, name));
+    await fs.promises.writeFile(config.html, htmlReport(summary, name, undefined, comparison));
   }
   if (config.csv) {
     await fs.promises.writeFile(config.csv, csvReport(summary));
   }
-  return summary.requests.failed ? 1 : 0;
+  return summary.requests.failed || comparison?.slower ? 1 : 0;
 }
 
 // 0 when the thresholds held, 1 when one broke, 2 when the test couldn't start
