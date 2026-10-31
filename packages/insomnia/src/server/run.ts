@@ -21,6 +21,9 @@ export interface RunConfig extends Sources {
   json?: string;
   html?: string;
   csv?: string;
+  // an earlier run's JSON report, and the share of its p95 a request may grow by
+  baseline?: string;
+  maxSlowdown?: number;
   allowedHosts: string[];
   variables: Record<string, string>;
   validateSSL: boolean;
@@ -44,6 +47,10 @@ ${SOURCES_USAGE}
   --json        write a JSON report to this file
   --html        write an HTML report to this file: each request's latency and phases
   --csv         write a CSV report to this file: a row per request sent
+  --baseline    compare with an earlier run's JSON report (--json): exits 1 when a
+                request's p95 got slower than --max-slowdown allows
+  --max-slowdown  the percentage a request's p95 may grow by over the baseline's (default 20);
+                changes of 5 ms or less don't count
 
 Environment:
   INSOMNIUM_ALLOWED_HOSTS  comma-separated hosts requests may go to; any by default,
@@ -132,6 +139,17 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
       case '--csv':
         config.csv = value();
         break;
+      case '--baseline':
+        config.baseline = value();
+        break;
+      case '--max-slowdown': {
+        const percent = Number(value());
+        if (!Number.isFinite(percent) || percent < 0) {
+          throw new Error(`${option} must be a percentage, such as 20`);
+        }
+        config.maxSlowdown = percent / 100;
+        break;
+      }
       default:
         throw new Error(`Unknown option ${option}`);
     }

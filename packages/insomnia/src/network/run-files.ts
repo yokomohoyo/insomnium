@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import { phaseDurations } from '../common/timings';
 import { card, generatedAt, ms, phaseBar, phaseLegend, reportPage, size, xml } from './report-html';
 import type { RunResult, RunSummary } from './runner';
+import type { RequestComparison, RunComparison } from './run-compare';
 import { requestRunStats } from './run-stats';
 
 // What a run reads and writes, in the app and the CLI alike: data files, the
@@ -42,7 +43,8 @@ export const junitReport = (summary: RunSummary, name: string) => {
 };
 
 // Each result with its phases worked out, and each request's numbers over the run
-export const jsonReport = (summary: RunSummary, name: string) => JSON.stringify({
+// with a baseline's comparison when the run was held to one
+export const jsonReport = (summary: RunSummary, name: string, comparison?: RunComparison) => JSON.stringify({
   name,
   ...summary,
   results: summary.results.map(result => ({
@@ -50,6 +52,7 @@ export const jsonReport = (summary: RunSummary, name: string) => JSON.stringify(
     ...(result.timings && result.elapsedTime !== undefined ? { phases: phaseDurations(result.timings, result.elapsedTime) } : {}),
   })),
   byRequest: requestRunStats(summary.results, resultName),
+  ...(comparison ? { comparison } : {}),
 }, null, 2) + '\n';
 
 // A row per send, for a spreadsheet: times in milliseconds, sizes in bytes
@@ -75,9 +78,20 @@ export const csvReport = (summary: RunSummary) => Papa.unparse(summary.results.m
   };
 }), { escapeFormulae: true, newline: '\n' }) + '\n';
 
-// A page to read or attach to a ticket: one file, no scripts, nothing fetched
-export const htmlReport = (summary: RunSummary, name: string, generated = new Date()) => {
+// a request's p95 against the baseline's: the change, and the two times
+const versus = (row?: RequestComparison) => {
+  if (!row?.before) {
+    return '<td class="n faint">new</td>';
+  }
+  const percent = row.change === undefined ? '' : `${row.change > 0 ? '+' : ''}${Math.round(row.change * 100)}% `;
+  return `<td class="n${row.slower ? ' bad' : row.faster ? ' good' : ''}">${percent}<span class="faint">(${ms(row.before.p95)} → ${ms(row.now.p95)})</span></td>`;
+};
+
+// A page to read or attach to a ticket: one file, no scripts, nothing fetched;
+// with a baseline's comparison when the run was held to one
+export const htmlReport = (summary: RunSummary, name: string, generated = new Date(), comparison?: RunComparison) => {
   const stats = requestRunStats(summary.results, resultName);
+  const compared = new Map(comparison?.requests.map(row => [row.requestId, row]));
   const passed = summary.results.filter(result => result.passed).length;
   const failures = summary.results.filter(result => !result.passed);
   const cold = stats.some(row => row.first !== undefined);
@@ -87,6 +101,7 @@ export const htmlReport = (summary: RunSummary, name: string, generated = new Da
 <td class="n">${ms(row.min)}</td><td class="n">${ms(row.p50)}</td><td class="n">${ms(row.p95)}</td><td class="n">${ms(row.max)}</td><td class="n">${ms(row.sd)}</td>
 ${cold ? `<td class="n">${row.first === undefined ? '' : `${ms(row.first)} / ${ms(row.warmP50)}`}</td>` : ''}
 <td class="n">${size(row.bytes)}</td>
+${comparison ? versus(compared.get(row.requestId)) : ''}
 <td class="phases">${phaseBar(row.phases)}</td>
 </tr>`).join('\n');
   const failureItems = failures.map(result => {
@@ -107,16 +122,18 @@ ${card(`${passed} of ${summary.requests.total}`, 'requests passed', summary.requ
 ${card(`${summary.assertions.total - summary.assertions.failed} of ${summary.assertions.total}`, 'assertions passed')}
 ${card(String(summary.iterations), summary.iterations === 1 ? 'iteration' : 'iterations')}
 ${card(ms(summary.elapsedTime), 'in all')}
+${comparison ? card(String(comparison.slower), comparison.slower === 1 ? 'request slower than the baseline' : 'requests slower than the baseline', comparison.slower ? 'bad' : 'good') : ''}
 </div>
 ${summary.bailed ? '<p class="bad">Stopped at the first request that failed.</p>' : ''}${summary.stopped ? '<p class="bad">Stopped before it finished.</p>' : ''}
 <h2>By request</h2>
 <div class="scroll"><table>
-<thead><tr><th>Request</th><th class="n">Sent</th><th class="n">Failed</th><th class="n">Min</th><th class="n">p50</th><th class="n">p95</th><th class="n">Max</th><th class="n">Std dev</th>${cold ? '<th class="n">First / later p50</th>' : ''}<th class="n">Size</th><th>Where the time goes</th></tr></thead>
+<thead><tr><th>Request</th><th class="n">Sent</th><th class="n">Failed</th><th class="n">Min</th><th class="n">p50</th><th class="n">p95</th><th class="n">Max</th><th class="n">Std dev</th>${cold ? '<th class="n">First / later p50</th>' : ''}<th class="n">Size</th>${comparison ? '<th class="n">p95 vs baseline</th>' : ''}<th>Where the time goes</th></tr></thead>
 <tbody>
 ${rows}
 </tbody>
 </table></div>
 ${phaseLegend()}
+${comparison?.missing.length ? `<p class="faint">In the baseline, not run here: ${comparison.missing.map(xml).join(', ')}.</p>` : ''}
 ${failures.length ? `<h2>Failures</h2>\n<ul>\n${failureItems}\n</ul>` : ''}
 <h2>Every request</h2>
 <div class="scroll"><table>
