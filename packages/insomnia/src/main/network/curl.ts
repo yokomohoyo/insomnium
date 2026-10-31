@@ -168,7 +168,15 @@ const openCurlConnection = async (
       }
     });
 
+    // the stream opens as its request goes out: a model's first token and whole
+    // reply are timed from here, not from the reply's first chunk
+    let opened = false;
     CurlConnections.get(options.requestId)?.setOpt(Curl.option.DEBUGFUNCTION, (infoType, buffer) => {
+      if (infoType === CurlInfoDebug.HeaderOut && !opened) {
+        opened = true;
+        const openEvent: CurlOpenEvent = { _id: uuidV4(), requestId: options.requestId, type: 'open', timestamp: Date.now() };
+        eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(openEvent) + '\n');
+      }
       const isSSLData = infoType === CurlInfoDebug.SslDataIn || infoType === CurlInfoDebug.SslDataOut;
       const isEmpty = buffer.length === 0;
       // Don't show cookie setting because this will display every domain in the jar

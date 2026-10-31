@@ -23,7 +23,7 @@ export const LlmStreamViewer: FC<{ stream: LlmStream }> = ({ stream }) => (
           : 'not reported (ask for them, such as "stream_options": { "include_usage": true })'}
       </dd>
       <dt className="faint">First token</dt>
-      <dd className="m-0">{seconds(stream.firstTokenMs)}</dd>
+      <dd className="m-0" data-testid="llm-first-token">{seconds(stream.firstTokenMs)}</dd>
       <dt className="faint">Whole reply</dt>
       <dd className="m-0">
         {seconds(stream.totalMs)}
