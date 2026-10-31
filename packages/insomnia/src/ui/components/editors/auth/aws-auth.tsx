@@ -14,6 +14,7 @@ export const AWSAuth: FC = () => (
     <AuthInputRow
       label="Secret Access Key"
       property="secretAccessKey"
+      mask
     />
     <AuthInputRow
       label="Region"
@@ -28,6 +29,7 @@ export const AWSAuth: FC = () => (
     <AuthInputRow
       label="Session Token"
       property="sessionToken"
+      mask
       help="Optional token used for multi-factor authentication"
     />
   </AuthTableBody>
