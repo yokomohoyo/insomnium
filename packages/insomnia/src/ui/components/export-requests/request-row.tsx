@@ -4,9 +4,7 @@ import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
 import { isMcpRequest, McpRequest } from '../../../models/mcp-request';
 import { isRequest, Request } from '../../../models/request';
 import { isWebSocketRequest, WebSocketRequest } from '../../../models/websocket-request';
-import { GrpcTag } from '../tags/grpc-tag';
-import { MethodTag } from '../tags/method-tag';
-import { WebSocketTag } from '../tags/websocket-tag';
+import { getMethodShortHand } from '../tags/method-tag';
 
 interface Props {
   handleSetItemSelected: (...args: any[]) => any;
@@ -29,12 +27,13 @@ export const RequestRow: FC<Props> = ({
         <div className="tree__item__checkbox tree__indent">
           <input type="checkbox" checked={isSelected} onChange={onChange} />
         </div>
-        <button className="wide">
-          {isRequest(request) ? <MethodTag method={request.method} /> : null}
-          {isGrpcRequest(request) ? <GrpcTag /> : null}
-          {isWebSocketRequest(request) ? <WebSocketTag /> : null}
-          {isMcpRequest(request) ? <span className="tag success">MCP</span> : null}
-          <span className="inline-block">{request.name}</span>
+        {/* on one line, labelled as the request tabs label them */}
+        <button className="wide flex items-center gap-2 min-w-0">
+          {isRequest(request) && <span className={`text-[0.65rem] http-method-${request.method}`}>{getMethodShortHand(request)}</span>}
+          {isWebSocketRequest(request) && <span className="text-[0.65rem] info">WS</span>}
+          {isMcpRequest(request) && <span className="text-[0.65rem] success">MCP</span>}
+          {isGrpcRequest(request) && <span className="text-[0.65rem] method-grpc">gRPC</span>}
+          <span className="truncate">{request.name}</span>
         </button>
       </div>
     </li>
