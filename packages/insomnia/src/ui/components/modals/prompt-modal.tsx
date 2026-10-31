@@ -70,7 +70,13 @@ export const PromptModal = forwardRef<PromptModalHandle, ModalProps>((_, ref) =>
     event.preventDefault();
     if (inputRef.current) {
       const result = inputRef.current.type === 'checkbox' ? inputRef.current.checked.toString() : inputRef.current.value;
-      if (result || inputRef.current?.type === 'text') {
+      // a name, which every text prompt asks for, can't be blank
+      if (inputRef.current.type === 'text' && !result.trim()) {
+        inputRef.current.setCustomValidity(t('Enter a name'));
+        inputRef.current.reportValidity();
+        return;
+      }
+      if (result) {
         state.onComplete?.(state.upperCase ? result?.toUpperCase() : result);
       }
       modalRef.current?.hide();
@@ -103,10 +109,7 @@ export const PromptModal = forwardRef<PromptModalHandle, ModalProps>((_, ref) =>
     <input
       ref={inputRef}
       onChange={event => {
-        if (state.validate) {
-          const errorMessage = state.validate(event.target.value);
-          event.target.setCustomValidity(errorMessage);
-        }
+        event.target.setCustomValidity(state.validate ? state.validate(event.target.value) : '');
       }}
       autoFocus
       defaultValue={state.defaultValue || ''}
