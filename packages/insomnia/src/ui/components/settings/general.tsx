@@ -189,7 +189,7 @@ export const General: FC = () => {
           placeholder={t('-- System Default --')}
         />
         <NumberSetting
-          label={t('Editor Font Size (px)')}
+          label={t('Editor font size (px)')}
           setting="editorFontSize"
           min={MIN_EDITOR_FONT_SIZE}
           max={MAX_EDITOR_FONT_SIZE}
@@ -198,7 +198,7 @@ export const General: FC = () => {
 
       <div className="form-row">
         <NumberSetting
-          label={t('Editor Indent Size')}
+          label={t('Editor indent size')}
           setting="editorIndentSize"
           help=""
           min={1}
@@ -206,7 +206,7 @@ export const General: FC = () => {
         />
 
         <EnumSetting<EditorKeyMap>
-          label={t('Text Editor Key Map')}
+          label={t('Text editor key map')}
           setting="editorKeyMap"
           help={isMac() && settings.editorKeyMap === EditorKeyMap.vim && (
             <Fragment>
@@ -286,7 +286,7 @@ export const General: FC = () => {
 
       <div className="form-row pad-top-sm">
         <NumberSetting
-          label={t('Maximum Redirects')}
+          label={t('Maximum redirects')}
           setting="maxRedirects"
           help={t('Enter the maximum amount of redirects to follow. Enter -1 for unlimited redirects.')}
           min={-1}

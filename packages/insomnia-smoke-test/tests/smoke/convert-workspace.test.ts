@@ -9,7 +9,7 @@ test('a collection has tests, and converts to a design document and back @ci', a
   // a collection's tests, with no spec
   await expect(specTab).toHaveCount(0);
   await testTab.click();
-  await expect(page.getByRole('button', { name: 'New Test Suite' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'New Test Suite' }).first()).toBeVisible();
 
   await page.getByRole('button', { name: 'My Collection' }).click();
   await page.getByRole('menuitem', { name: 'Convert to Design Document' }).click();
