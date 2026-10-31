@@ -31,7 +31,8 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
   const deleteGitRepositoryFetcher = useFetcher();
   // the footer's Sync submits the form of the tab shown
   const [tab, setTab] = useState<Key>('custom');
-
+  // a save to the repository it has closes the dialog, once done
+  const isSaving = useRef(false);
 
   useEffect(() => {
     modalRef.current?.show();
@@ -49,6 +50,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
       ...repoPatch
     } = gitRepositoryPatch;
 
+    isSaving.current = Boolean(gitRepository);
     updateGitRepositoryFetcher.submit(
       {
         ...repoPatch,
@@ -77,6 +79,15 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
       });
     }
   }, [errors]);
+
+  useEffect(() => {
+    if (isSaving.current && updateGitRepositoryFetcher.state === 'idle') {
+      isSaving.current = false;
+      if (!errors?.length) {
+        modalRef.current?.hide();
+      }
+    }
+  }, [updateGitRepositoryFetcher.state, errors]);
 
   return (
     <OverlayContainer>
@@ -128,7 +139,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
             >
               {t('Reset')}
             </button>
-            {hasGitRepository ? (
+            {hasGitRepository && (
               <button
                 type="button"
                 onClick={() => modalRef.current?.hide()}
@@ -136,6 +147,19 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
                 data-testid="git-repository-settings-modal__sync-btn-close"
               >
                 {t('Close')}
+              </button>
+            )}
+            {hasGitRepository ? !gitRepository?.uri && (
+              // a repository on this computer only keeps its fields open: an
+              // address to push to, the author, and a sign-in can be added
+              <button
+                type="submit"
+                disabled={isLoading}
+                form={String(tab)}
+                className="btn"
+                data-testid="git-repository-settings-modal__save-btn"
+              >
+                {t('Save')}
               </button>
             ) : (
               <button
