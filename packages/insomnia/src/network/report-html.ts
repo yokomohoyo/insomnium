@@ -54,11 +54,13 @@ export const card = (value: string, label: string, tone?: 'good' | 'bad') =>
 
 // a load test's seconds: requests sent as bars (failures on top), and the p50
 // and p95 latency as lines on their own scale
+const height = (from: number, to: number) => Math.max(0, Math.round((to - from) * 10) / 10);
+
 export const timelineSvg = (points: TimelinePoint[]) => {
   const chart = timelineGeometry(points);
   const bars = chart.bars.map(bar => [
-    `<rect x="${bar.x}" y="${bar.y}" width="${bar.width}" height="${Math.max(0, chart.bottom - bar.y)}" class="sent"><title>${xml(describeSecond(bar.point))}</title></rect>`,
-    bar.point.failed ? `<rect x="${bar.x}" y="${bar.y}" width="${bar.width}" height="${Math.max(0, chart.bottom - bar.failedY)}" class="failed"/>` : '',
+    `<rect x="${bar.x}" y="${bar.y}" width="${bar.width}" height="${height(bar.y, chart.bottom)}" class="sent"><title>${xml(describeSecond(bar.point))}</title></rect>`,
+    bar.point.failed ? `<rect x="${bar.x}" y="${bar.y}" width="${bar.width}" height="${height(bar.failedY, chart.bottom)}" class="failed"/>` : '',
   ].join('')).join('');
   return `<figure class="chart">
 <svg viewBox="0 0 ${chart.width} ${chart.height}" role="img" aria-label="${xml(describeTimeline(points))}" preserveAspectRatio="none">
