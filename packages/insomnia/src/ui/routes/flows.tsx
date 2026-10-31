@@ -130,7 +130,7 @@ const FlowsRoute: FC = () => {
                   </button>
                   <Dropdown
                     aria-label={t('Flow Actions')}
-                    triggerButton={<DropdownButton><i className="fa fa-caret-down" /></DropdownButton>}
+                    triggerButton={<DropdownButton aria-label={t('Flow Actions')}><i className="fa fa-caret-down" /></DropdownButton>}
                   >
                     <DropdownItem aria-label={t('Rename')}>
                       <ItemContent

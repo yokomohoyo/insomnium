@@ -71,9 +71,7 @@ export const Row: FC<Props> = ({
   });
 
   const isFileOrMultiline = allowMultiline || allowFile;
-  const hiddenButtons = isFileOrMultiline ? (<button>
-    <i className="fa fa-empty" />
-  </button>) : null;
+  const hiddenButtons = isFileOrMultiline ? <Spacer /> : null;
 
   const isFile = pair.type === 'file';
   const isMultiline = pair.type === 'text' && pair.multiline;
@@ -160,7 +158,7 @@ export const Row: FC<Props> = ({
           <Dropdown
             aria-label='Select type Dropdown'
             triggerButton={
-              <DropdownButton className="tall">
+              <DropdownButton className="tall" aria-label="Value type">
                 <i className="fa fa-caret-down" />
               </DropdownButton>
             }
@@ -202,14 +200,11 @@ export const Row: FC<Props> = ({
             )}
           </button>
         ) : (
-          <button>
-            <i className="fa fa-empty" />
-          </button>
+          <Spacer />
         )}
 
         {(!hideButtons && onDelete) ? (
           <PromptButton
-            tabIndex={-1}
             confirmMessage=""
             onClick={() => onDelete?.(pair)}
             title="Delete item"
@@ -217,12 +212,18 @@ export const Row: FC<Props> = ({
             <i className="fa fa-trash-o" />
           </PromptButton>
         ) : (
-          <button>
-            <i className="fa fa-empty" />
-          </button>
+          <Spacer />
         )}
       </div>
     </li>
   );
 };
 Row.displayName = 'Row';
+
+// holds a button's place in rows without that button, so the columns line up:
+// out of the tab order and hidden from screen readers
+export const Spacer = () => (
+  <button type="button" tabIndex={-1} aria-hidden disabled>
+    <i className="fa fa-empty" />
+  </button>
+);

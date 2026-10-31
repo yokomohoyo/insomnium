@@ -25,6 +25,7 @@ export const DashboardSortDropdown: FC<DashboardSortDropdownProps> = ({ onSelect
       className="margin-left"
       triggerButton={
         <DropdownButton
+          aria-label={t('Sort')}
           variant='outlined'
           removePaddings={false}
           disableHoverBehavior={false}

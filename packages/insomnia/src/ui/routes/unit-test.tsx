@@ -121,7 +121,7 @@ const TestRoute: FC = () => {
                   <Dropdown
                     aria-label='Test Suite Actions'
                     triggerButton={
-                      <DropdownButton className="unit-tests__sidebar__action">
+                      <DropdownButton className="unit-tests__sidebar__action" aria-label="Test Suite Actions">
                         <i className="fa fa-caret-down" />
                       </DropdownButton>
                     }

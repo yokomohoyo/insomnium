@@ -456,7 +456,7 @@ export const TagEditor: FC<Props> = props => {
                 <Dropdown
                   aria-label='Variable Dropdown'
                   triggerButton={
-                    <DropdownButton className="btn btn--clicky">
+                    <DropdownButton className="btn btn--clicky" aria-label="Choose a variable">
                       <i className="fa fa-gear" />
                     </DropdownButton>
                   }

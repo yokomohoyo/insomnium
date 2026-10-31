@@ -347,6 +347,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
                 triggerButton={
                   <DropdownButton
                     data-testid='CreateEnvironmentDropdown'
+                    aria-label={t('New environment')}
                   >
                     <i className="fa fa-plus-circle" />
                     <i className="fa fa-caret-down" />
@@ -495,6 +496,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
                   </button>
 
                   {activeEnvironment._id !== baseEnvironment._id && <PromptButton
+                    title={t('Delete')}
                     onClick={() => handleDeleteEnvironment(activeEnvironment._id)}
                     className="btn btn--clicky"
                   >

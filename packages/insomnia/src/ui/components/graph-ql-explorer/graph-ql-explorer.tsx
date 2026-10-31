@@ -179,6 +179,7 @@ export const GraphQLExplorer: FC<Props> = ({ schema, handleClose, visible, refer
             {filter && (
               <button
                 className="form-control__right"
+                aria-label="Clear search"
                 onClick={() => {
                   if (inputRef.current) {
                     inputRef.current.value = '';
@@ -252,6 +253,7 @@ export const GraphQLExplorer: FC<Props> = ({ schema, handleClose, visible, refer
         <h1>{fieldName || typeName || schemaName || 'Unknown'}</h1>
         <button
           className="btn btn--compact graphql-explorer__header__close-btn"
+          aria-label="Close the explorer"
           onClick={handleClose}
         >
           <i className="fa fa-close" />

@@ -609,6 +609,7 @@ export const GraphQLEditor: FC<Props> = ({
             <div className="pull-right">
               <button
                 className="icon"
+                aria-label="Dismiss"
                 onClick={() => setState(state => ({ ...state, hideSchemaFetchErrors: true }))}
               >
                 <i className="fa fa-times" />

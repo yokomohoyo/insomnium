@@ -301,6 +301,7 @@ const Root = () => {
               <TooltipTrigger>
                     <Link>
                       <NavLink
+                        aria-label={t('Projects')}
                         className={({ isActive }) =>
                           `select-none text-[--color-font-surprise] flex-shrink-0 hover:no-underline transition-all duration-150 bg-gradient-to-br box-border from-[#4000BF] to-[#154B62] p-[--padding-sm] font-bold outline-[3px] rounded-md w-[28px] h-[28px] flex items-center justify-center active:outline overflow-hidden outline-offset-[3px] outline ${
                             isActive

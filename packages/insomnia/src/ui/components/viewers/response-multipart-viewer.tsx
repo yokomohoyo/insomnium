@@ -197,7 +197,7 @@ export const ResponseMultipartViewer: FC<Props> = ({
         <Dropdown
           aria-label='Part Actions Dropdown'
           triggerButton={
-            <DropdownButton className="btn btn--clicky">
+            <DropdownButton className="btn btn--clicky" aria-label="Part actions">
               <i className="fa fa-bars" />
             </DropdownButton>
           }

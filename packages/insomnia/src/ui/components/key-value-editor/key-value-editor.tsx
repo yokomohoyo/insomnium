@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 import { generateId } from '../../../common/misc';
 import { PromptButton } from '../base/prompt-button';
-import { AutocompleteHandler, Pair, Row } from './row';
+import { AutocompleteHandler, Pair, Row, Spacer } from './row';
 
 export const Toolbar = styled.div({
   boxSizing: 'content-box',
@@ -137,17 +137,21 @@ export const KeyValueEditor: FC<Props> = ({
               <div className="form-control form-control--underlined form-control--wide">
                 <input
                   style={{ width: '100%' }}
+                  aria-label="Name"
+                  readOnly
                   defaultValue={pair.name}
                 />
               </div>
               <div className="form-control form-control--underlined form-control--wide">
                 <input
                   style={{ width: '100%' }}
+                  aria-label="Value"
+                  readOnly
                   defaultValue={pair.value}
                 />
               </div>
-              <button><i className="fa fa-empty" /></button>
-              <button><i className="fa fa-empty" /></button>
+              <Spacer />
+              <Spacer />
             </div>
           </li>
         )) : null}
