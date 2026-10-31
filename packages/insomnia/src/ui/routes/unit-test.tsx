@@ -66,6 +66,25 @@ const TestRoute: FC = () => {
 
   const navigate = useNavigate();
 
+  const newSuite = () => showPrompt({
+    title: 'New Test Suite',
+    defaultValue: 'New Suite',
+    submitName: 'Create Suite',
+    label: 'Test Suite Name',
+    selectText: true,
+    onComplete: async name => {
+      createUnitTestSuiteFetcher.submit(
+        {
+          name,
+        },
+        {
+          method: 'post',
+          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/new`,
+        }
+      );
+    },
+  });
+
   return (
     <SidebarLayout
       renderPageSidebar={
@@ -73,29 +92,7 @@ const TestRoute: FC = () => {
           <div className="unit-tests__sidebar">
             <BackToRequests />
             <div className="pad-sm">
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  showPrompt({
-                    title: 'New Test Suite',
-                    defaultValue: 'New Suite',
-                    submitName: 'Create Suite',
-                    label: 'Test Suite Name',
-                    selectText: true,
-                    onComplete: async name => {
-                      createUnitTestSuiteFetcher.submit(
-                        {
-                          name,
-                        },
-                        {
-                          method: 'post',
-                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/new`,
-                        }
-                      );
-                    },
-                  });
-                }}
-              >
+              <Button variant="outlined" onClick={newSuite}>
                 New Test Suite
               </Button>
             </div>
@@ -182,8 +179,14 @@ const TestRoute: FC = () => {
           <Route
             path="*"
             element={
-              <div className="unit-tests pad theme--pane__body">
-                No test suite selected
+              <div className="pad flex flex-col items-start gap-[--padding-md] max-w-[40rem]">
+                <h2 className="m-0">Tests</h2>
+                <p className="m-0">
+                  {unitTestSuites.length
+                    ? 'Choose a test suite from the list to edit its tests and run them.'
+                    : "A test suite holds JavaScript tests that send the collection's requests and check their responses with expect."}
+                </p>
+                <Button variant="outlined" onClick={newSuite}>New Test Suite</Button>
               </div>
             }
           />
@@ -215,10 +218,8 @@ const TestRoute: FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="unit-tests__results">
-                  <div className="unit-tests__top-header">
-                    <h2>No Results</h2>
-                  </div>
+                <div className="pad faint">
+                  Run a test suite to see its results here
                 </div>
               )
             }
