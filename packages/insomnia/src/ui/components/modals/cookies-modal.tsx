@@ -99,7 +99,7 @@ export const CookiesModal = ({ onHide }: ModalProps) => {
         </ModalBody>
         <ModalFooter>
           <div className="margin-left faint italic txt-sm">
-            * cookies are automatically sent with relevant requests
+            * Cookies are sent automatically with the requests they match
           </div>
           <button className="btn" onClick={() => modalRef.current?.hide()}>
             Done

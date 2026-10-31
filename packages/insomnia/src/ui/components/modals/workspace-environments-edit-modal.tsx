@@ -532,7 +532,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
           </div>
         </ModalBody>
         <ModalFooter>
-          <div className="margin-left italic txt-sm">
+          <div className="margin-left faint italic txt-sm">
             * Environment data can be used for&nbsp;
             <Link href={docsTemplateTags}>Nunjucks Templating</Link> in your requests
           </div>
