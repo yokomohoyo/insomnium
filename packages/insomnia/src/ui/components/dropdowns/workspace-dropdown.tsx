@@ -6,6 +6,8 @@ import { database as db } from '../../../common/database';
 import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import { t } from '../../../common/i18n';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
+import { ascendingNameSort } from '../../../common/sorting';
+import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import { isRequestGroup } from '../../../models/request-group';
 import { isDesign, Workspace } from '../../../models/workspace';
@@ -122,11 +124,14 @@ export const WorkspaceDropdown: FC = () => {
 
   // the folder this collection is kept in step with, as readable files
   const [syncFolder, setSyncFolder] = useState<string | null>(null);
+  // the project's other collections and documents, to switch to
+  const [siblings, setSiblings] = useState<Workspace[]>([]);
   const handleDropdownOpen = useCallback(async () => {
     const actionPlugins = await getWorkspaceActions();
     setActionPlugins(actionPlugins);
     setSyncFolder(await window.main.folderSync.status({ workspaceId: activeWorkspace._id }));
-  }, [activeWorkspace._id]);
+    setSiblings((await models.workspace.findByParentId(activeWorkspace.parentId)).filter(workspace => workspace._id !== activeWorkspace._id).sort(ascendingNameSort));
+  }, [activeWorkspace._id, activeWorkspace.parentId]);
   const syncToFolder = async () => {
     const { canceled, filePath } = await selectFileOrFolder({ itemTypes: ['directory'] });
     if (canceled || !filePath) {
@@ -272,6 +277,20 @@ export const WorkspaceDropdown: FC = () => {
               onClick={() => setIsSettingsModalOpen(true)}
             />
           </DropdownItem>
+        </DropdownSection>
+        <DropdownSection
+          aria-label={t('Switch to')}
+          title={t('Switch to')}
+        >
+          {siblings.map(workspace => (
+            <DropdownItem key={workspace._id} aria-label={workspace.name}>
+              <ItemContent
+                icon={isDesign(workspace) ? 'file-code' : 'bars'}
+                label={workspace.name}
+                onClick={() => navigate(`/organization/${organizationId}/project/${workspace.parentId}/workspace/${workspace._id}/${isDesign(workspace) ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`)}
+              />
+            </DropdownItem>
+          ))}
         </DropdownSection>
         <DropdownSection
           aria-label={t('Plugins Section')}

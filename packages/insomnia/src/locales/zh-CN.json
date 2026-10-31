@@ -880,5 +880,7 @@
   "Version {version}": "版本 {version}",
   "A 100% local and privacy-focused fork of Insomnia": "100% 本地、注重隐私的 Insomnia 分支",
   "Build details": "构建详情",
-  "Copy details": "复制详情"
+  "Copy details": "复制详情",
+  "All collections in {name}": "{name} 中的所有集合",
+  "Switch to": "切换到"
 }

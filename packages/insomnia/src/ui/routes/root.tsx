@@ -254,7 +254,10 @@ const Root = () => {
             <Link data-testid="project">
               <NavLink
                 to={`/organization/${organizationId}/project/${workspaceData.activeProject._id}`}
+                title={t('All collections in {name}', { name: workspaceData.activeProject.name })}
+                className="flex items-center gap-1.5 px-1.5 py-0.5 -mx-1.5 rounded-sm no-underline text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] transition-colors"
               >
+                <Icon icon="folder-open" className="text-xs" />
                 {workspaceData.activeProject.name}
               </NavLink>
             </Link>
@@ -308,24 +311,17 @@ const Root = () => {
               </header>
             )}
             <nav aria-label={t('App')} className="[grid-area:Navbar] flex flex-col items-center gap-[--padding-xs] w-full h-full overflow-y-auto py-[--padding-sm]">
-              <RailLink
-                label={t('Projects')}
-                icon="folder-open"
-                to={(() => {
-                  // from outside a project, back to the last requester location
-                  if (!location.pathname.includes('organization')) {
-                    const prevLocationHistoryEntry = localStorage.getItem('requester_locationHistoryEntry');
-                    if (prevLocationHistoryEntry) {
-                      return prevLocationHistoryEntry;
-                    }
-                  }
-                  return `/organization/${DEFAULT_ORGANIZATION_ID}`;
-                })()}
-                active={!workspaceId}
-              />
+              {/* the breadcrumb leads back from a collection; pages outside the
+                  projects (import, updates) have only this */}
+              {!location.pathname.includes('organization') && (
+                <RailLink
+                  label={t('Projects')}
+                  icon="folder-open"
+                  to={localStorage.getItem('requester_locationHistoryEntry') || `/organization/${DEFAULT_ORGANIZATION_ID}`}
+                />
+              )}
               {workspaceData?.activeWorkspace && (
                 <Fragment>
-                  <span className="w-8 border-t border-solid border-[--hl-md] my-[--padding-xxs]" />
                   {(isDesign(workspaceData.activeWorkspace) ? WORKSPACE_VIEWS : WORKSPACE_VIEWS.filter(view => view.path !== 'spec')).map(view => (
                     <RailLink
                       key={view.path}

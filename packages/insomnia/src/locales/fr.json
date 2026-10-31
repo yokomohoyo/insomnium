@@ -880,5 +880,7 @@
   "Version {version}": "Version {version}",
   "A 100% local and privacy-focused fork of Insomnia": "Un fork d’Insomnia 100 % local et respectueux de la vie privée",
   "Build details": "Détails de la version",
-  "Copy details": "Copier les détails"
+  "Copy details": "Copier les détails",
+  "All collections in {name}": "Toutes les collections de {name}",
+  "Switch to": "Basculer vers"
 }

@@ -880,5 +880,7 @@
   "Version {version}": "バージョン {version}",
   "A 100% local and privacy-focused fork of Insomnia": "100% ローカルでプライバシー重視の Insomnia フォーク",
   "Build details": "ビルドの詳細",
-  "Copy details": "詳細をコピー"
+  "Copy details": "詳細をコピー",
+  "All collections in {name}": "{name} のすべてのコレクション",
+  "Switch to": "切り替え先"
 }
