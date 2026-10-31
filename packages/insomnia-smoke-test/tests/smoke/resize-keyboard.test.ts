@@ -1,22 +1,25 @@
-import { expect } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 
 import { test } from '../../playwright/test';
+
+const valueOf = async (separator: Locator) => Number(await separator.getAttribute('aria-valuenow'));
 
 test('the sidebar and panes resize from the keyboard @ci', async ({ page }) => {
   await page.getByLabel('Create in collection').click();
   await page.getByRole('menuitemradio', { name: 'HTTP Request' }).click();
-  const requestPane = page.getByTestId('request-pane');
 
+  // the panes sit side by side or stacked, by the window's width: the keys follow
   const panes = page.getByRole('separator', { name: 'Resize the panes' });
-  const before = (await requestPane.boundingBox())!.width;
+  const forward = await panes.getAttribute('aria-orientation') === 'vertical' ? 'ArrowRight' : 'ArrowDown';
+  const before = await valueOf(panes);
   await panes.focus();
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
-  await expect.poll(async () => (await requestPane.boundingBox())!.width).toBeGreaterThan(before + 10);
+  await page.keyboard.press(forward);
+  await page.keyboard.press(forward);
+  await expect.poll(() => valueOf(panes)).toBeGreaterThan(before);
   await page.keyboard.press('Home');
-  await expect.poll(async () => (await requestPane.boundingBox())!.width).toBeLessThan(before / 4);
+  await expect.poll(() => valueOf(panes)).toBe(Number(await panes.getAttribute('aria-valuemin')));
   await page.keyboard.press('End');
-  await expect.poll(async () => (await requestPane.boundingBox())!.width).toBeGreaterThan(before * 1.5);
+  await expect.poll(() => valueOf(panes)).toBe(Number(await panes.getAttribute('aria-valuemax')));
 
   const sidebar = page.getByRole('separator', { name: 'Resize the sidebar' });
   const filter = page.getByPlaceholder('Filter');
