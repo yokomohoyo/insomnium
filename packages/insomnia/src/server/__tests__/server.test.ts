@@ -96,6 +96,16 @@ describe('insomnium-server', () => {
     expect(names.filter((name: string) => name !== 'generate_code' && /^(create|update|delete|duplicate|add|remove|import|clear|generate)_|^set_(spec|cookie)$/.test(name))).toEqual([]);
   });
 
+  it('serves its own instructions, naming only the tools it offers', async () => {
+    const { result } = await (await rpc('resources/read', { uri: 'insomnium://instructions' })).json() as any;
+    const instructions: string = result.contents[0].text;
+    expect(instructions).toMatch(/^# Using Insomnium's headless server/);
+    const tools = new Set(((await (await rpc('tools/list', {})).json() as any).result.tools as { name: string }[]).map(tool => tool.name));
+    const named = [...instructions.matchAll(/`([a-z]+(?:_[a-z]+)+)`/g)].map(match => match[1]);
+    expect(named.length).toBeGreaterThan(10);
+    expect(named.filter(name => !tools.has(name))).toEqual([]);
+  });
+
   it('loads the collection with the chosen environment and the variables', async () => {
     const { data } = await call('get_request', { requestId: await requestId('allowed') });
     expect(data.name).toBe('allowed');
