@@ -44,6 +44,8 @@ export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
   const [error, setError] = useState('');
   const [mode, setMode] = useState<Mode>(savedMode);
   const [rows, setRows] = useState<VariableRow[]>(() => rowsFromEnvironment(environmentInfo));
+  // the row Add Variable made, whose name is typed next
+  const [addedRowId, setAddedRowId] = useState<string | null>(null);
   // what the JSON editor starts from, and a key to start it again
   const [json, setJson] = useState(() => asJson(environmentInfo));
   const [jsonKey, setJsonKey] = useState(0);
@@ -186,7 +188,7 @@ export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
               {rows.map(row => (
                 <tr key={row.id}>
                   <td>
-                    <input aria-label="Variable name" className="wide" value={row.name} placeholder="name" onChange={event => changeRow(row.id, { name: event.currentTarget.value })} onBlur={onBlur} />
+                    <input aria-label="Variable name" className="wide" autoFocus={row.id === addedRowId} value={row.name} placeholder="name" onChange={event => changeRow(row.id, { name: event.currentTarget.value })} onBlur={onBlur} />
                   </td>
                   <td>
                     <div className="environment-editor__value">
@@ -227,7 +229,14 @@ export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
               ))}
             </tbody>
           </table>
-          <button className="btn btn--compact" onClick={() => changeRows([...rows, { id: newRowId(), name: '', value: '', type: 'text' }])}>
+          <button
+            className="btn btn--compact"
+            onClick={() => {
+              const id = newRowId();
+              setAddedRowId(id);
+              changeRows([...rows, { id, name: '', value: '', type: 'text' }]);
+            }}
+          >
             <i className="fa fa-plus space-right" /> Add Variable
           </button>
         </div>
