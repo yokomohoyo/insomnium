@@ -158,7 +158,7 @@
   "Color": "颜色",
   "Commit": "提交",
   "Commit Changes": "提交更改",
-  "Commited. Ready to push": "已提交。可以推送了",
+  "Committed.": "已提交。",
   "Confirm": "确认",
   "Confirm?": "确认？",
   "Connect": "连接",
@@ -869,5 +869,7 @@
   "Later": "稍后",
   "OK": "确定",
   "You have the latest version of {product} ({current}).": "{product} 已是最新版本 ({current})。",
-  "Couldn't check for updates: {error}": "无法检查更新：{error}"
+  "Couldn't check for updates: {error}": "无法检查更新：{error}",
+  "Commit Failed": "提交失败",
+  "Rollback Failed": "回滚失败"
 }

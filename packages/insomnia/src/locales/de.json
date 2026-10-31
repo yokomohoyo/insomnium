@@ -158,7 +158,7 @@
   "Color": "Farbe",
   "Commit": "Commit",
   "Commit Changes": "Änderungen committen",
-  "Commited. Ready to push": "Committet. Bereit zum Pushen",
+  "Committed.": "Committet.",
   "Confirm": "Bestätigen",
   "Confirm?": "Bestätigen?",
   "Connect": "Verbinden",
@@ -869,5 +869,7 @@
   "Later": "Später",
   "OK": "OK",
   "You have the latest version of {product} ({current}).": "Sie haben die neueste Version von {product} ({current}).",
-  "Couldn't check for updates: {error}": "Updates konnten nicht gesucht werden: {error}"
+  "Couldn't check for updates: {error}": "Updates konnten nicht gesucht werden: {error}",
+  "Commit Failed": "Commit fehlgeschlagen",
+  "Rollback Failed": "Verwerfen fehlgeschlagen"
 }
