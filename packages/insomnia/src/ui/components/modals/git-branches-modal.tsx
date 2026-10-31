@@ -78,7 +78,7 @@ export const GitBranchesModal: FC<Props> = (({
   useEffect(() => {
     if (newBranchFetcher.data?.errors?.length) {
       showAlert({
-        title: t('Push Failed'),
+        title: t('Create Branch Failed'),
         message: newBranchFetcher.data.errors.join('\n'),
       });
     }
