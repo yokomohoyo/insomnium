@@ -23,7 +23,7 @@ async function isWithin(id: string, folderId: string) {
 export function registerFolderTools(server: McpServer) {
   server.tool(
     'update_request_group',
-    "Change a folder's name or description, or move it (parentId: its workspace, or another folder in the same workspace).",
+    "Change a folder's name or description, or move it with what's in it (parentId: a workspace, this one or another, or a folder in one), as the folder's Move to Workspace does.",
     { requestGroupId: z.string(), name: z.string().optional(), description: z.string().optional(), parentId: z.string().optional() },
     async ({ requestGroupId, name, description, parentId }) => {
       const folder = await models.requestGroup.getById(requestGroupId);
@@ -31,9 +31,9 @@ export function registerFolderTools(server: McpServer) {
         return text({ error: 'folder not found' }, true);
       }
       if (parentId && parentId !== folder.parentId) {
-        const [from, to] = await Promise.all([findWorkspaceForRequest(folder.parentId), findWorkspaceForRequest(parentId)]);
-        if (!to || to._id !== from?._id) {
-          return text({ error: "parentId is not this folder's workspace or a folder in it" }, true);
+        const target = await models.workspace.getById(parentId) || await models.requestGroup.getById(parentId);
+        if (!target || !await findWorkspaceForRequest(parentId)) {
+          return text({ error: 'parentId is not a workspace or a folder' }, true);
         }
         if (await isWithin(parentId, requestGroupId)) {
           return text({ error: 'a folder cannot move into itself or a folder inside it' }, true);
