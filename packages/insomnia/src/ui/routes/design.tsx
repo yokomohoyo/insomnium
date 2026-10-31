@@ -97,7 +97,7 @@ export const loader: LoaderFunction = async ({
   let lintMessages: LintMessage[] = [];
   const { rulesetPath, source: rulesetSource } = await spectralRulesetFor(workspaceId);
 
-  if (apiSpec.contents && apiSpec.contents.length !== 0) {
+  if (apiSpec.contents?.trim()) {
     try {
       lintMessages = (await window.main.spectralRun({
         contents: apiSpec.contents,
@@ -206,6 +206,10 @@ const Design: FC = () => {
 
   useEffect(() => {
     CodeMirror.registerHelper('lint', 'openapi', async (contents: string) => {
+      // nothing to lint yet, as the loader skips it: Spectral would say it isn't OpenAPI
+      if (!contents.trim()) {
+        return [];
+      }
       const diagnostics = await window.main.spectralRun({
         contents,
         rulesetPath,
