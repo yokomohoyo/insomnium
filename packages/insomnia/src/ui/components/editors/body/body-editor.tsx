@@ -13,7 +13,6 @@ import {
 import { t } from '../../../../common/i18n';
 import { getContentTypeHeader } from '../../../../common/misc';
 import {
-  isEventStreamRequest,
   type Request,
   type RequestBodyParameter,
 } from '../../../../models/request';
@@ -108,8 +107,6 @@ export const BodyEditor: FC<Props> = ({
   const mimeType = request.body.mimeType;
   const isBodyEmpty = typeof mimeType !== 'string' && !request.body.text;
 
-  const secondaryAction = request.method === "POST" ? " Select a body type from above to send data in the body of a request" : null;
-
   const _render = () => {
     if (mimeType === CONTENT_TYPE_FORM_URLENCODED) {
       return <UrlEncodedEditor key={uniqueKey} onChange={handleFormUrlEncodedChange} parameters={request.body.params || []} />;
@@ -122,16 +119,10 @@ export const BodyEditor: FC<Props> = ({
     } else if (!isBodyEmpty) {
       const contentType = getContentTypeFromHeaders(request.headers) || mimeType;
       return <RawEditor uniquenessKey={uniqueKey} contentType={contentType || 'text/plain'} content={request.body.text || ''} onChange={handleRawChange} />;
-    } else if (isEventStreamRequest(request)) {
-      return <EmptyStatePane
-        icon={<i className="fa fa-paper-plane" />}
-        documentationLinks={[]}
-        secondaryAction={secondaryAction}
-        title="Enter a URL and connect to start receiving event stream data"
-      />;
     }
 
-    // the Body tab of a request with none: what it shows is the body, not a response
+    // the Body tab of a request with none, an event stream's too: what it shows
+    // is the body, not a response or how to connect
     return <EmptyStatePane icon={<SvgIcon icon="globe" />} documentationLinks={[]} secondaryAction={t('Choose a body type from the Body menu above to add one')} title={t('This request has no body')} />;
   };
 
