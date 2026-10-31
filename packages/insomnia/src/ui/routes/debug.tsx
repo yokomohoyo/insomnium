@@ -183,6 +183,7 @@ export const Debug: FC = () => {
     baseEnvironment,
     collection,
   } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const pinned = collection.filter(item => !item.hidden && item.pinned);
   const requestData = useRouteLoaderData('request/:requestId') as
     | RequestLoaderData
     | GrpcRequestLoaderData
@@ -942,71 +943,75 @@ export const Debug: FC = () => {
               </MenuTrigger>
             </div>
 
-            <GridList
-              className="overflow-y-auto border-b border-t data-[empty]:py-0 py-[--padding-sm] data-[empty]:border-none border-solid border-[--hl-sm]"
-              items={collection.filter(item => !item.hidden && item.pinned)}
-              aria-label={t('Pinned Requests')}
-              disallowEmptySelection
-              selectedKeys={[requestId]}
-              selectionMode="single"
-              onSelectionChange={keys => {
-                if (keys !== 'all') {
-                  const value = keys.values().next().value;
-                  navigate(
-                    `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${value}?${searchParams.toString()}`
-                  );
-                }
-              }}
-            >
-              {item => {
-                return (
-                  <Item
-                    key={item.doc._id}
-                    id={item.doc._id}
-                    className="group outline-none select-none"
-                  >
-                    <div
-                      className="flex select-none outline-none group-aria-selected:text-[--color-font] relative group-hover:bg-[--hl-xs] group-focus:bg-[--hl-sm] transition-colors gap-2 px-4 items-center h-[--line-height-xs] w-full overflow-hidden text-[--hl]"
+            {/* only with something pinned: an empty list was still a tab stop, with
+                nothing to show for the focus */}
+            {pinned.length > 0 && (
+              <GridList
+                className="overflow-y-auto border-b border-t data-[empty]:py-0 py-[--padding-sm] data-[empty]:border-none border-solid border-[--hl-sm]"
+                items={pinned}
+                aria-label={t('Pinned Requests')}
+                disallowEmptySelection
+                selectedKeys={[requestId]}
+                selectionMode="single"
+                onSelectionChange={keys => {
+                  if (keys !== 'all') {
+                    const value = keys.values().next().value;
+                    navigate(
+                      `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${value}?${searchParams.toString()}`
+                    );
+                  }
+                }}
+              >
+                {item => {
+                  return (
+                    <Item
+                      key={item.doc._id}
+                      id={item.doc._id}
+                      className="group outline-none select-none"
                     >
-                      <span className="group-aria-selected:bg-[--color-surprise] transition-colors top-0 left-0 absolute h-full w-[2px] bg-transparent" />
-                      {isRequest(item.doc) && (
-                        <span className={`w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center justify-center http-method-${item.doc.method}`}>
-                          {getMethodShortHand(item.doc)}
-                        </span>
-                      )}
-                      {isWebSocketRequest(item.doc) && (
-                        <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center info justify-center">
-                          WS
-                        </span>
-                      )}
-                      {isMcpRequest(item.doc) && (
-                        <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
-                          MCP
-                        </span>
-                      )}
-                      {isGrpcRequest(item.doc) && (
-                        <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center method-grpc justify-center">
-                          gRPC
-                        </span>
-                      )}
-                      <span className="truncate">{getRequestNameOrFallback(item.doc)}</span>
-                      <span className="flex-1" />
-                      {item.pinned && (
-                        <Icon className='text-[--font-size-sm]' icon="thumb-tack" />
-                      )}
-                      {!isRequestGroup(item.doc) && (
-                        <RequestActionsDropdown
-                          activeEnvironment={activeEnvironment}
-                          activeProject={activeProject}
-                          request={item.doc}
-                          isPinned={item.pinned}
-                        />
-                      )}
-                    </div>
-                  </Item>
-                );
-              }}
-            </GridList>
+                      <div
+                        className="flex select-none outline-none group-aria-selected:text-[--color-font] relative group-hover:bg-[--hl-xs] group-focus:bg-[--hl-sm] transition-colors gap-2 px-4 items-center h-[--line-height-xs] w-full overflow-hidden text-[--hl]"
+                      >
+                        <span className="group-aria-selected:bg-[--color-surprise] transition-colors top-0 left-0 absolute h-full w-[2px] bg-transparent" />
+                        {isRequest(item.doc) && (
+                          <span className={`w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center justify-center http-method-${item.doc.method}`}>
+                            {getMethodShortHand(item.doc)}
+                          </span>
+                        )}
+                        {isWebSocketRequest(item.doc) && (
+                          <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center info justify-center">
+                            WS
+                          </span>
+                        )}
+                        {isMcpRequest(item.doc) && (
+                          <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center success justify-center">
+                            MCP
+                          </span>
+                        )}
+                        {isGrpcRequest(item.doc) && (
+                          <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center method-grpc justify-center">
+                            gRPC
+                          </span>
+                        )}
+                        <span className="truncate">{getRequestNameOrFallback(item.doc)}</span>
+                        <span className="flex-1" />
+                        {item.pinned && (
+                          <Icon className='text-[--font-size-sm]' icon="thumb-tack" />
+                        )}
+                        {!isRequestGroup(item.doc) && (
+                          <RequestActionsDropdown
+                            activeEnvironment={activeEnvironment}
+                            activeProject={activeProject}
+                            request={item.doc}
+                            isPinned={item.pinned}
+                          />
+                        )}
+                      </div>
+                    </Item>
+                  );
+                }}
+              </GridList>
+            )}
 
             <div className='flex-1 overflow-y-auto' ref={parentRef}>
               <GridList
