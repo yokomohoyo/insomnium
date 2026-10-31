@@ -383,8 +383,8 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
             <EmptyStatePane
               icon={<SvgIcon icon="bug" />}
               documentationLinks={[]}
-              secondaryAction={t('Select a body type from above to send data in the body of a request')}
-              title={t('Enter a URL and send to get a response')}
+              secondaryAction={t("Enter the server's address, then load its methods with server reflection or a proto file, from the buttons above")}
+              title={t('Choose a method to call')}
             />
           )}
         </PaneBody>
