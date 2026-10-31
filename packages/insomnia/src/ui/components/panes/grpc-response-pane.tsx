@@ -6,6 +6,7 @@ import { TabItem, Tabs } from '../base/tabs';
 import { CodeEditor } from '../codemirror/code-editor';
 import { GrpcStatusTag } from '../tags/grpc-status-tag';
 import { Pane, PaneBody, PaneHeader } from './pane';
+import { PlaceholderResponsePane } from './placeholder-response-pane';
 import { type GrpcMethodInfo } from '../../../main/ipc/grpc';
 import type { GrpcMetadata } from '../../../main/network/grpc-metadata';
 import { Timestamp } from '../timestamp';
@@ -156,6 +157,10 @@ const GrpcStreamingResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
 };
 
 export const GrpcResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
+  // before a call, the shortcuts other requests show, rather than a blank pane
+  if (!grpcState.running && !grpcState.error && !hasResponse(grpcState)) {
+    return <PlaceholderResponsePane />;
+  }
   return grpcState.method && hasStreamingResponse(grpcState.method)
     ? <GrpcStreamingResponsePane grpcState={grpcState} />
     : <GrpcUnaryResponsePane grpcState={grpcState} />;
