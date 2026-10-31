@@ -24,7 +24,7 @@ test('a repository on this computer commits, and says what changed in each reque
   await dialog.locator('input[name="allUnversioned"]').check();
   await dialog.getByRole('button', { name: 'Commit' }).click();
   await expect(dialog).toContainText('Committed.');
-  await dialog.getByRole('button', { name: 'Close' }).click();
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click();
 
   // change the request, and see the change before committing it
   await page.getByTestId('request-pane').locator('.method-dropdown button').click();

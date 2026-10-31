@@ -15,7 +15,7 @@ test('a merge where both branches changed a request lets you choose which to kee
     }
     await dialog.getByRole('button', { name: 'Commit' }).click();
     await expect(dialog).toContainText('Committed.');
-    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click();
   };
   const setMethod = async (method: string) => {
     await methodButton.click();
