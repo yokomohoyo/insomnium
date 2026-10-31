@@ -115,7 +115,10 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
                 defaultValue={requestGroup?.name}
                 onChange={async event => {
                   guard(requestGroup, 'No request group');
-                  patchRequestGroup(requestGroup._id, { name: event.target.value });
+                  // a blank name isn't saved
+                  if (event.target.value.trim()) {
+                    patchRequestGroup(requestGroup._id, { name: event.target.value });
+                  }
                 }}
               />
             </label>

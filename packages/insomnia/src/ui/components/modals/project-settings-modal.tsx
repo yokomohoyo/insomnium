@@ -38,6 +38,10 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
                 placeholder={t('My Project')}
                 defaultValue={project.name}
                 onChange={e => {
+                  // a project needs a name: a blank one isn't saved
+                  if (!e.currentTarget.value.trim()) {
+                    return;
+                  }
                   submit(
                     {
                       name: e.currentTarget.value,

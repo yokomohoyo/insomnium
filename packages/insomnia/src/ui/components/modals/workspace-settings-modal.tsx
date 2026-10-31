@@ -263,7 +263,8 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                         type="text"
                         placeholder={t('Awesome API')}
                         defaultValue={activeWorkspaceName}
-                        onChange={event => workspacePatcher(workspace._id, { name: event.target.value })}
+                        // a blank name isn't saved
+                        onChange={event => event.target.value.trim() && workspacePatcher(workspace._id, { name: event.target.value })}
                       />
                     </label>
                   </div>
