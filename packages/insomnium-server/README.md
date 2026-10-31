@@ -131,7 +131,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 ## Load test a collection
 
-`load` load tests a collection's HTTP requests: each virtual user sends them in order, again and again, until the time is up, as the app's runner does in **Load test** mode. It prints the latency percentiles, throughput and failures, and exits 1 when a threshold is broken (2 when the test can't start). A request fails when it can't be sent, answers 400 or above, or fails an assertion. Responses aren't kept.
+`load` load tests a collection's HTTP requests: each virtual user sends them in order, again and again, until the time is up, as the app's runner does in **Load test** mode. It prints the latency percentiles, throughput and failures, and exits 1 when a threshold is broken (2 when the test can't start). A request fails when it can't be sent, answers 400 or above (unless it has its own status assertion, as a test of a 404 does), or fails an assertion. Responses aren't kept.
 
 ```sh
 docker run --rm -e INSOMNIUM_VAR_apiKey="$API_KEY" -v "$PWD:/work" -w /work \

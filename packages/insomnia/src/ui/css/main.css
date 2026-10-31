@@ -2552,6 +2552,14 @@ input.editable {
   background-color: var(--color-surprise);
   color: var(--color-font-surprise);
 }
+/* a row of secondary actions, whose last button isn't the dialog's main one */
+.modal .modal__footer button.modal__footer-secondary {
+  background-color: transparent;
+  color: var(--color-font);
+}
+.modal .modal__footer button.modal__footer-secondary:hover {
+  background-color: var(--hl-xs);
+}
 .modal .modal__footer button.studio-action-btn {
   color: #0084d5;
   float: left;

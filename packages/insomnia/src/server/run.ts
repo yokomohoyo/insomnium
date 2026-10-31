@@ -19,6 +19,8 @@ export interface RunConfig extends Sources {
   bail: boolean;
   junit?: string;
   json?: string;
+  html?: string;
+  csv?: string;
   allowedHosts: string[];
   variables: Record<string, string>;
   validateSSL: boolean;
@@ -40,6 +42,8 @@ ${SOURCES_USAGE}
   --bail        stop at the first request that fails
   --junit       write a JUnit XML report to this file
   --json        write a JSON report to this file
+  --html        write an HTML report to this file: each request's latency and phases
+  --csv         write a CSV report to this file: a row per request sent
 
 Environment:
   INSOMNIUM_ALLOWED_HOSTS  comma-separated hosts requests may go to; any by default,
@@ -121,6 +125,12 @@ export const parseRunConfig = (argv: string[], env: Record<string, string | unde
         break;
       case '--json':
         config.json = value();
+        break;
+      case '--html':
+        config.html = value();
+        break;
+      case '--csv':
+        config.csv = value();
         break;
       default:
         throw new Error(`Unknown option ${option}`);

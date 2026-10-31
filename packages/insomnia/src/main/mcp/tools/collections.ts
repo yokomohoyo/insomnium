@@ -6,7 +6,10 @@ import { docsFromExport } from '../../../common/export-docs';
 import { toOpenApiYaml } from '../../../common/export-openapi';
 import { toPostmanCollection } from '../../../common/export-postman';
 import { importResourcesToWorkspace, scanResources } from '../../../common/import';
+import { phaseDurations } from '../../../common/timings';
 import * as models from '../../../models';
+import { resultName } from '../../../network/run-files';
+import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, runRequests } from '../../../network/runner';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
@@ -80,7 +83,7 @@ export function registerCollectionTools(server: McpServer) {
 
   server.tool(
     'run_requests',
-    "Run a workspace's or folder's HTTP requests in order (parentId), as the app's runner does: each is sent with its scripts, and its assertions and script tests are checked. Returns each request's result and a summary.",
+    "Run a workspace's or folder's HTTP requests in order (parentId), as the app's runner does: each is sent with its scripts, and its assertions and script tests are checked. Returns each request's result (with its time, its phases: DNS, connect, TLS, waiting for the server, download, and its size), a summary, and byRequest: each request's latency percentiles, phases and size over the iterations.",
     {
       parentId: z.string(),
       environmentId: z.string().optional().describe('a sub environment; the active one when left out'),
@@ -98,10 +101,15 @@ export function registerCollectionTools(server: McpServer) {
         summary: summary.requests,
         assertions: summary.assertions,
         elapsedMs: summary.elapsedTime,
-        results: summary.results.map(({ iteration, name, folders, method, url, statusCode, error, passed, assertions }) => ({
+        results: summary.results.map(({ iteration, name, folders, method, url, statusCode, elapsedTime, timings, bytes, error, passed, assertions }) => ({
           iteration, name: [...folders, name].join(' / '), method, url, statusCode, error, passed,
+          elapsedMs: elapsedTime === undefined ? undefined : Math.round(elapsedTime * 10) / 10,
+          ...(timings && elapsedTime !== undefined ? { phases: phaseDurations(timings, elapsedTime) } : {}),
+          bytes,
           assertions: assertions.map(({ passed, message }) => ({ passed, message })),
         })),
+        // each request over the iterations: latency percentiles, phases, size
+        byRequest: requestRunStats(summary.results, resultName).map(({ requestId: _, ...stats }) => stats),
       }, summary.requests.failed > 0);
     },
   );

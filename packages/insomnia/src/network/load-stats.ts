@@ -6,7 +6,7 @@ export interface LoadSample {
   name: string;
   // milliseconds: libcurl's total time, or until the send failed
   elapsed: number;
-  // sent, below 400, and every assertion passed
+  // sent, below 400 (or as its own status assertion wants), and every assertion passed
   ok: boolean;
   statusCode?: number;
   error?: string;

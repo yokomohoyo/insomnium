@@ -77,6 +77,10 @@ describe('the collection tools', () => {
     const run = await call('run_requests', { parentId: workspaceId, iterations: 1, bail: false });
     expect(run.isError).toBe(false);
     expect(run.body).toMatchObject({ passed: true, summary: { total: 1, failed: 0 }, results: [{ name: 'Health', statusCode: 200, passed: true, assertions: [{ passed: true, message: 'Status code equals 200' }] }] });
+    // each result's time and phases, and each request over the run
+    expect(run.body.results[0]).toMatchObject({ elapsedMs: expect.any(Number), phases: { dns: 10, connect: 20, tls: 0, wait: 470 }, bytes: 800 });
+    expect(run.body.byRequest).toEqual([expect.objectContaining({ name: 'Health', method: 'GET', count: 1, failed: 0, p50: expect.any(Number), phases: expect.objectContaining({ wait: 470 }), bytes: 800 })]);
+    expect(run.body.byRequest[0]).not.toHaveProperty('requestId');
     expect(await call('run_requests', { parentId: 'empty', iterations: 1, bail: false })).toEqual({ body: { error: 'no HTTP requests under parentId' }, isError: true });
   });
 });

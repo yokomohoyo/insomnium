@@ -174,13 +174,15 @@ class Curl extends EventEmitter {
       // @ts-expect-error -- TSCONVERSION
       this._options.WRITEFUNCTION(data);
 
+      // a URL with /status/<code> in it answers with that status
+      const status = /\/status\/(\d{3})\b/.exec(String(this._options[Curl.option.URL]))?.[1];
       process.nextTick(() => {
         this.emit(
           'end',
           'NOT_USED',
           'NOT_USED',
           [
-            'HTTP/1.1 200 OK',
+            status ? `HTTP/1.1 ${status} Status ${status}` : 'HTTP/1.1 200 OK',
             `Content-Length: ${data.length}`,
             'Content-Type: application/json',
             '',

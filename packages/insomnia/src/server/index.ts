@@ -8,7 +8,7 @@ import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
 import { brokenThresholds } from '../network/load-stats';
 import { runLoadTest } from '../network/load-test';
-import { jsonReport, junitReport } from '../network/run-files';
+import { csvReport, htmlReport, jsonReport, junitReport } from '../network/run-files';
 import { runRequests } from '../network/runner';
 import { parseConfig, ServerConfig, USAGE } from './config';
 import { formatLoadSummary, LOAD_USAGE, LoadConfig, parseLoadConfig } from './load-test';
@@ -74,6 +74,12 @@ async function run(argv: string[]) {
   }
   if (config.json) {
     await fs.promises.writeFile(config.json, jsonReport(summary, name));
+  }
+  if (config.html) {
+    await fs.promises.writeFile(config.html, htmlReport(summary, name));
+  }
+  if (config.csv) {
+    await fs.promises.writeFile(config.csv, csvReport(summary));
   }
   return summary.requests.failed ? 1 : 0;
 }

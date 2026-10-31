@@ -70,6 +70,13 @@ describe('runner', () => {
     expect(cycled.results.map(({ url }) => url)).toEqual(['http://localhost/a', 'http://localhost/b', 'http://localhost/a']);
   });
 
+  it("keeps each send's timings, size and HTTP version for the run's numbers", async () => {
+    await request('one', 1);
+    const [result] = (await runRequests(await listRunnableRequests(workspaceId))).results;
+    // the mocked libcurl: resolved at 10 ms, connected at 30 ms, first byte at 500 ms, 800 bytes
+    expect(result).toMatchObject({ timings: { dns: 10, connect: 30, tls: 0, firstByte: 500 }, bytes: 800, httpVersion: expect.any(String) });
+  });
+
   it('records a request that fails to render, and stops there with bail', async () => {
     await request('broken', 1, { url: "{% nope 'x' %}" });
     await request('after', 2);
