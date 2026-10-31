@@ -288,8 +288,8 @@ const Root = () => {
             />
           )}
           <div className="w-full h-full divide-x divide-solid divide-y divide-[--hl-md] grid-template-app-layout grid relative bg-[--color-bg]">
-            <header className="[grid-area:Header] flex items-center gap-[--padding-md] min-h-[--line-height-sm] px-[--padding-md]">
-              {workspaceData && (
+            {workspaceData && (
+              <header className="[grid-area:Header] flex items-center gap-[--padding-md] h-[--line-height-xs] px-[--padding-md]">
                 <Breadcrumbs items={crumbs}>
                   {item => (
                     <Item key={item.id} id={item.id}>
@@ -297,24 +297,21 @@ const Root = () => {
                     </Item>
                   )}
                 </Breadcrumbs>
-              )}
-              <span className="flex-1" />
-              {workspaceData && /\/debug(\/|$)/.test(location.pathname) && (
-                <Button
-                  aria-label={t('Search requests')}
-                  onPress={() => window.dispatchEvent(new Event(QUICK_SWITCH_EVENT))}
-                  className="flex items-center gap-2 w-64 max-w-[30vw] px-[--padding-sm] py-[--padding-xxs] rounded-md border border-solid border-[--hl-md] text-[--hl] text-xs hover:border-[--hl] hover:bg-[--hl-xxs] focus:ring-1 focus:ring-[--hl-md] transition-colors"
-                >
-                  <Icon icon="search" />
-                  <span className="flex-1 text-left">{t('Search requests')}</span>
-                  <Hotkey keyBindings={settings.hotKeyRegistry.request_quickSwitch} />
-                </Button>
-              )}
-              <span className="flex-1" />
-              <span className="flex items-center gap-1 text-xs text-[--hl] whitespace-nowrap">
-                {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-[--color-danger]" icon="heart" />
-              </span>
-            </header>
+                <span className="flex-1" />
+                {/\/debug(\/|$)/.test(location.pathname) && (
+                  <Button
+                    aria-label={t('Search requests')}
+                    onPress={() => window.dispatchEvent(new Event(QUICK_SWITCH_EVENT))}
+                    className="flex items-center gap-2 w-64 max-w-[30vw] px-[--padding-sm] py-[--padding-xxs] rounded-md border border-solid border-[--hl-md] text-[--hl] text-xs hover:border-[--hl] hover:bg-[--hl-xxs] focus:ring-1 focus:ring-[--hl-md] transition-colors"
+                  >
+                    <Icon icon="search" />
+                    <span className="flex-1 text-left">{t('Search requests')}</span>
+                    <Hotkey keyBindings={settings.hotKeyRegistry.request_quickSwitch} />
+                  </Button>
+                )}
+                <span className="flex-1" />
+              </header>
+            )}
             <nav aria-label={t('App')} className="[grid-area:Navbar] flex flex-col items-center gap-[--padding-xs] w-full h-full overflow-y-auto py-[--padding-sm]">
               <RailLink
                 label={t('Projects')}

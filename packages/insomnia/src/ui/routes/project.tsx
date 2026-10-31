@@ -577,6 +577,9 @@ const ProjectRoute: FC = () => {
                   );
                 }}
               </GridList>
+              <p className="flex items-center gap-1 m-0 p-[--padding-sm] text-xs text-[--hl]">
+                {t('a 100% local and privacy-focus fork of Insomnia')} <Icon className="text-[--color-danger]" icon="heart" />
+              </p>
             </div>
           }
           renderPaneOne={
