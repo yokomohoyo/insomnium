@@ -11,9 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { CliError, readDiscovery, withClient } from './connect.js';
-
-const VERSION = '1.0.0';
+import { CliError, readDiscovery, VERSION, withClient } from './connect.js';
 
 const HELP = `insomnium — drive a running Insomnium app over MCP
 
