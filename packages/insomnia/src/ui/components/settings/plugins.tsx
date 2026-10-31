@@ -125,6 +125,7 @@ export const Plugins: FC = () => {
                   <td style={{ width: '4rem' }}>
                     <input
                       type="checkbox"
+                      aria-label={plugin.name}
                       checked={!plugin.config.disabled}
                       disabled={isRefreshingPlugins}
                       onChange={async event => {
@@ -250,6 +251,7 @@ export const Plugins: FC = () => {
               }}
               disabled={isInstallingFromNpm}
               type="text"
+              aria-label="npm package"
               placeholder="npm-package-name"
               value={npmPluginValue}
             />

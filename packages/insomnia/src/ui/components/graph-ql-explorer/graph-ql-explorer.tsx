@@ -174,6 +174,7 @@ export const GraphQLExplorer: FC<Props> = ({ schema, handleClose, visible, refer
               ref={inputRef}
               onChange={event => setState(state => ({ ...state, filter: event.target.value }))}
               placeholder="Search the docs..."
+              aria-label="Search the docs"
               defaultValue={filter}
             />
             {filter && (

@@ -25,7 +25,7 @@ export const RequestRow: FC<Props> = ({
     <li className="tree__row">
       <div className="tree__item tree__item--request">
         <div className="tree__item__checkbox tree__indent">
-          <input type="checkbox" checked={isSelected} onChange={onChange} />
+          <input type="checkbox" aria-label={request.name} checked={isSelected} onChange={onChange} />
         </div>
         {/* on one line, labelled as the request tabs label them */}
         <button className="wide flex items-center gap-2 min-w-0">

@@ -164,6 +164,7 @@ export const ProtoFileList: FunctionComponent<Props> = props => {
             type="search"
             className="form-control"
             placeholder="Filter proto files..."
+            aria-label="Filter proto files"
             value={query}
             onChange={e => setQuery(e.target.value)}
           />

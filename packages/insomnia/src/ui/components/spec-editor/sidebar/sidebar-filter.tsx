@@ -50,7 +50,7 @@ export const SidebarFilter: FunctionComponent<SidebarFilterProps> = ({ filter, o
         height: filter ? '100%' : '0px',
       }}
     >
-      <input type="text" placeholder="Filter..." onChange={onChange} ref={filterField} />
+      <input type="text" placeholder="Filter..." aria-label="Filter" onChange={onChange} ref={filterField} />
     </StyledFilter>
   );
 };

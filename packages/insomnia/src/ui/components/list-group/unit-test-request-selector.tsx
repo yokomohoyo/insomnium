@@ -16,6 +16,10 @@ const StyledUnitTestRequestSelector = styled.div`
   margin: var(--padding-sm) var(--padding-sm) var(--padding-sm) auto;
   max-width: 18rem;
   flex: 0 0 auto;
+  /* the select draws no outline of its own, so its box shows the focus */
+  &:focus-within {
+    border-color: var(--color-surprise);
+  }
   select {
     max-width: 18rem;
     height: var(--line-height-xs);
@@ -42,6 +46,7 @@ export const UnitTestRequestSelector: FunctionComponent<UnitTestRequestSelectorP
       <select
         name="request"
         id="request"
+        aria-label="Request"
         onChange={onSetActiveRequest}
         defaultValue={selectedRequestId || '__NULL__'}
       >
