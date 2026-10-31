@@ -23,6 +23,8 @@ test('a variable added in the environment table is sent @ci', async ({ app, page
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Table' }).click();
   await dialog.getByRole('button', { name: 'Add Variable' }).click();
+  // ready for its name
+  await expect(dialog.getByLabel('Variable name').last()).toBeFocused();
   await dialog.getByLabel('Variable name').last().fill('petId');
   await dialog.getByLabel('Variable value').last().fill('42');
   await dialog.getByLabel('Variable value').last().press('Tab');
