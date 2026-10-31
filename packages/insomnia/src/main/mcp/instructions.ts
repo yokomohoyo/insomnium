@@ -25,6 +25,7 @@ Everything here works on the user's own collections, on their computer. Changes 
 - \`send_grpc_request\` calls a gRPC method (see \`get_proto_methods\`).
 - \`run_requests\` runs a workspace's or folder's HTTP requests in order, with iterations, and returns each result with its time and phases (DNS, connect, TLS, waiting, download) and each request's latency percentiles.
 - \`run_flow\` runs a flow: requests joined with conditions and variables.
+- \`connect_event_stream\` opens an event stream (Server-Sent Events) request's connection; \`read_event_stream\` shows what it received, newest first; \`close_event_stream\` closes it. The app's window shows the same connection.
 - \`run_test_suite\` runs a test suite's unit tests. Their code runs with the app's full access, so the app asks the user each time; say why you want to run them, and accept a no.
 
 ## Change things

@@ -16,6 +16,7 @@ import { openWorkspaceGit } from '../../sync/git/workspace-git';
 import { gitSshRequestFrom } from '../git-ssh';
 import { collectionMockStatus, recentMockRequests, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import { axiosRequest } from '../network/axios-request';
+import { eventStreams } from '../network/curl';
 import { confirmGitAction } from './confirm-git';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
@@ -24,6 +25,7 @@ import { filterTools, MINIMAL_TOOLS, registerTools } from './tools';
 import { registerGitTools } from './tools/git';
 import { registerMockTools } from './tools/mocks';
 import { registerSpecTools } from './tools/spec';
+import { registerStreamTools } from './tools/streams';
 import { registerTestRunTools } from './tools/test-run';
 
 interface RunningServer {
@@ -195,5 +197,7 @@ function buildMcpServer(minimal = false): McpServer {
     }),
     confirm: confirmGitAction,
   });
+  // and event stream connections, which run in the app
+  registerStreamTools(server, eventStreams);
   return mcpServer;
 }

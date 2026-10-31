@@ -377,6 +377,15 @@ export interface CurlBridgeAPI {
     findMany: typeof findMany;
   };
 }
+// the same connections, for an MCP client (main/mcp/tools/streams.ts); the
+// window sees them as it sees its own
+export const eventStreams = {
+  open: (options: OpenCurlRequestOptions) => openCurlConnection(null as unknown as Electron.IpcMainInvokeEvent, options),
+  close: (requestId: string) => closeCurlConnection(null as unknown as Electron.IpcMainInvokeEvent, { requestId }),
+  isOpen: (requestId: string) => getCurlReadyState({ requestId }),
+  events: (responseId: string) => findMany({ responseId }),
+};
+
 export const registerCurlHandlers = () => {
   ipcMain.handle('curl.open', openCurlConnection);
   ipcMain.on('curl.close', closeCurlConnection);
