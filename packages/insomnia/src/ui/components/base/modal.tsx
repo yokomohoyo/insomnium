@@ -6,6 +6,9 @@ import { createKeybindingsHandler } from '../keydown-binder';
 // appear over top of an existing one.
 let globalZIndex = 1000;
 
+// what Tab can reach in a modal
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 // the id of the modal's title, which its ModalHeader renders: the dialog's name
 export const ModalTitleId = createContext<string | undefined>(undefined);
 
@@ -41,11 +44,16 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
   const [open, setOpen] = useState(false);
   const [zIndex, setZIndex] = useState(globalZIndex);
   const [onHideArgument, setOnHideArgument] = useState<() => void>();
+  // where the focus was before the modal took it, to give it back on hide
+  const returnFocus = useRef<HTMLElement | null>(null);
 
   const show: ModalHandle['show'] = useCallback(options => {
     // stored as a value (a function passed to a state setter is called as an
     // updater), and this show's only, not an earlier one's
     setOnHideArgument(() => options?.onHide);
+    if (!containerRef.current?.contains(document.activeElement)) {
+      returnFocus.current = document.activeElement as HTMLElement | null;
+    }
     setOpen(true);
     setZIndex(globalZIndex++);
     onShow?.();
@@ -53,6 +61,12 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
 
   const hide = useCallback(() => {
     setOpen(false);
+    // back where it was, unless that's gone or the focus has moved on
+    const back = returnFocus.current;
+    returnFocus.current = null;
+    if (back?.isConnected && (!document.activeElement || document.activeElement === document.body || containerRef.current?.contains(document.activeElement))) {
+      setTimeout(() => back.focus());
+    }
     if (typeof onHideProp === 'function') {
       onHideProp();
     }
@@ -60,6 +74,38 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
       onHideArgument();
     }
   }, [onHideProp, onHideArgument]);
+
+  // the modal takes the focus as it opens, unless something in it has taken it
+  // already (an input with autoFocus): it stayed behind the modal, so Tab went
+  // through the page underneath
+  useEffect(() => {
+    if (open && containerRef.current && !containerRef.current.contains(document.activeElement)) {
+      containerRef.current.focus();
+    }
+  }, [open]);
+
+  // and Tab goes round what's in the modal, not out of it
+  const trapTab = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab' || event.defaultPrevented || !containerRef.current) {
+      return;
+    }
+    const focusable = [...containerRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
+      .filter(element => !element.closest('[hidden], [aria-hidden="true"]') && getComputedStyle(element).display !== 'none');
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (event.shiftKey && (active === first || active === containerRef.current)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
 
   useImperativeHandle(ref, () => ({
     show,
@@ -101,7 +147,10 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
   return (open ?
     <div
       ref={containerRef}
-      onKeyDown={handleKeydown}
+      onKeyDown={event => {
+        trapTab(event);
+        handleKeydown(event);
+      }}
       tabIndex={-1}
       className={classes}
       style={{ zIndex }}
