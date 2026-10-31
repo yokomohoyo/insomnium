@@ -43,7 +43,11 @@ export function registerTestRunTools(server: McpServer, confirm: ConfirmTestRun)
       if (!unitTests.length) {
         return text({ error: 'the test suite has no tests' }, true);
       }
-      if (!await confirm({ suite: suite.name, workspace: workspace?.name || '', tests: unitTests.map(test => test.name) })) {
+      const allowed = await confirm({ suite: suite.name, workspace: workspace?.name || '', tests: unitTests.map(test => test.name) });
+      // a record of each answer, in the app's log
+      console.log(`[mcp] run_test_suite ${testSuiteId}: the user ${allowed === true ? 'allowed' : 'declined'} the run`);
+      // only a plain yes runs anything
+      if (allowed !== true) {
         return text({ error: 'the user declined to run the tests' }, true);
       }
       return oneAtATime(async () => {
