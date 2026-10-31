@@ -28,7 +28,7 @@ test("Import from URL takes the query out of the URL bar, so editing the URL doe
 
   // an edit to the URL keeps the query in the table, once
   await urlBar.locator('.CodeMirror textarea').press('End');
-  await urlBar.locator('.CodeMirror textarea').pressSequentially('/1');
+  await urlBar.locator('.CodeMirror textarea').type('/1');
   await expect(requestPane).toContainText('http://127.0.0.1:4010/pets/1?a=1&b=two');
   await expect(requestPane).not.toContainText('a=1&b=two&a=1');
 });
