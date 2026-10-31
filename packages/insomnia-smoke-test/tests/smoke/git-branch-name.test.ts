@@ -15,7 +15,7 @@ test('a branch name git refuses is said to be a failed branch, not a push @ci', 
   await page.getByRole('menuitem', { name: 'Branches' }).click();
   const branches = page.getByRole('dialog').filter({ hasText: 'New Branch Name' });
   await branches.getByPlaceholder('testing-branch').fill('bad name');
-  await branches.getByRole('button', { name: 'Create', exact: true }).click();
+  await branches.getByRole('button', { name: 'Create' }).click();
 
   const alert = page.getByRole('dialog').filter({ hasText: 'would be an invalid git reference' });
   await expect(alert).toContainText('Create Branch Failed');
