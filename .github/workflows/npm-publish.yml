@@ -1,0 +1,159 @@
+name: npm Packages
+
+# Publishes insomnium-cli and insomnium-mcp to npm after a successful Release
+# On Publish run, so `npm i -g insomnium-cli` and `npx insomnium-mcp` work.
+# A package whose version is already on npm is skipped, so a release that
+# didn't change one (the usual case for insomnium-mcp) leaves it alone. Also
+# runnable manually for an existing tag (dry_run packs and checks only), and
+# packs and checks both packages on pull requests that touch them.
+#
+# `pack` builds each package, packs it, installs the tarball into an empty
+# prefix and runs its command, so a missing file or dependency fails here, not
+# for users. `publish` only uploads those tarballs, with provenance.
+#
+# Required secret: NPM_TOKEN, an npm granular access token that can publish
+# both packages, stored in the `npm` environment, which only main may deploy
+# to. Until it is set, `publish` skips with a warning.
+
+on:
+  workflow_run:
+    workflows: ["Release On Publish"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish the packages from
+        required: true
+        type: string
+      dry_run:
+        description: Pack and check only, publish nothing
+        required: false
+        default: true
+        type: boolean
+  pull_request:
+    paths:
+      - packages/insomnium-cli/**
+      - packages/insomnium-mcp/**
+      - .github/workflows/npm-publish.yml
+
+permissions:
+  contents: read
+
+# One publish at a time: each checks what npm already has.
+concurrency:
+  group: npm-${{ github.event_name == 'pull_request' && github.ref || 'publish' }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PACKAGES: insomnium-cli insomnium-mcp
+
+jobs:
+  pack:
+    # Same rule as homebrew.yml: only a build started by publishing a release.
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release') }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.inputs.tag || github.event.workflow_run.head_branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.sha || format('refs/tags/{0}', github.event.inputs.tag || github.event.workflow_run.head_branch) }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+
+      # Root devDependencies supply typescript and @types/node.
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Build and pack
+        run: |
+          mkdir -p "$RUNNER_TEMP/packs"
+          for p in $PACKAGES; do
+            npm run build --workspace "packages/$p"
+            npm pack --workspace "packages/$p" --pack-destination "$RUNNER_TEMP/packs"
+          done
+          ls -l "$RUNNER_TEMP/packs"
+
+      - name: Check the tarballs install and run
+        run: |
+          prefix="$RUNNER_TEMP/prefix"
+          npm install --global --prefix "$prefix" "$RUNNER_TEMP"/packs/*.tgz
+          bin="$prefix/bin"
+
+          want=$(node -p "require('./packages/insomnium-cli/package.json').version")
+          got=$("$bin/insomnium" --version)
+          if [ "$got" != "$want" ]; then
+            echo "::error::insomnium --version printed '$got', expected '$want'"; exit 1
+          fi
+
+          # With no app running it must fail cleanly, which proves it loads.
+          set +e
+          err=$(INSOMNIUM_MCP_DISCOVERY_FILE="$RUNNER_TEMP/none.json" "$bin/insomnium-mcp" </dev/null 2>&1)
+          code=$?
+          set -e
+          if [ "$code" != 1 ] || ! grep -q 'could not read' <<<"$err"; then
+            echo "::error::insomnium-mcp didn't start cleanly (exit $code): $err"; exit 1
+          fi
+
+          # The MCP registry entry must name the version being published.
+          want=$(node -p "require('./packages/insomnium-mcp/package.json').version")
+          for v in $(node -p "const s = require('./packages/insomnium-mcp/server.json'); [s.version, ...s.packages.map(p => p.version)].join(' ')"); do
+            if [ "$v" != "$want" ]; then
+              echo "::error::packages/insomnium-mcp/server.json has version $v, package.json has $want"; exit 1
+            fi
+          done
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: npm-packs
+          path: ${{ runner.temp }}/packs/*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: pack
+    if: >-
+      ${{ github.event_name == 'workflow_run' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'false') }}
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-packs
+          path: packs
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::warning::NPM_TOKEN is not set in the npm environment; nothing published"
+            exit 0
+          fi
+          for tgz in packs/*.tgz; do
+            name=$(tar -xOzf "$tgz" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).name")
+            version=$(tar -xOzf "$tgz" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).version")
+            if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
+              echo "::notice::$name@$version is already on npm; skipped"
+              continue
+            fi
+            npm publish "$tgz" --access public --provenance
+            echo "::notice::published $name@$version"
+          done

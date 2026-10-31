@@ -3,11 +3,15 @@
 // packages/insomnium-mcp/src/index.ts.
 
 import { promises as fs } from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+
+// From the published package.json (dist/ sits next to it), so it can't drift.
+export const VERSION: string = createRequire(import.meta.url)('../package.json').version;
 
 export class CliError extends Error {}
 
@@ -75,7 +79,7 @@ export async function connect(): Promise<Client> {
   const transport = new SSEClientTransport(endpoint, {
     requestInit: { headers: { Authorization: `Bearer ${disc.token}` } },
   });
-  const client = new Client({ name: 'insomnium-cli', version: '1.0.0' });
+  const client = new Client({ name: 'insomnium-cli', version: VERSION });
   try {
     await client.connect(transport);
   } catch (err) {
