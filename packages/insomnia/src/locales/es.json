@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "Solo loopback; protegido con token Bearer.",
   "MCP Request": "Solicitud MCP",
   "Made": "Creada",
-  "Manage Cookies": "Gestionar cookies",
   "Manage Environments": "Gestionar entornos",
   "Manual": "Manual",
   "Max timeline chunk size (KiB)": "Tamaño máximo de fragmento de la cronología (KiB)",
@@ -823,7 +822,6 @@
   "Yours": "Tuyo",
   "Zoom &In": "&Acercar",
   "Zoom &Out": "A&lejar",
-  "a 100% local and privacy-focus fork of Insomnia": "un fork de Insomnia 100 % local y centrado en la privacidad",
   "before a restore": "antes de una restauración",
   "by {author}": "por {author}",
   "description": "descripción",
@@ -877,5 +875,7 @@
   "You have the latest version of {product} ({current}).": "Tienes la última versión de {product} ({current}).",
   "Couldn't check for updates: {error}": "No se pudieron buscar actualizaciones: {error}",
   "Commit Failed": "Error en el commit",
-  "Rollback Failed": "Error al revertir"
+  "Rollback Failed": "Error al revertir",
+  "App": "Aplicación",
+  "Search requests": "Buscar solicitudes"
 }

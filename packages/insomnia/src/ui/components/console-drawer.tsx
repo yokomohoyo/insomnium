@@ -60,7 +60,7 @@ export const ConsoleDrawer: FC<{ onClose: () => void }> = ({ onClose }) => {
   return (
     <section
       aria-label="Console"
-      className="absolute left-0 right-0 bottom-[--line-height-sm] h-[35vh] z-20 flex flex-col bg-[--color-bg] text-[--color-font] text-[length:var(--font-size-sm)] border-t border-solid border-[--hl-md] shadow-lg"
+      className="absolute left-0 right-0 bottom-0 h-[35vh] z-20 flex flex-col bg-[--color-bg] text-[--color-font] text-[length:var(--font-size-sm)] border-t border-solid border-[--hl-md] shadow-lg"
       onKeyDown={event => event.key === 'Escape' && onClose()}
     >
       <div className="flex items-center gap-2 px-3 py-1 border-b border-solid border-[--hl-md]">

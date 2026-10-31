@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "ループバックのみ。Bearer トークンで保護されています。",
   "MCP Request": "MCP リクエスト",
   "Made": "作成日時",
-  "Manage Cookies": "Cookie を管理",
   "Manage Environments": "環境を管理",
   "Manual": "手動",
   "Max timeline chunk size (KiB)": "タイムライン チャンクの最大サイズ (KiB)",
@@ -823,7 +822,6 @@
   "Yours": "自分の側",
   "Zoom &In": "拡大(&I)",
   "Zoom &Out": "縮小(&O)",
-  "a 100% local and privacy-focus fork of Insomnia": "100% ローカルでプライバシー重視の Insomnia フォーク",
   "before a restore": "復元前",
   "by {author}": "{author} による",
   "description": "説明",
@@ -877,5 +875,7 @@
   "You have the latest version of {product} ({current}).": "{product} は最新バージョンです ({current})。",
   "Couldn't check for updates: {error}": "アップデートを確認できませんでした: {error}",
   "Commit Failed": "コミットに失敗しました",
-  "Rollback Failed": "ロールバックに失敗しました"
+  "Rollback Failed": "ロールバックに失敗しました",
+  "App": "アプリ",
+  "Search requests": "リクエストを検索"
 }

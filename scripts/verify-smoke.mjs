@@ -40,8 +40,10 @@ const page = await app.firstWindow();
 await page.waitForLoadState('domcontentloaded');
 await page.waitForTimeout(8_000);
 
+// on the projects page, open the collection; a fresh install starts inside it,
+// where the same name is the breadcrumb's menu
 try {
-  const collection = page.locator('text=My Collection').first();
+  const collection = page.locator('[role="gridcell"], [role="row"]').filter({ hasText: 'My Collection' }).first();
   if (await collection.isVisible({ timeout: 2_000 })) {
     await collection.click();
     await page.waitForTimeout(2_000);

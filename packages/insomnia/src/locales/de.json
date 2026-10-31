@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "Nur Loopback; durch Bearer-Token geschützt.",
   "MCP Request": "MCP-Anfrage",
   "Made": "Erstellt",
-  "Manage Cookies": "Cookies verwalten",
   "Manage Environments": "Umgebungen verwalten",
   "Manual": "Manuell",
   "Max timeline chunk size (KiB)": "Max. Chunk-Größe der Zeitleiste (KiB)",
@@ -823,7 +822,6 @@
   "Yours": "Ihre Version",
   "Zoom &In": "Ver&größern",
   "Zoom &Out": "Ver&kleinern",
-  "a 100% local and privacy-focus fork of Insomnia": "ein zu 100 % lokaler, datenschutzorientierter Fork von Insomnia",
   "before a restore": "vor einer Wiederherstellung",
   "by {author}": "von {author}",
   "description": "Beschreibung",
@@ -877,5 +875,7 @@
   "You have the latest version of {product} ({current}).": "Sie haben die neueste Version von {product} ({current}).",
   "Couldn't check for updates: {error}": "Updates konnten nicht gesucht werden: {error}",
   "Commit Failed": "Commit fehlgeschlagen",
-  "Rollback Failed": "Verwerfen fehlgeschlagen"
+  "Rollback Failed": "Verwerfen fehlgeschlagen",
+  "App": "App",
+  "Search requests": "Anfragen suchen"
 }

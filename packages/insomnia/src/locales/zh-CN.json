@@ -415,7 +415,6 @@
   "Loopback-only; Bearer-token gated.": "仅限本地回环；需要 Bearer 令牌。",
   "MCP Request": "MCP 请求",
   "Made": "创建时间",
-  "Manage Cookies": "管理 Cookie",
   "Manage Environments": "管理环境",
   "Manual": "手动",
   "Max timeline chunk size (KiB)": "最大时间线块大小（KiB）",
@@ -823,7 +822,6 @@
   "Yours": "你的",
   "Zoom &In": "放大(&I)",
   "Zoom &Out": "缩小(&O)",
-  "a 100% local and privacy-focus fork of Insomnia": "一个 100% 本地运行、注重隐私的 Insomnia 分支",
   "before a restore": "恢复前",
   "by {author}": "作者：{author}",
   "description": "描述",
@@ -877,5 +875,7 @@
   "You have the latest version of {product} ({current}).": "{product} 已是最新版本 ({current})。",
   "Couldn't check for updates: {error}": "无法检查更新：{error}",
   "Commit Failed": "提交失败",
-  "Rollback Failed": "回滚失败"
+  "Rollback Failed": "回滚失败",
+  "App": "应用",
+  "Search requests": "搜索请求"
 }
