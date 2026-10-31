@@ -125,7 +125,9 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 | `--delay <ms>` | Wait between requests. |
 | `--bail` | Stop at the first request that fails. |
 | `--junit <file>` | Write a JUnit XML report: a suite per request, a case per assertion. |
-| `--json <file>` | Write the results as JSON. |
+| `--json <file>` | Write the results as JSON, with each send's phases and each request's numbers over the run. |
+| `--html <file>` | Write an HTML report: each request's percentiles, cold start, size and where its time goes, then the failures. One page, no scripts. |
+| `--csv <file>` | Write a row per request sent: status, time, phases (DNS, connect, TLS, wait, download), size and failures. |
 
 `INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL`, `INSOMNIUM_ALLOWED_ENV` and the proxy variables work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 
@@ -163,7 +165,9 @@ Status codes: 200 × 8416, 503 × 3
 | `--max-p95 <ms>` | Fail when the 95th percentile latency is over this. |
 | `--max-p99 <ms>` | Fail when the 99th percentile latency is over this. |
 | `--max-errors <percent>` | Fail when more than this percentage of requests fail, such as `1` or `0.5`. |
-| `--json <file>` | Write the results as JSON. |
+| `--json <file>` | Write the results as JSON, with each second, the thresholds and which held. |
+| `--html <file>` | Write an HTML report: the thresholds, a chart of each second's requests, failures and latency, and each request's percentiles and phases. One page, no scripts. |
+| `--csv <file>` | Write each second as CSV: users, requests, failures, p50 and p95. |
 
 The environment variables work as they do for `run`. Ctrl+C stops the test early and still prints the results. Load test only APIs you're allowed to.
 

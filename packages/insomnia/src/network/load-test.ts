@@ -6,7 +6,7 @@ import * as models from '../models';
 import type { Request } from '../models/request';
 import { isWorkspace } from '../models/workspace';
 import { runPreRequestScript } from '../scripting/request-scripts';
-import { type LoadSample, type LoadSummary, summarizeLoad } from './load-stats';
+import { type LoadSample, type LoadSummary, summarizeLoad, TimelineRecorder } from './load-stats';
 import {
   fetchRequestData,
   sendCurlAndWriteTimeline,
@@ -77,6 +77,8 @@ async function loadSend(request: Request, data: RequestData, environmentId: stri
       ok: !checked.error && (checksStatus || (statusCode ?? 0) < 400) && (checked.assertionResults || []).every(result => result.passed),
       ...(statusCode !== undefined ? { statusCode } : {}),
       ...(checked.error ? { error: checked.error } : {}),
+      ...(!checked.error && checked.timings ? { timings: checked.timings } : {}),
+      ...(!checked.error && checked.bytesRead !== undefined ? { bytes: checked.bytesRead } : {}),
     };
   } catch (err) {
     // a render error, or a send the request policy refused
@@ -113,11 +115,15 @@ export async function runLoadTest(requests: RunnableRequest[], options: LoadOpti
   const started = Date.now();
   const ends = started + durationMs;
   const samples: LoadSample[] = [];
+  const timeline = new TimelineRecorder();
+  // the users that have started and not finished
+  let active = 0;
   let sent = 0;
   let failed = 0;
   const record = (sample: LoadSample) => {
     sent++;
     failed += sample.ok ? 0 : 1;
+    timeline.record(Date.now() - started, sample, active);
     // past the cap, each new sample replaces a random one, so the percentiles stay fair
     if (samples.length < MAX_SAMPLES) {
       samples.push(sample);
@@ -130,7 +136,7 @@ export async function runLoadTest(requests: RunnableRequest[], options: LoadOpti
   };
   const isOver = () => Date.now() >= ends || !!signal?.aborted;
   const summary = () => {
-    const result = summarizeLoad(samples, { virtualUsers, durationMs: Math.min(Date.now(), ends) - started, stopped: !!signal?.aborted && Date.now() < ends });
+    const result = summarizeLoad(samples, { virtualUsers, durationMs: Math.min(Date.now(), ends) - started, stopped: !!signal?.aborted && Date.now() < ends, timeline: timeline.points() });
     // the real counts, when the samples are a part of them
     if (sent > samples.length) {
       result.requests = sent;
@@ -143,14 +149,22 @@ export async function runLoadTest(requests: RunnableRequest[], options: LoadOpti
 
   const user = async (index: number) => {
     await sleep((rampUpMs * index) / virtualUsers, signal);
-    for (let iteration = 1; !isOver(); iteration++) {
-      for (const { request } of requests) {
-        if (isOver()) {
-          return;
+    if (isOver()) {
+      return;
+    }
+    active++;
+    try {
+      for (let iteration = 1; !isOver(); iteration++) {
+        for (const { request } of requests) {
+          if (isOver()) {
+            return;
+          }
+          record(await loadSend(request, data.get(request._id)!, environmentId, iteration));
+          await sleep(thinkTimeMs, signal);
         }
-        record(await loadSend(request, data.get(request._id)!, environmentId, iteration));
-        await sleep(thinkTimeMs, signal);
       }
+    } finally {
+      active--;
     }
   };
 

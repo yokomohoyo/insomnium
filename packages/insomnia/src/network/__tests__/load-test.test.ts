@@ -76,6 +76,12 @@ describe('runLoadTest()', () => {
     expect(summary.statusCodes).toEqual({ 200: summary.requests });
     expect(summary.stopped).toBe(false);
     expect(progress.length).toBeGreaterThan(0);
+    // second by second, every send counted, never more users than there are
+    expect(summary.timeline.length).toBeGreaterThanOrEqual(1);
+    expect(summary.timeline.reduce((sum, point) => sum + point.requests, 0)).toBe(summary.requests);
+    expect(Math.max(...summary.timeline.map(point => point.users))).toBeLessThanOrEqual(3);
+    // the mocked libcurl's phases and size
+    expect(ok).toMatchObject({ phases: { dns: 10, connect: 20, tls: 0, wait: 470 }, bytes: 800 });
 
     expect(await models.response.all()).toEqual([]);
     const responses = path.join(electron.app.getPath('userData'), 'responses');

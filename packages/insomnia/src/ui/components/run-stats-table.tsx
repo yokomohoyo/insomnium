@@ -17,7 +17,7 @@ export const ms = (value?: number) => value === undefined ? '' : value < 1000 ? 
 export const size = (bytes?: number) => bytes === undefined ? '' : bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} kB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 // what a request's time is made of: each phase's share of it
-const PhaseBar: FC<{ phases?: PhaseDurations }> = ({ phases }) => {
+export const PhaseBar: FC<{ phases?: PhaseDurations }> = ({ phases }) => {
   const total = phases ? PHASES.reduce((sum, phase) => sum + phases[phase], 0) : 0;
   if (!phases || !total) {
     return null;

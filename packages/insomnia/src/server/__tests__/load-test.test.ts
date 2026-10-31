@@ -6,7 +6,7 @@ import { formatLoadSummary, parseDuration, parseLoadConfig } from '../load-test'
 describe('insomnium-server load', () => {
   it('reads its options', () => {
     const config = parseLoadConfig(
-      ['--collection', 'api.yaml', '--users', '20', '--duration', '2m', '--ramp-up', '10s', '--think-time', '250ms', '--max-p95', '300', '--max-errors', '0.5', '--json', 'load.json'],
+      ['--collection', 'api.yaml', '--users', '20', '--duration', '2m', '--ramp-up', '10s', '--think-time', '250ms', '--max-p95', '300', '--max-errors', '0.5', '--json', 'load.json', '--html', 'load.html', '--csv', 'load.csv'],
       { INSOMNIUM_VAR_token: 'secret', INSOMNIUM_ALLOWED_HOSTS: 'api.example.com' },
     );
 
@@ -18,6 +18,8 @@ describe('insomnium-server load', () => {
       thinkTimeMs: 250,
       thresholds: { p95: 300, errorRate: 0.005 },
       json: 'load.json',
+      html: 'load.html',
+      csv: 'load.csv',
       variables: { token: 'secret' },
       allowedHosts: ['api.example.com'],
     });
