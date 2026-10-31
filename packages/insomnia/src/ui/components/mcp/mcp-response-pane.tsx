@@ -9,7 +9,7 @@ import { TabItem, Tabs } from '../base/tabs';
 import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
 import { Pane, PaneHeader } from '../panes/pane';
 import { argumentsSkeleton } from './arguments';
-import { useMcpConnection } from './mcp-connection';
+import { mcpErrorMessage, useMcpConnection } from './mcp-connection';
 
 type Kind = 'tool' | 'prompt' | 'resource';
 
@@ -66,7 +66,7 @@ const Explorer: FC<{ kind: Kind; server: McpServerSummary; environmentId: string
           : await window.main.mcpClient.call({ requestId, kind, uri: chosen });
       setResult({ text: JSON.stringify(response, null, 2), isError: Boolean((response as { isError?: boolean }).isError) });
     } catch (err) {
-      setResult({ text: err instanceof Error ? err.message : String(err), isError: true });
+      setResult({ text: mcpErrorMessage(err), isError: true });
     } finally {
       setCalling(false);
     }

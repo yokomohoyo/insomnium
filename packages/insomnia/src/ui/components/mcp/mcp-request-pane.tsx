@@ -15,7 +15,7 @@ import { showAlert, showModal } from '../modals';
 import { AskModal } from '../modals/ask-modal';
 import { Pane, PaneHeader } from '../panes/pane';
 import { argsOf } from './arguments';
-import { getMcpConnection, setMcpConnection, useMcpConnection } from './mcp-connection';
+import { getMcpConnection, mcpErrorMessage, setMcpConnection, useMcpConnection } from './mcp-connection';
 
 // The MCP request's connection settings: a server's URL over HTTP, or a
 // command that runs one on this computer, asked about first every time.
@@ -59,7 +59,7 @@ export const McpRequestPane: FC<{ environmentId: string }> = ({ environmentId })
       try {
         setMcpConnection(requestId, { status: 'connected', server: await window.main.mcpClient.connect(options) });
       } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
+        const message = mcpErrorMessage(err);
         if (!message.includes('Stopped connecting')) {
           setMcpConnection(requestId, { status: 'disconnected', error: message });
         }
@@ -182,4 +182,4 @@ export const McpRequestPane: FC<{ environmentId: string }> = ({ environmentId })
 };
 
 export const showMcpError = (title: string, error: unknown) =>
-  showAlert({ title, message: error instanceof Error ? error.message : String(error) });
+  showAlert({ title, message: mcpErrorMessage(error) });

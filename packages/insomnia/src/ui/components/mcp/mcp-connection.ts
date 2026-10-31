@@ -10,6 +10,11 @@ export type McpConnection =
   | { status: 'connected'; server: McpServerSummary };
 
 const DISCONNECTED: McpConnection = { status: 'disconnected' };
+
+// what went wrong in the main process, without Electron's "Error invoking
+// remote method 'mcpClient:connect': Error: " before it
+export const mcpErrorMessage = (err: unknown) =>
+  (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 const connections = new Map<string, McpConnection>();
 const listeners = new Set<() => void>();
 
