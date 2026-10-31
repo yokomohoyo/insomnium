@@ -82,7 +82,7 @@ export const ConsoleDrawer: FC<{ onClose: () => void }> = ({ onClose }) => {
           {shown.map(entry => <Row key={entry.id} entry={entry} />)}
         </ul>
       ) : (
-        <div className="pad faint">{entries.length ? 'Nothing matches the filter.' : 'Each request you send shows here, with what its scripts logged.'}</div>
+        <div className="pad faint">{entries.length ? 'Nothing matches the filter.' : 'Each HTTP request you send shows here, with what its scripts logged.'}</div>
       )}
     </section>
   );

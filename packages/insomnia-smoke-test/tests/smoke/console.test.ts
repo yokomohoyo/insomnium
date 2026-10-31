@@ -41,6 +41,8 @@ test('the console lists each send, with what its scripts logged @ci', async ({ a
 
   await consolePane.getByRole('button', { name: 'Clear' }).click();
   await expect(entry).toHaveCount(0);
+  // it records HTTP sends, and says so
+  await expect(consolePane).toContainText('Each HTTP request you send shows here');
   await consolePane.getByRole('button', { name: 'Close the console' }).click();
   await expect(consolePane).toHaveCount(0);
 });
