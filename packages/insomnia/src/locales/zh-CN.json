@@ -264,7 +264,7 @@
   "Enter the number of responses to keep for each request. Enter -1 to keep all response history.": "输入每个请求要保留的响应数量。输入 -1 可保留全部响应历史记录。",
   "Environment": "环境",
   "Environment Color Dropdown": "环境颜色下拉菜单",
-  "Environment Overrides (JSON Format)": "环境覆盖（JSON 格式）",
+  "Environment Overrides": "环境覆盖",
   "Environment name": "环境名称",
   "Environment will not be exported or synced": "环境不会被导出或同步",
   "Error Cloning Repository": "克隆仓库时出错",

@@ -44,7 +44,8 @@ export const EnvironmentEditModal = forwardRef<EnvironmentEditModalHandle, Modal
   };
   return (
     <Modal ref={modalRef} tall {...props}>
-      <ModalHeader>{t('Environment Overrides (JSON Format)')}</ModalHeader>
+      {/* the editor shows a table or JSON, so the title names neither */}
+      <ModalHeader>{t('Environment Overrides')}</ModalHeader>
       <ModalBody noScroll className="pad-top-sm">
         <EnvironmentEditor
           ref={environmentEditorRef}
