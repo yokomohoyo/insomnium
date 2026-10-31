@@ -8,4 +8,6 @@ test('a new gRPC request says how to get to a method, not an HTTP body @ci', asy
   await expect(page.getByText('Choose a method to call')).toBeVisible();
   await expect(page.getByText(/server reflection or a proto file/)).toBeVisible();
   await expect(page.getByText(/Select a body type/)).toHaveCount(0);
+  // and its response pane, before a call, has the shortcuts other requests show
+  await expect(page.getByTestId('response-pane')).toContainText('Send Request');
 });
