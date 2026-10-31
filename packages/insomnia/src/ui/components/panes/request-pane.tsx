@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC, useEffect, useState } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -83,6 +83,17 @@ export const RequestPane: FC<Props> = ({
     useState(false);
   const patchRequest = useRequestSetter();
   const inheritance = useFolderInheritance(activeRequest);
+  // the URL bar keeps the text it mounted with: after Import from URL takes
+  // the query out of the URL, it mounts again once the request has the new
+  // URL, or typing in it would put the old query back
+  const [importedUrl, setImportedUrl] = useState<string | null>(null);
+  const [urlImports, setUrlImports] = useState(0);
+  useEffect(() => {
+    if (importedUrl !== null && activeRequest?.url === importedUrl) {
+      setImportedUrl(null);
+      setUrlImports(count => count + 1);
+    }
+  }, [activeRequest?.url, importedUrl]);
 
   useState(false);
   const handleImportQueryFromUrl = () => {
@@ -104,6 +115,7 @@ export const RequestPane: FC<Props> = ({
 
     // Only update if url changed
     if (url !== activeRequest.url) {
+      setImportedUrl(url);
       patchRequest(requestId, { url, parameters });
     }
   };
@@ -162,7 +174,7 @@ export const RequestPane: FC<Props> = ({
         <ErrorBoundary errorClassName="font-error pad text-center">
           <RequestUrlBar
             key={requestId}
-            uniquenessKey={uniqueKeyReq}
+            uniquenessKey={`${uniqueKeyReq}::${urlImports}`}
             handleAutocompleteUrls={() => queryAllWorkspaceUrls(workspaceId, models.request.type, requestId)}
             nunjucksPowerUserMode={settings.nunjucksPowerUserMode}
             setLoading={setLoading}
