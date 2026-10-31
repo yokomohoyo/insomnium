@@ -9,7 +9,7 @@ describe('Import errors', () => {
       await convert('foo');
       fail('Should have thrown error');
     } catch (err) {
-      expect(err.message).toBe('No importers found for file');
+      expect(err.message).toBe("It isn't in a format the app can import");
     }
   });
 });

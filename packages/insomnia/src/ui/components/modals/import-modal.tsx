@@ -525,6 +525,14 @@ const ScanResourcesForm = ({
 }) => {
   const id = useId();
   const [importFrom, setImportFrom] = useState(from?.type || 'uri');
+  // a scan's error is about the source it scanned: another source hides it
+  // until the next scan
+  const [staleErrors, setStaleErrors] = useState<string[]>();
+  const choose = (source: typeof importFrom) => {
+    setImportFrom(source);
+    setStaleErrors(errors);
+  };
+  const shownErrors = errors !== staleErrors ? errors : undefined;
 
   return (
     <Fragment>
@@ -541,7 +549,7 @@ const ScanResourcesForm = ({
         <Fieldset>
           <RadioGroup>
             <Radio
-              onChange={() => setImportFrom('file')}
+              onChange={() => choose('file')}
               name="importFrom"
               value="file"
               checked={importFrom === 'file'}
@@ -550,7 +558,7 @@ const ScanResourcesForm = ({
               {t('File')}
             </Radio>
             <Radio
-              onChange={() => setImportFrom('uri')}
+              onChange={() => choose('uri')}
               name="importFrom"
               value="uri"
               checked={importFrom === 'uri'}
@@ -559,7 +567,7 @@ const ScanResourcesForm = ({
               Url
             </Radio>
             <Radio
-              onChange={() => setImportFrom('clipboard')}
+              onChange={() => choose('clipboard')}
               name="importFrom"
               value="clipboard"
               checked={importFrom === 'clipboard'}
@@ -585,11 +593,11 @@ const ScanResourcesForm = ({
         )}
       </form>
       <div>
-        {errors && errors.length > 0 && (
+        {shownErrors && shownErrors.length > 0 && (
           <div className="notice error margin-top-sm">
             <p>
               <strong>{t('Error while scanning for resources to import:')}</strong>{' '}
-              {errors[0]}
+              {shownErrors[0]}
             </p>
           </div>
         )}
