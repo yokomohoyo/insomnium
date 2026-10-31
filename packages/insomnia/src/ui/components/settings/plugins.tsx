@@ -219,6 +219,10 @@ export const Plugins: FC = () => {
       <form
         onSubmit={async event => {
           event.preventDefault();
+          // no package named, nothing to install (Enter in the empty field)
+          if (!npmPluginValue.trim()) {
+            return;
+          }
           setState(state => ({ ...state, isInstallingFromNpm: true }));
           const newState: Partial<State> = {
             isInstallingFromNpm: false,
@@ -251,7 +255,7 @@ export const Plugins: FC = () => {
             />
           </div>
           <div className="form-control width-auto">
-            <Button variant="contained" bg="surprise" disabled={isInstallingFromNpm}>
+            <Button variant="contained" bg="surprise" disabled={isInstallingFromNpm || !npmPluginValue.trim()}>
               {isInstallingFromNpm && <i className="fa fa-refresh fa-spin space-right" />}
               {t('Install Plugin')}
             </Button>
