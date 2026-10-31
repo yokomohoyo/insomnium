@@ -1,4 +1,4 @@
-import React, { ChangeEventHandler, FC, InputHTMLAttributes, useCallback } from 'react';
+import React, { ChangeEventHandler, FC, FocusEventHandler, InputHTMLAttributes, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { SettingsOfType } from '../../../common/settings';
@@ -14,17 +14,20 @@ interface Props {
   setting: SettingsOfType<number>;
   step?: InputHTMLAttributes<HTMLInputElement>['step'];
 }
+// a limit of 0 is a limit too
+const isLimit = (limit?: number): limit is number => typeof limit === 'number' && !Number.isNaN(limit);
+
 export function snapNumberToLimits(value: number, min?: number, max?: number) {
-  const moreThanMax = max && !Number.isNaN(max) && value > max;
-  if (moreThanMax) {
+  if (isLimit(max) && value > max) {
     return max;
   }
-  const lessThanMin = min && !Number.isNaN(min) && value < min;
-  if (lessThanMin) {
+  if (isLimit(min) && value < min) {
     return min;
   }
   return value;
 }
+
+const snapInput = ({ value, min, max }: HTMLInputElement) => snapNumberToLimits(parseInt(value, 10) || 0, parseInt(min, 10), parseInt(max, 10));
 export const NumberSetting: FC<Props> = ({
   help,
   label,
@@ -42,14 +45,14 @@ export const NumberSetting: FC<Props> = ({
   }
   const patchSettings = useSettingsPatcher();
 
-  const handleOnChange = useCallback<ChangeEventHandler<HTMLInputElement>>(async ({ currentTarget: { value, min, max } }) => {
-    const updatedValue = snapNumberToLimits(
-      parseInt(value, 10) || 0,
-      parseInt(min, 10),
-      parseInt(max, 10),
-    );
-    patchSettings({ [setting]: updatedValue });
+  const handleOnChange = useCallback<ChangeEventHandler<HTMLInputElement>>(async ({ currentTarget }) => {
+    patchSettings({ [setting]: snapInput(currentTarget) });
   }, [patchSettings, setting]);
+
+  // leaving the field shows what was kept, not a number out of its limits
+  const handleOnBlur = useCallback<FocusEventHandler<HTMLInputElement>>(({ currentTarget }) => {
+    currentTarget.value = String(snapInput(currentTarget));
+  }, []);
 
   let defaultValue: string | number = settings[setting];
   if (typeof defaultValue !== 'number') {
@@ -67,6 +70,7 @@ export const NumberSetting: FC<Props> = ({
           min={min}
           name={setting}
           onChange={handleOnChange}
+          onBlur={handleOnBlur}
           type={'number'}
           step={step}
         />
