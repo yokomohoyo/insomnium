@@ -11,7 +11,7 @@ import { isEventStreamRequest } from '../../models/request';
 import { fetchRequestData, renderEventStreamConnection, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../../network/network';
 import { runPreRequestScript } from '../../scripting/request-scripts';
 
-import { useReadyState } from '../hooks/use-ready-state';
+import { useReadyState, useShowConnectionWhenOpened } from '../hooks/use-ready-state';
 import { useRequestSetter } from '../hooks/use-request';
 import { useRequestMetaPatcher } from '../hooks/use-request';
 import { useTimeoutWhen } from '../hooks/useTimeoutWhen';
@@ -173,6 +173,7 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
   const buttonText = isEventStreamRequest(activeRequest) ? t('Connect') : (downloadPath ? t('Download') : t('Send'));
   const { url, method } = activeRequest;
   const isEventStreamOpen = useReadyState({ requestId: activeRequest._id, protocol: 'curl' });
+  useShowConnectionWhenOpened(isEventStreamOpen);
   const isCancellable = currentInterval || currentTimeout || isEventStreamOpen;
 
   console.log("did mount uniquenessKey", uniquenessKey);
