@@ -264,7 +264,7 @@
   "Enter the number of responses to keep for each request. Enter -1 to keep all response history.": "Saisissez le nombre de réponses à conserver pour chaque requête. Saisissez -1 pour conserver tout l'historique des réponses.",
   "Environment": "Environnement",
   "Environment Color Dropdown": "Menu de couleur de l'environnement",
-  "Environment Overrides (JSON Format)": "Remplacements d'environnement (format JSON)",
+  "Environment Overrides": "Remplacements d'environnement",
   "Environment name": "Nom de l'environnement",
   "Environment will not be exported or synced": "L'environnement ne sera ni exporté ni synchronisé",
   "Error Cloning Repository": "Erreur lors du clonage du dépôt",

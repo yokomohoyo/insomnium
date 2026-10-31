@@ -264,7 +264,7 @@
   "Enter the number of responses to keep for each request. Enter -1 to keep all response history.": "リクエストごとに保持するレスポンスの数を入力してください。-1 を入力するとすべてのレスポンス履歴を保持します。",
   "Environment": "環境",
   "Environment Color Dropdown": "環境の色ドロップダウン",
-  "Environment Overrides (JSON Format)": "環境のオーバーライド (JSON 形式)",
+  "Environment Overrides": "環境のオーバーライド",
   "Environment name": "環境名",
   "Environment will not be exported or synced": "環境はエクスポートも同期もされません",
   "Error Cloning Repository": "リポジトリのクローン エラー",
