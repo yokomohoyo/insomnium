@@ -92,6 +92,11 @@ async function main(): Promise<void> {
 
   process.on('SIGINT', () => shutdown(0));
   process.on('SIGTERM', () => shutdown(0));
+  // The client went away: it closed our stdin, or our stdout broke (EPIPE)
+  // while the app was still sending. That's the end of the session, not a
+  // crash, and nothing else would stop this process
+  process.stdin.on('end', () => shutdown(0));
+  process.stdout.on('error', () => shutdown(0));
 
   try {
     // Connect SSE; resolves once the app sends the message endpoint.

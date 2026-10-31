@@ -6,6 +6,7 @@ import http from 'node:http';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 
+import { getAppVersion } from '../../common/constants';
 import * as models from '../../models';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerTools } from './tools';
@@ -151,7 +152,7 @@ function checkAuth(req: http.IncomingMessage, token: string): boolean {
 function buildMcpServer(): McpServer {
   const server = new McpServer({
     name: 'insomnium',
-    version: '1.0.0',
+    version: getAppVersion(),
   });
   registerTools(server);
   // the app's only: Spectral stays out of the headless server's bundle

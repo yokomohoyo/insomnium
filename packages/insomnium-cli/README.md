@@ -26,7 +26,7 @@ insomnium describe send_http_request  # show a tool's input schema
 insomnium call list_workspaces        # invoke a tool
 insomnium call send_http_request --arg requestId=req_123
 insomnium call update_request --args '{"requestId":"req_123","name":"New"}'
-insomnium status                      # connection health
+insomnium status                      # connection health (exit 1 when down)
 ```
 
 ### For coding agents
@@ -43,12 +43,18 @@ installs a skill for Claude Code (in `~/.claude/skills/insomnium`; `--dir` for a
 - `--arg key=value` — a single argument (repeatable). Values are parsed as JSON
   when possible (numbers, booleans, `null`, objects), otherwise treated as a
   string. `--arg` pairs override keys from `--args`.
+- In Windows PowerShell 5.1, the double quotes inside `--args '{"…"}'` don't
+  reach the CLI, so it rejects the JSON. Use `--arg key=value` there, or
+  PowerShell 7.3 or later.
 
 ### Output & exit codes
 
-- Default output is human-readable; pass `--json` for raw JSON (ideal for agents).
+- `call` prints what the tool returns. With `--json`, `call` prints the tool's
+  result as one JSON document, and `tools`, `describe` and `status` print theirs
+  as JSON too (ideal for scripts and agents).
 - Exit `0` on success, `1` on a CLI/connection error, `2` when a tool returns an
-  error result — so scripts and agents can branch on the outcome.
+  error result — so scripts and agents can branch on the outcome. `status`
+  exits `1` when the app isn't reachable.
 
 ## Configuration
 

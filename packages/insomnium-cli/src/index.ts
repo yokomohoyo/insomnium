@@ -28,12 +28,13 @@ Commands:
   help                        Show this help
 
 Call arguments:
-  --args '<json>'             Tool arguments as a JSON object
+  --args '<json>'             Tool arguments as a JSON object (in Windows
+                              PowerShell 5.1, use --arg: its quotes get lost)
   --arg key=value             Single argument (repeatable); values are parsed as
                               JSON when possible, else treated as a string
 
 Global options:
-  --json                      Emit raw JSON instead of human-readable text
+  --json                      Print JSON: for call, the tool's result as one document
   -h, --help                  Show help
   -v, --version               Show version
 
@@ -134,13 +135,24 @@ async function cmdDescribe(name: string, json: boolean): Promise<void> {
   out(JSON.stringify(tool.inputSchema ?? {}, null, 2));
 }
 
+// The tool's own result, not MCP's envelope around it: a text block that holds
+// JSON (as every Insomnium tool returns) is parsed, so a script gets one
+// document instead of a string to parse again
+function resultValue(content: unknown[]): unknown {
+  const values = content.map(block => {
+    const b = block as { type?: string; text?: unknown };
+    return b?.type === 'text' ? coerce(String(b.text)) : block;
+  });
+  return values.length === 1 ? values[0] : values;
+}
+
 async function cmdCall(name: string, p: Parsed): Promise<void> {
   const args = buildArgs(p);
   const result = await withClient(c => c.callTool({ name, arguments: args }));
+  const content = Array.isArray(result.content) ? result.content : [];
   if (p.json) {
-    out(JSON.stringify(result, null, 2));
+    out(JSON.stringify(resultValue(content), null, 2));
   } else {
-    const content = Array.isArray(result.content) ? result.content : [];
     for (const block of content) {
       if (block?.type === 'text') out(String(block.text));
       else out(JSON.stringify(block));
@@ -169,6 +181,8 @@ async function cmdStatus(json: boolean): Promise<void> {
   const disc = await readDiscovery();
   const url = disc.url ?? `http://127.0.0.1:${disc.port}/sse`;
   const healthy = await checkHealth(disc.port);
+  // So a script can wait on it: `until insomnium status; do sleep 1; done`
+  if (!healthy) process.exitCode = 1;
   if (json) {
     out(JSON.stringify({ port: disc.port, url, healthy }, null, 2));
     return;
