@@ -49,5 +49,5 @@ export const convert = async (rawData: string) => {
     return convertedResult;
   }
 
-  throw new Error('No importers found for file');
+  throw new Error("It isn't in a format the app can import");
 };
