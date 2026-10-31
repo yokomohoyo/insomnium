@@ -27,6 +27,8 @@ test("the open request's tab scrolls into view @ci", async ({ app, page }) => {
 
   // and switching back to the first scrolls back to it
   await sidebar.getByRole('row', { name: names[0], exact: true }).click();
-  await expect(tabs.first()).toHaveAttribute('aria-current', 'page');
-  await expect(tabs.first()).toBeInViewport();
+  // (the first tab is the app's own New Request)
+  const first = tabs.filter({ hasText: new RegExp(`${names[0]}$`) });
+  await expect(first).toHaveAttribute('aria-current', 'page');
+  await expect(first).toBeInViewport();
 });
