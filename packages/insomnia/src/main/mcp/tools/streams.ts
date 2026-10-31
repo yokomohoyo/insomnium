@@ -27,6 +27,22 @@ export interface EventStreamControls {
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// a message's Server-Sent Events fields, as the stream framed them ("event:",
+// "id:", "data:" lines; several data lines join with a newline), when it has any
+export const sseFields = (raw: string) => {
+  const fields: { event?: string; id?: string; data?: string } = {};
+  const data: string[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    const match = /^(event|id|data):\s?(.*)$/.exec(line);
+    if (match?.[1] === 'data') {
+      data.push(match[2]);
+    } else if (match) {
+      fields[match[1] as 'event' | 'id'] = match[2];
+    }
+  }
+  return data.length ? { ...fields, data: data.join('\n') } : null;
+};
+
 // The app's only: an event stream (SSE) request's connection, as its Connect
 // button opens it, so the window shows the same connection and messages
 export function registerStreamTools(server: McpServer, streams: EventStreamControls, { waitMs = 3000 } = {}) {
@@ -86,7 +102,8 @@ export function registerStreamTools(server: McpServer, streams: EventStreamContr
         events: events.slice(0, limit).map(({ type, timestamp, data, message, statusCode, reason }) => ({
           type,
           time: new Date(timestamp).toISOString(),
-          ...(data !== undefined ? { data } : {}),
+          // the fields, and the text as it arrived
+          ...(data !== undefined ? { ...sseFields(data), raw: data } : {}),
           ...(message !== undefined ? { message } : {}),
           ...(type === 'close' ? { statusCode, reason } : {}),
         })),

@@ -19,7 +19,7 @@ const controls: EventStreamControls = {
     const response = await models.response.create({ parentId: options.requestId });
     await models.requestMeta.updateOrCreateByParentId(options.requestId, { activeResponseId: response._id });
     events.set(response._id, [
-      { type: 'message', timestamp: 2000, data: '{"n":2}' },
+      { type: 'message', timestamp: 2000, data: 'event: tick\nid: 2\ndata: {"n":2}\n\n' },
       { type: 'message', timestamp: 1000, data: '{"n":1}' },
       { type: 'open', timestamp: 500 },
     ]);
@@ -65,7 +65,9 @@ describe('the event stream tools', () => {
     expect(opened[0]).toMatchObject({ requestId: streamId, workspaceId, url: 'http://localhost:4010/events', headers: expect.arrayContaining([{ name: 'Authorization', value: 'Bearer s3cret' }]) });
 
     const read = (await call('read_event_stream', { requestId: streamId, limit: 2 })).body;
-    expect(read).toMatchObject({ open: true, total: 3, events: [{ type: 'message', data: '{"n":2}' }, { type: 'message', data: '{"n":1}' }] });
+    expect(read).toMatchObject({ open: true, total: 3, events: [{ type: 'message', data: '{"n":2}', raw: 'event: tick\nid: 2\ndata: {"n":2}\n\n', event: 'tick', id: '2' }, { type: 'message', raw: '{"n":1}' }] });
+    // text without the stream's framing comes back as it arrived
+    expect(read.events[1].data).toBeUndefined();
 
     expect((await call('connect_event_stream', { requestId: streamId })).body).toMatchObject({ open: true, note: 'it was already connected' });
     expect(opened).toHaveLength(1);
