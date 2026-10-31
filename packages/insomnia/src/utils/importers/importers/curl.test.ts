@@ -154,6 +154,18 @@ describe('curl', () => {
     });
   });
 
+  describe('-u and --user', () => {
+    const authOf = (rawData: string) => (convert(rawData) as ImportRequest[]).find(({ _type }) => _type === 'request')?.authentication;
+
+    it.each(['-u', '--user'])('%s is basic auth', flag => {
+      expect(authOf(`curl https://example.com ${flag} 'kim:pass:word'`)).toEqual({ type: 'basic', username: 'kim', password: 'pass:word' });
+    });
+
+    it('takes a user with no password', () => {
+      expect(authOf('curl https://example.com -u kim')).toEqual({ type: 'basic', username: 'kim', password: '' });
+    });
+  });
+
   describe("ANSI-C quoted strings ($'...')", () => {
     const headersOf = (rawData: string) => {
       const resources = convert(rawData) as ImportRequest[];

@@ -36,6 +36,7 @@
       ],
       "authentication": [
         {
+          "type": "basic",
           "username": "My User",
           "password": "My:Secret:Password"
         }
