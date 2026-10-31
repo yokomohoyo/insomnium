@@ -40,12 +40,23 @@ describe('the folder tools', () => {
     expect((await models.requestGroup.getById(archiveId))?.parentId).toBe(workspaceId);
   });
 
-  it("refuse to move a folder into itself, a folder inside it, or another workspace", async () => {
+  it('refuse to move a folder into itself, a folder inside it, or something that is not a workspace or folder', async () => {
     expect(await call('update_request_group', { requestGroupId: ordersId, parentId: archiveId })).toEqual({ body: { error: 'a folder cannot move into itself or a folder inside it' }, isError: true });
     expect(await call('update_request_group', { requestGroupId: ordersId, parentId: ordersId })).toMatchObject({ isError: true });
-    const otherId = (await models.workspace.create({ name: 'Other' }))._id;
-    expect(await call('update_request_group', { requestGroupId: ordersId, parentId: otherId })).toEqual({ body: { error: "parentId is not this folder's workspace or a folder in it" }, isError: true });
+    expect(await call('update_request_group', { requestGroupId: ordersId, parentId: 'wrk_nope' })).toEqual({ body: { error: 'parentId is not a workspace or a folder' }, isError: true });
     expect((await models.requestGroup.getById(ordersId))?.parentId).toBe(workspaceId);
+  });
+
+  it('move a folder, with what is in it, to another workspace or a folder there', async () => {
+    const otherId = (await models.workspace.create({ name: 'Other' }))._id;
+    expect((await call('update_request_group', { requestGroupId: ordersId, parentId: otherId })).body).toEqual({ ok: true, id: ordersId });
+    expect((await models.requestGroup.getById(ordersId))?.parentId).toBe(otherId);
+    // its folders and requests come along
+    expect((await database.findDescendants(otherId, [models.requestGroup.type, models.request.type])).map(doc => doc.name).sort()).toEqual(['Archive', 'Old orders', 'Orders']);
+
+    const inbox = (await models.requestGroup.create({ parentId: workspaceId, name: 'Inbox' }))._id;
+    expect((await call('update_request_group', { requestGroupId: ordersId, parentId: inbox })).body).toEqual({ ok: true, id: ordersId });
+    expect((await models.requestGroup.getById(ordersId))?.parentId).toBe(inbox);
   });
 
   it('copy a folder with what is in it', async () => {
