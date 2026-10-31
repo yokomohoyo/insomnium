@@ -69,6 +69,8 @@ const widget = (cm: CodeMirror.EditorFromTextArea | null, from: CodeMirror.Posit
 // Global object used for storing and persisting editor scroll, lint and folding margin states
 const editorStates: Record<string, EditorState> = {};
 export interface CodeEditorProps {
+  // what a screen reader calls the editor
+  ariaLabel?: string;
   autoPrettify?: boolean;
   className?: string;
   defaultValue?: string;
@@ -136,6 +138,7 @@ export interface CodeEditorHandle {
   focusEnd: () => void;
 }
 export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
+  ariaLabel,
   autoPrettify,
   className,
   defaultValue,
@@ -319,6 +322,10 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
       },
     };
     codeMirror.current = CodeMirror.fromTextArea(textAreaRef.current, initialOptions);
+    // CodeMirror types into a hidden textarea of its own, with no name
+    if (ariaLabel) {
+      codeMirror.current.getInputField().setAttribute('aria-label', ariaLabel);
+    }
     codeMirror.current.on('beforeChange', (doc: CodeMirror.Editor, change: CodeMirror.EditorChangeCancellable) => {
       const isGraphqlWithChange = doc.getOption('mode') === 'graphql' && change.text.length > 0;
       if (isGraphqlWithChange) {

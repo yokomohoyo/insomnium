@@ -150,6 +150,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                     rows={3}
                     required
                     placeholder={t('A descriptive message to describe changes made')}
+                    aria-label={t('Message')}
                     name="message"
                     value={message}
                     onChange={event => setMessage(event.currentTarget.value)}

@@ -24,6 +24,8 @@ export interface OneLineEditorProps {
   placeholder?: string;
   readOnly?: boolean;
   type?: string;
+  // what a screen reader calls the field; its placeholder when it has none
+  ariaLabel?: string;
   onPaste?: (text: string) => void;
   isInfered?: boolean;
 }
@@ -33,6 +35,7 @@ export interface OneLineEditorHandle {
   focusEnd: () => void;
 }
 export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>(({
+  ariaLabel,
   defaultValue,
   getAutocompleteConstants,
   id,
@@ -107,6 +110,10 @@ export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>
       },
     };
     codeMirror.current = CodeMirror.fromTextArea(textAreaRef.current, initialOptions);
+    // CodeMirror types into a hidden textarea of its own, with no name
+    if (ariaLabel || placeholder) {
+      codeMirror.current.getInputField().setAttribute('aria-label', ariaLabel || placeholder || '');
+    }
     codeMirror.current.on('beforeChange', (_: CodeMirror.Editor, change: CodeMirror.EditorChangeCancellable) => {
       const isPaste = change.text && change.text.length > 1;
       if (isPaste) {
