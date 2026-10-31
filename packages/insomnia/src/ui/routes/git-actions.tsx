@@ -12,7 +12,6 @@ import { createGitRepository } from '../../models/helpers/git-repository-operati
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
 import {
-  Workspace,
   WorkspaceScopeKeys,
 } from '../../models/workspace';
 import { fsClient } from '../../sync/git/fs-client';
