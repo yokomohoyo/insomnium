@@ -1,6 +1,8 @@
 import React, { FunctionComponent } from 'react';
 import styled from 'styled-components';
 
+import { pressable } from './sidebar-item';
+
 export interface SidebarBadgeProps {
   label?: string;
   onClick?: () => void;
@@ -74,12 +76,12 @@ const StyledBadge = styled.span`
 `;
 
 export const SidebarBadge: FunctionComponent<SidebarBadgeProps> = ({
-  onClick = () => {},
+  onClick,
   method = 'post',
   label = method,
 }) => {
   return (
-    <StyledBadge onClick={onClick}>
+    <StyledBadge {...pressable(onClick)}>
       <span className={method}>{label}</span>
     </StyledBadge>
   );

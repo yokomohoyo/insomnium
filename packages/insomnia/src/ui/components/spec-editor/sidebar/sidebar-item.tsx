@@ -1,6 +1,20 @@
 import React, { FunctionComponent, ReactNode } from 'react';
 import styled from 'styled-components';
 
+// what makes an element that's clicked a button for the keyboard too: in the
+// tab order, named a button, and pressed with Enter or Space as with a click
+export const pressable = (onPress?: (event: React.SyntheticEvent) => void) => onPress ? {
+  role: 'button',
+  tabIndex: 0,
+  onClick: onPress,
+  onKeyDown: (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onPress(event);
+    }
+  },
+} : {};
+
 export interface SidebarItemProps {
   children: ReactNode;
   gridLayout?: boolean;
@@ -77,8 +91,8 @@ const StyledGridItem = styled.li`
 
 export const SidebarItem: FunctionComponent<SidebarItemProps> = ({ children, gridLayout, onClick }) => {
   if (gridLayout) {
-    return <StyledGridItem onClick={onClick}>{children}</StyledGridItem>;
+    return <StyledGridItem {...pressable(onClick)}>{children}</StyledGridItem>;
   } else {
-    return <StyledBlockItem onClick={onClick}>{children}</StyledBlockItem>;
+    return <StyledBlockItem {...pressable(onClick)}>{children}</StyledBlockItem>;
   }
 };

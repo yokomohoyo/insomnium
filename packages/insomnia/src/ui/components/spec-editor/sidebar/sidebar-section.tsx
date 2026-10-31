@@ -40,7 +40,7 @@ export const SidebarSection: FunctionComponent<SidebarSectionProps> = ({ title, 
       <SidebarHeader
         headerTitle={title}
         sectionVisible={bodyVisible}
-        toggleSection={toggleBodyVisible}
+        toggleSection={() => toggleBodyVisible()}
         toggleFilter={toggleFilterVisible}
       />
       <div style={{ height: bodyVisible ? '100%' : 0 }}>
