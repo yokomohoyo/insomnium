@@ -177,7 +177,6 @@ export const Debug: FC = () => {
     activeProject,
     activeEnvironment,
     activeGlobalEnvironment,
-    activeCookieJar,
     grpcRequests,
     subEnvironments,
     baseEnvironment,
@@ -819,7 +818,7 @@ export const Debug: FC = () => {
                 className="px-2 py-1 flex-1 min-w-0 flex items-center justify-center gap-1.5 aria-pressed:bg-[--hl-sm] rounded-sm text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all text-xs"
               >
                 <Icon icon="cookie-bite" />
-                <span className="truncate">{activeCookieJar.cookies.length === 0 ? t('Add Cookies') : t('Cookies')}</span>
+                <span className="truncate">{t('Cookies')}</span>
               </Button>
               <Button
                 aria-label={t('Global Environments')}

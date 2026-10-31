@@ -63,7 +63,6 @@
   "Action Section": "Seção de ação",
   "Actions": "Ações",
   "Add Auth": "Adicionar autenticação",
-  "Add Cookies": "Adicionar cookies",
   "Add Description": "Adicionar descrição",
   "Add Sub Environment": "Adicionar subambiente",
   "Add Your Own": "Adicione o seu",
@@ -877,5 +876,11 @@
   "Commit Failed": "Falha no commit",
   "Rollback Failed": "Falha ao reverter",
   "App": "Aplicativo",
-  "Search requests": "Pesquisar requisições"
+  "Search requests": "Pesquisar requisições",
+  "Version {version}": "Versão {version}",
+  "A 100% local and privacy-focused fork of Insomnia": "Um fork do Insomnia 100% local e focado em privacidade",
+  "Build details": "Detalhes da compilação",
+  "Copy details": "Copiar detalhes",
+  "All collections in {name}": "Todas as coleções em {name}",
+  "Switch to": "Mudar para"
 }

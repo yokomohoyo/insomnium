@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
+import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../../common/constants';
 import { database } from '../../../common/database';
 import { fuzzyMatchAll } from '../../../common/misc';
 import * as models from '../../../models';
@@ -10,6 +11,7 @@ import { isMcpRequest } from '../../../models/mcp-request';
 import { isRequest } from '../../../models/request';
 import { isRequestGroup } from '../../../models/request-group';
 import { isWebSocketRequest } from '../../../models/websocket-request';
+import { isDesign, type Workspace } from '../../../models/workspace';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Modal, type ModalHandle } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -37,6 +39,15 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
   const [filter, setFilter] = useState('');
   const [selected, setSelected] = useState(0);
   const [lastActive, setLastActive] = useState<Record<string, number> | null>(null);
+  // the project's other collections, to jump to as well
+  const [collections, setCollections] = useState<Workspace[]>([]);
+
+  useEffect(() => {
+    if (mode !== 'all') {
+      return;
+    }
+    models.workspace.findByParentId(projectId).then(workspaces => setCollections(workspaces.filter(workspace => workspace._id !== workspaceId)));
+  }, [mode, projectId, workspaceId]);
 
   useEffect(() => {
     modalRef.current?.show();
@@ -79,6 +90,20 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
     return requests;
   }, [requests, filter, mode, lastActive]);
 
+  const collectionMatches = useMemo(() => {
+    if (!filter.trim()) {
+      return collections;
+    }
+    return collections
+      .flatMap(workspace => {
+        const match = fuzzyMatchAll(filter, [workspace.name], { splitSpace: true });
+        return match ? [{ workspace, score: match.score }] : [];
+      })
+      .sort((a, b) => b.score - a.score)
+      .map(({ workspace }) => workspace);
+  }, [collections, filter]);
+  const count = matches.length + collectionMatches.length;
+
   useEffect(() => {
     setSelected(mode === 'recent' && !filter && matches[0]?.doc._id === requestId && matches.length > 1 ? 1 : 0);
     // only when the list is (re)built, not when the selection moves
@@ -86,26 +111,37 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
   }, [matches]);
 
   useEffect(() => {
-    listRef.current?.children[selected]?.scrollIntoView({ block: 'nearest' });
+    listRef.current?.querySelectorAll('[role="option"]')[selected]?.scrollIntoView({ block: 'nearest' });
   }, [selected]);
 
   const open = (id: string) => {
     modalRef.current?.hide();
     navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${id}`);
   };
+  const openCollection = (workspace: Workspace) => {
+    modalRef.current?.hide();
+    navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/${isDesign(workspace) ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+  };
+  const openSelected = () => {
+    if (selected < matches.length) {
+      open(matches[selected].doc._id);
+    } else if (collectionMatches[selected - matches.length]) {
+      openCollection(collectionMatches[selected - matches.length]);
+    }
+  };
 
   const onKeyDown = (event: React.KeyboardEvent) => {
     const move = (by: number) => {
       event.preventDefault();
-      setSelected(index => Math.min(Math.max(index + by, 0), matches.length - 1));
+      setSelected(index => Math.min(Math.max(index + by, 0), count - 1));
     };
     if (event.key === 'ArrowDown' || (event.key === 'Tab' && event.ctrlKey && !event.shiftKey)) {
       move(1);
     } else if (event.key === 'ArrowUp' || (event.key === 'Tab' && event.ctrlKey && event.shiftKey)) {
       move(-1);
-    } else if (event.key === 'Enter' && matches[selected]) {
+    } else if (event.key === 'Enter' && selected < count) {
       event.preventDefault();
-      open(matches[selected].doc._id);
+      openSelected();
     }
   };
 
@@ -159,8 +195,28 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
                 {folder && <span className="truncate faint text-sm ml-auto">{folder}</span>}
               </li>
             ))}
+            {collectionMatches.length > 0 && (
+              <li role="presentation" className="px-[--padding-sm] pt-[--padding-sm] pb-1 text-xs uppercase faint">
+                Collections
+              </li>
+            )}
+            {collectionMatches.map((workspace, index) => (
+              <li
+                key={workspace._id}
+                role="option"
+                aria-selected={matches.length + index === selected}
+                className={`flex items-center gap-2 px-[--padding-sm] py-1 cursor-pointer rounded-sm ${matches.length + index === selected ? 'bg-[--hl-sm]' : ''}`}
+                onMouseMove={() => setSelected(matches.length + index)}
+                onClick={() => openCollection(workspace)}
+              >
+                <span className="w-10 flex-shrink-0 flex text-[0.65rem] rounded-sm border border-solid border-[--hl-sm] items-center justify-center faint">
+                  {isDesign(workspace) ? 'DOC' : 'COL'}
+                </span>
+                <span className="truncate">{workspace.name}</span>
+              </li>
+            ))}
           </ul>
-          {!matches.length && <p className="faint">No requests match.</p>}
+          {!count && <p className="faint">No requests match.</p>}
         </ModalBody>
       </Modal>
     </OverlayContainer>

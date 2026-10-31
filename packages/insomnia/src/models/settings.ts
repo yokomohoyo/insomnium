@@ -26,7 +26,7 @@ export function init(): BaseSettings {
     autoDetectColorScheme: true,
     // a settings doc from before 0.5 hasn't it: migrate() sees false
     autoDetectColorSchemeDefaulted: false,
-    autoHideMenuBar: false,
+    autoHideMenuBar: true,
     autocompleteDelay: 1200,
     checkForNewReleases: false,
     clearOAuth2SessionOnRestart: true,

@@ -96,20 +96,15 @@ const RAIL_BUTTON = 'flex items-center justify-center w-9 h-9 rounded-md text-[-
 const TOOLTIP = 'border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md focus:outline-none';
 
 // a place in the rail: an icon over its name
-const RailLink = ({ label, icon, to, isProjects }: { label: string; icon: IconProp; to: string; isProjects?: boolean }) => (
+const RailLink = ({ label, icon, to, active }: { label: string; icon: IconProp; to: string; active?: boolean }) => (
   <NavLink
     to={to}
-    aria-label={isProjects ? label : undefined}
-    className={({ isActive }) => `${RAIL_ITEM} ${isActive && !isProjects ? 'bg-[--hl-sm] text-[--color-font]' : ''}`}
+    className={({ isActive }) => `${RAIL_ITEM} ${(active ?? isActive) ? 'bg-[--hl-sm] text-[--color-font]' : ''}`}
   >
-    {({ isActive }) => (
-      <Fragment>
-        <span className={`flex items-center justify-center w-7 h-7 rounded-md ${isProjects ? 'bg-gradient-to-br from-[#4000BF] to-[#154B62] text-[--color-font-surprise]' : ''} ${isProjects && isActive ? 'outline outline-2 outline-offset-2 outline-[--color-font]' : ''}`}>
-          <Icon icon={icon} />
-        </span>
-        <span className="text-[10px] leading-tight capitalize">{label}</span>
-      </Fragment>
-    )}
+    <span className="flex items-center justify-center w-7 h-7">
+      <Icon icon={icon} />
+    </span>
+    <span className="text-[10px] leading-tight capitalize">{label}</span>
   </NavLink>
 );
 
@@ -259,7 +254,10 @@ const Root = () => {
             <Link data-testid="project">
               <NavLink
                 to={`/organization/${organizationId}/project/${workspaceData.activeProject._id}`}
+                title={t('All collections in {name}', { name: workspaceData.activeProject.name })}
+                className="flex items-center gap-1.5 px-1.5 py-0.5 -mx-1.5 rounded-sm no-underline text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] transition-colors"
               >
+                <Icon icon="folder-open" className="text-xs" />
                 {workspaceData.activeProject.name}
               </NavLink>
             </Link>
@@ -313,24 +311,17 @@ const Root = () => {
               </header>
             )}
             <nav aria-label={t('App')} className="[grid-area:Navbar] flex flex-col items-center gap-[--padding-xs] w-full h-full overflow-y-auto py-[--padding-sm]">
-              <RailLink
-                label={t('Projects')}
-                icon="home"
-                to={(() => {
-                  // from outside a project, back to the last requester location
-                  if (!location.pathname.includes('organization')) {
-                    const prevLocationHistoryEntry = localStorage.getItem('requester_locationHistoryEntry');
-                    if (prevLocationHistoryEntry) {
-                      return prevLocationHistoryEntry;
-                    }
-                  }
-                  return `/organization/${DEFAULT_ORGANIZATION_ID}`;
-                })()}
-                isProjects
-              />
+              {/* the breadcrumb leads back from a collection; pages outside the
+                  projects (import, updates) have only this */}
+              {!location.pathname.includes('organization') && (
+                <RailLink
+                  label={t('Projects')}
+                  icon="folder-open"
+                  to={localStorage.getItem('requester_locationHistoryEntry') || `/organization/${DEFAULT_ORGANIZATION_ID}`}
+                />
+              )}
               {workspaceData?.activeWorkspace && (
                 <Fragment>
-                  <span className="w-8 border-t border-solid border-[--hl-md] my-[--padding-xxs]" />
                   {(isDesign(workspaceData.activeWorkspace) ? WORKSPACE_VIEWS : WORKSPACE_VIEWS.filter(view => view.path !== 'spec')).map(view => (
                     <RailLink
                       key={view.path}

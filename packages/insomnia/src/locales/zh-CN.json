@@ -63,7 +63,6 @@
   "Action Section": "操作部分",
   "Actions": "操作",
   "Add Auth": "添加认证",
-  "Add Cookies": "添加 Cookie",
   "Add Description": "添加描述",
   "Add Sub Environment": "添加子环境",
   "Add Your Own": "自行添加",
@@ -877,5 +876,11 @@
   "Commit Failed": "提交失败",
   "Rollback Failed": "回滚失败",
   "App": "应用",
-  "Search requests": "搜索请求"
+  "Search requests": "搜索请求",
+  "Version {version}": "版本 {version}",
+  "A 100% local and privacy-focused fork of Insomnia": "100% 本地、注重隐私的 Insomnia 分支",
+  "Build details": "构建详情",
+  "Copy details": "复制详情",
+  "All collections in {name}": "{name} 中的所有集合",
+  "Switch to": "切换到"
 }
