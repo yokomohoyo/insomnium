@@ -234,7 +234,8 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
         </ModalBody>
         <ModalFooter>
           <div className="margin-left flex gap-2">
-            {summary && (
+            {/* the run's report: a load test has its own */}
+            {mode === 'run' && summary && (
               <>
                 <button className="btn btn--compact" onClick={() => save('junit')}>Save JUnit</button>
                 <button className="btn btn--compact" onClick={() => save('json')}>Save JSON</button>
