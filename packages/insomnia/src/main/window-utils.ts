@@ -446,7 +446,7 @@ export function createMenu() {
       type: 'info',
       title: getProductName(),
       message: getProductName(),
-      detail,
+      detail: `A 100% local and privacy-focused fork of Insomnia.\n\n${detail}`,
       buttons,
       defaultId: buttons.indexOf(ok),
       cancelId: buttons.indexOf(ok),
