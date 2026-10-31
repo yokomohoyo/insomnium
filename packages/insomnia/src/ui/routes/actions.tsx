@@ -497,6 +497,8 @@ export const createEnvironmentAction: ActionFunction = async ({
     parentId: baseEnvironment._id,
     isPrivate,
   });
+  // Manage Environments shows the active one: the new one, to fill in
+  await models.workspaceMeta.update(await models.workspaceMeta.getOrCreateByParentId(workspaceId), { activeEnvironmentId: environment._id });
 
   return environment;
 };
@@ -562,6 +564,8 @@ export const duplicateEnvironmentAction: ActionFunction = async ({
   guard(environment, 'Environment not found');
 
   const newEnvironment = await models.environment.duplicate(environment);
+  // shown, as a new one is
+  await models.workspaceMeta.update(await models.workspaceMeta.getOrCreateByParentId(workspaceId), { activeEnvironmentId: newEnvironment._id });
 
   return newEnvironment;
 };
