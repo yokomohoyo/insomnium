@@ -127,7 +127,8 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
         scriptVariables: scripted.variables,
       });
     } catch (err) {
-      if (isEventStreamRequest(activeRequest) && err?.type === 'render') {
+      // which field and variable, as gRPC and WebSocket requests say
+      if (err?.type === 'render') {
         showModal(RequestRenderErrorModal, { request: activeRequest, error: err });
         return;
       }
