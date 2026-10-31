@@ -35,6 +35,7 @@ export const RequestGroupRow: FC<Props> = ({
           <input
             ref={checkboxRef}
             type="checkbox"
+            aria-label={requestGroup.name}
             checked={isSelected}
             onChange={e => handleSetItemSelected(requestGroup._id, e.currentTarget.checked)}
           />

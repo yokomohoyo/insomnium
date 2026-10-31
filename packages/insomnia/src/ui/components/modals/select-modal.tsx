@@ -47,7 +47,7 @@ export const SelectModal = forwardRef<SelectModalHandle, ModalProps>((_, ref) =>
       <ModalBody className="wide pad">
         <p>{message}</p>
         <div className="form-control form-control--outlined">
-          <select onChange={event => setState(state => ({ ...state, value: event.target.value }))} value={value ?? undefined}>
+          <select aria-label={title || 'Choose'} onChange={event => setState(state => ({ ...state, value: event.target.value }))} value={value ?? undefined}>
             {options.map(({ name, value }) => (
               <option key={value} value={value}>
                 {name}

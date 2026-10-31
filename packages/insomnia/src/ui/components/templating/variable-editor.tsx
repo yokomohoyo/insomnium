@@ -60,6 +60,7 @@ export const VariableEditor: FC<Props> = ({ onChange, defaultValue }) => {
         <div className="form-control form-control--outlined">
           <input
             type="text"
+            aria-label="Custom template"
             defaultValue={selected}
             onChange={event => {
               setSelected(event.target.value);

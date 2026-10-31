@@ -216,7 +216,7 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
                       gap: 'var(--padding-sm)',
                     }}
                   >
-                    <select disabled={protocol === 'curl'} onChange={e => setEventType(e.currentTarget.value as CurlEvent['type'])}>
+                    <select aria-label="Event type" disabled={protocol === 'curl'} onChange={e => setEventType(e.currentTarget.value as CurlEvent['type'])}>
                       <option value="">All</option>
                       <option value="message">Message</option>
                       <option value="open">Open</option>
