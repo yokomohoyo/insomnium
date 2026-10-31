@@ -51,12 +51,36 @@ A client that connected with the minimal set (\`/sse?tools=minimal\`, or \`insom
 - Don't send requests to hosts the user didn't mention, and don't load test anything they didn't ask you to.
 `;
 
-// the instructions as a resource, for the client to read first
-export function registerInstructions(server: McpServer) {
+// The headless server's (insomnium-server): the collections it loaded, to
+// read, send and run; nothing it offers changes them
+export const HEADLESS_SERVER_INSTRUCTIONS = `This is Insomnium's headless server: it serves the API collections it was started with, to read, send and run. Read the resource ${INSTRUCTIONS_URI} before your first tool call.`;
+
+export const HEADLESS_INSTRUCTIONS = `# Using Insomnium's headless server
+
+It serves the collections it was started with (files or Git repositories), read-only: nothing here changes them. It sends only to the hosts it allows.
+
+## Find what you need
+- \`search\` finds requests, folders, workspaces and environments by name, and requests by URL or method.
+- \`list_workspaces\`, \`list_request_groups\` and \`list_requests\` list what's loaded; \`get_request\` shows a request in full.
+- \`get_spec\`, \`list_test_suites\`, \`list_flows\` and \`get_flow\` show a design document's spec, tests and flows.
+
+## Environments
+- \`list_environments\` and \`get_active_environment\` show them; \`set_active_environment\` picks the one sends use.
+
+## Send and check
+- \`send_http_request\` sends one request with its scripts and assertions; read the body with \`get_last_response\` or \`get_response\`.
+- \`send_grpc_request\` calls a gRPC method (see \`get_proto_methods\`).
+- \`run_requests\` runs a workspace's or folder's requests, with iterations, and returns each result with its time and phases and each request's latency percentiles. \`run_flow\` runs a flow.
+- \`generate_code\` writes the code that sends a request; \`export_workspace\` exports what's loaded.
+`;
+
+// the instructions as a resource, for the client to read first: the app's, or
+// the headless server's
+export function registerInstructions(server: McpServer, text = INSTRUCTIONS) {
   server.resource(
     'instructions',
     INSTRUCTIONS_URI,
     { mimeType: 'text/markdown', description: "How to use Insomnium's tools: read this first" },
-    async uri => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text: INSTRUCTIONS }] }),
+    async uri => ({ contents: [{ uri: uri.href, mimeType: 'text/markdown', text }] }),
   );
 }

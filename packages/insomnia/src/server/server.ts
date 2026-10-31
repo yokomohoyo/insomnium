@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { version } from '../../package.json';
 import { database } from '../common/database';
+import { HEADLESS_INSTRUCTIONS, HEADLESS_SERVER_INSTRUCTIONS, registerInstructions } from '../main/mcp/instructions';
 import { registerTools } from '../main/mcp/tools';
 import * as models from '../models';
 import { setRequestPolicy } from '../network/request-policy';
@@ -125,7 +126,8 @@ export async function startServer(config: ServerConfig) {
     port: config.port,
     token: config.token,
     buildServer: () => {
-      const server = new McpServer({ name: 'insomnium-server', version });
+      const server = new McpServer({ name: 'insomnium-server', version }, { instructions: HEADLESS_SERVER_INSTRUCTIONS });
+      registerInstructions(server, HEADLESS_INSTRUCTIONS);
       registerTools(server, name => SERVER_TOOLS.has(name));
       return server;
     },
