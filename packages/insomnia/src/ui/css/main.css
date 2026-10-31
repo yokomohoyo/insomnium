@@ -1118,8 +1118,10 @@ button {
 }
 /* Where the keyboard's focus is. The resets above and the components'
    outline-none took every ring away, so tabbing showed nothing; this outranks
-   them. Text fields keep their own focused border */
-:root :focus-visible:not(input, textarea, select, [contenteditable]) {
+   them. Only while the keyboard is in use (data-keyboard, from
+   keyboard-modality.ts): react-aria's tabs and rows take the focus on a click
+   too. Text fields keep their own focused border */
+:root[data-keyboard] :focus-visible:not(input, textarea, select, [contenteditable]) {
   outline: 2px solid var(--color-surprise);
   outline-offset: -2px;
 }
