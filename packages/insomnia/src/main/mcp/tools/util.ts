@@ -50,17 +50,18 @@ function canonicalHost(hostname: string): string {
   return h;
 }
 
-// Restrict an LLM-driven request URL to http(s) and block cloud-metadata hosts.
-// Loopback/private hosts stay allowed (local dev). Throws if disallowed.
-export function assertSafeRequestUrl(rawUrl: string): void {
+// Restrict an LLM-driven request URL to http(s) (or the schemes given, ws(s)
+// for a WebSocket) and block cloud-metadata hosts. Loopback/private hosts stay
+// allowed (local dev). Throws if disallowed.
+export function assertSafeRequestUrl(rawUrl: string, schemes: string[] = ['http:', 'https:']): void {
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
   } catch {
     throw new Error(`Refusing to send: '${rawUrl}' is not a valid absolute URL.`);
   }
-  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error(`Refusing to send: scheme '${parsed.protocol}' is not allowed (only http and https).`);
+  if (!schemes.includes(parsed.protocol)) {
+    throw new Error(`Refusing to send: scheme '${parsed.protocol}' is not allowed (only ${schemes.map(scheme => scheme.slice(0, -1)).join(' and ')}).`);
   }
   if (BLOCKED_HOSTS.has(canonicalHost(parsed.hostname))) {
     throw new Error(`Refusing to send: '${parsed.hostname}' is a cloud-metadata endpoint and is blocked.`);

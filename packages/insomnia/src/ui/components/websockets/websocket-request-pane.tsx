@@ -10,7 +10,7 @@ import { binaryEncodingOf } from '../../../main/network/websocket-frames';
 import { WebSocketRequest } from '../../../models/websocket-request';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../../utils/url/querystring';
-import { useReadyState } from '../../hooks/use-ready-state';
+import { useReadyState, useShowConnectionWhenOpened } from '../../hooks/use-ready-state';
 import { useRequestSetter } from '../../hooks/use-request';
 import { useActiveRequestSyncVCSVersion, useGitVCSVersion } from '../../hooks/use-vcs-version';
 import { ConnectActionParams, WebSocketRequestLoaderData } from '../../routes/request';
@@ -343,6 +343,7 @@ export const WebSocketRequestPane: FC<Props> = ({ environment }) => {
 
   const { workspaceId, requestId } = useParams() as { organizationId: string; projectId: string; workspaceId: string; requestId: string };
   const readyState = useReadyState({ requestId: activeRequest._id, protocol: 'webSocket' });
+  useShowConnectionWhenOpened(readyState);
   const {
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
