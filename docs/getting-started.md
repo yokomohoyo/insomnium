@@ -13,7 +13,7 @@ Create either from the dashboard, or bring one in with [Import](import-export.md
 
 ## Requests
 
-Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket, an Event Stream (Server-Sent Events) or MCP. A gRPC response's **Metadata** tab shows the headers and trailers the server sent. A WebSocket request keeps messages to send again: **Save Message** saves the one in the editor with the request, and **Saved messages** puts one back. To send a binary frame, choose **Hex (binary)** or **Base64 (binary)** from the message editor's mode menu (where **JSON** is) and write the bytes: hex may be spaced or split by `:` and have `0x` before each byte, as copied from a dump. A binary frame in the event log shows its size and first bytes; open it for a hex dump (**Preview**), base64 (**Source**) or the bytes as text (**Raw**), and save it as the bytes themselves. To reconnect when a connection drops, turn on **Reconnect when the connection drops** in the request's settings, with the seconds between attempts and how many in a row. It opens again into the same response, so the event log carries on. It stops after that many attempts, unless a connection stays open for 10 seconds, which starts the count again. It never reconnects after you disconnect, or when the server answers with HTTP (such as 401) instead of a WebSocket. Disconnect while it's waiting to stop it. Its **GraphQL** tab runs a GraphQL subscription: turn on **Subscribe when connected**, write the subscription and its variables, and **Connect**. It speaks the graphql-transport-ws protocol (Apollo, Hasura, GraphQL Yoga and others), each event comes in as a message, and the connection closes when the subscription completes. Its **Socket.IO** tab makes it a Socket.IO client (v3 and v4): turn on **Use Socket.IO**, give the server's address (such as `http://localhost:3000`), a namespace and any auth (JSON), and **Connect**. The message editor then sends an event: name it in **Event**, and the JSON is its arguments (an array is the arguments). The server's events, and its heartbeats, show in the event log. Its **MQTT** tab makes it an MQTT 3.1.1 client, over a broker's WebSocket listener (such as `ws://localhost:8080` for Mosquitto's, or `ws://broker.hivemq.com:8000/mqtt`): turn on **Use MQTT**, give a client ID (or leave it for a new one each time), a user name and password if the broker wants them, and the topics to subscribe to, a line each with its QoS after it (`sensors/+/temperature 1`). **Connect** connects and subscribes; the message editor then publishes to the **Topic** by it, at QoS 0 or 1, retained if you like. Deliveries show in the event log as `topic: payload`, and QoS 1 ones are acknowledged. MQTT over plain TCP (port 1883) and MQTT 5 aren't supported yet.
+Add a request from the **+** button above the sidebar. A request can be HTTP, GraphQL, gRPC, WebSocket, an Event Stream (Server-Sent Events) or MCP. This page covers HTTP requests; each of the others has its own page: [GraphQL](graphql.md), [gRPC](grpc.md), [WebSocket, Socket.IO and MQTT](websockets.md), [Event streams](event-streams.md) and [MCP requests](mcp-requests.md).
 
 Each request you open gets a tab above the request and response, to switch back to it; close one with its **×**, or with a middle click. The tabs stay open, on this computer, when you come back to the collection.
 
@@ -36,16 +36,6 @@ Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows t
 Hover the response time to see how it was spent: the DNS lookup, connecting, the TLS handshake, waiting for the first byte, and the download.
 
 **Console**, in the bar at the bottom, lists every request sent this session, from any collection or the runner: when, the method, the status, the name and URL, how its assertions went, the time and the size. Click one to see what its scripts logged, or why it failed. **Filter** narrows the list, and **Clear** empties it; it isn't kept after the app closes.
-
-### MCP requests
-
-An **MCP Request** tries out an MCP (Model Context Protocol) server, as an agent would use it. Choose **HTTP** and enter the server's URL, with any headers it needs (such as an `Authorization` header), or **STDIO** and the command that starts the server, with its arguments one per line. Then **Connect**.
-
-- The response pane lists the server's **Tools**, **Prompts** and **Resources**, and its instructions.
-- Choose a tool, fill in its arguments as JSON (they start from the tool's input schema, and variables and tags work), and **Call** it. The same goes for a prompt (**Get**) and a resource (**Read**).
-- The arguments you last used for each tool and prompt are kept with the request.
-- Over HTTP, Insomnium tries streamable HTTP first, then the older SSE transport.
-- A STDIO command runs on your computer, so Insomnium shows it and asks before each run. It runs with your PATH and home folder, but not the app's other environment variables.
 
 ### OAuth 2.0
 
