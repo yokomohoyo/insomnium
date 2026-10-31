@@ -28,4 +28,10 @@ describe('<PromptModal />', () => {
     fireEvent.click(submit);
     expect(onComplete).toHaveBeenCalledWith('Pet Store');
   });
+
+  it('selects its default when asked, so typing replaces it', () => {
+    const { input } = open({ title: 'New Folder', submitName: 'Rename', defaultValue: 'My Folder', selectText: true });
+    fireEvent.focus(input);
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 'My Folder'.length]);
+  });
 });

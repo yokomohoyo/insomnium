@@ -112,6 +112,8 @@ export const PromptModal = forwardRef<PromptModalHandle, ModalProps>((_, ref) =>
         event.target.setCustomValidity(state.validate ? state.validate(event.target.value) : '');
       }}
       autoFocus
+      // a default such as "My Folder" is selected, so typing replaces it
+      onFocus={event => state.selectText && event.currentTarget.select()}
       defaultValue={state.defaultValue || ''}
       id="prompt-input"
       type={inputType === 'decimal' ? 'number' : inputType || 'text'}
