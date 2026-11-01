@@ -71,6 +71,12 @@ describe('parseApiSpec()', () => {
     expect(parseApiSpec('')).toEqual(expected);
   });
 
+  it('parses YAML that starts like JSON as YAML', () => {
+    const rawSpec = '{openapi: 3.0.0, info: {title: Flow}}\n';
+    expect(parseApiSpec(rawSpec)).toMatchObject({ format: 'openapi', contents: { openapi: '3.0.0', info: { title: 'Flow' } } });
+    expect(parseApiSpec('[1, 2]').contents).toEqual([1, 2]);
+  });
+
   it('Fails on malformed JSON/YAML', () => {
     const rawSpec = ['openapi: 3.0.0', 'info: {{{'].join('\n');
     expect(() => parseApiSpec(rawSpec)).toThrowError('Failed to parse API spec');

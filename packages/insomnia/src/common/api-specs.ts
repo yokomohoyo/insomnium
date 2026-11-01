@@ -17,9 +17,10 @@ export function parseApiSpec(
     formatVersion: null,
   };
 
-  // NOTE: JSON is valid YAML so we only need to parse YAML
+  // NOTE: JSON is valid YAML so we only need to parse YAML. But a JSON document
+  // is parsed as JSON first: YAML takes 30 times as long (700 ms for 3 MB).
   try {
-    result.contents = YAML.parse(rawDocument);
+    result.contents = parseJson(rawDocument) ?? YAML.parse(rawDocument);
   } catch (err) {
     throw new Error('Failed to parse API spec');
   }
@@ -43,6 +44,18 @@ export function parseApiSpec(
   }
 
   return result;
+}
+
+// a JSON object or array, or undefined for anything else (YAML, broken JSON)
+function parseJson(rawDocument: string) {
+  if (!/^\s*[{[]/.test(rawDocument)) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(rawDocument);
+  } catch {
+    return undefined;
+  }
 }
 
 export function resolveComponentSchemaRefs(

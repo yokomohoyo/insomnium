@@ -22,7 +22,39 @@ const builtInRuleset = (contents: string) => {
 // document, or its git repository's .spectral.yaml) or the built-in OpenAPI or
 // AsyncAPI rules. A ruleset that can't be used is said first, as a warning, rather than
 // quietly linting with the built-in rules instead.
-export async function lintSpec({ contents, rulesetPath }: { contents: string; rulesetPath?: string }): Promise<ISpectralDiagnostic[]> {
+export async function lintSpec(options: { contents: string; rulesetPath?: string }): Promise<ISpectralDiagnostic[]> {
+  const key = await lintKey(options);
+  let result = recentLints.get(key);
+  if (!result) {
+    result = lint(options);
+    result.catch(() => recentLints.delete(key));
+    if (recentLints.size >= RECENT_LINTS) {
+      recentLints.delete(recentLints.keys().next().value!);
+    }
+  }
+  // the most recent last
+  recentLints.delete(key);
+  recentLints.set(key, result);
+  return result;
+}
+
+// The last few results, by the text and the ruleset's: after an edit the Spec
+// tab's loader and its editor each lint the same text, and the loader again on
+// every revalidation (any request saved), each taking seconds on a large spec
+// and holding up the main process meanwhile.
+const recentLints = new Map<string, Promise<ISpectralDiagnostic[]>>();
+const RECENT_LINTS = 4;
+
+const lintKey = async ({ contents, rulesetPath }: { contents: string; rulesetPath?: string }) => {
+  let ruleset = '';
+  if (rulesetPath) {
+    // (one that can be used extends only built-in rulesets, so it's all in this file)
+    ruleset = await fs.promises.readFile(rulesetPath, 'utf8').then(source => `${rulesetPath}\n${source}`, () => `${rulesetPath} unreadable`);
+  }
+  return `${ruleset}\0${contents}`;
+};
+
+async function lint({ contents, rulesetPath }: { contents: string; rulesetPath?: string }): Promise<ISpectralDiagnostic[]> {
   const spectral = new Spectral();
   let rulesetProblem = '';
 
