@@ -6,7 +6,7 @@ import { exportHarWithRequest } from '../../../common/har';
 import type { BaseModel } from '../../../models';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
-import { findWorkspaceForRequest, requestTypeLabel } from './util';
+import { findWorkspaceForRequest, foreignEnvironment, requestTypeLabel } from './util';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
 
@@ -100,9 +100,13 @@ export function registerDiscoveryTools(server: McpServer) {
       if (!chosenClient) {
         return text({ error: `no client '${client}' for ${target}`, clients: choices.find(choice => choice.target === target)?.clients }, true);
       }
+      const workspace = await findWorkspaceForRequest(request.parentId);
+      const foreign = await foreignEnvironment(workspace?._id, environmentId);
+      if (foreign) {
+        return text({ error: foreign }, true);
+      }
       let envId = environmentId;
       if (envId === undefined) {
-        const workspace = await findWorkspaceForRequest(request.parentId);
         envId = workspace ? (await models.workspaceMeta.getOrCreateByParentId(workspace._id)).activeEnvironmentId || undefined : undefined;
       }
       let har;

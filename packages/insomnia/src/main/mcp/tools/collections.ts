@@ -11,6 +11,7 @@ import * as models from '../../../models';
 import { resultName } from '../../../network/run-files';
 import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, runRequests } from '../../../network/runner';
+import { findWorkspaceForRequest, foreignEnvironment } from './util';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
 
@@ -94,6 +95,10 @@ export function registerCollectionTools(server: McpServer) {
       const requests = await listRunnableRequests(parentId);
       if (!requests.length) {
         return text({ error: 'no HTTP requests under parentId' }, true);
+      }
+      const foreign = await foreignEnvironment((await findWorkspaceForRequest(parentId))?._id, environmentId);
+      if (foreign) {
+        return text({ error: foreign }, true);
       }
       const summary = await runRequests(requests, { environmentId, iterations, bail });
       return text({

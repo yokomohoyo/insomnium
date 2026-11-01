@@ -6,7 +6,7 @@ import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import * as networkUtils from '../../../network/network';
 import { runPreRequestScript } from '../../../scripting/request-scripts';
-import { assertSafeRequestUrl, findWorkspaceForRequest } from './util';
+import { assertSafeRequestUrl, findWorkspaceForRequest, foreignEnvironment } from './util';
 
 export function registerSendTool(server: McpServer) {
   server.tool(
@@ -22,6 +22,10 @@ export function registerSendTool(server: McpServer) {
         return { content: [{ type: 'text', text: JSON.stringify({ error: 'HTTP request not found' }) }], isError: true };
       }
       const workspace = await findWorkspaceForRequest(req.parentId);
+      const foreign = await foreignEnvironment(workspace?._id, environmentId);
+      if (foreign) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: foreign }) }], isError: true };
+      }
       let envId: string | null | undefined = environmentId;
       if (envId === undefined && workspace) {
         const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);

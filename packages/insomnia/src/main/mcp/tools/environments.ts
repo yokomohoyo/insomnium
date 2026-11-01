@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import * as models from '../../../models';
+import { foreignEnvironment } from './util';
 
 export function registerEnvironmentTools(server: McpServer) {
   server.tool(
@@ -52,13 +53,9 @@ export function registerEnvironmentTools(server: McpServer) {
     async ({ workspaceId, environmentId }) => {
       // Only allow clearing (null), the workspace's base env, or one of its
       // sub-envs - not an arbitrary/foreign id.
-      if (environmentId !== null) {
-        const baseEnv = await models.environment.getOrCreateForParentId(workspaceId);
-        const env = await models.environment.getById(environmentId);
-        const belongs = !!env && (env._id === baseEnv._id || env.parentId === baseEnv._id);
-        if (!belongs) {
-          return { content: [{ type: 'text', text: JSON.stringify({ error: `environment ${environmentId} does not belong to workspace ${workspaceId}` }) }], isError: true };
-        }
+      const foreign = await foreignEnvironment(workspaceId, environmentId);
+      if (foreign) {
+        return { content: [{ type: 'text', text: JSON.stringify({ error: foreign }) }], isError: true };
       }
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
       await models.workspaceMeta.update(meta, { activeEnvironmentId: environmentId });

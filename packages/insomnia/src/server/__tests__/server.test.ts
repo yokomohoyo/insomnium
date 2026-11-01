@@ -91,9 +91,11 @@ describe('insomnium-server', () => {
     const names = result.tools.map((tool: any) => tool.name).sort();
     expect(names).toContain('send_http_request');
     expect(names).toContain('get_last_response');
-    expect(names).toEqual(expect.arrayContaining(['get_spec', 'list_response_examples', 'list_test_suites', 'list_flows', 'get_flow', 'run_flow', 'search', 'generate_code']));
-    // generate_code only writes code out; generate_requests_from_spec adds requests
-    expect(names.filter((name: string) => name !== 'generate_code' && /^(create|update|delete|duplicate|add|remove|import|clear|generate)_|^set_(spec|cookie)$/.test(name))).toEqual([]);
+    expect(names).toEqual(expect.arrayContaining(['get_spec', 'list_response_examples', 'list_test_suites', 'list_flows', 'get_flow', 'run_flow', 'search']));
+    expect(names.filter((name: string) => /^(create|update|delete|duplicate|add|remove|import|clear|generate)_|^set_(spec|cookie)$/.test(name))).toEqual([]);
+    // they'd show a client the INSOMNIUM_VAR_ values sends use
+    expect(names).not.toContain('generate_code');
+    expect(names).not.toContain('export_workspace');
   });
 
   it('serves its own instructions, naming only the tools it offers', async () => {
