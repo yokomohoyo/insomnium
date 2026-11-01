@@ -11,8 +11,9 @@ import YAML from 'yaml';
 import { type GitRemote, hasGitHttpBackend, startGitServer } from '../../__jest__/git-server';
 import * as models from '../../models';
 import { setRequestPolicy } from '../../network/request-policy';
-import { isRemoteRepo, withoutUserinfo } from '../repo';
+import { isRemoteRepo, openRepo, withoutUserinfo } from '../repo';
 import { loadSources } from '../server';
+import { assertOneTokenHost } from '../sources';
 
 // the real clone (the tests' mock of isomorphic-git stubs it)
 jest.unmock('isomorphic-git');
@@ -53,6 +54,14 @@ describe('a repository to serve', () => {
     expect(withoutUserinfo('https://deploy:t0k@n@git.example.com/org/api.git')).toBe('https://git.example.com/org/api.git');
     expect(withoutUserinfo('https://git.example.com/org/api.git?ref=a@b')).toBe('https://git.example.com/org/api.git?ref=a@b');
     expect(withoutUserinfo('/data/api')).toBe('/data/api');
+  });
+
+  it('gets the token only over https, and on the one host it is for', async () => {
+    await expect(openRepo('http://git.example.com/org/api.git', { token: 't0ken' })).rejects.toThrow('plain HTTP');
+    await expect(openRepo('https://git.example.com/org/api.git', { token: 't0ken', tokenHost: 'github.com' })).rejects.toThrow('is for github.com');
+    expect(() => assertOneTokenHost({ repos: ['https://github.com/a/b.git', 'https://gitlab.com/c/d.git'], gitToken: 't0ken' })).toThrow('INSOMNIUM_GIT_TOKEN_HOST');
+    expect(() => assertOneTokenHost({ repos: ['https://github.com/a/b.git', 'https://github.com/c/d.git', '/data/e'], gitToken: 't0ken' })).not.toThrow();
+    expect(() => assertOneTokenHost({ repos: ['https://github.com/a/b.git', 'https://gitlab.com/c/d.git'], gitToken: 't0ken', gitTokenHost: 'github.com' })).not.toThrow();
   });
 
   it('as a mounted checkout, is read again when its files change', async () => {

@@ -33,6 +33,8 @@ export interface RepoOptions {
   // for a private repository: a token, and the username to send it with
   token?: string;
   username?: string;
+  // the host the token is for, when it's set: none goes anywhere else
+  tokenHost?: string;
 }
 
 export interface Repo {
@@ -65,6 +67,21 @@ async function cloneRepo(url: string, options: RepoOptions): Promise<Repo> {
   if (!/^https?:\/\//i.test(url)) {
     throw new Error(`${location}: only http(s) Git remotes can be cloned; mount a checkout and give its directory instead`);
   }
+  const { protocol, hostname, host } = new URL(url);
+  if (options.token && protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(hostname)) {
+    throw new Error(`${location}: INSOMNIUM_GIT_TOKEN would go over plain HTTP: use an https:// URL`);
+  }
+  if (options.token && options.tokenHost && options.tokenHost.toLowerCase() !== host.toLowerCase()) {
+    throw new Error(`${location}: INSOMNIUM_GIT_TOKEN is for ${options.tokenHost} (INSOMNIUM_GIT_TOKEN_HOST), not ${host}`);
+  }
+  // the token only for the repository's own host, wherever a redirect goes
+  const tokenFor = (asked: string) => {
+    try {
+      return new URL(asked).host.toLowerCase() === host.toLowerCase();
+    } catch {
+      return false;
+    }
+  };
   const base = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'insomnium-repo-'));
   const close = () => fs.rmSync(base, { recursive: true, force: true });
   const workTree = fsClient(path.join(base, 'work'));
@@ -73,7 +90,7 @@ async function cloneRepo(url: string, options: RepoOptions): Promise<Repo> {
     http,
     dir: GIT_CLONE_DIR,
     gitdir: GIT_INTERNAL_DIR,
-    onAuth: () => (options.token ? { username: options.username || 'git', password: options.token } : { cancel: true }),
+    onAuth: (asked: string) => (options.token && tokenFor(asked) ? { username: options.username || 'git', password: options.token } : { cancel: true }),
   };
   let branch: string;
   try {
