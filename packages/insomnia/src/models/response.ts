@@ -215,7 +215,9 @@ export async function create(patch: Partial<Response> = {}, maxResponses = 20): 
     },
   });
   // Actually create the new response
-  return db.docCreate(type, patch);
+  const response = await db.docCreate(type, patch);
+  await models.requestVersion.removeUnused(parentId, type);
+  return response;
 }
 
 export function getLatestByParentId(parentId: string) {
