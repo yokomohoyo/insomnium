@@ -31,6 +31,11 @@ export function parseServerSentEvents(chunks: StreamChunk[]): ServerSentEvent[] 
   };
   for (const chunk of chunks) {
     buffer += chunk.data;
+    // nothing ends in it: splitting what's put together so far again, for each
+    // of an event's many chunks, took seconds
+    if (!/[\r\n]/.test(chunk.data)) {
+      continue;
+    }
     const lines = buffer.split(/\r\n|\r|\n/);
     // the last line may be cut off; it's finished by the next chunk
     buffer = lines.pop() ?? '';

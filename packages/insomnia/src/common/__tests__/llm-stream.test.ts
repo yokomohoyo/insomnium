@@ -15,6 +15,18 @@ describe('parseServerSentEvents()', () => {
       { event: 'message', data: 'three' },
     ]);
   });
+
+  it('reads an event that comes in many chunks with no line end, at the time its last one came', () => {
+    const data = JSON.stringify({ big: 'x'.repeat(5000) });
+    const text = `data: ${data}\n\ndata: after\n\n`;
+    const cuts = Array.from({ length: 100 }, (_, i) => 6 + i * 50);
+
+    const events = parseServerSentEvents(chunked(text, ...cuts));
+
+    expect(events.map(event => event.data)).toEqual([data, 'after']);
+    // the chunk with the blank line after it is the last one
+    expect(events[0].timestamp).toBe(1000 + 101 * 100);
+  });
 });
 
 describe('readLlmStream()', () => {
