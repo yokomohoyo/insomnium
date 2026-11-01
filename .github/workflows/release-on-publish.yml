@@ -4,9 +4,6 @@ name: Release On Publish
 # builds installers/packages for all 3 OSes, and uploads them as assets to that
 # release. Also supports manual re-runs via workflow_dispatch with an existing
 # tag name.
-#
-# Coexists with the legacy `release-build.yml` / `release-publish.yml` 3-step
-# flow — neither workflow disables the other.
 
 on:
   release:
