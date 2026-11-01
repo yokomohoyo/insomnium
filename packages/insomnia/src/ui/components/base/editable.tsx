@@ -1,7 +1,6 @@
 import React, { FC, ReactElement, useCallback, useRef, useState } from 'react';
 
 import { createKeybindingsHandler } from '../keydown-binder';
-import { HighlightProps } from './highlight';
 
 export const shouldSave = (oldValue: string, newValue: string | undefined, preventBlank = false) => {
   // Should not save if length = 0 and we want to prevent blank
@@ -25,7 +24,7 @@ interface Props {
   onEditStart?: () => void;
   onSubmit: (value: string) => void;
   preventBlank?: boolean;
-  renderReadView?: (value: string | undefined, props: any) => ReactElement<HighlightProps>;
+  renderReadView?: (value: string | undefined, props: any) => ReactElement;
   singleClick?: boolean;
   value: string;
 }

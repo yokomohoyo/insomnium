@@ -79,7 +79,7 @@ const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAut
       ...insertAuthKeyIf('state', authentication.state),
       ...insertAuthKeyIf('audience', authentication.audience),
       ...(hasNonce ? [{
-        name: 'nonce', value: Math.floor(Math.random() * 9999999999999) + 1 + '',
+        name: 'nonce', value: encodePKCE(crypto.randomBytes(16)),
       }] : []),
     ].forEach(p => p.value && implicitUrl.searchParams.append(p.name, p.value));
     const redirectedTo = await window.main.authorizeUserInWindow({
@@ -135,13 +135,12 @@ const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAut
     ].forEach(p => p.value && authCodeUrl.searchParams.append(p.name, p.value));
     let redirectedTo: string;
     let redirectUri = authentication.redirectUrl;
-    // the state a redirect to the system browser's loopback server must bring
-    // back, so another page can't hand it a code
-    let expectedState: string | undefined;
+    // the state the redirect must bring back, so another page can't hand the
+    // sign-in a code (in the window, or at the system browser's loopback server)
+    const expectedState = authentication.state || encodePKCE(crypto.randomBytes(16));
+    authCodeUrl.searchParams.set('state', expectedState);
     if (authentication.useSystemBrowser) {
       guard(authentication.redirectUrl, 'To sign in with the system browser, set a loopback redirect URL, such as http://127.0.0.1:8484/callback');
-      expectedState = authentication.state || encodePKCE(crypto.randomBytes(16));
-      authCodeUrl.searchParams.set('state', expectedState);
       authCodeUrl.searchParams.delete('redirect_uri');
       ({ redirectedTo, redirectUri } = await window.main.authorizeInSystemBrowser({
         url: authCodeUrl.toString(),
@@ -165,7 +164,7 @@ const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAut
       const uri = redirectParams.error_uri;
       throw new Error(`OAuth 2.0 Error ${code}\n\n${msg}\n\n${uri}`);
     }
-    if (expectedState !== undefined && redirectParams.state !== expectedState) {
+    if (redirectParams.state !== expectedState) {
       throw new Error("The sign-in came back with a different state than it was sent with, so it wasn't used");
     }
     params = [
