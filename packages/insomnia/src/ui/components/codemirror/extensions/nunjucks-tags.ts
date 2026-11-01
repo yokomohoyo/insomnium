@@ -262,9 +262,11 @@ async function _highlightNunjucksTags(this: CodeMirror.Editor, render: any, rend
   }
 }
 
-async function _updateElementText(render: any, mark: any, text: any, renderContext: any, showVariableSourceAndValue: boolean) {
+export async function _updateElementText(render: any, mark: any, text: any, renderContext: any, showVariableSourceAndValue: boolean) {
   const el = mark.replacedWith;
-  let innerHTML = '';
+  // what the pill shows, as text: the tag's text and values come from the
+  // collection (an import, a sync) and tag names from plugins, so never HTML
+  let shown = '';
   let title = '';
   let dataIgnore = '';
   let dataError = '';
@@ -289,23 +291,23 @@ async function _updateElementText(render: any, mark: any, text: any, renderConte
         const firstArg = tagDefinition.args[0];
 
         if (liveDisplayName) {
-          innerHTML = liveDisplayName;
+          shown = liveDisplayName;
         } else if (firstArg && firstArg.type === 'enum') {
           const argData = tagData.args[0];
           // @ts-expect-error -- TSCONVERSION
           const foundOption = firstArg.options.find(d => d.value === argData.value);
           // @ts-expect-error -- TSCONVERSION
           const option = foundOption || firstArg.options[0];
-          innerHTML = `${tagDefinition.displayName} &rArr; ${option.displayName}`;
+          shown = `${tagDefinition.displayName} ⇒ ${option.displayName}`;
         } else {
-          innerHTML = tagDefinition.displayName || tagData.name;
+          shown = tagDefinition.displayName || tagData.name;
         }
 
         const preview = await render(text);
         // @ts-expect-error -- TSCONVERSION
         title = tagDefinition.disablePreview(tagData.args) ? preview.replace(/./g, '*') : preview;
       } else {
-        innerHTML = cleanedStr;
+        shown = cleanedStr;
         title = 'Unrecognized tag';
         dataIgnore = 'on';
       }
@@ -318,8 +320,8 @@ async function _updateElementText(render: any, mark: any, text: any, renderConte
       // Only prefix the title with context, if context is found
       const valueAndContext = contextForKey ? `{${contextForKey}}: ${title}` : title;
 
-      // Swap what's shown in the tooltip vs the innerHTML
-      innerHTML = showVariableSourceAndValue ? valueAndContext : cleanedStr;
+      // Swap what's shown in the tooltip vs the pill
+      shown = showVariableSourceAndValue ? valueAndContext : cleanedStr;
       title = showVariableSourceAndValue ? cleanedStr : valueAndContext;
     }
 
@@ -332,11 +334,15 @@ async function _updateElementText(render: any, mark: any, text: any, renderConte
   el.title = title;
   el.setAttribute('data-ignore', dataIgnore);
 
+  const label = document.createElement('label');
   if (dataError === 'on') {
     el.setAttribute('data-error', dataError);
-    el.innerHTML = '<label><i class="fa fa-exclamation-triangle"></i></label>' + cleanedStr;
+    const icon = document.createElement('i');
+    icon.className = 'fa fa-exclamation-triangle';
+    label.append(icon);
+    el.replaceChildren(label, cleanedStr);
   } else {
-    el.innerHTML = '<label></label>' + innerHTML;
+    el.replaceChildren(label, shown);
   }
 
   mark.changed();
