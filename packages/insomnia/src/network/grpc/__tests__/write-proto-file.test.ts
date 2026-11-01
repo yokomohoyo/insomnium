@@ -314,6 +314,20 @@ describe('writeProtoFile', () => {
       expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
+    it('refuses to write when an imported modified time is a path', async () => {
+      const w = await models.workspace.create();
+      // @ts-expect-error -- an imported or synced document can hold anything
+      const pdRoot = await models.protoDirectory.create({ parentId: w._id, name: 'rootDir', modified: 'x/../../../escape' });
+      const pf = await models.protoFile.create({ parentId: pdRoot._id, name: 'evil.proto', protoText: 'attacker-controlled' });
+      // @ts-expect-error -- as above
+      const single = await models.protoFile.create({ parentId: w._id, name: 'one.proto', protoText: 'attacker-controlled', modified: '../../escape' });
+      _configureSpies(path.join('.', 'foo', 'bar', 'baz'), false);
+
+      await expect(writeProtoFile(pf)).rejects.toThrow(/Invalid proto directory modified time/);
+      await expect(writeProtoFile(single)).rejects.toThrow(/Invalid proto file modified time/);
+      expect(writeFileSpy).not.toHaveBeenCalled();
+    });
+
     it('refuses to write when a file name contains a path separator', async () => {
       const w = await models.workspace.create();
       const pdRoot = await models.protoDirectory.create({
