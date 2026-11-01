@@ -79,6 +79,34 @@ describe('render tests', () => {
     });
   });
 
+  describe('getRenderContext()', () => {
+    it("says where each variable comes from, for the editor's hover", async () => {
+      const workspace = await models.workspace.create({ name: 'Workspace' });
+      const base = await models.environment.getOrCreateForParentId(workspace._id);
+      await models.environment.update(base, { data: { shared: 'base', onlyBase: 'b', nested: { inBase: 1 } } });
+      const sub = await models.environment.create({ parentId: base._id, name: 'Staging', data: { shared: 'sub', nested: { inSub: 2 } } });
+      const outer = await models.requestGroup.create({ parentId: workspace._id, name: 'Outer', environment: { shared: 'outer', inFolders: 'outer' } });
+      const inner = await models.requestGroup.create({ parentId: outer._id, name: 'Inner', environment: { inFolders: 'inner', onlyInner: 'i' } });
+      const request = await models.request.create({ parentId: inner._id, url: '{{ shared }}' });
+
+      const context = await renderUtils.getRenderContext({ request, environmentId: sub._id });
+
+      // (where a folder's variable is in both, the outer one is named, as it always was)
+      expect(context.getKeysContext().keyContext).toEqual({
+        '_': 'Outer',
+        '_.shared': 'Outer',
+        '_.onlyBase': 'root',
+        '_.nested': 'Staging',
+        '_.nested.inBase': 'root',
+        '_.nested.inSub': 'Staging',
+        '_.inFolders': 'Outer',
+        '_.onlyInner': 'Inner',
+      });
+      // and the variables themselves, the nearest folder's first
+      expect(context).toMatchObject({ shared: 'outer', inFolders: 'inner', onlyBase: 'b', nested: { inBase: 1, inSub: 2 } });
+    });
+  });
+
   describe('buildRenderContext()', () => {
     it('cascades properly', async () => {
       const ancestors = [
