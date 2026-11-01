@@ -8,6 +8,7 @@ import { describeByteSize, generateId, getSetCookieHeaders } from '../../common/
 import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { Response } from '../../models/response';
+import { metadataGuarded } from '../../network/metadata-hosts';
 import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { setDefaultProtocol } from '../../utils/url/protocol';
@@ -130,7 +131,7 @@ const openCurlConnection = async (
     const clientCertificates = await models.clientCertificate.findByParentId(options.workspaceId);
     const filteredClientCertificates = clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), options.url));
     const { req, requestBody, headerStrings } = buildEventStreamCurlRequest(options);
-    const { curl, debugTimeline } = createConfiguredCurlInstance({
+    const { curl, debugTimeline, refusedAddress } = createConfiguredCurlInstance({
       req,
       finalUrl: options.url,
       settings,
@@ -138,6 +139,7 @@ const openCurlConnection = async (
       certificates: filteredClientCertificates,
       socketPath: options.socketPath,
       systemProxy,
+      refuseMetadata: metadataGuarded(),
     });
     setCurlMethod(curl, req.method);
     // the request timeout still bounds connecting, so a dead host fails
@@ -150,7 +152,9 @@ const openCurlConnection = async (
     debugTimeline.forEach(entry => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(entry) + '\n'));
     CurlConnections.set(options.requestId, curl);
     CurlConnections.get(options.requestId)?.setOpt(Curl.option.HTTPHEADER, headerStrings);
-    CurlConnections.get(options.requestId)?.on('error', async (error, errorCode) => {
+    CurlConnections.get(options.requestId)?.on('error', async (curlError, errorCode) => {
+      const refused = refusedAddress();
+      const error = refused ? new Error(`Refusing to connect to ${refused}: cloud metadata addresses are blocked`) : curlError;
       const errorEvent: CurlErrorEvent = {
         _id: uuidV4(),
         requestId: options.requestId,

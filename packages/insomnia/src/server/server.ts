@@ -6,6 +6,7 @@ import { HEADLESS_INSTRUCTIONS, HEADLESS_SERVER_INSTRUCTIONS, registerInstructio
 import { registerTools } from '../main/mcp/tools';
 import * as models from '../models';
 import { setGcpAudienceApproval } from '../network/gcp-id-token/get-token';
+import { isMetadataHost, setMetadataGuard } from '../network/metadata-hosts';
 import { setRequestPolicy } from '../network/request-policy';
 import { disableTemplateTags } from '../templating';
 import type { Workspace } from '../models/workspace';
@@ -67,6 +68,9 @@ export async function loadSources(config: LoadConfig) {
   // request's host (network/gcp-id-token/get-token.ts), so it may not
   setGcpAudienceApproval(() => false);
   setRequestPolicy(makeHostPolicy(config.allowedHosts));
+  // a name can resolve to one, so the addresses connected to are checked too
+  const metadataListed = config.allowedHosts.some(host => host !== '*' && isMetadataHost(host.replace(/^\*\./, '')));
+  setMetadataGuard(() => !metadataListed);
 
   const workspaces: Workspace[] = [];
   for (const collection of config.collections) {

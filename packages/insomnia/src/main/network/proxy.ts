@@ -3,6 +3,7 @@ import electron from 'electron';
 import { env as processEnv } from 'node:process';
 
 import type { Settings } from '../../models/settings';
+import { assertNotMetadataHost, metadataGuarded } from '../../network/metadata-hosts';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 
 type ProxySettings = Pick<Settings, 'proxyEnabled' | 'httpProxy' | 'httpsProxy' | 'noProxy'> & { useSystemProxy?: boolean };
@@ -100,10 +101,23 @@ export const describeProxy = (proxy: string) => {
   }
 };
 
+const hostOfGrpcTarget = (target: string) => {
+  try {
+    return new URL(`http://${target.replace(/^dns:\/{0,3}/, '')}`).hostname;
+  } catch {
+    return target;
+  }
+};
+
 // grpc-js takes its proxy only from the environment, as it makes a channel, so
 // it's set there just for that; and when there's none, an inherited
 // http_proxy mustn't apply either. It supports HTTP proxies only.
 export async function makeGrpcClient<T>(target: string, secure: boolean, settings: ProxySettings, make: (options: ChannelOptions) => T, env: Record<string, string | undefined> = processEnv): Promise<T> {
+  // for an MCP client, not to a cloud metadata address (grpc-js resolves the
+  // name itself, so it's resolved here first)
+  if (metadataGuarded()) {
+    await assertNotMetadataHost(hostOfGrpcTarget(target));
+  }
   const proxy = await proxyFor(`${secure ? 'https' : 'http'}://${target}`, settings, env);
   if (!proxy || !proxy.startsWith('http://')) {
     if (proxy) {
