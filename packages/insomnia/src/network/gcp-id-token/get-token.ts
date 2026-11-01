@@ -65,6 +65,32 @@ const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const JWT_BEARER_GRANT = 'urn:ietf:params:oauth:grant-type:jwt-bearer';
 const IAMCREDENTIALS_HOST = 'iamcredentials.googleapis.com';
 
+// A Google ID token for an audience other than the request's own origin is
+// good for another service, yet goes to this request's host: from an imported
+// request, someone else's. So that needs the user's say, which the window asks
+// for (ui/gcp-audience.ts) and the main process asks or refuses
+// (main/gcp-audience.ts). The auth type and the gcpIdToken tag both check.
+export type GcpAudienceApproval = (token: { audience: string; origin: string }) => boolean | Promise<boolean>;
+let approveGcpAudience: GcpAudienceApproval = () => true;
+export const setGcpAudienceApproval = (approve: GcpAudienceApproval) => {
+  approveGcpAudience = approve;
+};
+
+const originOf = (value: string) => {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value;
+  }
+};
+
+// throws unless a token for audience may go to origin (the request's, or '' when unknown)
+export async function checkGcpAudience(audience: string, origin: string) {
+  if (audience && (!origin || originOf(audience) !== originOf(origin)) && !await approveGcpAudience({ audience, origin: origin || 'an unknown host' })) {
+    throw new Error(`Not sending a Google ID token for ${audience} to ${origin || 'an unknown host'}`);
+  }
+}
+
 export async function getGcpIdToken({ source, audience }: MintOptions): Promise<string> {
   if (!audience) {
     throw new Error('GCP ID token: audience is required');

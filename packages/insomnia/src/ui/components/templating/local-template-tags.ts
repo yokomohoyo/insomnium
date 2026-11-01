@@ -11,6 +11,7 @@ import type { SelectedValue } from 'xpath';
 import * as models from '../../../models';
 import { Request, RequestParameter } from '../../../models/request';
 import { Response } from '../../../models/response';
+import { checkGcpAudience, defaultAudienceForUrl, getGcpIdToken } from '../../../network/gcp-id-token/get-token';
 import { TemplateTag } from '../../../plugins';
 import { PluginTemplateTag } from '../../../templating/extensions';
 import { fakerFunctions, isFakerFunction } from '../../../templating/faker-functions';
@@ -1338,10 +1339,21 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           help: 'File path when source is "service account file", raw JSON when source is "service account inline JSON", ignored when source is ADC.',
         },
       ],
-      async run(_context, audience, credentialSource = 'adc', credentialValue = '') {
-        const { getGcpIdToken } = await import('../../../network/gcp-id-token/get-token');
+      async run(context, audience, credentialSource = 'adc', credentialValue = '') {
         if (!audience) {
           throw new Error('gcpIdToken: audience is required');
+        }
+        // the token goes wherever the request goes, so another audience than
+        // the request's own origin needs the user's say, asked only on a send
+        const request: Request | null = context.meta?.requestId ? await context.util.models.request.getById(context.meta.requestId) : null;
+        const url = request?.url && !request.url.includes('gcpIdToken') ? await context.util.render(request.url) : '';
+        const origin = defaultAudienceForUrl(url);
+        const sameOrigin = Boolean(origin) && defaultAudienceForUrl(audience) === origin;
+        if (!sameOrigin) {
+          if (context.renderPurpose !== 'send') {
+            throw new Error(`gcpIdToken: a token for ${audience} is minted only when the request is sent`);
+          }
+          await checkGcpAudience(audience, origin);
         }
         const source =
           credentialSource === 'sa-file'

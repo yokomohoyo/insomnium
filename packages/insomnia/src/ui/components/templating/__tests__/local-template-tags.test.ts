@@ -3,9 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { globalBeforeEach } from '../../../../__jest__/before-each';
 import * as renderUtils from '../../../../common/render';
 import * as models from '../../../../models';
+import { getGcpIdToken, setGcpAudienceApproval } from '../../../../network/gcp-id-token/get-token';
 import { localTemplateTags } from '../local-template-tags';
 
 jest.mock('electron');
+jest.mock('../../../../network/gcp-id-token/get-token', () => ({
+  ...jest.requireActual<object>('../../../../network/gcp-id-token/get-token'),
+  getGcpIdToken: jest.fn(),
+}));
 
 const run = (name: string, ...args: unknown[]) => {
   const tag = localTemplateTags.find(({ templateTag }) => templateTag.name === name);
@@ -129,5 +134,44 @@ describe('the tags in a template', () => {
     expect(await renderUtils.render("{% hmac 'sha256', 'hex', 'key', 'The quick brown fox jumps over the lazy dog' %}"))
       .toBe('f7bc83f430538424b13298e6aa6fb143ef4d59a14946175997479dbc2d1a3cd8');
     expect(await renderUtils.render("{% random 'choice', 0, 1000, 16, 'only' %}")).toBe('only');
+  });
+});
+
+describe('gcpIdToken', () => {
+  const tag = localTemplateTags.find(({ templateTag }) => templateTag.name === 'gcpIdToken')!.templateTag;
+  const mint = (audience: string, url: string, renderPurpose = 'send') => tag.run({
+    renderPurpose,
+    meta: { requestId: 'req_1' },
+    util: {
+      render: async (value: string) => value,
+      models: { request: { getById: async () => ({ _id: 'req_1', url }) } },
+    },
+  } as any, audience, 'adc', '');
+
+  beforeEach(() => {
+    jest.mocked(getGcpIdToken).mockImplementation(async ({ audience }) => `token-for-${audience}`);
+  });
+  afterEach(() => setGcpAudienceApproval(() => true));
+
+  it("mints for the request's own origin without asking", async () => {
+    const approve = jest.fn(() => false);
+    setGcpAudienceApproval(approve);
+
+    await expect(mint('https://svc-abc.a.run.app', 'https://svc-abc.a.run.app/items', 'general')).resolves.toBe('token-for-https://svc-abc.a.run.app');
+    expect(approve).not.toHaveBeenCalled();
+  });
+
+  it('for another audience, only on a send that is approved', async () => {
+    const approve = jest.fn(() => false);
+    setGcpAudienceApproval(approve);
+
+    await expect(mint('https://internal.a.run.app', 'https://evil.example.com/', 'general')).rejects.toThrow('minted only when the request is sent');
+    expect(approve).not.toHaveBeenCalled();
+    await expect(mint('https://internal.a.run.app', 'https://evil.example.com/')).rejects.toThrow('Not sending a Google ID token for https://internal.a.run.app to https://evil.example.com');
+    expect(approve).toHaveBeenCalledWith({ audience: 'https://internal.a.run.app', origin: 'https://evil.example.com' });
+    expect(getGcpIdToken).not.toHaveBeenCalled();
+
+    setGcpAudienceApproval(() => true);
+    await expect(mint('1234.apps.googleusercontent.com', 'https://iap.example.com/')).resolves.toBe('token-for-1234.apps.googleusercontent.com');
   });
 });
