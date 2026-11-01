@@ -148,6 +148,19 @@ describe('the design tools', () => {
     expect(body.steps[2].message).toBe('greeting = "hi there"');
   });
 
+  it("run a flow only with values for its variables, in the workspace's own environments", async () => {
+    const { id } = (await call('create_flow', { workspaceId, name: 'Plain', graph: { nodes: [{ id: 'start', kind: 'start', data: {} }], edges: [] } })).body;
+    expect(await call('run_flow', { flowId: id, variables: { who: "{% file '/etc/passwd' %}" }, stopAfterSeconds: 10 }))
+      .toEqual({ body: { error: "variable 'who' is a template: variables are values, not templates" }, isError: true });
+    expect((await call('run_flow', { flowId: id, variables: { who: '{{ secret }}' }, stopAfterSeconds: 10 })).isError).toBe(true);
+
+    const other = await models.environment.getOrCreateForParentId((await models.workspace.create({ name: 'Other' }))._id);
+    expect(await call('run_flow', { flowId: id, environmentId: other._id, stopAfterSeconds: 10 }))
+      .toEqual({ body: { error: `environment ${other._id} does not belong to workspace ${workspaceId}` }, isError: true });
+    const own = await models.environment.getOrCreateForParentId(workspaceId);
+    expect((await call('run_flow', { flowId: id, environmentId: own._id, stopAfterSeconds: 10 })).isError).toBe(false);
+  });
+
   it("report a flow that fails: a request that isn't the workspace's, or no start", async () => {
     const otherId = (await models.workspace.create({ name: 'Other' }))._id;
     const foreignId = (await models.request.create({ parentId: otherId, name: 'Elsewhere' }))._id;

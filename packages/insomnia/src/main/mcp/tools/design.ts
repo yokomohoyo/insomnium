@@ -9,7 +9,7 @@ import { ASSERTION_OPERATORS, ASSERTION_SOURCES, type AssertionOperator, type As
 import * as models from '../../../models';
 import type { UnitTest } from '../../../models/unit-test';
 import { isDesign } from '../../../models/workspace';
-import { redactSecrets } from './util';
+import { foreignEnvironment, redactSecrets } from './util';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
 
@@ -265,6 +265,16 @@ export function registerDesignTools(server: McpServer) {
         return notFound('flow');
       }
       const workspaceId = flow.parentId;
+      const foreign = await foreignEnvironment(workspaceId, environmentId);
+      if (foreign) {
+        return text({ error: foreign }, true);
+      }
+      // values, not templates: one rendered could read a file or a secret, or
+      // another request's response, into a request
+      const template = Object.entries(variables || {}).find(([, value]) => /{{|{%/.test(value));
+      if (template) {
+        return text({ error: `variable '${template[0]}' is a template: variables are values, not templates` }, true);
+      }
       const environment = environmentId === undefined ? (await models.workspaceMeta.getOrCreateByParentId(workspaceId)).activeEnvironmentId : environmentId;
       const stop = new AbortController();
       const timer = setTimeout(() => stop.abort(), stopAfterSeconds * 1000);

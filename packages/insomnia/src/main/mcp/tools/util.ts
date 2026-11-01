@@ -99,6 +99,20 @@ export function redactSecrets<T>(value: T): T {
 }
 
 // Walk parentId links up through folders to the owning workspace; cycle-safe.
+// An environment a client names for a send: the workspace's base environment
+// or one of its sub environments, not another workspace's, whose values would
+// go with the request. An error to return, or null when it's one of them.
+export async function foreignEnvironment(workspaceId: string | undefined, environmentId: string | null | undefined): Promise<string | null> {
+  if (!environmentId) {
+    return null;
+  }
+  const env = await models.environment.getById(environmentId);
+  const base = workspaceId ? await models.environment.getOrCreateForParentId(workspaceId) : null;
+  return env && base && (env._id === base._id || env.parentId === base._id)
+    ? null
+    : `environment ${environmentId} does not belong to ${workspaceId ? `workspace ${workspaceId}` : "the request's workspace"}`;
+}
+
 export async function findWorkspaceForRequest(parentId: string): Promise<Workspace | null> {
   let cur: string | null = parentId;
   const seen = new Set<string>();

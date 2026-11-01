@@ -12,7 +12,7 @@ import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../../network/grpc-credentials';
 import { type GrpcMetadata, plainMetadata } from '../../network/grpc-metadata';
 import { makeGrpcClient } from '../../network/proxy';
-import { assertSafeHeaders, findWorkspaceForRequest } from './util';
+import { assertSafeHeaders, findWorkspaceForRequest, foreignEnvironment } from './util';
 
 export function registerGrpcTools(server: McpServer) {
   server.tool(
@@ -140,10 +140,14 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   if (!req || !isGrpcRequest(req)) {
     return { content: [{ type: 'text', text: JSON.stringify({ error: 'gRPC request not found' }) }], isError: true };
   }
+  // WorkspaceMeta is keyed by workspace id; a folder id would mint a junk meta doc.
+  const workspace = await findWorkspaceForRequest(req.parentId);
+  const foreign = await foreignEnvironment(workspace?._id, environmentId);
+  if (foreign) {
+    return { content: [{ type: 'text', text: JSON.stringify({ error: foreign }) }], isError: true };
+  }
   let envId: string | null | undefined = environmentId;
   if (envId === undefined) {
-    // WorkspaceMeta is keyed by workspace id; a folder id would mint a junk meta doc.
-    const workspace = await findWorkspaceForRequest(req.parentId);
     if (workspace) {
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
       envId = meta.activeEnvironmentId;

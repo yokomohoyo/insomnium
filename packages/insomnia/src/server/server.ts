@@ -19,7 +19,9 @@ import { openRepo, type Repo, syncRepoDocs } from './repo';
 import type { Sources } from './sources';
 
 // Reading and sending only: nothing that changes the collections, their
-// environments or auth, or imports files
+// environments or auth, or imports files. Nor generate_code or
+// export_workspace: they'd give a client the INSOMNIUM_VAR_ values (secrets
+// from the deployment) that sends only use.
 export const SERVER_TOOLS = new Set([
   'list_projects',
   'list_workspaces',
@@ -28,7 +30,6 @@ export const SERVER_TOOLS = new Set([
   'get_request',
   'get_request_type',
   'search',
-  'generate_code',
   'list_responses',
   'get_response',
   'get_last_response',
@@ -45,10 +46,9 @@ export const SERVER_TOOLS = new Set([
   'get_proto_methods',
   'send_http_request',
   'send_grpc_request',
-  // sends and reads: the runner and flows, and an export of what's loaded
+  // sends and reads: the runner and flows
   'run_requests',
   'run_flow',
-  'export_workspace',
 ]);
 
 type LoadConfig = Sources & Pick<ServerConfig, 'environment' | 'variables' | 'validateSSL' | 'allowedHosts' | 'allowedEnvironmentVariables'> & { allowedSecrets?: string };
