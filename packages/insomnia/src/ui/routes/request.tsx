@@ -69,6 +69,8 @@ export interface RequestLoaderData {
   examples?: ResponseExample[];
 }
 
+const LAST_ACTIVE_EVERY_MS = 60_000;
+
 export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderData | WebSocketRequestLoaderData | GrpcRequestLoaderData | McpRequestLoaderData> => {
   const { organizationId, projectId, requestId, workspaceId } = params;
   guard(requestId, 'Request ID is required');
@@ -81,17 +83,27 @@ export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderD
 
   guard(activeWorkspaceMeta, 'Active workspace meta not found');
   // NOTE: loaders shouldnt mutate data, this should be moved somewhere else
-  await models.workspaceMeta.update(activeWorkspaceMeta, { activeRequestId: requestId });
+  // That this request is the one open, and when it last was (the request
+  // switcher's recent order): written when another was open, and otherwise at
+  // most once a minute. The loader runs on every revalidation, every save in
+  // the window, and each write is sent to every window.
+  const switched = activeWorkspaceMeta.activeRequestId !== requestId;
+  if (switched) {
+    await models.workspaceMeta.update(activeWorkspaceMeta, { activeRequestId: requestId });
+  }
+  const fresh = (meta: { lastActive: number } | null) => !!meta && !switched && Date.now() - meta.lastActive < LAST_ACTIVE_EVERY_MS;
   if (isGrpcRequestId(requestId)) {
+    const meta = await models.grpcRequestMeta.getByParentId(requestId);
     return {
       activeRequest,
-      activeRequestMeta: await models.grpcRequestMeta.updateOrCreateByParentId(requestId, { lastActive: Date.now() }),
+      activeRequestMeta: meta && fresh(meta) ? meta : await models.grpcRequestMeta.updateOrCreateByParentId(requestId, { lastActive: Date.now() }),
       activeResponse: null,
       responses: [],
       requestVersions: [],
     } as GrpcRequestLoaderData;
   }
-  const activeRequestMeta = await models.requestMeta.updateOrCreateByParentId(requestId, { lastActive: Date.now() });
+  const meta = await models.requestMeta.getByParentId(requestId);
+  const activeRequestMeta = meta && fresh(meta) ? meta : await models.requestMeta.updateOrCreateByParentId(requestId, { lastActive: Date.now() });
   guard(activeRequestMeta, 'Request meta not found');
   // its results stay in the pane, rather than a response history
   if (isMcpRequestId(requestId)) {
