@@ -5,7 +5,7 @@ import { parseApiSpec } from '../../../common/api-specs';
 import { getProductName } from '../../../common/constants';
 import { t } from '../../../common/i18n';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
-import type { ApiSpec } from '../../../models/api-spec';
+import * as models from '../../../models';
 import { CaCertificate } from '../../../models/ca-certificate';
 import { ClientCertificate } from '../../../models/client-certificate';
 import { Project } from '../../../models/project';
@@ -28,14 +28,13 @@ import { SvgIcon } from '../svg-icon';
 interface Props {
   workspace: Workspace;
   workspaceMeta: WorkspaceMeta;
-  apiSpec: ApiSpec | null;
   project: Project;
   projects: Project[];
   clientCertificates: ClientCertificate[];
   caCertificate: CaCertificate | null;
 }
 
-const useDocumentActionPlugins = ({ workspace, apiSpec, project }: Props) => {
+const useDocumentActionPlugins = ({ workspace, project }: Props) => {
   const [actionPlugins, setActionPlugins] = useState<DocumentAction[]>([]);
   const { startLoading, stopLoading, isLoading } = useLoadingRecord();
 
@@ -55,6 +54,8 @@ const useDocumentActionPlugins = ({ workspace, apiSpec, project }: Props) => {
         ...pluginContexts.data.init(project._id),
         ...pluginContexts.store.init(p.plugin),
       };
+      // read now: the projects page doesn't keep every spec's text
+      const apiSpec = await models.apiSpec.getByParentId(workspace._id);
       await p.action(context, parseApiSpec(apiSpec?.contents || ''));
     } catch (err) {
       showError({
@@ -64,7 +65,7 @@ const useDocumentActionPlugins = ({ workspace, apiSpec, project }: Props) => {
     } finally {
       stopLoading(p.label);
     }
-  }, [apiSpec?.contents, project._id, startLoading, stopLoading]);
+  }, [workspace._id, project._id, startLoading, stopLoading]);
 
   const renderPluginDropdownItems: any = useCallback(() => actionPlugins.map(p => (
     <DropdownItem
