@@ -1,8 +1,9 @@
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import styled from 'styled-components';
 import YAML from 'yaml';
 import YAMLSourceMap from 'yaml-source-map';
 
+import { parseApiSpec } from '../../../common/api-specs';
 import type { ApiSpec } from '../../../models/api-spec';
 
 import { Sidebar } from './sidebar';
@@ -48,7 +49,8 @@ export const SpecEditorSidebar: FC<Props> = ({ apiSpec, handleSetSelection }) =>
     handleSetSelection(scrollPosition.start.col - 1, scrollPosition.end.col - 1, scrollPosition.start.line - 1, scrollPosition.end.line - 1);
   };
 
-  const specJSON = YAML.parse(apiSpec.contents);
+  // once per text, not every render, and JSON as JSON (YAML took 250 ms for 3 MB)
+  const specJSON = useMemo(() => parseApiSpec(apiSpec.contents).contents ?? undefined, [apiSpec.contents]);
 
   return (
     <StyledSpecEditorSidebar>
