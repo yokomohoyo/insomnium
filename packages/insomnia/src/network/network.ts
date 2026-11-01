@@ -74,10 +74,11 @@ export const fetchRequestData = async (requestId: string) => {
   const clientCertificates = await models.clientCertificate.findByParentId(workspaceId);
   const caCert = await models.caCertificate.findByParentId(workspaceId);
 
-  return { request, environment, settings, clientCertificates, caCert, activeEnvironmentId };
+  return { request, workspace, environment, settings, clientCertificates, caCert, activeEnvironmentId };
 };
 
-export const tryToInterpolateRequest = async (request: Request, environmentId: string, purpose?: RenderPurpose, extraInfo?: ExtraRenderInfo, iterationData?: Record<string, unknown>) => {
+// literal: sent as it is, with nothing in it rendered
+export const tryToInterpolateRequest = async (request: Request, environmentId: string, purpose?: RenderPurpose, extraInfo?: ExtraRenderInfo, iterationData?: Record<string, unknown>, literal = false) => {
   try {
     return await getRenderedRequestAndContext({
       request: request,
@@ -85,6 +86,7 @@ export const tryToInterpolateRequest = async (request: Request, environmentId: s
       purpose,
       extraInfo,
       iterationData,
+      literal,
     });
   } catch (err) {
     if ('type' in err && err.type === 'render') {

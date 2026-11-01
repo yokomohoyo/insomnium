@@ -20,7 +20,7 @@ import {
   TOKEN_TYPES,
 } from '../../../../network/o-auth-2/constants';
 import { CLIENT_ASSERTION_ALGORITHMS } from '../../../../network/o-auth-2/client-assertion';
-import { getOAuth2Token } from '../../../../network/o-auth-2/get-token';
+import { getOAuth2Token, tokenSource } from '../../../../network/o-auth-2/get-token';
 import { useAuthStrategy } from './auth-strategy-context';
 import { initNewOAuthSession } from '../../../../network/o-auth-2/get-token';
 import { useNunjucks } from '../../../context/nunjucks/use-nunjucks';
@@ -489,12 +489,18 @@ const renderAccessTokenExpiry = (token?: Pick<OAuth2Token, 'accessToken' | 'expi
 
 const OAuth2TokenInput: FC<{ token: OAuth2Token | null; label: string; property: keyof Pick<OAuth2Token, 'accessToken' | 'refreshToken' | 'identityToken'> }> = ({ token, label, property }) => {
   const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData;
+  const { strategy: authentication } = useAuthStrategy();
+  const { handleRender } = useNunjucks();
 
   const onChange = async ({ currentTarget: { value } }: ChangeEvent<HTMLInputElement>) => {
+    // a refresh token typed in is for the token endpoint and client set here
+    const source = property === 'refreshToken'
+      ? await handleRender(authentication).then(rendered => tokenSource(rendered as AuthTypeOAuth2), () => ({}))
+      : {};
     if (token) {
-      await models.oAuth2Token.update(token, { [property]: value });
+      await models.oAuth2Token.update(token, { [property]: value, ...source });
     } else {
-      await models.oAuth2Token.create({ [property]: value, parentId: activeRequest._id });
+      await models.oAuth2Token.create({ [property]: value, ...source, parentId: activeRequest._id });
     }
   };
 
