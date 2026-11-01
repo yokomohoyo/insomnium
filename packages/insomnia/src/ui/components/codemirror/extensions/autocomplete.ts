@@ -498,42 +498,47 @@ function getCompletionHints(completionItems: CompletionItem[], segment: string, 
 }
 
 /**
- * Replace all occurrences of string
+ * The text, with each occurrence of find in bold
  */
-function replaceWithSurround(text: string, find: string, prefix: string, suffix: string) {
-  const escapedString = escapeRegex(find);
-  const re = new RegExp(escapedString, 'gi');
-  return text.replace(re, matched => prefix + matched + suffix);
-}
-
-function escapeHTML(unsafeText: string) {
-  const div = document.createElement('div');
-  div.innerText = unsafeText;
-  return div.innerHTML;
-}
-/**
- * Render the autocomplete list entry
- */
-function renderHintMatch(li: HTMLElement, _allHints: CodeMirror.Hints, hint: Hint) {
-  // Bold the matched text
-  const { displayText, segment, type, displayValue } = hint;
-  const markedName = replaceWithSurround(displayText || '', segment, '<strong>', '</strong>');
-  const { char, title } = ICONS[type];
-  let safeValue = '';
-
-  if (isNotNullOrUndefined<string>(displayValue)) {
-    const escaped = escapeHTML(displayValue);
-    safeValue = `
-      <div class="value" title=${escaped}>
-        ${escaped}
-      </div>
-    `;
+function withMatchesBold(text: string, find: string) {
+  if (!find) {
+    return [text];
   }
+  const parts: (string | HTMLElement)[] = [];
+  let last = 0;
+  for (const match of text.matchAll(new RegExp(escapeRegex(find), 'gi'))) {
+    const strong = document.createElement('strong');
+    strong.textContent = match[0];
+    parts.push(text.slice(last, match.index), strong);
+    last = (match.index || 0) + match[0].length;
+  }
+  parts.push(text.slice(last));
+  return parts;
+}
+
+/**
+ * Render the autocomplete list entry, as text: names and values come from
+ * environments and responses, so never HTML
+ */
+export function renderHintMatch(li: HTMLElement, _allHints: CodeMirror.Hints, hint: Hint) {
+  const { displayText, segment, type, displayValue } = hint;
+  const { char, title } = ICONS[type];
+
+  const label = document.createElement('label');
+  label.className = 'label';
+  label.title = title;
+  label.textContent = char;
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.append(...withMatchesBold(displayText || '', segment));
 
   li.className += ` fancy-hint type--${type}`;
-  li.innerHTML = `
-    <label class="label" title="${title}">${char}</label>
-    <div class="name">${markedName}</div>
-    ${safeValue}
-  `;
+  li.replaceChildren(label, name);
+  if (isNotNullOrUndefined<string>(displayValue)) {
+    const value = document.createElement('div');
+    value.className = 'value';
+    value.title = displayValue;
+    value.textContent = displayValue;
+    li.append(value);
+  }
 }
