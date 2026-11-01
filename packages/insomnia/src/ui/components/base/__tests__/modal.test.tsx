@@ -1,4 +1,4 @@
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render } from '@testing-library/react';
 import React, { createRef } from 'react';
 
@@ -14,6 +14,21 @@ describe('<Modal />', () => {
     const dialog = view.getByRole('dialog', { name: 'Rename Request' });
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     expect(view.getByRole('button', { name: 'Close dialog' })).toBeTruthy();
+  });
+
+  it('closes once for a click on its close button, with the onHide it has now', () => {
+    const ref = createRef<ModalHandle>();
+    // a parent's new onHide on each of its renders, as an inline arrow is
+    const onHides = [jest.fn(), jest.fn(), jest.fn()];
+    const view = render(<Modal ref={ref} onHide={onHides[0]}><ModalHeader>Again</ModalHeader></Modal>);
+    act(() => ref.current?.show());
+    for (const onHide of onHides.slice(1)) {
+      view.rerender(<Modal ref={ref} onHide={onHide}><ModalHeader>Again</ModalHeader></Modal>);
+    }
+
+    fireEvent.click(view.getByRole('button', { name: 'Close dialog' }));
+
+    expect(onHides.map(onHide => onHide.mock.calls.length)).toEqual([0, 0, 1]);
   });
 
   it('takes the focus, keeps Tab in it, and gives the focus back', async () => {

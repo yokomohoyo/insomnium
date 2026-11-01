@@ -124,11 +124,13 @@ export const Modal = forwardRef<ModalHandle, ModalProps>(({
   );
 
   useEffect(() => {
-    const closeElements = containerRef.current?.querySelectorAll('[data-close-modal]');
+    const closeElements = [...containerRef.current?.querySelectorAll('[data-close-modal]') || []];
 
-    for (const element of closeElements || []) {
+    for (const element of closeElements) {
       element.addEventListener('click', hide);
     }
+    // (kept, each open added another, and a click ran every earlier hide too)
+    return () => closeElements.forEach(element => element.removeEventListener('click', hide));
   }, [hide, open]);
 
   const handleKeydown = createKeybindingsHandler({

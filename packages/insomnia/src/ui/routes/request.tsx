@@ -347,14 +347,17 @@ export const connectAction: ActionFunction = async ({ request, params }) => {
   }
   // HACK: even more elaborate hack to get the request to update
   return new Promise(resolve => {
-    database.onChange(async (changes: ChangeBufferEvent[]) => {
+    const listener = async (changes: ChangeBufferEvent[]) => {
       for (const change of changes) {
         const [event, doc] = change;
         if (isRequestMeta(doc) && doc.parentId === requestId && event === 'update') {
+          // (kept, there'd be one more listener for each connect)
+          database.offChange(listener);
           resolve(null);
         }
       }
-    });
+    };
+    database.onChange(listener);
   });
 };
 const writeToDownloadPath = async (downloadPathAndName: string, responsePatch: ResponsePatch, requestMeta: RequestMeta, maxHistoryResponses: number) => {

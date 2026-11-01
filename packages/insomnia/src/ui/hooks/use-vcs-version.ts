@@ -13,8 +13,10 @@ export function useActiveRequestSyncVCSVersion() {
 
   useEffect(() => {
     const isRequestUpdatedFromSync = (changes: ChangeBufferEvent<BaseModel>[]) => changes.find(([, doc, fromSync]) => requestId === doc._id && fromSync);
-
-    database.onChange(changes => isRequestUpdatedFromSync(changes) && setVersion(v => v + 1));
+    const listener = (changes: ChangeBufferEvent[]) => isRequestUpdatedFromSync(changes) && setVersion(v => v + 1);
+    database.onChange(listener);
+    // (left, there was one more for each request opened, each run on every change)
+    return () => database.offChange(listener);
   }, [requestId]);
 
   return version;
@@ -29,7 +31,9 @@ export function useActiveApiSpecSyncVCSVersion() {
   } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   useEffect(() => {
     const isRequestUpdatedFromSync = (changes: ChangeBufferEvent<BaseModel>[]) => changes.find(([, doc, fromSync]) => activeApiSpec?._id === doc._id && fromSync);
-    database.onChange(changes => isRequestUpdatedFromSync(changes) && setVersion(v => v + 1));
+    const listener = (changes: ChangeBufferEvent[]) => isRequestUpdatedFromSync(changes) && setVersion(v => v + 1);
+    database.onChange(listener);
+    return () => database.offChange(listener);
   }, [activeApiSpec?._id]);
 
   return version;
