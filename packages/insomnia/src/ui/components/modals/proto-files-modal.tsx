@@ -126,14 +126,16 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
   }, [workspaceId]);
 
   useEffect(() => {
-    db.onChange(async (changes: ChangeBufferEvent[]) => {
+    const listener = async (changes: ChangeBufferEvent[]) => {
       for (const change of changes) {
         const [, doc] = change;
         if (isProtoFile(doc) || isProtoDirectory(doc)) {
           setProtoDirectories(await getProtoDirectories(workspaceId));
         }
       }
-    });
+    };
+    db.onChange(listener);
+    return () => db.offChange(listener);
   }, [workspaceId]);
 
   const handleAddFile = async () => {

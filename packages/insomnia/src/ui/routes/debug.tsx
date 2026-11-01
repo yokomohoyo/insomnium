@@ -217,7 +217,7 @@ export const Debug: FC = () => {
 
   const patchRequestMeta = useRequestMetaPatcher();
   useEffect(() => {
-    db.onChange(async (changes: ChangeBufferEvent[]) => {
+    const listener = async (changes: ChangeBufferEvent[]) => {
       for (const change of changes) {
         const [event, doc] = change;
         if (isGrpcRequest(doc) && event === 'insert') {
@@ -227,7 +227,10 @@ export const Debug: FC = () => {
           ]);
         }
       }
-    });
+    };
+    db.onChange(listener);
+    // (left, each time the page opened kept that page, its whole collection with it)
+    return () => db.offChange(listener);
   }, []);
 
   const { settings } = useRouteLoaderData('root') as RootLoaderData;
