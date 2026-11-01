@@ -234,6 +234,9 @@ async function _installPluginToTmpDir(lookupName: string, options: PluginInstall
         '--production',
         '--no-progress',
         '--ignore-workspace-root-check',
+        // a package's install scripts would run here, with Node and as the user,
+        // before the plugin is anywhere near its sandbox
+        '--ignore-scripts',
         ...yarnNetworkArgs(options),
       ],
       {

@@ -187,6 +187,13 @@ describe('install.js', () => {
       await expect(installPlugin('insomnia-plugin-request')).resolves.toBe('insomnia-plugin-request');
     });
 
+    it("should install without running the packages' install scripts", async () => {
+      await installPlugin('insomnia-plugin-request');
+
+      const addArgs = jest.mocked(childProcess.execFile).mock.calls.map(call => call[1] as string[]).find(args => args.includes('add'));
+      expect(addArgs).toContain('--ignore-scripts');
+    });
+
     it('should look up and install from the registry, through the proxy, it is given', async () => {
       await installPlugin('insomnia-plugin-request', { registry: 'https://npm.example.com', proxy: 'http://proxy.example.com:3128' });
 
@@ -238,7 +245,7 @@ describe('install.js', () => {
       expect(existsSync(path.join(pluginDir, 'node_modules', 'left-pad'))).toBe(true);
       const [[, args]] = jest.mocked(childProcess.execFile).mock.calls as unknown as [string, string[]][];
       expect(args.slice(2, 4)).toEqual(['add', `file:${tarball}`]);
-      expect(args).toEqual(expect.arrayContaining(['--registry', 'https://npm.example.com']));
+      expect(args).toEqual(expect.arrayContaining(['--registry', 'https://npm.example.com', '--ignore-scripts']));
     });
 
     it('should refuse a package that is not a plugin, and a file that is not a tarball', async () => {
