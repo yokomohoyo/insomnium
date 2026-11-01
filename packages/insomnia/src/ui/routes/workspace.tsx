@@ -117,16 +117,16 @@ export const workspaceLoader: LoaderFunction = async ({
   const sortOrder = searchParams.get('sortOrder') as SortOrder;
   const sortFunction = sortMethodMap[sortOrder] || sortMethodMap['type-manual'];
 
-  // first recursion to get all the folders ids in order to use nedb search by an array
-  const flattenFoldersIntoList = async (id: string): Promise<string[]> => {
-    const parentIds: string[] = [id];
-    const folderIds = (await models.requestGroup.findByParentId(id)).map(r => r._id);
-    if (folderIds.length) {
-      await Promise.all(folderIds.map(async folderIds => parentIds.push(...(await flattenFoldersIntoList(folderIds)))));
-    }
-    return parentIds;
-  };
-  const listOfParentIds = await flattenFoldersIntoList(activeWorkspace._id);
+  // the workspace and all its folders' ids, a query per level (not per folder)
+  const listOfParentIds = [activeWorkspace._id];
+  const seen = new Set(listOfParentIds);
+  for (let level = listOfParentIds; level.length > 0;) {
+    level = (await database.find<RequestGroup>(models.requestGroup.type, { parentId: { $in: level } }))
+      .map(r => r._id)
+      .filter(id => !seen.has(id));
+    level.forEach(id => seen.add(id));
+    listOfParentIds.push(...level);
+  }
 
   const reqs = await database.find(models.request.type, { parentId: { $in: listOfParentIds } });
   const reqGroups = await database.find(models.requestGroup.type, { parentId: { $in: listOfParentIds } });
@@ -140,6 +140,11 @@ export const workspaceLoader: LoaderFunction = async ({
   const grpcAndRequestMetas = [...requestMetas, ...grpcRequestMetas] as (RequestMeta | GrpcRequestMeta)[];
   const requestGroupMetas = await database.find(models.requestGroupMeta.type, { parentId: { $in: listOfParentIds } }) as RequestGroupMeta[];
 
+  // by parentId, so the tree is built in one pass rather than a scan per doc
+  const childrenOf = groupBy(allRequests, r => r.parentId);
+  const pinnedById = firstBy(grpcAndRequestMetas, m => m.parentId);
+  const collapsedById = firstBy(requestGroupMetas, m => m.parentId);
+
   // second recursion to build the tree
   const getCollectionTree = async ({
     parentId,
@@ -149,7 +154,7 @@ export const workspaceLoader: LoaderFunction = async ({
   }: {
       parentId: string; level: number; parentIsCollapsed: boolean; ancestors: string[];
   }): Promise<Child[]> => {
-    const levelReqs = allRequests.filter(r => r.parentId === parentId);
+    const levelReqs = [...(childrenOf.get(parentId) || [])];
 
     const childrenWithChildren: Child[] = await Promise.all(levelReqs
         .sort(sortFunction)
@@ -168,12 +173,12 @@ export const workspaceLoader: LoaderFunction = async ({
           const hidden = parentIsCollapsed || shouldHide;
 
           const pinned =
-            !isRequestGroup(doc) && grpcAndRequestMetas.find(m => m.parentId === doc._id)?.pinned || false;
+            !isRequestGroup(doc) && pinnedById.get(doc._id)?.pinned || false;
           const collapsed = filter
             ? false
             : parentIsCollapsed ||
               (isRequestGroup(doc) &&
-              requestGroupMetas.find(m => m.parentId === doc._id)?.collapsed) ||
+              collapsedById.get(doc._id)?.collapsed) ||
               false;
 
           const docAncestors = [...ancestors, parentId];
@@ -241,6 +246,32 @@ export const workspaceLoader: LoaderFunction = async ({
     collection: flattenTree(),
   };
 };
+
+function groupBy<T>(items: T[], key: (item: T) => string | null) {
+  const map = new Map<string | null, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    const list = map.get(k);
+    if (list) {
+      list.push(item);
+    } else {
+      map.set(k, [item]);
+    }
+  }
+  return map;
+}
+
+// the first of each key, as find() gave it
+function firstBy<T>(items: T[], key: (item: T) => string | null) {
+  const map = new Map<string | null, T>();
+  for (const item of items) {
+    const k = key(item);
+    if (!map.has(k)) {
+      map.set(k, item);
+    }
+  }
+  return map;
+}
 
 const WorkspaceRoute = () => {
   const workspaceData = useLoaderData() as WorkspaceLoaderData;
