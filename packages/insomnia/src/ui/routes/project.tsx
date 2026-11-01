@@ -30,6 +30,7 @@ import {
   DashboardSortOrder,
   getProductName,
 } from '../../common/constants';
+import { database } from '../../common/database';
 import { t } from '../../common/i18n';
 import { fuzzyMatchAll, isNotNullOrUndefined } from '../../common/misc';
 import { descendingNumberSort, sortMethodMap } from '../../common/sorting';
@@ -117,6 +118,31 @@ const summarizeSpec = (apiSpec: ApiSpec) => {
   return summary;
 };
 
+// by key, in the order given
+function groupBy<T>(items: T[], key: (item: T) => string | null) {
+  const map = new Map<string | null, T[]>();
+  for (const item of items) {
+    const list = map.get(key(item));
+    if (list) {
+      list.push(item);
+    } else {
+      map.set(key(item), [item]);
+    }
+  }
+  return map;
+}
+
+// the first of each key, as find() gave it
+function firstBy<T>(items: T[], key: (item: T) => string | null) {
+  const map = new Map<string | null, T>();
+  for (const item of items) {
+    if (!map.has(key(item))) {
+      map.set(key(item), item);
+    }
+  }
+  return map;
+}
+
 export const indexLoader: LoaderFunction = async ({ params }) => {
   const { organizationId } = params;
   guard(organizationId, 'Organization ID is required');
@@ -182,12 +208,27 @@ export const loader: LoaderFunction = async ({
 
   const projectWorkspaces = await models.workspace.findByParentId(project._id);
 
+  // What the cards show, a query for each kind of doc rather than four for
+  // each workspace, which with hundreds of them was over a thousand round trips
+  // to the main process on every revalidation. The first of each per workspace,
+  // as getByParentId gives it.
+  const parentId = { $in: projectWorkspaces.map(workspace => workspace._id) };
+  // the specs only by their times, and read only to summarize one changed since
+  const specStamps = firstBy(await database.findStamps(models.apiSpec.type, { parentId }), stamp => stamp.parentId);
+  const toSummarize = [...specStamps.values()].filter(stamp => specSummaries.get(stamp._id)?.modified !== stamp.modified).map(stamp => stamp._id);
+  if (toSummarize.length) {
+    (await database.find<ApiSpec>(models.apiSpec.type, { _id: { $in: toSummarize } })).forEach(summarizeSpec);
+  }
+  const workspaceMetas = firstBy(await database.find<WorkspaceMeta>(models.workspaceMeta.type, { parentId }), meta => meta.parentId);
+  const clientCertificatesOf = groupBy(await database.find<ClientCertificate>(models.clientCertificate.type, { parentId }), cert => cert.parentId);
+  const caCertificates = firstBy(await database.find<CaCertificate>(models.caCertificate.type, { parentId }), cert => cert.parentId);
+
   const getWorkspaceMetaData = async (
     workspace: Workspace
   ): Promise<WorkspaceWithMetadata> => {
-    const apiSpec = await models.apiSpec.getByParentId(workspace._id);
-    const { specVersion, specFormat, specFormatVersion } = apiSpec ? summarizeSpec(apiSpec) : NO_SPEC;
-    const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(
+    const apiSpec = specStamps.get(workspace._id);
+    const { specVersion, specFormat, specFormatVersion } = (apiSpec && specSummaries.get(apiSpec._id)) || NO_SPEC;
+    const workspaceMeta = workspaceMetas.get(workspace._id) || await models.workspaceMeta.getOrCreateByParentId(
       workspace._id
     );
     guard(workspaceMeta, 'WorkspaceMeta was not found');
@@ -220,9 +261,7 @@ export const loader: LoaderFunction = async ({
         modifiedLocally > workspaceMeta?.cachedGitLastCommitTime
     );
 
-    const clientCertificates = await models.clientCertificate.findByParentId(
-      workspace._id
-    );
+    const clientCertificates = clientCertificatesOf.get(workspace._id) || [];
 
     return {
       _id: workspace._id,
@@ -239,7 +278,7 @@ export const loader: LoaderFunction = async ({
       specFormatVersion,
       workspaceMeta,
       clientCertificates,
-      caCertificate: await models.caCertificate.findByParentId(workspace._id),
+      caCertificate: caCertificates.get(workspace._id) || null,
       workspace,
     };
   };
