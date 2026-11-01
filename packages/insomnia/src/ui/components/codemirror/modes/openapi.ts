@@ -137,7 +137,40 @@ CodeMirror.defineMode('openapi', function() {
       };
     },
     lineComment: '#',
-    fold: 'indent',
+    fold: 'openapi-indent',
+  };
+});
+
+// A line's indent, or -1 for a blank line or a comment
+const lineIndent = (cm: CodeMirror.Editor, lineNo: number) => {
+  const text = cm.getLine(lineNo);
+  const spaceTo = text.search(/\S/);
+  return spaceTo === -1 || text[spaceTo] === '#' ? -1 : CodeMirror.countColumn(text, null, cm.getOption('tabSize') ?? 4);
+};
+
+// Folds by indentation, as the addon's indent helper does, but tells a comment
+// by its # as this mode does (one starting a line's text), rather than by the
+// line's tokens: those parse the document from its start, so the fold gutter
+// parsed all of a large spec for its first line, and again as it scrolled.
+CodeMirror.registerHelper('fold', 'openapi-indent', (cm: CodeMirror.Editor, start: CodeMirror.Position) => {
+  const myIndent = lineIndent(cm, start.line);
+  if (myIndent < 0) {
+    return undefined;
+  }
+  let lastLineInFold: number | null = null;
+  for (let i = start.line + 1, end = cm.lastLine(); i <= end; ++i) {
+    const indent = lineIndent(cm, i);
+    if (indent === -1) {
+      continue;
+    } else if (indent > myIndent) {
+      lastLineInFold = i;
+    } else {
+      break;
+    }
+  }
+  return lastLineInFold === null ? undefined : {
+    from: CodeMirror.Pos(start.line, cm.getLine(start.line).length),
+    to: CodeMirror.Pos(lastLineInFold, cm.getLine(lastLineInFold).length),
   };
 });
 CodeMirror.defineMIME('text/x-openapi', 'openapi');
