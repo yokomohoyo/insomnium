@@ -815,6 +815,34 @@ describe('sendCurlAndWriteTimeline()', () => {
     expect(global).toMatchObject({ TIMEOUT_MS: 2500, SSL_VERIFYPEER: 0, HTTP_VERSION: 'V2_0' });
   });
 
+  it("follows a redirect to another origin without the API key's header, and keeps it on the same one", async () => {
+    const workspace = await models.workspace.create();
+    const settings = await models.settings.getOrCreate();
+    const send = async (url: string) => {
+      const request = Object.assign(models.request.init(), {
+        _id: 'req_123',
+        parentId: workspace._id,
+        url,
+        headers: [{ name: 'Accept', value: 'application/json' }],
+        authentication: { type: AUTH_API_KEY, key: 'X-Api-Key', value: 's3cret', addTo: 'header' },
+      });
+      const response = await networkUtils.sendCurlAndWriteTimeline(await getRenderedRequest({ request }), [], null, settings);
+      return { response, sent: JSON.parse(String(models.response.getBodyBuffer(response))).options };
+    };
+
+    const away = await send(`http://api.example.com/status/302?location=${encodeURIComponent('https://elsewhere.example.com/landing')}`);
+    expect(away.sent.URL).toBe('https://elsewhere.example.com/landing');
+    expect(away.sent.HTTPHEADER).toContain('Accept: application/json');
+    expect(away.sent.HTTPHEADER.join('\n')).not.toContain('s3cret');
+    expect(away.response.statusCode).toBe(200);
+    // libcurl doesn't follow it itself
+    expect(away.sent.FOLLOWLOCATION).toBe(false);
+
+    const home = await send(`http://api.example.com/status/307?location=${encodeURIComponent('/v2/items')}`);
+    expect(home.sent.URL).toBe('http://api.example.com/v2/items');
+    expect(home.sent.HTTPHEADER).toContain('X-Api-Key: s3cret');
+  });
+
   it('checks the request\'s assertions against the response it keeps', async () => {
     const workspace = await models.workspace.create();
     const settings = await models.settings.getOrCreate();

@@ -35,7 +35,6 @@ export const jarFromCookies = (cookies: Cookie[] | CookieModel[]) => {
     jar = new CookieJar() as CookieJar;
   }
 
-  jar.rejectPublicSuffixes = false;
   jar.looseMode = true;
 
   return jar;
