@@ -18,6 +18,13 @@ import { readEnvironmentVariable } from '../../../templating/os-environment';
 import { guard } from '../../../utils/guard';
 import { buildQueryStringFromParams, joinUrlAndQueryString, smartEncodeUrl } from '../../../utils/url/querystring';
 
+// whether the file tag may read a file in this render (main/restricted-renders.ts
+// says no for MCP clients and the mock server)
+let fileTagAllowed = () => true;
+export const setFileTagAllowed = (allowed: () => boolean) => {
+  fileTagAllowed = allowed;
+};
+
 const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
   {
     templateTag: {
@@ -547,6 +554,9 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
         },
       ],
       run(_context, path) {
+        if (!fileTagAllowed()) {
+          throw new Error("The file tag can't read files for an MCP client or the mock server");
+        }
         if (!path) {
           throw new Error('No file selected');
         }
