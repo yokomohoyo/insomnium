@@ -23,6 +23,8 @@ test("a request with no auth uses its folder's @ci", async ({ app, page }) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
   const requests = page.getByLabel('Request Collection');
   await requests.getByRole('row', { name: 'basic in folder' }).click();
+  // open before sending: Send pressed sooner sends the request shown before it (a URL-less New Request)
+  await expect(requestPane.getByTestId('OneLineEditor').first()).toContainText('127.0.0.1:4010/auth/basic');
 
   await requestPane.getByRole('button', { name: 'Send' }).click();
   await expect(responsePane).toContainText('401');
