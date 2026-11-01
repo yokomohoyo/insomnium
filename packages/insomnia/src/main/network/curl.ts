@@ -12,7 +12,7 @@ import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getCaBundle } from './ca-bundle';
-import { readEventLog } from './event-log';
+import { readEventLog, readEventLogSince } from './event-log';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
 import { proxyFor } from './proxy';
@@ -366,6 +366,17 @@ const findMany = async (
   return readEventLog<CurlEvent>(response.bodyPath);
 };
 
+// what a window polling the log doesn't have yet
+const findSince = async (
+  options: { responseId: string; known: number }
+): Promise<{ total: number; added: CurlEvent[] }> => {
+  const response = await models.response.getById(options.responseId);
+  if (!response || !response.bodyPath) {
+    return { total: 0, added: [] };
+  }
+  return readEventLogSince<CurlEvent>(response.bodyPath, options.known);
+};
+
 export interface CurlBridgeAPI {
   open: (options: OpenCurlRequestOptions) => void;
   close: (options: { requestId: string }) => void;
@@ -375,6 +386,7 @@ export interface CurlBridgeAPI {
   };
   event: {
     findMany: typeof findMany;
+    findSince: typeof findSince;
   };
 }
 // the same connections, for an MCP client (main/mcp/tools/streams.ts); the
@@ -392,6 +404,7 @@ export const registerCurlHandlers = () => {
   ipcMain.on('curl.closeAll', closeAllCurlConnections);
   ipcMain.handle('curl.readyState', (_, options: Parameters<typeof getCurlReadyState>[0]) => getCurlReadyState(options));
   ipcMain.handle('curl.event.findMany', (_, options: Parameters<typeof findMany>[0]) => findMany(options));
+  ipcMain.handle('curl.event.findSince', (_, options: Parameters<typeof findSince>[0]) => findSince(options));
 };
 
 electron.app.on('window-all-closed', closeAllCurlConnections);

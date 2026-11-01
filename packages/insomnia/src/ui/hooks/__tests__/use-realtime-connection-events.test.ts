@@ -6,12 +6,19 @@ import { useRealtimeConnectionEvents } from '../use-realtime-connection-events';
 
 describe('useRealtimeConnectionEvents()', () => {
   let log: { _id: string }[];
+  let asked: number[];
 
   beforeEach(() => {
     jest.useFakeTimers();
     log = [{ _id: 'b' }, { _id: 'a' }];
-    // a copy each time, as one over IPC is
-    window.main = { curl: { event: { findMany: async () => log.map(event => ({ ...event })) } } } as unknown as Window['main'];
+    asked = [];
+    // a copy each time, as one over IPC is; the log is latest first
+    const findSince = async ({ known }: { known: number }) => {
+      asked.push(known);
+      const from = known <= log.length ? known : 0;
+      return { total: log.length, added: log.slice(0, log.length - from).map(event => ({ ...event })) };
+    };
+    window.main = { curl: { event: { findSince } } } as unknown as Window['main'];
   });
   afterEach(() => {
     jest.useRealTimers();
@@ -47,5 +54,38 @@ describe('useRealtimeConnectionEvents()', () => {
     await poll();
 
     expect(result.current.map(event => event._id)).toEqual(['c', 'b', 'a']);
+  });
+
+  it('asks only for the events it does not have', async () => {
+    const { result } = renderHook(() => useRealtimeConnectionEvents({ responseId: 'res_1', protocol: 'curl' }));
+    await poll();
+    log = [{ _id: 'd' }, { _id: 'c' }, ...log];
+    await poll();
+    await poll();
+
+    expect(asked).toEqual([0, 2, 4]);
+    expect(result.current.map(event => event._id)).toEqual(['d', 'c', 'b', 'a']);
+  });
+
+  it('takes them all again when the log was written afresh', async () => {
+    const { result } = renderHook(() => useRealtimeConnectionEvents({ responseId: 'res_1', protocol: 'curl' }));
+    await poll();
+
+    log = [{ _id: 'x' }];
+    await poll();
+
+    expect(result.current.map(event => event._id)).toEqual(['x']);
+  });
+
+  it('starts over for another response', async () => {
+    const { result, rerender } = renderHook(({ responseId }) => useRealtimeConnectionEvents({ responseId, protocol: 'curl' }), { initialProps: { responseId: 'res_1' } });
+    await poll();
+    log = [{ _id: 'z' }, { _id: 'y' }, { _id: 'x' }];
+
+    rerender({ responseId: 'res_2' });
+    await poll();
+
+    expect(asked.at(-1)).toBe(0);
+    expect(result.current.map(event => event._id)).toEqual(['z', 'y', 'x']);
   });
 });

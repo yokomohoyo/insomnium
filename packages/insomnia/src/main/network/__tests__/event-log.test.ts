@@ -7,7 +7,7 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
-import { readEventLog } from '../event-log';
+import { readEventLog, readEventLogSince } from '../event-log';
 
 describe('readEventLog()', () => {
   let dir: string;
@@ -53,6 +53,20 @@ describe('readEventLog()', () => {
     fs.writeFileSync(file, line('x'));
 
     expect(await ids()).toEqual(['x']);
+  });
+
+  it('gives only the events after those known, with the total', async () => {
+    fs.writeFileSync(file, line('a') + line('b') + line('c'));
+    const since = async (known: number) => {
+      const { total, added } = await readEventLogSince<{ _id: string }>(file, known);
+      return { total, added: added.map(event => event._id) };
+    };
+
+    expect(await since(0)).toEqual({ total: 3, added: ['c', 'b', 'a'] });
+    expect(await since(1)).toEqual({ total: 3, added: ['c', 'b'] });
+    expect(await since(3)).toEqual({ total: 3, added: [] });
+    // more than there are: the log was written afresh, so all of them
+    expect(await since(5)).toEqual({ total: 3, added: ['c', 'b', 'a'] });
   });
 
   it('fails for a log that is gone', async () => {
