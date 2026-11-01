@@ -3,6 +3,7 @@ import { ActionFunctionArgs } from 'react-router-dom';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
+import { trustTestCode } from '../../test-code-trust';
 import { runAllTestsAction, runTestAction } from '../actions';
 
 // jsdom has no Response for redirect() to make
@@ -19,6 +20,8 @@ describe('a unit test whose code does not parse', () => {
     const workspaceId = (await models.workspace.create({ name: 'Pets' }))._id;
     const testSuiteId = (await models.unitTestSuite.create({ parentId: workspaceId, name: 'Suite' }))._id;
     const testId = (await models.unitTest.create({ parentId: testSuiteId, name: 'Returns 200', code: 'expect((((' }))._id;
+    // as if written here, so it runs without asking
+    trustTestCode(['expect((((']);
     params = { organizationId: 'org', projectId: 'proj', workspaceId, testSuiteId, testId };
   });
 
