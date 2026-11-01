@@ -1,6 +1,6 @@
 // Bundles the headless MCP server (src/server) into packages/insomnium-server/dist:
 // everything in one file, with libcurl's native binding copied next to it and
-// the proto and Spectral workers the gRPC and lint code load from beside the bundle.
+// the proto worker the gRPC code loads from beside the bundle.
 import { build, BuildOptions } from 'esbuild';
 import alias from 'esbuild-plugin-alias';
 import path from 'path';
@@ -32,7 +32,7 @@ const common: BuildOptions = {
 async function main() {
   await build({
     ...common,
-    entryPoints: { 'index': './src/server/index.ts', 'proto-worker.min': './src/main/proto-worker.ts', 'spectral-worker.min': './src/main/spectral-worker.ts' },
+    entryPoints: { 'index': './src/server/index.ts', 'proto-worker.min': './src/main/proto-worker.ts' },
   });
   process.exit(0);
 }
