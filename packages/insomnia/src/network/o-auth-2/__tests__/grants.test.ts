@@ -173,6 +173,22 @@ describe('the newer grants', () => {
     expect((await models.response.findByParentId(`${requestId}.other`)).length).toBe(2);
   });
 
+  it('authorization code in the window: sends a state, and takes back only a code that brings it', async () => {
+    let forged = false;
+    const authorizeUserInWindow = jest.fn(async ({ url }: { url: string }) =>
+      `https://app.example.com/callback?code=c0de&state=${forged ? 'forged' : new URL(url).searchParams.get('state')}`);
+    (window as any).main = { authorizeUserInWindow };
+    const authentication = { type: 'oauth2', grantType: 'authorization_code', authorizationUrl: 'https://auth.example.com/authorize', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', redirectUrl: 'https://app.example.com/callback' };
+
+    expect(await getOAuth2Token(requestId, authentication)).toMatchObject({ accessToken: 'at-123' });
+    expect(new URL(authorizeUserInWindow.mock.calls[0][0].url).searchParams.get('state')).toMatch(/^[\w-]{20,}$/);
+    expect(sent[0].form).toMatchObject({ grant_type: 'authorization_code', code: 'c0de' });
+
+    forged = true;
+    await expect(getOAuth2Token(requestId, authentication, true)).rejects.toThrow('different state');
+    expect(sent).toHaveLength(1);
+  });
+
   it("sends the token request as built, under the workspace, so the request's folders add nothing", async () => {
     await getOAuth2Token(requestId, { type: 'oauth2', grantType: 'client_credentials', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', clientSecret: 's' });
 

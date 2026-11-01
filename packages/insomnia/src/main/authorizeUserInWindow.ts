@@ -45,6 +45,8 @@ export function authorizeUserInWindow({
       },
       show: false,
     });
+    // a sign-in page opens no windows of its own here
+    child.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
     function _parseUrl(currentUrl: string, source: string) {
       if (currentUrl.match(urlSuccessRegex)) {
@@ -78,14 +80,7 @@ export function authorizeUserInWindow({
     child.webContents.on('select-client-certificate', (event, url, certificateList, callback) => {
       event.preventDefault();
 
-      // There is only a single certificate so just use
-      // that certificate without prompting user.
-      // In the future maybe this could be a setting?
-      if (certificateList.length === 1) {
-        callback(certificateList[0]);
-        return;
-      }
-
+      // asked even with only one: a page shouldn't learn who you are without your say
       const buttonLabels = certificateList.map(c => `${c.subjectName} (${c.issuerName})`);
       const cancelId = buttonLabels.length;
 
