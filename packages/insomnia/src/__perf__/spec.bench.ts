@@ -2,12 +2,15 @@
  * npm run bench -- spec
  * @jest-environment node
  */
-import { describe, expect, it } from '@jest/globals';
+import { describe, expect, it, jest } from '@jest/globals';
 
 import { parseApiSpec } from '../common/api-specs';
 import { lintSpec } from '../main/spectral-lint';
 import { largeOpenApi } from './fixtures';
 import { median, report } from './seed';
+
+// Spectral runs on its worker thread, here from its TypeScript source
+jest.mock('worker_threads', () => (jest.requireActual('../__jest__/spectral-worker') as { workerThreads: unknown }).workerThreads);
 
 describe('a large OpenAPI spec', () => {
   for (const [paths, format] of [[2000, 'json'], [500, 'yaml']] as const) {
