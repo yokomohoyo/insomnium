@@ -4,10 +4,7 @@
 // SSE transport. Over stdio it runs the request's command, with only the
 // environment the SDK passes by default (PATH, HOME and the like), not the
 // app's; the app asks before running a command (mcp-request-pane.tsx).
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { Prompt, Resource, Tool } from '@modelcontextprotocol/sdk/types.js';
 import { BrowserWindow, ipcMain } from 'electron';
 
@@ -43,7 +40,17 @@ const connections = new Map<string, Client>();
 const connecting = new Map<string, Client>();
 const STOPPED = 'Stopped connecting';
 
-const newClient = () => new Client({ name: 'insomnium', version: getAppVersion() });
+// The SDK's client, loaded when a request first connects rather than as the app starts
+const loadSdk = async () => {
+  const [{ Client }, { SSEClientTransport }, { StdioClientTransport }, { StreamableHTTPClientTransport }] = await Promise.all([
+    import('@modelcontextprotocol/sdk/client/index.js'),
+    import('@modelcontextprotocol/sdk/client/sse.js'),
+    import('@modelcontextprotocol/sdk/client/stdio.js'),
+    import('@modelcontextprotocol/sdk/client/streamableHttp.js'),
+  ]);
+  return { Client, SSEClientTransport, StdioClientTransport, StreamableHTTPClientTransport };
+};
+type Sdk = Awaited<ReturnType<typeof loadSdk>>;
 
 const summarize = async (client: Client, transport: McpServerSummary['transport']): Promise<McpServerSummary> => {
   const capabilities = client.getServerCapabilities() || {};
@@ -64,10 +71,12 @@ const notifyClosed = (requestId: string) => {
 
 export async function mcpConnect(options: McpConnectOptions): Promise<McpServerSummary> {
   const { requestId } = options;
+  // (before the disconnect, so that nothing comes between it and the new client)
+  const sdk = await loadSdk();
   await mcpDisconnect({ requestId });
 
   const start = () => {
-    const client = newClient();
+    const client = new sdk.Client({ name: 'insomnium', version: getAppVersion() });
     connecting.set(requestId, client);
     return client;
   };
@@ -75,7 +84,7 @@ export async function mcpConnect(options: McpConnectOptions): Promise<McpServerS
   const stopped = () => connecting.get(requestId) !== client;
   let transport: McpServerSummary['transport'];
   try {
-    transport = await connectWith(options, () => client, () => {
+    transport = await connectWith(sdk, options, () => client, () => {
       if (stopped()) {
         return undefined;
       }
@@ -108,7 +117,7 @@ export async function mcpConnect(options: McpConnectOptions): Promise<McpServerS
 // Connects the client to the server, by stdio or HTTP (streamable, or else SSE
 // for a server from before it, on a new client from again(), which is
 // undefined once the connect has been stopped)
-async function connectWith(options: McpConnectOptions, current: () => Client, again: () => Client | undefined): Promise<McpServerSummary['transport']> {
+async function connectWith({ SSEClientTransport, StdioClientTransport, StreamableHTTPClientTransport }: Sdk, options: McpConnectOptions, current: () => Client, again: () => Client | undefined): Promise<McpServerSummary['transport']> {
   if (options.transport === 'stdio') {
     if (!options.command?.trim()) {
       throw new Error('Enter the command that starts the MCP server');
