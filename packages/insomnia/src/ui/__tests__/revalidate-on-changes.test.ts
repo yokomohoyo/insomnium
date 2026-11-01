@@ -2,7 +2,7 @@
  * @jest-environment node
  */
 import { describe, expect, it } from '@jest/globals';
-import { createMemoryRouter, redirect } from 'react-router-dom';
+import { createMemoryRouter, data, redirect } from 'react-router-dom';
 
 import { revalidateOnDatabaseChanges, waitingOn } from '../revalidate-on-changes';
 
@@ -46,14 +46,49 @@ const until = async (ready: () => unknown, milliseconds = 2000) => {
 // a window with a list, an action that creates an item and opens it (as a
 // new request does), and a loader that counts its runs
 const window = async () => {
-  const state = { loads: 0, finishAction: undefined as (() => void) | undefined, finishLoad: undefined as (() => void) | undefined };
+  const state = {
+    loads: 0,
+    finishAction: undefined as (() => void) | undefined,
+    finishLoad: undefined as (() => void) | undefined,
+    // held loads of the root, when set
+    holdLoads: false,
+    releaseLoad: undefined as (() => void) | undefined,
+  };
   const router = createMemoryRouter([{
     path: '/',
     id: 'root',
-    loader: () => ++state.loads,
+    loader: async () => {
+      const load = ++state.loads;
+      if (state.holdLoads) {
+        await new Promise<void>(resolve => {
+          state.releaseLoad = resolve;
+        });
+      }
+      return load;
+    },
     children: [
       { path: 'list', loader: () => null },
       { path: 'item', loader: () => null },
+      {
+        // a save (as a request's update is): the routes load after it
+        path: 'save',
+        action: async () => {
+          await new Promise<void>(resolve => {
+            state.finishAction = resolve;
+          });
+          return null;
+        },
+      },
+      {
+        // a save that fails, after which React Router doesn't load the routes
+        path: 'refuse',
+        action: async () => {
+          await new Promise<void>(resolve => {
+            state.finishAction = resolve;
+          });
+          return data({ error: 'no' }, { status: 400 });
+        },
+      },
       {
         path: 'new',
         action: async () => {
@@ -89,6 +124,62 @@ describe('revalidating on database changes', () => {
     await settled(router);
 
     expect(router.state.location.pathname).toBe('/item');
+    stop();
+  });
+
+  it("loads the routes once for a save whose write's change arrives before it finishes", async () => {
+    const { router, state } = await window();
+    const db = fakeDatabase();
+    const stop = revalidateOnDatabaseChanges(router, db);
+    const before = state.loads;
+
+    router.fetch('save', 'root', '/save', { formMethod: 'post', formData: new FormData() });
+    await until(() => state.finishAction);
+    db.emit('Request');
+    state.finishAction!();
+    await settled(router);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    await settled(router);
+
+    // React Router's own, after the action, which read the change
+    expect(state.loads).toBe(before + 1);
+    stop();
+  });
+
+  it('loads again for a change that arrives while the routes load after a save', async () => {
+    const { router, state } = await window();
+    const db = fakeDatabase();
+    const stop = revalidateOnDatabaseChanges(router, db);
+    const before = state.loads;
+
+    state.holdLoads = true;
+    router.fetch('save', 'root', '/save', { formMethod: 'post', formData: new FormData() });
+    await until(() => state.finishAction);
+    state.finishAction!();
+    await until(() => state.loads === before + 1);
+    // after the action's load began, so it may not have read it
+    db.emit('Request');
+    state.holdLoads = false;
+    state.releaseLoad!();
+    await until(() => state.loads === before + 2);
+    await settled(router);
+    expect(state.loads).toBe(before + 2);
+    stop();
+  });
+
+  it("loads the routes for a change during a save that failed, which React Router doesn't load after", async () => {
+    const { router, state } = await window();
+    const db = fakeDatabase();
+    const stop = revalidateOnDatabaseChanges(router, db);
+    const before = state.loads;
+
+    router.fetch('refuse', 'root', '/refuse', { formMethod: 'post', formData: new FormData() });
+    await until(() => state.finishAction);
+    db.emit('Request');
+    state.finishAction!();
+    await until(() => state.loads === before + 1);
+    await settled(router);
+    expect(state.loads).toBe(before + 1);
     stop();
   });
 
