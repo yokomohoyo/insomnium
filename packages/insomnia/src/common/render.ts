@@ -238,8 +238,10 @@ export async function render<T>(
   errorMode: string = THROW_ON_ERROR,
   name = '',
 ) {
-  // Make a deep copy so no one gets mad :) (a string needs none)
-  const newObj = typeof obj === 'object' && obj !== null ? clone(obj) : obj;
+  // Make a deep copy so no one gets mad :) (a string needs none). What is
+  // rendered comes from JSON, so has no cycles to track, which clone does in
+  // time quadratic in the objects.
+  const newObj = typeof obj === 'object' && obj !== null ? clone(obj, false) : obj;
 
   async function next<T>(x: T, path: string, first = false) {
     if (blacklistPathRegex && path.match(blacklistPathRegex)) {
