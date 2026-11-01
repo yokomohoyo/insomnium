@@ -1,6 +1,5 @@
 import { cp, mkdir, mkdtemp, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 
-import childProcess from 'child_process';
 import * as electron from 'electron';
 import { app } from 'electron';
 import path from 'path';
@@ -137,16 +136,56 @@ async function _movePlugin(tmpDir: string, moduleName: string) {
   }
 }
 
+// Yarn runs in a utility process, a Node.js child of the app (rather than the
+// app run as Node with ELECTRON_RUN_AS_NODE, which the release build's fuses
+// turn off). The callback gets an error for a non-zero exit, and the output.
+export const yarnProcess = {
+  run(args: string[], { timeout, cwd, env }: { timeout: number; cwd?: string; env: Record<string, string> }, callback: (err: (Error & { code?: number }) | null, stdout: string, stderr: string) => void) {
+    const child = electron.utilityProcess.fork(_getYarnPath(), args, {
+      // Because Yarn still uses `new Buffer()`
+      execArgv: ['--no-deprecation'],
+      cwd,
+      env,
+      stdio: 'pipe',
+      serviceName: 'Insomnium plugin install',
+    });
+    let stdout = '';
+    let stderr = '';
+    const read = (stream: NodeJS.ReadableStream | null, append: (chunk: string) => void) => new Promise<void>(resolve => {
+      if (!stream) {
+        return resolve();
+      }
+      stream.on('data', chunk => append(String(chunk)));
+      stream.on('end', resolve);
+      stream.on('error', () => resolve());
+    });
+    const output = Promise.all([read(child.stdout, chunk => {
+      stdout += chunk;
+    }), read(child.stderr, chunk => {
+      stderr += chunk;
+    })]);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill();
+    }, timeout);
+    child.once('exit', async code => {
+      clearTimeout(timer);
+      await output;
+      const err = timedOut ? new Error(`Yarn took longer than ${timeout / 1000} s`) : code ? Object.assign(new Error(`Command failed with exit code ${code}
+${stderr}`), { code }) : null;
+      callback(err, stdout, stderr);
+    });
+  },
+};
+
 async function _isInsomniaPlugin(lookupName: string, options: PluginInstallOptions) {
   return new Promise<InsomniaPlugin>((resolve, reject) => {
     console.log('[plugins] Fetching module info from npm');
     // shell:false (default) - args are passed verbatim to the child, so
     // shell metacharacters in lookupName cannot be interpreted as code.
-    childProcess.execFile(
-      process.execPath,
+    yarnProcess.run(
       [
-        '--no-deprecation', // Because Yarn still uses `new Buffer()`
-        _getYarnPath(),
         'info',
         lookupName,
         '--json',
@@ -154,10 +193,8 @@ async function _isInsomniaPlugin(lookupName: string, options: PluginInstallOptio
       ],
       {
         timeout: 5 * 60 * 1000,
-        maxBuffer: 1024 * 1024,
         env: {
           NODE_ENV: 'production',
-          ELECTRON_RUN_AS_NODE: 'true',
         },
       },
       (err, stdout, stderr) => {
@@ -219,11 +256,8 @@ async function _installPluginToTmpDir(lookupName: string, options: PluginInstall
     console.log(`[plugins] Installing plugin to ${tmpDir}`);
     // shell:false (default) - args are passed verbatim to the child, so
     // shell metacharacters in lookupName cannot be interpreted as code.
-    childProcess.execFile(
-      process.execPath,
+    yarnProcess.run(
       [
-        '--no-deprecation', // Because Yarn still uses `new Buffer()`
-        _getYarnPath(),
         'add',
         lookupName,
         '--modules-folder',
@@ -241,11 +275,9 @@ async function _installPluginToTmpDir(lookupName: string, options: PluginInstall
       ],
       {
         timeout: 5 * 60 * 1000,
-        maxBuffer: 1024 * 1024,
         cwd: tmpDir,
         env: {
           NODE_ENV: 'production',
-          ELECTRON_RUN_AS_NODE: 'true',
         },
       },
       (err, stdout, stderr) => {
