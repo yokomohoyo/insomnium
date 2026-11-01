@@ -71,8 +71,8 @@ jobs:
           # a tag: a branch or a pull request's head isn't built (and signed) as
           # a release, whichever ref the run was started from
           ref: ${{ steps.tag.outputs.ref }}
-          # npm ci runs install scripts in this job, which holds the signing
-          # token: no git credentials left in .git/config
+          # this job holds the signing secrets: no git credentials left in
+          # .git/config for a build script to find
           persist-credentials: false
 
       - name: Setup Node
@@ -82,8 +82,13 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
+      # no dependency's install script runs in the job that later holds the
+      # signing secrets; only those the build needs, by name: node-libcurl's
+      # fetches its prebuilt binary, electron-winstaller's picks its 7-Zip
       - name: Install packages
-        run: npm ci
+        run: |
+          npm ci --ignore-scripts
+          npm rebuild @getinsomnia/node-libcurl electron-winstaller
 
       # electron-builder.config.js notarizes only when APPLE_API_KEY (a path to
       # the App Store Connect .p8 key) is set, so decode it to a file first.
