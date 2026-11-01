@@ -16,7 +16,7 @@ import { startHttpServer } from './http';
 import { loadCollection, applyEnvironment } from './load';
 import { makeHostPolicy } from './policy';
 import { openRepo, type Repo, syncRepoDocs } from './repo';
-import type { Sources } from './sources';
+import { assertOneTokenHost, type Sources } from './sources';
 
 // Reading and sending only: nothing that changes the collections, their
 // environments or auth, or imports files. Nor generate_code or
@@ -80,8 +80,9 @@ export async function loadSources(config: LoadConfig) {
   const repos: { repo: Repo; version: string; index: number }[] = [];
   const close = () => repos.forEach(({ repo }) => repo.close());
   try {
+    assertOneTokenHost(config);
     for (const location of config.repos) {
-      const repo = await openRepo(location, { branch: config.branch, token: config.gitToken, username: config.gitUsername });
+      const repo = await openRepo(location, { branch: config.branch, token: config.gitToken, username: config.gitUsername, tokenHost: config.gitTokenHost });
       const entry = { repo, version: '', index: workspaces.length };
       repos.push(entry);
       const { docs, version } = await repo.read();

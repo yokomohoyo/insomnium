@@ -175,7 +175,7 @@ async function mock(argv: string[]) {
   // a mock answers; it never sends (a {% response %} tag in an example would)
   const log = console.log;
   console.log = console.info = console.debug = () => {};
-  const workspaces = await loadWorkspaces({ collections: config.collections, repos: config.repos, branch: config.branch, gitToken: config.gitToken, gitUsername: config.gitUsername, variables: {}, validateSSL: true, allowedHosts: [], allowedEnvironmentVariables: '' });
+  const workspaces = await loadWorkspaces({ collections: config.collections, repos: config.repos, branch: config.branch, gitToken: config.gitToken, gitUsername: config.gitUsername, gitTokenHost: config.gitTokenHost, variables: {}, validateSSL: true, allowedHosts: [], allowedEnvironmentVariables: '' });
   for (const workspace of workspaces) {
     for (const { request, examples } of await loadMockRoutes(workspace)) {
       log(`[mock] ${request.method} ${mockPathOf(request.url)}  ${request.name} (${examples.length} ${examples.length === 1 ? 'example' : 'examples'})`);

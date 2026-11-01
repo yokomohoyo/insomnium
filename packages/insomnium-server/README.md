@@ -74,7 +74,8 @@ The repository's `.insomnium` folder (or `.insomnia`, from Insomnia) is read the
 | `HTTPS_PROXY`, `HTTP_PROXY`, `NO_PROXY` | The proxy to send through, read as curl reads them. gRPC can only use an `http://` proxy. |
 | `INSOMNIUM_ALLOWED_ENV` | Comma-separated environment variables that collections may read with `{% env 'NAME' %}`: names, or prefixes ending in `*`. None by default, so a collection can't read the container's environment unless you allow it. |
 | `INSOMNIUM_ALLOWED_SECRETS` | The secret-manager secrets the [secret tags](../../docs/template-tags.md#secrets-from-a-secret-manager) may read, such as `vault:secret/data/app` or `aws:prod/*`. None by default. |
-| `INSOMNIUM_GIT_TOKEN`, `INSOMNIUM_GIT_USERNAME` | A token for cloning private repositories (sent as the password), and the username to send with it. |
+| `INSOMNIUM_GIT_TOKEN`, `INSOMNIUM_GIT_USERNAME` | A token for cloning private repositories (sent as the password, over https only), and the username to send with it. |
+| `INSOMNIUM_GIT_TOKEN_HOST` | The host the token is for (`github.com`); it goes to no other. Needed when the repositories are on several hosts. |
 | `INSOMNIUM_TLS_CERT`, `INSOMNIUM_TLS_KEY` | PEM files for the server to serve HTTPS itself, without a reverse proxy: the certificate (with its chain) and its private key. Set both or neither. A renewed certificate is picked up within a minute, with no restart. |
 
 `GET /health` answers without a token, for health checks.
