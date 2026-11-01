@@ -85,6 +85,14 @@ export async function create(request: Request | WebSocketRequest | GrpcRequest |
   }
 }
 
+// Each send of an edited request adds a version, but only the request's last
+// few responses are kept: remove the versions that none of them refers to.
+export async function removeUnused(parentId: string, responseType: string) {
+  const responses = await db.find<BaseModel & { requestVersionId: string | null }>(responseType, { parentId });
+  const used = responses.flatMap(({ requestVersionId }) => requestVersionId ? [requestVersionId] : []);
+  await db.removeWhere(type, { parentId, _id: { $nin: used } });
+}
+
 export function getLatestByParentId(parentId: string) {
   return db.getMostRecentlyModified<RequestVersion>(type, { parentId });
 }
