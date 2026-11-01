@@ -30,6 +30,11 @@ permissions:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write  # required to upload assets to the release
+      # a build provenance attestation for each release asset
+      id-token: write
+      attestations: write
     # the Windows build signs through SignPath Foundation: the environment has
     # the SignPath project's names and the CI user's API token (only release
     # tags and main deploy there)
@@ -323,11 +328,30 @@ jobs:
             packages/insomnia/dist/*.AppImage
             packages/insomnia/dist/*.tar.gz
 
+      # what was built here, from this commit: `gh attestation verify <file>
+      # --repo yokomohoyo/insomnium` checks a download
+      - name: Attest the release assets
+        if: ${{ !inputs.dry_run }}
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            packages/insomnia/dist/*.dmg
+            packages/insomnia/dist/*.zip
+            packages/insomnia/dist/*.exe
+            packages/insomnia/dist/squirrel-windows/*.exe
+            packages/insomnia/dist/squirrel-windows/*.nupkg
+            packages/insomnia/dist/*.snap
+            packages/insomnia/dist/*.rpm
+            packages/insomnia/dist/*.deb
+            packages/insomnia/dist/*.AppImage
+            packages/insomnia/dist/*.tar.gz
+
       - name: Attach assets to release
         if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.tag.outputs.tag }}
+          OS: ${{ matrix.os }}
         shell: bash
         run: |
           set -euo pipefail
@@ -348,9 +372,16 @@ jobs:
             echo "::warning::No artifacts found to upload for ${{ matrix.os }}"
             exit 0
           fi
+          # their SHA-256 sums, by name, one file for each OS's
+          sums="$RUNNER_TEMP/SHA256SUMS-${OS%-latest}.txt"
+          for f in "${files[@]}"; do
+            if command -v sha256sum >/dev/null; then sum=$(sha256sum "$f"); else sum=$(shasum -a 256 "$f"); fi
+            echo "${sum%% *}  $(basename "$f")"
+          done > "$sums"
+          cat "$sums"
           echo "Uploading ${#files[@]} files to release $TAG:"
           printf '  %s\n' "${files[@]}"
-          gh release upload "$TAG" "${files[@]}" --repo "${{ github.repository }}" --clobber
+          gh release upload "$TAG" "${files[@]}" "$sums" --repo "${{ github.repository }}" --clobber
 
       # SignPath Foundation's terms: once Windows builds are signed through it,
       # the release page names the code signing policy (once, from one build),
