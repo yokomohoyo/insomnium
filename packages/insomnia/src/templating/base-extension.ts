@@ -6,6 +6,13 @@ import * as templating from './index';
 import { decodeEncoding } from './utils';
 
 const EMPTY_ARG = '__EMPTY_NUNJUCKS_ARG__';
+
+// whether a tag may run in this render (main/restricted-renders.ts says which
+// for the mock server's answers)
+let tagAllowed = (_name: string) => true;
+export const setTagAllowed = (allowed: (name: string) => boolean) => {
+  tagAllowed = allowed;
+};
 export interface HelperContext {
   context: any;
   meta: any;
@@ -146,6 +153,11 @@ export default class BaseExtension {
     };
     let result;
 
+    const name = this.getTag();
+    if (name && !tagAllowed(name)) {
+      callback(new Error(`The ${name} tag doesn't run here`));
+      return;
+    }
     try {
       result = this.run(helperContext, ...args);
     } catch (err) {

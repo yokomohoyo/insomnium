@@ -137,6 +137,19 @@ describe('the tags in a template', () => {
   });
 });
 
+describe('response', () => {
+  it("reads only this collection's requests' responses", async () => {
+    const tag = localTemplateTags.find(({ templateTag }) => templateTag.name === 'response')!.templateTag;
+    const context = {
+      meta: { requestId: 'req_here', workspaceId: 'wrk_here' },
+      renderPurpose: 'send',
+      context: {},
+      util: { models: { request: { getById: async (id: string) => ({ _id: id, parentId: 'wrk_other' }), getAncestors: async () => [{ _id: 'wrk_other' }] } } },
+    };
+    await expect(tag.run(context as any, 'raw', 'req_elsewhere', '', 'never', 60)).rejects.toThrow("Request req_elsewhere isn't in this collection");
+  });
+});
+
 describe('gcpIdToken', () => {
   const tag = localTemplateTags.find(({ templateTag }) => templateTag.name === 'gcpIdToken')!.templateTag;
   const mint = (audience: string, url: string, renderPurpose = 'send') => tag.run({
