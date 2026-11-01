@@ -55,6 +55,11 @@ const withFolderScripts = (resources: ImportRequest[]) => {
 export const convert: Converter = rawData => {
   let data;
 
+  // Not this format, without parsing it: every import tries the importers in
+  // turn, and parsing a large file of another kind (a spec) took a while
+  if (!rawData.includes('__export_format')) {
+    return null;
+  }
   try {
     data = YAML.parse(rawData);
   } catch (error) {
