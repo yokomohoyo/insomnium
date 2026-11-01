@@ -763,3 +763,19 @@ describe('render tests', () => {
     });
   });
 });
+
+describe('render() of an object', () => {
+  beforeEach(globalBeforeEach);
+
+  it('gives a rendered copy, leaving the object given as it was', async () => {
+    const date = new Date(1700000000000);
+    const shared = { name: '{{ who }}' };
+    const obj = { a: '{{ who }}', list: [{ b: '{{ who }}' }, 'x {{ who }}'], when: date, one: shared, two: shared };
+
+    const rendered = await renderUtils.render(obj, { who: 'Ada' });
+
+    expect(rendered).toEqual({ a: 'Ada', list: [{ b: 'Ada' }, 'x Ada'], when: date, one: { name: 'Ada' }, two: { name: 'Ada' } });
+    expect(rendered.when).not.toBe(date);
+    expect(obj).toEqual({ a: '{{ who }}', list: [{ b: '{{ who }}' }, 'x {{ who }}'], when: date, one: { name: '{{ who }}' }, two: { name: '{{ who }}' } });
+  });
+});
