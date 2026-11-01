@@ -83,6 +83,8 @@ function redactWalk(value: any, seen: WeakSet<object>): any {
         out[k] = REDACTED;
       } else if (isSecretKey(normalized, authFields) && v !== null && v !== undefined && v !== '') {
         out[k] = REDACTED; // mask the whole value (incl. nested SA-JSON)
+      } else if ((k === 'url' || k === 'uri') && typeof v === 'string') {
+        out[k] = redactUrl(v); // a user name and password, or an API key in the query
       } else {
         out[k] = redactWalk(v, seen);
       }
@@ -98,7 +100,62 @@ export function redactSecrets<T>(value: T): T {
   return redactWalk(value, new WeakSet<object>()) as T;
 }
 
-// Walk parentId links up through folders to the owning workspace; cycle-safe.
+// query parameters that carry a credential, by name: an API key's, a
+// signature's, a code's
+const SECRET_PARAM = /^(key|apikey|sig|signature|code|auth|session|x-amz-signature|x-amz-credential|x-amz-security-token)$/i;
+
+// A URL as a client may see it: no user name or password in it, and the
+// values of query parameters that look like credentials masked
+export function redactUrl(url: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  let changed = false;
+  if (parsed.username || parsed.password) {
+    parsed.username = '';
+    parsed.password = '';
+    changed = true;
+  }
+  for (const [name] of [...parsed.searchParams]) {
+    if (SECRET_PARAM.test(name) || isSecretKey(name.replace(/[_-]/g, '').toLowerCase(), undefined)) {
+      parsed.searchParams.set(name, REDACTED);
+      changed = true;
+    }
+  }
+  // as it was written when there's nothing to mask
+  return changed ? parsed.toString() : url;
+}
+
+// The secret values a request was sent with (its auth's, and its secret
+// headers' and query parameters'), to mask wherever they turn up in text
+export function secretValuesOf(request: { authentication?: unknown; headers?: { name: string; value: string }[]; parameters?: { name: string; value: string }[] }) {
+  const values = new Set<string>();
+  const collect = (value: unknown, authFields?: string[]) => {
+    if (Array.isArray(value)) {
+      value.forEach(item => collect(item, authFields));
+    } else if (value && typeof value === 'object') {
+      const fields = typeof (value as { type?: unknown }).type === 'string' ? AUTH_SECRET_FIELDS[(value as { type: string }).type.toLowerCase()] : authFields;
+      for (const [key, item] of Object.entries(value)) {
+        if (typeof item === 'string' && isSecretKey(key.replace(/[_-]/g, '').toLowerCase(), fields)) {
+          values.add(item);
+        } else {
+          collect(item, fields);
+        }
+      }
+    }
+  };
+  collect(request.authentication);
+  request.headers?.filter(({ name }) => SECRET_HEADER.test(name)).forEach(({ value }) => values.add(value));
+  request.parameters?.filter(({ name }) => SECRET_PARAM.test(name) || isSecretKey(name.replace(/[_-]/g, '').toLowerCase(), undefined)).forEach(({ value }) => values.add(value));
+  // too short to mask without masking everything else
+  return [...values].filter(value => value.length >= 6);
+}
+
+export const maskValues = (text: string, values: string[]) => values.reduce((masked, value) => masked.split(value).join(REDACTED), text);
+
 // An environment a client names for a send: the workspace's base environment
 // or one of its sub environments, not another workspace's, whose values would
 // go with the request. An error to return, or null when it's one of them.
@@ -113,6 +170,7 @@ export async function foreignEnvironment(workspaceId: string | undefined, enviro
     : `environment ${environmentId} does not belong to ${workspaceId ? `workspace ${workspaceId}` : "the request's workspace"}`;
 }
 
+// Walk parentId links up through folders to the owning workspace; cycle-safe.
 export async function findWorkspaceForRequest(parentId: string): Promise<Workspace | null> {
   let cur: string | null = parentId;
   const seen = new Set<string>();

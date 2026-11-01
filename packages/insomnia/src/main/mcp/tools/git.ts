@@ -7,6 +7,7 @@ import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { GitConflictsError } from '../../../sync/git/git-vcs';
 import { getGitChanges, type OpenedWorkspaceGit } from '../../../sync/git/workspace-git';
+import { redactUrl } from './util';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
 
@@ -79,7 +80,8 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     { workspaceId: z.string() },
     async ({ workspaceId }) => withRepo(workspaceId, async opened => text({
       branch: await opened.vcs.getBranch(),
-      remote: opened.gitRepository.uri || null,
+      // without a user name or token a URL may hold
+      remote: opened.gitRepository.uri ? redactUrl(opened.gitRepository.uri) : null,
       changes: await changesOf(opened),
     })),
   );

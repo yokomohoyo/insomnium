@@ -6,7 +6,7 @@ import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import * as networkUtils from '../../../network/network';
 import { runPreRequestScript } from '../../../scripting/request-scripts';
-import { assertSafeRequestUrl, findWorkspaceForRequest, foreignEnvironment } from './util';
+import { assertSafeRequestUrl, findWorkspaceForRequest, foreignEnvironment, maskValues, redactUrl, secretValuesOf } from './util';
 
 export function registerSendTool(server: McpServer) {
   server.tool(
@@ -70,6 +70,9 @@ export function registerSendTool(server: McpServer) {
       const checked = await networkUtils.responseTransform(response, envId || null, rendered, context, { preRequestLogs: scripted.logs });
       const stored = await models.response.create(checked, settings.maxHistoryResponses);
       const results = checked.assertionResults;
+      // what a script logged can hold the request's credentials, and the URL a query string's
+      const secrets = secretValuesOf(rendered);
+      const masked = (text: string) => maskValues(text, secrets);
       return {
         content: [{
           type: 'text',
@@ -79,7 +82,7 @@ export function registerSendTool(server: McpServer) {
             statusMessage: stored.statusMessage,
             elapsedTime: stored.elapsedTime,
             ...(stored.timings ? { timings: stored.timings } : {}),
-            url: stored.url,
+            url: stored.url && masked(redactUrl(stored.url)),
             error: stored.error,
             ...(results ? {
               assertions: {
@@ -88,7 +91,7 @@ export function registerSendTool(server: McpServer) {
                 results: results.map(({ passed, message }) => ({ passed, message })),
               },
             } : {}),
-            ...(checked.scriptLogs ? { scriptLogs: checked.scriptLogs } : {}),
+            ...(checked.scriptLogs ? { scriptLogs: checked.scriptLogs.map(log => ({ ...log, message: masked(log.message) })) } : {}),
           }, null, 2),
         }],
       };

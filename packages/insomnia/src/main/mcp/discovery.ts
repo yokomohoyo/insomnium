@@ -32,6 +32,8 @@ export async function writeDiscoveryFile(info: { port: number; token: string }):
   };
   await fs.mkdir(path.dirname(file), { recursive: true });
   await fs.writeFile(file, JSON.stringify(data, null, 2), { mode: 0o600 });
+  // the mode applies only to a new file: one there before keeps its own
+  await fs.chmod(file, 0o600);
 }
 
 export async function removeDiscoveryFile(): Promise<void> {
