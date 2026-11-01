@@ -5,10 +5,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
+import { largeOpenApi } from '../../__perf__/fixtures';
+import { longestStallDuring } from '../../__jest__/proto-worker';
 import { petstoreExample } from '../../common/petstore-example';
 import { lintSpec } from '../spectral-lint';
+
+// Spectral runs on its worker thread, here from its TypeScript source
+jest.mock('worker_threads', () => (jest.requireActual('../../__jest__/spectral-worker') as { workerThreads: unknown }).workerThreads);
 
 const spec = `openapi: 3.0.0
 info:
@@ -95,4 +100,14 @@ describe('lintSpec()', () => {
     expect(first.message).toContain(problem);
     expect(codes(rest)).toContain('info-contact');
   });
+
+  it('lints off the main thread, which keeps turning meanwhile', async () => {
+    const contents = largeOpenApi(300, 'yaml');
+
+    const { result, elapsed, longestStall } = await longestStallDuring(() => lintSpec({ contents }));
+
+    expect(Array.isArray(result)).toBe(true);
+    // the lint takes a while, but the main thread is never held up for it
+    expect(longestStall).toBeLessThan(Math.max(100, elapsed / 4));
+  }, 60_000);
 });

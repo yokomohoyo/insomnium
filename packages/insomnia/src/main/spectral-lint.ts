@@ -1,22 +1,9 @@
-import type { ISpectralDiagnostic, RulesetDefinition } from '@stoplight/spectral-core';
-import { Spectral } from '@stoplight/spectral-core';
-// @ts-expect-error - This is a bundled file not sure why it's not found
-import { bundleAndLoadRuleset } from '@stoplight/spectral-ruleset-bundler/with-loader';
-import { asyncapi, oas } from '@stoplight/spectral-rulesets';
+import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
 import fs from 'fs';
 import path from 'path';
+import { Worker } from 'worker_threads';
 
-import { parseApiSpec } from '../common/api-specs';
-import { assertDataOnlyRuleset } from './spectral-ruleset';
-
-// the built-in rules for the document: AsyncAPI's or OpenAPI's
-const builtInRuleset = (contents: string) => {
-  try {
-    return (parseApiSpec(contents).format === 'asyncapi' ? asyncapi : oas) as RulesetDefinition;
-  } catch {
-    return oas as RulesetDefinition;
-  }
-};
+import type { SpectralJob, SpectralReply, SpectralWorkerLog } from './spectral-worker';
 
 // A spec's lint results, with the ruleset at rulesetPath (a file chosen for the
 // document, or its git repository's .spectral.yaml) or the built-in OpenAPI or
@@ -26,7 +13,7 @@ export async function lintSpec(options: { contents: string; rulesetPath?: string
   const key = await lintKey(options);
   let result = recentLints.get(key);
   if (!result) {
-    result = lint(options);
+    result = lintOnWorker(options);
     result.catch(() => recentLints.delete(key));
     if (recentLints.size >= RECENT_LINTS) {
       recentLints.delete(recentLints.keys().next().value!);
@@ -54,37 +41,67 @@ const lintKey = async ({ contents, rulesetPath }: { contents: string; rulesetPat
   return `${ruleset}\0${contents}`;
 };
 
-async function lint({ contents, rulesetPath }: { contents: string; rulesetPath?: string }): Promise<ISpectralDiagnostic[]> {
-  const spectral = new Spectral();
-  let rulesetProblem = '';
+// One worker, started by the first lint and ended after a minute without one,
+// which lets go of Spectral and the last spec's documents. Unref'd so it never
+// keeps the process alive.
+const IDLE_MS = 60_000;
 
-  if (rulesetPath) {
-    try {
-      assertDataOnlyRuleset(await fs.promises.readFile(rulesetPath, 'utf8'));
-      const ruleset = await bundleAndLoadRuleset(rulesetPath, {
-        fs,
-        fetch: (url: string) => Promise.reject(new Error(`remote rulesets are not supported: ${url}`)),
-      });
-      spectral.setRuleset(ruleset);
-    } catch (err) {
-      rulesetProblem = err instanceof Error ? err.message : String(err);
-      spectral.setRuleset(builtInRuleset(contents));
-    }
-  } else {
-    spectral.setRuleset(builtInRuleset(contents));
-  }
-
-  const diagnostics = await spectral.run(contents);
-  if (!rulesetProblem) {
-    return diagnostics;
-  }
-  const start = { line: 0, character: 0 };
-  const warning = {
-    code: 'ruleset',
-    message: `${path.basename(rulesetPath || '')} couldn't be used, so the built-in rules apply: ${rulesetProblem}`,
-    path: [],
-    severity: 1,
-    range: { start, end: start },
-  } as unknown as ISpectralDiagnostic;
-  return [warning, ...diagnostics];
+interface SpectralWorker {
+  thread: Worker;
+  pending: Map<number, { resolve: (diagnostics: ISpectralDiagnostic[]) => void; reject: (err: Error) => void }>;
+  idle?: ReturnType<typeof setTimeout>;
 }
+let worker: SpectralWorker | undefined;
+let nextJobId = 0;
+
+// every lint settles: a crash or an exit rejects whatever is still pending
+const failWorker = (w: SpectralWorker, err: Error) => {
+  clearTimeout(w.idle);
+  if (worker === w) {
+    worker = undefined;
+  }
+  w.pending.forEach(({ reject }) => reject(err));
+  w.pending.clear();
+};
+
+const startWorker = () => {
+  const thread = new Worker(path.join(__dirname, 'spectral-worker.min.js'));
+  const w: SpectralWorker = { thread, pending: new Map() };
+  thread.on('message', (reply: SpectralReply | SpectralWorkerLog) => {
+    if ('log' in reply) {
+      console[reply.log](reply.text);
+      return;
+    }
+    const job = w.pending.get(reply.id);
+    w.pending.delete(reply.id);
+    if ('error' in reply) {
+      job?.reject(new Error(reply.error));
+    } else {
+      job?.resolve(reply.diagnostics);
+    }
+    if (!w.pending.size) {
+      w.idle = setTimeout(() => {
+        failWorker(w, new Error('The Spectral worker was ended'));
+        thread.terminate();
+      }, IDLE_MS);
+      w.idle.unref?.();
+    }
+  });
+  thread.on('messageerror', err => {
+    failWorker(w, err);
+    thread.terminate();
+  });
+  thread.on('error', err => failWorker(w, err));
+  thread.on('exit', code => failWorker(w, new Error(`The Spectral worker exited with code ${code}`)));
+  thread.unref();
+  return w;
+};
+
+const lintOnWorker = (options: { contents: string; rulesetPath?: string }) => new Promise<ISpectralDiagnostic[]>((resolve, reject) => {
+  const w = worker = worker || startWorker();
+  clearTimeout(w.idle);
+  const id = nextJobId++;
+  w.pending.set(id, { resolve, reject });
+  const job: SpectralJob = { id, contents: options.contents, rulesetPath: options.rulesetPath };
+  w.thread.postMessage(job);
+});

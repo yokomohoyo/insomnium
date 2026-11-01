@@ -1,13 +1,16 @@
 /**
  * @jest-environment node
  */
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { globalBeforeEach } from '../../../../__jest__/before-each';
 import { database } from '../../../../common/database';
 import { petstoreExample } from '../../../../common/petstore-example';
 import * as models from '../../../../models';
 import { registerSpecTools } from '../spec';
+
+// Spectral runs on its worker thread, here from its TypeScript source
+jest.mock('worker_threads', () => (jest.requireActual('../../../../__jest__/spectral-worker') as { workerThreads: unknown }).workerThreads);
 
 type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[]; isError?: boolean }>;
 const handlers: Record<string, Handler> = {};

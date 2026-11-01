@@ -35,6 +35,7 @@
     "src/coverage",
     "src/main.min.js",
     "src/proto-worker.min.js",
+    "src/spectral-worker.min.js",
     "src/preload.js",
   ],
 }
