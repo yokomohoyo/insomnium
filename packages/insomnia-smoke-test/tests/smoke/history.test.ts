@@ -21,8 +21,10 @@ test('History lists the responses of every request, and opens one with its reque
   await page.getByRole('button', { name: 'Scan' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
 
-  for (const name of ['first pet', 'second pet']) {
+  for (const [name, url] of [['first pet', '/pets/1'], ['second pet', '/pets/2']]) {
     await page.getByLabel('Request Collection').getByRole('row', { name }).click();
+    // open before sending: Send pressed sooner sends the request shown before it
+    await expect(requestPane.getByTestId('OneLineEditor').first()).toContainText(url);
     await requestPane.getByRole('button', { name: 'Send' }).click();
     await expect(responsePane).toContainText('200 OK');
   }
