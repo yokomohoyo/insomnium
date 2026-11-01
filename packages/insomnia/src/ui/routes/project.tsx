@@ -76,16 +76,46 @@ export interface WorkspaceWithMetadata {
   lastCommitTime: number | null | undefined;
   lastCommitAuthor: string | null | undefined;
   lastActiveBranch: string | null | undefined;
-  spec: Record<string, any> | null;
+  // the spec's info.version, for its card
+  specVersion: string | null;
   specFormat: ParsedApiSpec['format'];
   name: string;
-  apiSpec: ApiSpec | null;
   specFormatVersion: string | null;
   workspace: Workspace;
   workspaceMeta: WorkspaceMeta;
   clientCertificates: ClientCertificate[];
   caCertificate: CaCertificate | null;
 }
+
+// What a document's card shows of its spec, by the spec's id: worked out again
+// only once the spec has changed, rather than parsing every spec (some MB
+// each) on every revalidation of the projects page. Neither its text nor the
+// parsed spec is kept in the page's data.
+interface SpecSummary {
+  modified: number;
+  specVersion: string | null;
+  specFormat: ParsedApiSpec['format'];
+  specFormatVersion: ParsedApiSpec['formatVersion'];
+}
+const NO_SPEC: Omit<SpecSummary, 'modified'> = { specVersion: null, specFormat: null, specFormatVersion: null };
+const specSummaries = new Map<string, SpecSummary>();
+const summarizeSpec = (apiSpec: ApiSpec) => {
+  const known = specSummaries.get(apiSpec._id);
+  if (known?.modified === apiSpec.modified) {
+    return known;
+  }
+  let summary: SpecSummary = { modified: apiSpec.modified, ...NO_SPEC };
+  try {
+    const { contents, format, formatVersion } = parseApiSpec(apiSpec.contents);
+    const version = contents?.info?.version;
+    summary = { modified: apiSpec.modified, specVersion: typeof version === 'string' ? version : null, specFormat: format, specFormatVersion: formatVersion };
+  } catch (err) {
+    // Assume there is no spec
+    // TODO: Check for parse errors if it's an invalid spec
+  }
+  specSummaries.set(apiSpec._id, summary);
+  return summary;
+};
 
 export const indexLoader: LoaderFunction = async ({ params }) => {
   const { organizationId } = params;
@@ -156,21 +186,7 @@ export const loader: LoaderFunction = async ({
     workspace: Workspace
   ): Promise<WorkspaceWithMetadata> => {
     const apiSpec = await models.apiSpec.getByParentId(workspace._id);
-
-    let spec: ParsedApiSpec['contents'] = null;
-    let specFormat: ParsedApiSpec['format'] = null;
-    let specFormatVersion: ParsedApiSpec['formatVersion'] = null;
-    if (apiSpec) {
-      try {
-        const result = parseApiSpec(apiSpec.contents);
-        spec = result.contents;
-        specFormat = result.format;
-        specFormatVersion = result.formatVersion;
-      } catch (err) {
-        // Assume there is no spec
-        // TODO: Check for parse errors if it's an invalid spec
-      }
-    }
+    const { specVersion, specFormat, specFormatVersion } = apiSpec ? summarizeSpec(apiSpec) : NO_SPEC;
     const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(
       workspace._id
     );
@@ -217,10 +233,9 @@ export const loader: LoaderFunction = async ({
       lastCommitTime: workspaceMeta?.cachedGitLastCommitTime,
       lastCommitAuthor,
       lastActiveBranch,
-      spec,
+      specVersion,
       specFormat,
       name: workspace.name,
-      apiSpec,
       specFormatVersion,
       workspaceMeta,
       clientCertificates,
@@ -763,10 +778,10 @@ const ProjectRoute: FC = () => {
                         {item.workspace.name}
                       </Heading>
                       <div className="flex-1 flex flex-col gap-2 justify-end text-sm text-[--hl]">
-                        {typeof item.spec?.info?.version === 'string' && (
+                        {item.specVersion !== null && (
                           <div className="flex-1 pt-2">
-                            {item.spec.info.version.startsWith('v') ? '' : 'v'}
-                            {item.spec.info.version}
+                            {item.specVersion.startsWith('v') ? '' : 'v'}
+                            {item.specVersion}
                           </div>
                         )}
                         {item.specFormat && (
