@@ -1,6 +1,7 @@
 // SQLite-backed document store replacing the per-type NeDB datastores.
 // Docs stay schemaless JSON; key fields are hoisted into indexed columns.
 
+import { randomUUID } from 'crypto';
 import fs from 'fs';
 
 import { CREDENTIAL_FIELDS, type CredentialGuard } from './credential-guard';
@@ -89,11 +90,28 @@ const nedbDateReviver = (_key: string, value: any) =>
 // Hoisted columns; sorts on these run in SQL (NULL ordering matches compareValues).
 const HOISTED_SORT_COLUMNS = new Set(['_id', 'type', 'parentId', 'created', 'modified']);
 
+export interface StoreStamp {
+  epoch: string;
+  version: number;
+}
+export interface StoreWrite {
+  version: number;
+  id: string;
+  type: string | null;
+}
+const WRITES_KEPT = 10_000;
+
 export class SqliteStore {
   private readonly db: DatabaseSync;
   private readonly statements = new Map<string, import('node:sqlite').StatementSync>();
   // encrypts credential fields at rest; null for in-memory stores (tests, send-request)
   private guard: CredentialGuard | null = null;
+  // Every write, in order, the last WRITES_KEPT of them: what changed since a
+  // version, for a reader that keeps what it read (the workspace loader). The
+  // epoch tells one opening of the database from another.
+  readonly epoch = randomUUID();
+  private version = 0;
+  private writes: StoreWrite[] = [];
 
   constructor(filename: string) {
     // getBuiltinModule loads node:sqlite even under module systems that don't know it (e.g. jest).
@@ -174,6 +192,7 @@ export class SqliteStore {
           // e.g. an envelope under an older key that no longer decrypts stays as it is
           if (json !== JSON.stringify(doc)) {
             this.prepare('UPDATE docs SET json = ? WHERE _id = ?').run(json, doc._id);
+            this.wrote(doc._id, doc.type);
             changed++;
           }
         }
@@ -346,12 +365,42 @@ export class SqliteStore {
     return this.opened(this.parseRows(rows));
   }
 
+  private wrote(id: string, type: string | null) {
+    this.writes.push({ version: ++this.version, id, type });
+    if (this.writes.length > WRITES_KEPT * 2) {
+      this.writes = this.writes.slice(-WRITES_KEPT);
+    }
+  }
+
+  // The docs written since a version (an id once, with its type; null for a
+  // removal), and the version now. Null for the docs when that can't be told:
+  // another epoch, or more writes since than are kept.
+  changesSince(since: StoreStamp | null): { stamp: StoreStamp; changes: StoreWrite[] | null } {
+    const stamp = { epoch: this.epoch, version: this.version };
+    if (!since || since.epoch !== this.epoch || since.version > this.version) {
+      return { stamp, changes: null };
+    }
+    const first = this.writes[0]?.version ?? this.version + 1;
+    if (since.version < first - 1) {
+      return { stamp, changes: null };
+    }
+    const byId = new Map<string, StoreWrite>();
+    for (const write of this.writes) {
+      if (write.version > since.version) {
+        byId.delete(write.id);
+        byId.set(write.id, write);
+      }
+    }
+    return { stamp, changes: [...byId.values()] };
+  }
+
   // Writes return a detached plaintext copy (as NeDB did): callers may mutate
   // the result without aliasing the store, and change events never carry ciphertext.
   insert(doc: StoreDoc): StoreDoc {
     const plain = JSON.stringify(doc);
     this.prepare('INSERT INTO docs (_id, type, parentId, created, modified, json) VALUES (?, ?, ?, ?, ?, ?)')
       .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(this.stored(doc)));
+    this.wrote(doc._id, doc.type);
     return JSON.parse(plain);
   }
 
@@ -360,6 +409,7 @@ export class SqliteStore {
     const plain = JSON.stringify(doc);
     const { changes } = this.prepare('UPDATE docs SET type = ?, parentId = ?, created = ?, modified = ?, json = ? WHERE _id = ?')
       .run(doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(this.stored(doc)), doc._id);
+    this.wrote(doc._id, doc.type);
     return Number(changes) === 0 ? null : JSON.parse(plain);
   }
 
@@ -368,6 +418,7 @@ export class SqliteStore {
     const plain = JSON.stringify(doc);
     this.prepare('INSERT OR REPLACE INTO docs (_id, type, parentId, created, modified, json) VALUES (?, ?, ?, ?, ?, ?)')
       .run(doc._id, doc.type, doc.parentId ?? null, doc.created ?? 0, doc.modified ?? 0, JSON.stringify(this.stored(doc)));
+    this.wrote(doc._id, doc.type);
     return JSON.parse(plain);
   }
 
@@ -379,6 +430,7 @@ export class SqliteStore {
       // Arity varies (esp. the final chunk); prepare uncached to avoid cache bloat.
       this.db.prepare(`DELETE FROM docs WHERE _id IN (${placeholders})`).run(...chunk);
     }
+    ids.forEach(id => this.wrote(id, null));
   }
 
   // Strictly synchronous: node:sqlite has one connection-level transaction, so
