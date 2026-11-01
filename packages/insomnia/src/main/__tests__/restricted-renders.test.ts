@@ -33,4 +33,14 @@ describe('restrictRenders()', () => {
     await expect(render(template)).resolves.toBe('the secret');
     await expect(restrictRenders(() => render('{% uuid %}'))).resolves.toMatch(/^[0-9a-f-]{36}$/);
   });
+
+  it("makes up values only in a mock server's answer", async () => {
+    const mock = (template: string) => restrictRenders(() => render(template), 'mock');
+    await expect(mock("{% os 'hostname' %}")).rejects.toThrow("The os tag doesn't run here");
+    await expect(mock("{% env 'HOME' %}")).rejects.toThrow("The env tag doesn't run here");
+    await expect(mock("{% vault 'secret/data/x', 'key' %}")).rejects.toThrow("doesn't run here");
+    await expect(mock("{% uuid 'v4' %} {% base64 'encode', 'normal', 'hi' %}")).resolves.toMatch(/^[0-9a-f-]{36} aGk=$/);
+    // an MCP client's renders still have them
+    await expect(restrictRenders(() => render("{% os 'hostname' %}"))).resolves.toBe(os.hostname());
+  });
 });

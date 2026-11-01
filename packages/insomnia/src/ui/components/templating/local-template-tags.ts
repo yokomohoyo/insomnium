@@ -892,6 +892,10 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
         if (!request) {
           throw new Error(`Could not find request ${id}`);
         }
+        // only this collection's: an imported one shouldn't read another's responses
+        if (context.meta?.workspaceId && !(await context.util.models.request.getAncestors(request)).some((doc: { _id: string }) => doc._id === context.meta.workspaceId)) {
+          throw new Error(`Request ${id} isn't in this collection`);
+        }
 
         const environmentId = context.context.getEnvironmentId?.();
         let response: Response = await context.util.models.response.getLatestForRequestId(id, environmentId);

@@ -56,11 +56,11 @@ const renderedBody = async (route: MockRoute, body: string) => {
     return body;
   }
   try {
-    // for whatever reaches the server, so never the file tag
+    // for whatever reaches the server, so with made-up values only
     return await restrictRenders(async () => {
       const context = await getRenderContext({ request: route.request as Request });
       return String(await render(body, context, null, KEEP_ON_ERROR));
-    });
+    }, 'mock');
   } catch (err) {
     return body;
   }
