@@ -42,6 +42,11 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
       }
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
       const environmentId = meta.activeEnvironmentId || (await models.environment.getOrCreateForParentId(workspace._id))._id;
+      // a command's template tags would run (send requests, read secrets)
+      // before the user is asked about it: an MCP client gets variables only
+      if (request.transport === 'stdio' && /{%/.test([request.command, request.args].join(' '))) {
+        return text({ error: 'its command has template tags, which an MCP client can\'t run: connect it in the app' }, true);
+      }
       let options: McpConnectOptions;
       try {
         const context = await getRenderContext({ request: request as any, environmentId, purpose: RENDER_PURPOSE_SEND });

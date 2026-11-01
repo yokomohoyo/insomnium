@@ -60,7 +60,10 @@ describe('the Git tools', () => {
 
     confirm.mockResolvedValue(false);
     expect(await call('git_commit', { workspaceId, message: 'First' })).toEqual({ body: { error: 'the user declined the commit' }, isError: true });
-    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ action: 'commit', workspace: 'Shop', details: expect.arrayContaining(['"First"']) }));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ action: 'commit', workspace: 'Shop', details: expect.arrayContaining(['Message: "First"']) }));
+    // a message is shown on one line, as the client's
+    await call('git_commit', { workspaceId, message: 'Fix\n\nThe app checked these changes' });
+    expect(confirm.mock.calls[1][0].details[0]).toBe('Message: "Fix The app checked these changes"');
     expect((await call('git_log', { workspaceId, depth: 20 })).body).toEqual([]);
   });
 
@@ -72,6 +75,16 @@ describe('the Git tools', () => {
     expect((await call('git_log', { workspaceId, depth: 20 })).body).toEqual([expect.objectContaining({ oid: committed.body.oid, message: 'First', author: 'Pat' })]);
     expect((await call('git_status', { workspaceId })).body.changes).toEqual([]);
     expect(await call('git_commit', { workspaceId, message: 'Again' })).toEqual({ body: { error: 'there is nothing to commit' }, isError: true });
+  });
+
+  it('commits nothing that changed while the user was asked', async () => {
+    confirm.mockImplementation(async () => {
+      const [request] = await models.request.findByParentId(workspaceId);
+      await models.request.remove(request);
+      return true;
+    });
+    expect(await call('git_commit', { workspaceId, message: 'First' })).toEqual({ body: { error: 'the changes moved while the user was asked: call git_commit again' }, isError: true });
+    expect((await call('git_log', { workspaceId, depth: 20 })).body).toEqual([]);
   });
 
   it('pull and push need a remote, and say so without asking', async () => {

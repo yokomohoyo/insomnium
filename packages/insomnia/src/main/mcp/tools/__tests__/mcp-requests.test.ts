@@ -92,6 +92,13 @@ describe('the MCP request tools', () => {
     expect((await call('connect_mcp_server', { requestId: stdioId })).body).toMatchObject({ ok: true, transport: 'stdio' });
   });
 
+  it("runs no stdio command with template tags in it, which would run before the user's asked", async () => {
+    const tagged = (await models.mcpRequest.create({ parentId: workspaceId, name: 'Tagged', transport: 'stdio', command: 'npx', args: "{% response 'body', 'req_1', '', 'always' %}" } as any))._id;
+    expect(await call('connect_mcp_server', { requestId: tagged })).toEqual({ body: { error: "its command has template tags, which an MCP client can't run: connect it in the app" }, isError: true });
+    expect(confirmCommand).not.toHaveBeenCalled();
+    expect(connects).toEqual([]);
+  });
+
   it('refuses a URL the policy blocks, and a request that is missing', async () => {
     const metadata = (await models.mcpRequest.create({ parentId: workspaceId, name: 'Metadata', transport: 'http', url: 'http://169.254.169.254/mcp' } as any))._id;
     expect((await call('connect_mcp_server', { requestId: metadata })).isError).toBe(true);
