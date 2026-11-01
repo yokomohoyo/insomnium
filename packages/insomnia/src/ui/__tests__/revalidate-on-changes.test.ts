@@ -127,6 +127,11 @@ describe('revalidating on database changes', () => {
     db.emit('Request');
     await settled(router);
     expect(state.loads).toBe(before + 1);
+
+    // a flow changed over MCP or by Git, which the Flows tab shows
+    db.emit('Flow');
+    await settled(router);
+    expect(state.loads).toBe(before + 2);
     stop();
   });
 
