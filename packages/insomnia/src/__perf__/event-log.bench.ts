@@ -5,11 +5,12 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import v8 from 'node:v8';
 
 import { describe, expect, it } from '@jest/globals';
 
 import { parseServerSentEvents, readLlmStream } from '../common/llm-stream';
-import { readEventLog } from '../main/network/event-log';
+import { readEventLog, readEventLogSince } from '../main/network/event-log';
 import { median, report } from './seed';
 
 // what a window's poll (twice a second) used to do: read and parse it all
@@ -34,6 +35,10 @@ describe('an event stream\'s log, as a window polls it', () => {
         return readEventLog(file);
       }));
       expect((await readEventLog(file)).length).toBe(next);
+
+      // what IPC copies for a poll (structured clone, as v8.serialize): all of them, or only what's new
+      report(`  IPC copy, a poll sending them all, ${events} events`, await median(async () => v8.serialize(await readEventLog(file))));
+      report(`  IPC copy, a poll sending what's new (none), ${events} events`, await median(async () => v8.serialize(await readEventLogSince(file, next))));
 
       // and the pane's work on each new list (realtime-response-pane.tsx), now skipped when nothing came
       const all = await readEventLog<{ type: string; data: string; timestamp: number }>(file);

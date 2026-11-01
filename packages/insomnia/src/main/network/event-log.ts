@@ -13,6 +13,20 @@ const reads = new Map<string, Read>();
 const KEPT = 8;
 
 export async function readEventLog<T>(file: string): Promise<T[]> {
+  return [...(await readLog(file))].reverse() as T[];
+}
+
+// The events after the first `known` (latest first), and how many there are
+// in all, so a window that has `known` of them is sent only what is new. All
+// of them when it has more than there are (the log was written afresh).
+export async function readEventLogSince<T>(file: string, known: number): Promise<{ total: number; added: T[] }> {
+  const events = await readLog(file);
+  const from = known <= events.length ? known : 0;
+  return { total: events.length, added: events.slice(from).reverse() as T[] };
+}
+
+// in the order written; not to be changed
+async function readLog(file: string): Promise<unknown[]> {
   let read = reads.get(file);
   // its size and what was added, from the one open file
   const handle = await fs.promises.open(file, 'r');
@@ -38,5 +52,5 @@ export async function readEventLog<T>(file: string): Promise<T[]> {
   if (reads.size > KEPT) {
     reads.delete(reads.keys().next().value!);
   }
-  return [...read.events].reverse() as T[];
+  return read.events;
 }

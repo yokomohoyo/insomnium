@@ -53,6 +53,7 @@ const webSocket: WebSocketBridgeAPI = {
   },
   event: {
     findMany: options => ipcRenderer.invoke('webSocket.event.findMany', options),
+    findSince: options => ipcRenderer.invoke('webSocket.event.findSince', options),
     send: options => ipcRenderer.invoke('webSocket.event.send', options),
   },
 };
@@ -65,6 +66,7 @@ const curl: CurlBridgeAPI = {
   },
   event: {
     findMany: options => ipcRenderer.invoke('curl.event.findMany', options),
+    findSince: options => ipcRenderer.invoke('curl.event.findSince', options),
   },
 };
 

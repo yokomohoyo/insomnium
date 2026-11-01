@@ -32,7 +32,7 @@ import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
-import { readEventLog } from './event-log';
+import { readEventLog, readEventLogSince } from './event-log';
 import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
 import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
 import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
@@ -689,6 +689,17 @@ const findMany = async (
   return readEventLog<WebSocketEvent>(response.eventLogPath);
 };
 
+// what a window polling the log doesn't have yet
+const findSince = async (
+  options: { responseId: string; known: number }
+): Promise<{ total: number; added: WebSocketEvent[] }> => {
+  const response = await models.webSocketResponse.getById(options.responseId);
+  if (!response || !response.eventLogPath) {
+    return { total: 0, added: [] };
+  }
+  return readEventLogSince<WebSocketEvent>(response.eventLogPath, options.known);
+};
+
 export interface WebSocketBridgeAPI {
   open: (options: OpenWebSocketRequestOptions) => void;
   close: typeof closeWebSocketConnection;
@@ -698,6 +709,7 @@ export interface WebSocketBridgeAPI {
   };
   event: {
     findMany: typeof findMany;
+    findSince: typeof findSince;
     send: typeof sendWebSocketEvent;
   };
 }
@@ -721,6 +733,7 @@ export const registerWebSocketHandlers = () => {
   ipcMain.on('webSocket.closeAll', closeAllWebSocketConnections);
   ipcMain.handle('webSocket.readyState', (_, options: Parameters<typeof getWebSocketReadyState>[0]) => getWebSocketReadyState(options));
   ipcMain.handle('webSocket.event.findMany', (_, options: Parameters<typeof findMany>[0]) => findMany(options));
+  ipcMain.handle('webSocket.event.findSince', (_, options: Parameters<typeof findSince>[0]) => findSince(options));
 };
 
 electron.app.on('window-all-closed', closeAllWebSocketConnections);
