@@ -238,8 +238,8 @@ export async function render<T>(
   errorMode: string = THROW_ON_ERROR,
   name = '',
 ) {
-  // Make a deep copy so no one gets mad :)
-  const newObj = clone(obj);
+  // Make a deep copy so no one gets mad :) (a string needs none)
+  const newObj = typeof obj === 'object' && obj !== null ? clone(obj) : obj;
 
   async function next<T>(x: T, path: string, first = false) {
     if (blacklistPathRegex && path.match(blacklistPathRegex)) {
@@ -350,57 +350,64 @@ export async function getRenderContext(
   const found = await getGlobalEnvironments(project?._id, workspace._id);
   const globals = { ...found, base: await withSecretValues(found.base), active: await withSecretValues(found.active) };
   const globalEnvironments = [globals.base, globals.active].filter((environment): environment is Environment => !!environment);
-  const keySource: Record<string, string> = {};
-
-  // Function that gets Keys and stores their Source location
-  function getKeySource(subObject: string | Record<string, any>, inKey: string, inSource: string) {
-    // Add key to map if it's not root
-    if (inKey) {
-      keySource[templatingUtils.normalizeToDotAndBracketNotation(inKey)] = inSource;
+  // Where each variable comes from, for the editor's hover on a tag. Worked out
+  // when first asked for rather than for every render: with a large
+  // environment it took half of a send's render. The folders are taken now,
+  // as buildRenderContext reverses the ancestors.
+  const folders = (ancestors || []).filter((ancestor: any) =>
+    isRequestGroup(ancestor) &&
+    ancestor.hasOwnProperty('environment') &&
+    ancestor.hasOwnProperty('name')
+  ) as RequestGroup[];
+  let keySource: Record<string, string> | undefined;
+  const keySources = () => {
+    if (keySource) {
+      return keySource;
     }
+    const sources: Record<string, string> = {};
 
-    // Recurse down for Objects and Arrays
-    const typeStr = Object.prototype.toString.call(subObject);
-
-    if (typeStr === '[object Object]') {
-      for (const key of Object.keys(subObject)) {
-        // @ts-expect-error -- mapping unsoundness
-        getKeySource(subObject[key], templatingUtils.forceBracketNotation(inKey, key), inSource);
+    // Function that gets Keys and stores their Source location
+    function getKeySource(subObject: string | Record<string, any>, inKey: string, inSource: string) {
+      // Add key to map if it's not root
+      if (inKey) {
+        sources[templatingUtils.normalizeToDotAndBracketNotation(inKey)] = inSource;
       }
-    } else if (typeStr === '[object Array]') {
-      for (let i = 0; i < subObject.length; i++) {
-        // @ts-expect-error -- mapping unsoundness
-        getKeySource(subObject[i], templatingUtils.forceBracketNotation(inKey, i), inSource);
-      }
-    }
-  }
 
-  const inKey = templating.NUNJUCKS_TEMPLATE_GLOBAL_PROPERTY_NAME;
-  for (const environment of globalEnvironments) {
-    getKeySource(environment.data || {}, inKey, environment === globals.base ? 'global' : `global: ${environment.name}`);
-  }
-  // Get Keys from root environment
-  getKeySource((rootEnvironment || {}).data, inKey, 'root');
+      // Recurse down for Objects and Arrays
+      const typeStr = Object.prototype.toString.call(subObject);
 
-  // Get Keys from sub environment
-  if (subEnvironment) {
-    getKeySource(subEnvironment.data || {}, inKey, subEnvironment.name || '');
-  }
-
-  // Get Keys from ancestors (e.g. Folders)
-  if (ancestors) {
-    for (let index = 0; index < ancestors.length; index++) {
-      const ancestor: any = ancestors[index] || {};
-
-      if (
-        isRequestGroup(ancestor) &&
-        ancestor.hasOwnProperty('environment') &&
-        ancestor.hasOwnProperty('name')
-      ) {
-        getKeySource(ancestor.environment || {}, inKey, ancestor.name || '');
+      if (typeStr === '[object Object]') {
+        for (const key of Object.keys(subObject)) {
+          // @ts-expect-error -- mapping unsoundness
+          getKeySource(subObject[key], templatingUtils.forceBracketNotation(inKey, key), inSource);
+        }
+      } else if (typeStr === '[object Array]') {
+        for (let i = 0; i < subObject.length; i++) {
+          // @ts-expect-error -- mapping unsoundness
+          getKeySource(subObject[i], templatingUtils.forceBracketNotation(inKey, i), inSource);
+        }
       }
     }
-  }
+
+    const inKey = templating.NUNJUCKS_TEMPLATE_GLOBAL_PROPERTY_NAME;
+    for (const environment of globalEnvironments) {
+      getKeySource(environment.data || {}, inKey, environment === globals.base ? 'global' : `global: ${environment.name}`);
+    }
+    // Get Keys from root environment
+    getKeySource((rootEnvironment || {}).data, inKey, 'root');
+
+    // Get Keys from sub environment
+    if (subEnvironment) {
+      getKeySource(subEnvironment.data || {}, inKey, subEnvironment.name || '');
+    }
+
+    // Get Keys from ancestors (e.g. Folders)
+    for (const folder of folders) {
+      getKeySource(folder.environment || {}, inKey, folder.name || '');
+    }
+    keySource = sources;
+    return sources;
+  };
 
   // Add meta data helper function
   const baseContext: BaseRenderContext = {
@@ -409,7 +416,7 @@ export async function getRenderContext(
       workspaceId: workspace ? workspace._id : 'n/a',
     }),
     getKeysContext: () => ({
-      keyContext: keySource,
+      keyContext: keySources(),
     }),
     getPurpose: () => purpose,
     getExtraInfo: (key: string) => {
