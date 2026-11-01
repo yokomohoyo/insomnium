@@ -24,3 +24,9 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+
+  # the server image's base, pinned by digest
+  - package-ecosystem: "docker"
+    directory: "/packages/insomnium-server"
+    schedule:
+      interval: "monthly"
