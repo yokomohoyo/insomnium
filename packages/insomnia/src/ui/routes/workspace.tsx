@@ -6,7 +6,9 @@ import { database } from '../../common/database';
 import { getGlobalEnvironments } from '../../common/global-environments';
 import { fuzzyMatchAll } from '../../common/misc';
 import { sortMethodMap } from '../../common/sorting';
+import type { StoreStamp, StoreWrite } from '../../common/sqlite-store';
 import * as models from '../../models';
+import type { BaseModel } from '../../models';
 import { ApiSpec } from '../../models/api-spec';
 import { CaCertificate } from '../../models/ca-certificate';
 import { ClientCertificate } from '../../models/client-certificate';
@@ -117,28 +119,11 @@ export const workspaceLoader: LoaderFunction = async ({
   const sortOrder = searchParams.get('sortOrder') as SortOrder;
   const sortFunction = sortMethodMap[sortOrder] || sortMethodMap['type-manual'];
 
-  // the workspace and all its folders' ids, a query per level (not per folder)
-  const listOfParentIds = [activeWorkspace._id];
-  const seen = new Set(listOfParentIds);
-  for (let level = listOfParentIds; level.length > 0;) {
-    level = (await database.find<RequestGroup>(models.requestGroup.type, { parentId: { $in: level } }))
-      .map(r => r._id)
-      .filter(id => !seen.has(id));
-    level.forEach(id => seen.add(id));
-    listOfParentIds.push(...level);
-  }
-
-  const reqs = await database.find(models.request.type, { parentId: { $in: listOfParentIds } });
-  const reqGroups = await database.find(models.requestGroup.type, { parentId: { $in: listOfParentIds } });
-  const grpcReqs = await database.find(models.grpcRequest.type, { parentId: { $in: listOfParentIds } }) as GrpcRequest[];
-  const wsReqs = await database.find(models.webSocketRequest.type, { parentId: { $in: listOfParentIds } });
-  const mcpReqs = await database.find(models.mcpRequest.type, { parentId: { $in: listOfParentIds } });
-  const allRequests = [...reqs, ...reqGroups, ...grpcReqs, ...wsReqs, ...mcpReqs] as (Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest)[];
-
-  const requestMetas = await database.find(models.requestMeta.type, { parentId: { $in: [...reqs, ...wsReqs, ...mcpReqs].map(r => r._id) } });
-  const grpcRequestMetas = await database.find(models.grpcRequestMeta.type, { parentId: { $in: grpcReqs.map(r => r._id) } });
-  const grpcAndRequestMetas = [...requestMetas, ...grpcRequestMetas] as (RequestMeta | GrpcRequestMeta)[];
-  const requestGroupMetas = await database.find(models.requestGroupMeta.type, { parentId: { $in: listOfParentIds } }) as RequestGroupMeta[];
+  const read = await readCollection(activeWorkspace._id);
+  const grpcReqs = [...read.docs[models.grpcRequest.type].values()] as GrpcRequest[];
+  const allRequests = TREE_TYPES.flatMap(type => [...read.docs[type].values()]);
+  const grpcAndRequestMetas = [...read.metas.values()];
+  const requestGroupMetas = [...read.folderMetas.values()];
 
   // by parentId, so the tree is built in one pass rather than a scan per doc
   const childrenOf = groupBy(allRequests, r => r.parentId);
@@ -246,6 +231,173 @@ export const workspaceLoader: LoaderFunction = async ({
     collection: flattenTree(),
   };
 };
+
+type TreeDoc = Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest;
+// in the order the tree had them before: requests, folders, gRPC, WebSocket, MCP
+const TREE_TYPES = [models.request.type, models.requestGroup.type, models.grpcRequest.type, models.webSocketRequest.type, models.mcpRequest.type];
+const REQUEST_TYPES = TREE_TYPES.filter(type => type !== models.requestGroup.type);
+const META_TYPES = [models.requestMeta.type, models.grpcRequestMeta.type];
+
+// A workspace's tree as the last load read it. The loader runs on every
+// revalidation, every save in the window included (each pause while typing in
+// the URL bar), and read the whole collection each time. Now it asks the
+// database what was written since its last read, and reads just those docs,
+// unless a folder changed: then, or when the database can't say, it reads it all.
+interface CollectionRead {
+  workspaceId: string;
+  stamp: StoreStamp;
+  // the workspace's id and its folders'
+  parentIds: Set<string>;
+  docs: Record<string, Map<string, TreeDoc>>;
+  // the requests' metas (and gRPC requests'), and the folders', by their ids
+  metas: Map<string, RequestMeta | GrpcRequestMeta>;
+  folderMetas: Map<string, RequestGroupMeta>;
+}
+let lastRead: CollectionRead | undefined;
+
+// for tests: the next load reads it all
+export const forgetCollectionRead = () => {
+  lastRead = undefined;
+};
+
+async function readCollection(workspaceId: string): Promise<CollectionRead> {
+  const previous = lastRead?.workspaceId === workspaceId ? lastRead : undefined;
+  // (asked before reading, so what is written meanwhile is read again next time)
+  const { stamp, changes } = await database.changesSince(previous?.stamp ?? null);
+  const read = (previous && changes && await readChanges(previous, stamp, changes)) || await readAll(workspaceId, stamp);
+  // (a load begun earlier can finish later)
+  if (!lastRead || lastRead.workspaceId !== workspaceId || lastRead.stamp.epoch !== stamp.epoch || lastRead.stamp.version <= stamp.version) {
+    lastRead = read;
+  }
+  return read;
+}
+
+async function readAll(workspaceId: string, stamp: StoreStamp): Promise<CollectionRead> {
+  // the workspace and all its folders' ids, a query per level (not per folder)
+  const listOfParentIds = [workspaceId];
+  const seen = new Set(listOfParentIds);
+  for (let level = listOfParentIds; level.length > 0;) {
+    level = (await database.find<RequestGroup>(models.requestGroup.type, { parentId: { $in: level } }))
+      .map(r => r._id)
+      .filter(id => !seen.has(id));
+    level.forEach(id => seen.add(id));
+    listOfParentIds.push(...level);
+  }
+
+  const docs: CollectionRead['docs'] = {};
+  for (const type of TREE_TYPES) {
+    const found = await database.find<TreeDoc>(type, { parentId: { $in: listOfParentIds } });
+    docs[type] = new Map(found.map(doc => [doc._id, doc]));
+  }
+  const ids = (types: string[]) => types.flatMap(type => [...docs[type].keys()]);
+  const requestMetas = await database.find<RequestMeta>(models.requestMeta.type, { parentId: { $in: ids([models.request.type, models.webSocketRequest.type, models.mcpRequest.type]) } });
+  const grpcRequestMetas = await database.find<GrpcRequestMeta>(models.grpcRequestMeta.type, { parentId: { $in: ids([models.grpcRequest.type]) } });
+  const requestGroupMetas = await database.find<RequestGroupMeta>(models.requestGroupMeta.type, { parentId: { $in: listOfParentIds } });
+  return {
+    workspaceId,
+    stamp,
+    parentIds: seen,
+    docs,
+    metas: new Map([...requestMetas, ...grpcRequestMetas].map(meta => [meta._id, meta])),
+    folderMetas: new Map(requestGroupMetas.map(meta => [meta._id, meta])),
+  };
+}
+
+// The previous read with the docs written since: null when a folder was, as
+// what belongs to the tree then has to be worked out again
+async function readChanges(previous: CollectionRead, stamp: StoreStamp, changes: StoreWrite[]): Promise<CollectionRead | null> {
+  const folders = previous.docs[models.requestGroup.type];
+  const relevant = changes.filter(({ id, type }) => type === null
+    ? TREE_TYPES.some(t => previous.docs[t].has(id)) || previous.metas.has(id) || previous.folderMetas.has(id)
+    : TREE_TYPES.includes(type) || META_TYPES.includes(type) || type === models.requestGroupMeta.type);
+  if (relevant.some(({ id, type }) => type === models.requestGroup.type || (type === null && folders.has(id)))) {
+    return null;
+  }
+  if (!relevant.length) {
+    return { ...previous, stamp };
+  }
+
+  const read: CollectionRead = {
+    ...previous,
+    stamp,
+    docs: { ...previous.docs },
+    metas: new Map(previous.metas),
+    folderMetas: new Map(previous.folderMetas),
+  };
+  const changed = (type: string) => relevant.filter(change => change.type === type).map(change => change.id);
+  const fetch = async <T extends BaseModel>(type: string, ids: string[]) =>
+    new Map((ids.length ? await database.find<T>(type, { _id: { $in: ids } }) : []).map(doc => [doc._id, doc]));
+
+  // removed
+  for (const { id, type } of relevant) {
+    if (type === null) {
+      for (const t of REQUEST_TYPES) {
+        if (read.docs[t].has(id)) {
+          read.docs[t] = new Map(read.docs[t]);
+          read.docs[t].delete(id);
+        }
+      }
+      read.metas.delete(id);
+      read.folderMetas.delete(id);
+    }
+  }
+  // requests: in the tree when under the workspace or one of its folders (moved
+  // in or out otherwise), with their metas when new to it
+  const added: Record<string, string[]> = {};
+  for (const type of REQUEST_TYPES) {
+    const ids = changed(type);
+    if (!ids.length) {
+      continue;
+    }
+    const found = await fetch<TreeDoc>(type, ids);
+    const docs = read.docs[type] = new Map(read.docs[type]);
+    let adding = false;
+    for (const id of ids) {
+      const doc = found.get(id);
+      if (doc && previous.parentIds.has(doc.parentId)) {
+        if (!docs.has(id)) {
+          adding = true;
+          (added[type === models.grpcRequest.type ? models.grpcRequestMeta.type : models.requestMeta.type] ??= []).push(id);
+        }
+        docs.set(id, doc);
+      } else {
+        docs.delete(id);
+      }
+    }
+    // in the order reading them all gives (by created), which breaks the sort's ties
+    if (adding) {
+      read.docs[type] = new Map([...docs].sort(([, a], [, b]) => a.created - b.created));
+    }
+  }
+  const inTree = (id: string) => REQUEST_TYPES.some(type => read.docs[type].has(id));
+  for (const type of META_TYPES) {
+    const found = await fetch<RequestMeta | GrpcRequestMeta>(type, changed(type));
+    for (const id of changed(type)) {
+      const meta = found.get(id);
+      if (meta && inTree(meta.parentId)) {
+        read.metas.set(id, meta);
+      } else {
+        read.metas.delete(id);
+      }
+    }
+    if (added[type]?.length) {
+      for (const meta of await database.find<RequestMeta | GrpcRequestMeta>(type, { parentId: { $in: added[type] } })) {
+        read.metas.set(meta._id, meta);
+      }
+    }
+  }
+  const folderMetaIds = changed(models.requestGroupMeta.type);
+  const foundFolderMetas = await fetch<RequestGroupMeta>(models.requestGroupMeta.type, folderMetaIds);
+  for (const id of folderMetaIds) {
+    const meta = foundFolderMetas.get(id);
+    if (meta && previous.parentIds.has(meta.parentId)) {
+      read.folderMetas.set(id, meta);
+    } else {
+      read.folderMetas.delete(id);
+    }
+  }
+  return read;
+}
 
 function groupBy<T>(items: T[], key: (item: T) => string | null) {
   const map = new Map<string | null, T[]>();

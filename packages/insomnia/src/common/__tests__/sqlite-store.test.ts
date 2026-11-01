@@ -27,6 +27,42 @@ describe('SqliteStore', () => {
     ...extra,
   });
 
+  describe('changesSince()', () => {
+    it('gives the docs written since a stamp, once each, with their type, null for removed', () => {
+      store.insert(doc('req_1'));
+      const { stamp } = store.changesSince(null);
+      store.update(doc('req_1', { name: 'a' }));
+      store.upsert(doc('req_2'));
+      store.update(doc('req_1', { name: 'b' }));
+      store.removeByIds(['req_2']);
+
+      const { stamp: now, changes } = store.changesSince(stamp);
+
+      expect(changes).toEqual([
+        { version: 4, id: 'req_1', type: 'Request' },
+        { version: 5, id: 'req_2', type: null },
+      ]);
+      expect(store.changesSince(now).changes).toEqual([]);
+    });
+
+    it('cannot say for no stamp, another opening of the database, or more writes than it keeps', () => {
+      const { stamp } = store.changesSince(null);
+      expect(store.changesSince(null).changes).toBeNull();
+      const other = new SqliteStore(':memory:');
+      expect(other.changesSince(stamp).changes).toBeNull();
+      other.close();
+
+      for (let i = 0; i < 25_000; i++) {
+        store.upsert(doc(`req_${i % 3}`));
+      }
+
+      expect(store.changesSince(stamp).changes).toBeNull();
+      const { stamp: recent } = store.changesSince(null);
+      store.upsert(doc('req_x'));
+      expect(store.changesSince(recent).changes).toEqual([{ version: recent.version + 1, id: 'req_x', type: 'Request' }]);
+    });
+  });
+
   it('round-trips documents', () => {
     store.insert(doc('req_1', { name: 'foo', nested: { a: [1, 2] } }));
     const found = store.find('Request', { _id: 'req_1' });

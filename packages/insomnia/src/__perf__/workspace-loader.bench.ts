@@ -2,7 +2,8 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import { globalBeforeEach } from '../__jest__/before-each';
-import { workspaceLoader } from '../ui/routes/workspace';
+import * as models from '../models';
+import { forgetCollectionRead, workspaceLoader } from '../ui/routes/workspace';
 import { median, report, seedCollection } from './seed';
 
 // more ids than the mocked list has
@@ -16,8 +17,19 @@ describe('workspace loader (the sidebar, on every revalidation)', () => {
       await globalBeforeEach();
       const { project, workspace, requests } = await seedCollection({ folders, requestsPerFolder: 100 });
       const args = { request: { url: 'http://localhost/' }, params: { projectId: project._id, workspaceId: workspace._id } } as any;
-      runs[requests] = await median(() => workspaceLoader(args));
-      report(`workspace loader, ${requests} requests`, runs[requests]);
+      runs[requests] = await median(() => {
+        forgetCollectionRead();
+        return workspaceLoader(args);
+      });
+      report(`workspace loader, reading it all, ${requests} requests`, runs[requests]);
+
+      // as after each save while typing in a request's URL bar
+      let request = (await models.request.all())[0];
+      let i = 0;
+      report(`workspace loader after an edit to a request, ${requests} requests`, await median(async () => {
+        request = await models.request.update(request, { url: `http://example.com/${i++}` });
+        return workspaceLoader(args);
+      }));
     }, 120_000);
   }
 
