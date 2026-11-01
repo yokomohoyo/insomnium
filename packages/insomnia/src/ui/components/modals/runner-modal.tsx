@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
@@ -27,6 +27,31 @@ const REPORTS = {
   json: { button: 'Save JSON', label: 'JSON report', extension: 'json', write: jsonReport },
   junit: { button: 'Save JUnit', label: 'JUnit report', extension: 'xml', write: (summary: RunSummary, name: string) => junitReport(summary, name) },
 };
+
+// A result in the list. Kept as it is when others are added, so a long run
+// renders only the new ones, not every row again for each that comes in.
+const RunResultRow = memo(({ result, showIteration, onOpen }: { result: RunResult; showIteration: boolean; onOpen: (requestId: string) => void }) => (
+  <li aria-label={resultName(result)} className="pad-bottom-sm">
+    <details>
+      <summary className="flex items-center gap-2 pointer">
+        <i className={result.passed ? 'fa fa-check-circle-o success' : 'fa fa-times-circle danger'} aria-label={result.passed ? 'Passed' : 'Failed'} />
+        {showIteration && <span className="faint">#{result.iteration}</span>}
+        <span className="faint monospace txt-sm">{result.method}</span>
+        <span className="flex-1">{resultName(result)}</span>
+        <span className="faint">{result.error ? 'Error' : `${result.statusCode ?? ''} ${result.statusMessage ?? ''}`} {elapsed(result.elapsedTime)}</span>
+      </summary>
+      <div className="pad-left">
+        {result.error && <p className="danger selectable">{result.error}</p>}
+        <AssertionResultsViewer results={result.assertions} />
+        <button className="btn btn--super-compact faint" onClick={() => onOpen(result.requestId)}>Open the request</button>
+      </div>
+    </details>
+  </li>
+));
+RunResultRow.displayName = 'RunResultRow';
+
+// results arriving in a burst (quick sends) are shown together, this often
+const SHOW_RESULTS_EVERY = 100;
 
 interface Props {
   // the folder or workspace whose requests run
@@ -74,22 +99,43 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
 
   const chosen = (requests || []).filter(({ request }) => !skipped.has(request._id));
 
+  // results not yet shown, and when they will be
+  const unshown = useRef<RunResult[]>([]);
+  const showTimer = useRef<ReturnType<typeof setTimeout>>();
+  const showResults = () => {
+    clearTimeout(showTimer.current);
+    showTimer.current = undefined;
+    const added = unshown.current;
+    unshown.current = [];
+    if (added.length) {
+      setResults(current => [...current, ...added]);
+    }
+  };
+  useEffect(() => () => clearTimeout(showTimer.current), []);
+
   const run = async () => {
     setError('');
     setResults([]);
+    unshown.current = [];
     setSummary(undefined);
     setRunning(true);
     controller.current = new AbortController();
     try {
-      setSummary(await runRequests(chosen, {
+      const finished = await runRequests(chosen, {
         iterations,
         data: data?.rows,
         delay,
         bail,
         signal: controller.current.signal,
-        onResult: result => setResults(current => [...current, result]),
-      }));
+        onResult: result => {
+          unshown.current.push(result);
+          showTimer.current ??= setTimeout(showResults, SHOW_RESULTS_EVERY);
+        },
+      });
+      showResults();
+      setSummary(finished);
     } catch (err) {
+      showResults();
       setError((err as Error).message);
     } finally {
       setRunning(false);
@@ -153,10 +199,10 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
     await fs.promises.writeFile(filePath, report.write(summary, name, comparison));
   };
 
-  const openRequest = (requestId: string) => {
+  const openRequest = useCallback((requestId: string) => {
     modalRef.current?.hide();
     navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}`);
-  };
+  }, [navigate, organizationId, projectId, workspaceId]);
 
   const passed = results.filter(result => result.passed).length;
   // closing the runner stops the run
@@ -267,22 +313,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
               {summary && summary.results.length > 0 && <RunStatsTable stats={stats} comparison={comparison} />}
               <ul aria-label="Run results" className="list-none m-0 p-0">
                 {results.map(result => (
-                  <li key={`${result.iteration}-${result.requestId}`} aria-label={resultName(result)} className="pad-bottom-sm">
-                    <details>
-                      <summary className="flex items-center gap-2 pointer">
-                        <i className={result.passed ? 'fa fa-check-circle-o success' : 'fa fa-times-circle danger'} aria-label={result.passed ? 'Passed' : 'Failed'} />
-                        {iterations > 1 && <span className="faint">#{result.iteration}</span>}
-                        <span className="faint monospace txt-sm">{result.method}</span>
-                        <span className="flex-1">{resultName(result)}</span>
-                        <span className="faint">{result.error ? 'Error' : `${result.statusCode ?? ''} ${result.statusMessage ?? ''}`} {elapsed(result.elapsedTime)}</span>
-                      </summary>
-                      <div className="pad-left">
-                        {result.error && <p className="danger selectable">{result.error}</p>}
-                        <AssertionResultsViewer results={result.assertions} />
-                        <button className="btn btn--super-compact faint" onClick={() => openRequest(result.requestId)}>Open the request</button>
-                      </div>
-                    </details>
-                  </li>
+                  <RunResultRow key={`${result.iteration}-${result.requestId}`} result={result} showIteration={iterations > 1} onOpen={openRequest} />
                 ))}
               </ul>
             </section>
