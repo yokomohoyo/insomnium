@@ -118,6 +118,17 @@ describe('a WebSocket redirect', () => {
     expect(redirect('wss://api.example.com/a', 'ws://api.example.com/').headers).toEqual({ host: 'api.example.com' });
   });
 
+  it("drops auth's other headers for another host too, such as an API key's", () => {
+    const ws = new EventEmitter();
+    onWebSocketRedirect(ws as any, 'wss://api.example.com/', { refuseMetadata: false, authHeaders: ['x-api-key'] });
+    const headers: Record<string, string> = { 'x-api-key': 'k', accept: 'x' };
+    const request = { removeHeader: (name: string) => delete headers[name], getHeader: (name: string) => headers[name], setHeader: () => {}, destroy: () => {} };
+    ws.emit('redirect', 'wss://api.example.com/b', request);
+    expect(headers).toEqual({ 'x-api-key': 'k', accept: 'x' });
+    ws.emit('redirect', 'wss://other.example.com/', request);
+    expect(headers).toEqual({ accept: 'x' });
+  });
+
   it('to a metadata address, is refused for an MCP client', () => {
     expect(redirect('ws://api.example.com/', 'ws://169.254.169.254/', true).destroyed?.message).toMatch('cloud metadata');
     expect(redirect('ws://api.example.com/', 'ws://169.254.169.254/').destroyed).toBeUndefined();

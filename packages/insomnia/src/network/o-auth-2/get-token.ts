@@ -420,6 +420,8 @@ const sendAccessTokenRequest = async (requestId: string, authentication: AuthTyp
     ],
     url: setDefaultProtocol(authentication.accessTokenUrl),
     method: 'POST',
+    // it carries the client's secret: not on to wherever a redirect says
+    settingFollowRedirects: 'off',
     body: {
       mimeType: 'application/x-www-form-urlencoded',
       params,

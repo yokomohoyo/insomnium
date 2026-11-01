@@ -140,14 +140,23 @@ export async function sendCurlAndWriteTimeline(
   // Validate the final list (incl. auth-derived headers) so a CR/LF in any
   // header or auth-strategy field can't inject into libcurl's HTTPHEADER.
   assertSafeHeaders(renderedRequest.headers);
+  const certificatesFor = (url: string) => clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), url));
+  const certificates = certificatesFor(renderedRequest.url);
+  // A redirect to another origin gets neither the auth headers libcurl keeps
+  // for every host (it drops only Authorization and Cookie), such as an API
+  // key's, nor a client certificate: with either, redirects are followed here,
+  // one at a time, rather than by libcurl.
+  const originBound = authHeaders.filter(({ name }) => !['authorization', 'cookie'].includes(name.toLowerCase()));
+  const follows = !hasRequestPolicy() && ({ off: false, on: true, global: settings.followRedirects }[renderedRequest.settingFollowRedirects] ?? true);
+  const hopByHop = follows && (originBound.length > 0 || certificates.length > 0);
   const requestOptions = {
     requestId,
     // under a policy a redirect could leave what it allows, and it only sees this url
-    req: hasRequestPolicy() ? { ...renderedRequest, settingFollowRedirects: 'off' as const } : renderedRequest,
+    req: hasRequestPolicy() || hopByHop ? { ...renderedRequest, settingFollowRedirects: 'off' as const } : renderedRequest,
     finalUrl,
     socketPath,
     settings,
-    certificates: clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), renderedRequest.url)),
+    certificates,
     caCertficatePath: caCert?.disabled === false ? caCert.path : null,
     refuseMetadata,
   };
@@ -156,14 +165,56 @@ export async function sendCurlAndWriteTimeline(
   const nodejsCurlRequest = process.type === 'renderer'
     ? cancellableCurlRequest
     : (await import('../main/network/libcurl-promise')).curlRequest;
-  const output = await nodejsCurlRequest(requestOptions);
+  let output = await nodejsCurlRequest(requestOptions);
+  // the redirects followed here: each one's headers, before the last response's
+  const redirects: HeaderResult[] = [];
+  let hopOptions = requestOptions;
+  for (let hop = 0; hopByHop && !('error' in output); hop++) {
+    const last = output.headerResults[output.headerResults.length - 1];
+    const location = last && [301, 302, 303, 307, 308].includes(last.code) ? last.headers.find(({ name }) => name.toLowerCase() === 'location')?.value : undefined;
+    const next = location ? new URL(location, hopOptions.finalUrl) : null;
+    if (!next || !['http:', 'https:'].includes(next.protocol) || (settings.maxRedirects > 0 ? hop >= settings.maxRedirects : hop >= 50)) {
+      break;
+    }
+    checkRequestPolicy(next.toString());
+    if (refuseMetadata) {
+      assertNotMetadataUrl(next.toString());
+    }
+    const sameOrigin = next.origin === new URL(hopOptions.finalUrl).origin;
+    const { req } = hopOptions;
+    // as libcurl and browsers do: 303, and 301 and 302 after a POST, go on as a GET without the body
+    const asGet = last.code === 303 || ([301, 302].includes(last.code) && req.method === 'POST');
+    timeline.push(...output.debugTimeline);
+    timeline.push({ value: `Following the redirect to ${next}${sameOrigin ? '' : ', without the credentials and client certificate for the origin it left'}`, name: 'Text', timestamp: Date.now() });
+    redirects.push(...output.headerResults);
+    if (output.responseBodyPath) {
+      await fs.promises.rm(output.responseBodyPath, { force: true }).catch(() => undefined);
+    }
+    hopOptions = {
+      ...hopOptions,
+      finalUrl: next.toString(),
+      certificates: certificatesFor(next.toString()),
+      req: {
+        ...req,
+        ...(sameOrigin ? {} : {
+          headers: req.headers.filter(header => !originBound.includes(header) && !['authorization', 'cookie'].includes(header.name.toLowerCase())),
+          authentication: [],
+        }),
+        ...(asGet ? { method: 'GET', body: {} } : {}),
+      },
+    };
+    output = await nodejsCurlRequest(hopOptions);
+  }
+  if (!('error' in output) && redirects.length) {
+    output = { ...output, headerResults: [...redirects, ...output.headerResults] };
+  }
 
   if ('error' in output) {
     const timelinePath = await storeTimeline(timeline);
 
     return {
       parentId: requestId,
-      url: requestOptions.finalUrl,
+      url: hopOptions.finalUrl,
       error: output.error,
       elapsedTime: 0, // 0 because this path is hit during plugin calls
       bytesRead: 0,
@@ -214,8 +265,12 @@ export async function renderEventStreamConnection(request: Request, environmentI
   const renderResult = await tryToInterpolateRequest(request, environmentId, RENDER_PURPOSE_SEND);
   const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
   const { finalUrl, socketPath } = transformUrl(renderedRequest.url, renderedRequest.parameters, renderedRequest.segmentParams, renderedRequest.authentication, renderedRequest.settingEncodeUrl);
-  const headers = [...renderedRequest.headers, ...await getAuthHeaders(renderedRequest, finalUrl)];
+  const authHeaders = await getAuthHeaders(renderedRequest, finalUrl);
+  const headers = [...renderedRequest.headers, ...authHeaders];
   assertSafeHeaders(headers);
+  // libcurl follows a stream's redirects itself, keeping headers other than
+  // Authorization and Cookie for every host: with auth's (an API key's), none
+  const keptForEveryHost = authHeaders.some(({ name }) => !['authorization', 'cookie'].includes(name.toLowerCase()));
   return {
     url: finalUrl,
     socketPath,
@@ -228,7 +283,7 @@ export async function renderEventStreamConnection(request: Request, environmentI
     suppressUserAgent: renderedRequest.suppressUserAgent,
     settingSendCookies: renderedRequest.settingSendCookies,
     settingStoreCookies: renderedRequest.settingStoreCookies,
-    settingFollowRedirects: renderedRequest.settingFollowRedirects,
+    settingFollowRedirects: keptForEveryHost ? 'off' : renderedRequest.settingFollowRedirects,
     settingRebuildPath: renderedRequest.settingRebuildPath,
   };
 }

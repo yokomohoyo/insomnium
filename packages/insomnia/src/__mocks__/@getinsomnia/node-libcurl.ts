@@ -194,8 +194,15 @@ class Curl extends EventEmitter {
       // @ts-expect-error -- TSCONVERSION
       this._options.WRITEFUNCTION(data);
 
-      // a URL with /status/<code> in it answers with that status
+      // a URL with /status/<code> in it answers with that status, and with
+      // ?location=<url>, sends there
       const status = /\/status\/(\d{3})\b/.exec(String(this._options[Curl.option.URL]))?.[1];
+      let location: string | null = null;
+      try {
+        location = new URL(String(this._options[Curl.option.URL])).searchParams.get('location');
+      } catch {
+        // no URL, or not one
+      }
       process.nextTick(() => {
         this.emit(
           'end',
@@ -205,6 +212,7 @@ class Curl extends EventEmitter {
             status ? `HTTP/1.1 ${status} Status ${status}` : 'HTTP/1.1 200 OK',
             `Content-Length: ${data.length}`,
             'Content-Type: application/json',
+            ...(location ? [`Location: ${location}`] : []),
             '',
           ].join('\n'),
         );

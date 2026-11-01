@@ -227,17 +227,23 @@ const openWebSocketConnection = async (
     const headers = options.headers;
     let url = options.url;
     let authCookie = null;
+    // the headers auth adds, which a redirect to another host doesn't get
+    const authHeaders: string[] = [];
     const wsAuthStrategies = getAuthStrategies(options.authentication).filter(s => !s.disabled);
     for (const auth of wsAuthStrategies) {
       if (auth.type === AUTH_BASIC) {
         const { username, password, useISO88591 } = auth;
         const encoding = useISO88591 ? 'latin1' : 'utf8';
         const h = getBasicAuthHeader(username, password, encoding);
-        if (h) headers.push({ ...h, name: auth.headerName || h.name });
+        if (h) {
+          headers.push({ ...h, name: auth.headerName || h.name });
+          authHeaders.push((auth.headerName || h.name).toLowerCase());
+        }
       } else if (auth.type === AUTH_API_KEY) {
         const { key, value, addTo } = auth;
         if (addTo === HEADER) {
           headers.push({ name: auth.headerName || key, value });
+          authHeaders.push((auth.headerName || key).toLowerCase());
         } else if (addTo === COOKIE) {
           authCookie = `${key}=${value}`;
         } else if (addTo === QUERY_PARAMS) {
@@ -247,7 +253,10 @@ const openWebSocketConnection = async (
       } else if (auth.type === AUTH_BEARER) {
         const { token, prefix } = auth;
         const h = getBearerAuthHeader(token, prefix);
-        if (h) headers.push({ ...h, name: auth.headerName || h.name });
+        if (h) {
+          headers.push({ ...h, name: auth.headerName || h.name });
+          authHeaders.push((auth.headerName || h.name).toLowerCase());
+        }
       }
     }
 
@@ -330,7 +339,7 @@ const openWebSocketConnection = async (
       followRedirects,
       maxRedirects: settings.maxRedirects > 0 ? settings.maxRedirects : undefined,
     });
-    onWebSocketRedirect(ws, url, { refuseMetadata });
+    onWebSocketRedirect(ws, url, { refuseMetadata, authHeaders });
     WebSocketConnections.set(options.requestId, ws);
     if (mqtt) {
       MqttSessions.set(options.requestId, new MqttSession(mqtt, data => ws.send(data), (text, direction) => {
