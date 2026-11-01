@@ -1,6 +1,7 @@
 import iconv from 'iconv-lite';
 import React, {
   Fragment,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -73,17 +74,16 @@ export const ResponseViewer = ({
   const largeResponse = bytes > LARGE_RESPONSE_MB * 1024 * 1024;
   const hugeResponse = bytes > HUGE_RESPONSE_MB * 1024 * 1024;
   const [blockingBecauseTooLarge, setBlockingBecauseTooLarge] = useState(!alwaysShowLargeResponses && largeResponse);
-  const [parseError, setParseError] = useState('');
-
-  let initialBody = null;
-  try {
-    if (!blockingBecauseTooLarge) {
-      initialBody = getBody();
+  // read once, not on every render (each time the request's routes reload)
+  const [initial] = useState(() => {
+    try {
+      return { body: blockingBecauseTooLarge ? null : getBody() as Buffer | null, error: '' };
+    } catch (err) {
+      return { body: null, error: `Failed reading response from filesystem: ${err.stack}` };
     }
-  } catch (err) {
-    setParseError(`Failed reading response from filesystem: ${err.stack}`);
-  }
-  const [bodyBuffer, setBodyBuffer] = useState<Buffer | null>(initialBody);
+  });
+  const [parseError, setParseError] = useState(initial.error);
+  const [bodyBuffer, setBodyBuffer] = useState<Buffer | null>(initial.body);
 
   const editorRef = useRef<CodeEditorHandle>(null);
 
@@ -119,7 +119,8 @@ export const ResponseViewer = ({
     },
   });
 
-  function _getContentType() {
+  // once per body: it parses the whole body to tell JSON
+  const contentType = useMemo(() => {
     const lowercasedOriginalContentType = originalContentType.toLowerCase();
     if (!bodyBuffer || bodyBuffer.length === 0) {
       return lowercasedOriginalContentType;
@@ -151,23 +152,28 @@ export const ResponseViewer = ({
     } catch (error) { }
 
     return lowercasedOriginalContentType;
-  }
+  }, [originalContentType, bodyBuffer]);
 
-  function getBodyAsString() {
-    if (!bodyBuffer) {
-      return '';
-    }
-    // Show everything else as "source"
-    const match = _getContentType().match(/charset=([\w-]+)/);
-    const charset = match && match.length >= 2 ? match[1] : 'utf-8';
-    // Sometimes iconv conversion fails so fallback to regular buffer
-    try {
-      return iconv.decode(bodyBuffer, charset);
-    } catch (err) {
-      console.warn('[response] Failed to decode body', err);
-      return bodyBuffer.toString();
-    }
-  }
+  // decoded when first needed (not for an image, say), then kept
+  const getBodyAsString = useMemo(() => {
+    let decoded: string | undefined;
+    const decode = () => {
+      if (!bodyBuffer) {
+        return '';
+      }
+      // Show everything else as "source"
+      const match = contentType.match(/charset=([\w-]+)/);
+      const charset = match && match.length >= 2 ? match[1] : 'utf-8';
+      // Sometimes iconv conversion fails so fallback to regular buffer
+      try {
+        return iconv.decode(bodyBuffer, charset);
+      } catch (err) {
+        console.warn('[response] Failed to decode body', err);
+        return bodyBuffer.toString();
+      }
+    };
+    return () => decoded ??= decode();
+  }, [bodyBuffer, contentType]);
 
   if (responseError || parseError) {
     return (
@@ -241,7 +247,6 @@ export const ResponseViewer = ({
     </div>);
   }
 
-  const contentType = _getContentType();
   if (
     previewMode === PREVIEW_MODE_FRIENDLY &&
     contentType.indexOf('image/') === 0
@@ -365,7 +370,7 @@ export const ResponseViewer = ({
       defaultValue={getBodyAsString()}
       filter={filter}
       filterHistory={filterHistory}
-      mode={getBodyAsString()?.match(/^\s*<\?xml [^?]*\?>/) ? 'application/xml' : _getContentType()}
+      mode={getBodyAsString()?.match(/^\s*<\?xml [^?]*\?>/) ? 'application/xml' : contentType}
       noMatchBrackets
       onClickLink={url => !disablePreviewLinks && window.main.openInBrowser(getBodyAsString()?.match(/^\s*<\?xml [^?]*\?>/) ? xmlDecode(url) : url)}
       placeholder="..."
