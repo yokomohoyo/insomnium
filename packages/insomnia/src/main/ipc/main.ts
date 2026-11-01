@@ -26,7 +26,6 @@ import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
 import type { FolderSyncBridgeAPI } from '../folder-sync';
 import type { McpClientBridgeAPI } from '../network/mcp-client';
 import { WebSocketBridgeAPI } from '../network/websocket';
-import { lintSpec } from '../spectral-lint';
 import { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {
@@ -190,5 +189,7 @@ export function registerMainHandlers() {
     }
   });
 
-  ipcMain.handle('spectralRun', async (_, options: { contents: string; rulesetPath?: string }) => lintSpec(options));
+  // Spectral (and its rulesets, ajv...) loads when a spec is first linted, not
+  // as the app starts: it was a third of the main process's start
+  ipcMain.handle('spectralRun', async (_, options: { contents: string; rulesetPath?: string }) => (await import('../spectral-lint')).lintSpec(options));
 }

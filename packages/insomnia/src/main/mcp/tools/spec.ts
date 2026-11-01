@@ -7,7 +7,6 @@ import { syncSpecToWorkspace } from '../../../common/spec-sync';
 import { spectralRulesetFor } from '../../../common/spectral-ruleset-path';
 import * as models from '../../../models';
 import { isDesign } from '../../../models/workspace';
-import { lintSpec } from '../../spectral-lint';
 
 const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
 
@@ -26,6 +25,8 @@ async function specOf(workspaceId: string) {
 // The Spec tab's lint results, with the ruleset it uses, line numbers from 1
 async function lint(workspaceId: string, contents: string) {
   const { rulesetPath, source } = await spectralRulesetFor(workspaceId);
+  // (loaded when first used: see ipc/main.ts)
+  const { lintSpec } = await import('../../spectral-lint');
   const problems = (await lintSpec({ contents, rulesetPath })).map(({ severity, code, message, path, range }) => ({
     severity: SEVERITIES[severity] ?? 'info',
     code,
