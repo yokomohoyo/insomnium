@@ -267,6 +267,21 @@ const Editor: FC<{ flow: Flow; requests: FlowRequest[] }> = ({ flow, requests })
     }
     pending.current = setTimeout(save, 400);
   }, [nodes, edges, save]);
+  // a change made elsewhere (over MCP, or by a Git pull or branch switch)
+  // replaces what's on the canvas, so the next save doesn't undo it
+  useEffect(() => {
+    const text = JSON.stringify(fromCanvas(initial.nodes, initial.edges));
+    if (text === saved.current) {
+      return;
+    }
+    if (pending.current) {
+      clearTimeout(pending.current);
+      pending.current = null;
+    }
+    saved.current = text;
+    setNodes(initial.nodes);
+    setEdges(initial.edges);
+  }, [initial, setNodes, setEdges]);
   useEffect(() => () => {
     if (pending.current) {
       save();
