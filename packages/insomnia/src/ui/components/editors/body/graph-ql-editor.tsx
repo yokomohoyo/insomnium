@@ -238,6 +238,11 @@ export const GraphQLEditor: FC<Props> = ({
     }
     let isMounted = true;
     const init = async () => {
+      // introspection sends the request, tags and all, so it waits until
+      // someone has sent it: just opening one from a shared collection sends nothing
+      if (!await models.response.getLatestForRequest(request._id, environmentId)) {
+        return;
+      }
       setSchemaIsFetching(true);
       const newState = await fetchGraphQLSchemaForRequest({
         requestId: request._id,
@@ -543,7 +548,7 @@ export const GraphQLEditor: FC<Props> = ({
                 label={
                   <>
                     <span style={{ marginRight: '10px' }}>Automatic Fetch</span>
-                    <HelpTooltip>Automatically fetch schema when request URL is modified</HelpTooltip>
+                    <HelpTooltip>Automatically fetch schema when request URL is modified, once the request has been sent</HelpTooltip>
                   </>
                 }
                 onClick={() => {

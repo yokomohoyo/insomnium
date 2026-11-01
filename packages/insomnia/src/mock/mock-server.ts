@@ -2,6 +2,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { getRenderContext, KEEP_ON_ERROR, render } from '../common/render';
+import { restrictRenders } from '../main/restricted-renders';
 import * as models from '../models';
 import type { Request } from '../models/request';
 import { chooseExample, loadMockRoutes, type MockLogEntry, type MockRoute, matchRoute } from './mock-routes';
@@ -55,8 +56,11 @@ const renderedBody = async (route: MockRoute, body: string) => {
     return body;
   }
   try {
-    const context = await getRenderContext({ request: route.request as Request });
-    return String(await render(body, context, null, KEEP_ON_ERROR));
+    // for whatever reaches the server, so never the file tag
+    return await restrictRenders(async () => {
+      const context = await getRenderContext({ request: route.request as Request });
+      return String(await render(body, context, null, KEEP_ON_ERROR));
+    });
   } catch (err) {
     return body;
   }

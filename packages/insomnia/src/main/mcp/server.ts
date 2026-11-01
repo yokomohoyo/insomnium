@@ -19,6 +19,7 @@ import { axiosRequest } from '../network/axios-request';
 import { eventStreams } from '../network/curl';
 import { mcpCall, mcpConnect, mcpDisconnect, mcpIsConnected } from '../network/mcp-client';
 import { webSockets } from '../network/websocket';
+import { restrictRenders } from '../restricted-renders';
 import { confirmMcpCommand } from './confirm-command';
 import { confirmGitAction } from './confirm-git';
 import { confirmTestRun } from './confirm-test-run';
@@ -174,13 +175,25 @@ function checkAuth(req: http.IncomingMessage, token: string): boolean {
 // Git's requests from here: the same HTTP and SSH the window's go through
 const gitHttp = makeHttpClient(() => ({ axiosRequest, gitSshRequest: gitSshRequestFrom(null) }));
 
+// The server, with each tool's handler run as a restricted render (no file
+// tag): a client, or a prompt in what it read, mustn't read this computer's files
+export const restrictToolRenders = (server: McpServer): McpServer => new Proxy(server, {
+  get: (target, property, receiver) => property === 'tool'
+    ? (...args: unknown[]) => {
+      const handler = args.pop() as (...handlerArgs: unknown[]) => unknown;
+      return (target.tool as (...toolArgs: unknown[]) => unknown).call(target, ...args, (...handlerArgs: unknown[]) => restrictRenders(() => handler(...handlerArgs)));
+    }
+    : Reflect.get(target, property, receiver),
+});
+
 // minimal: only the core tools (MINIMAL_TOOLS), for a client with little room
 function buildMcpServer(minimal = false): McpServer {
   const mcpServer = new McpServer({
     name: 'insomnium',
     version: getAppVersion(),
   }, { instructions: SERVER_INSTRUCTIONS });
-  const server = minimal ? filterTools(mcpServer, name => MINIMAL_TOOLS.has(name)) : mcpServer;
+  const restricted = restrictToolRenders(mcpServer);
+  const server = minimal ? filterTools(restricted, name => MINIMAL_TOOLS.has(name)) : restricted;
   registerInstructions(server);
   registerTools(server);
   // the app's only: Spectral stays out of the headless server's bundle
