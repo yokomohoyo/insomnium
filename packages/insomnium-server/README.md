@@ -219,7 +219,8 @@ By hand, or with git on the command line: make a token (`POST /api/tokens`, belo
 |---|---|
 | `INSOMNIUM_TEAM_OIDC_ISSUER` | The provider's issuer URL: its `/.well-known/openid-configuration` is read from there. |
 | `INSOMNIUM_TEAM_OIDC_CLIENT_ID`, `INSOMNIUM_TEAM_OIDC_CLIENT_SECRET` | The client's id and secret. |
-| `INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM` | The claim that names someone's account on their first sign-in: `preferred_username` by default, or `email` (verified addresses only; the part before the @). |
+| `INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM` | The claim that names someone's account on their first sign-in: `preferred_username` by default, or `email` (verified addresses only; the part before the @). A first sign-in never claims an admin's account. |
+| `INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS` | With the `email` claim, and needed for it: the domains whose addresses may sign in, comma-separated, such as `example.com`. |
 | `INSOMNIUM_TEAM_OIDC_CREATE_USERS` | `true` makes an account for someone who has none. Otherwise an admin adds the account first, and the sign-in claims it. |
 | `INSOMNIUM_TEAM_OIDC_NAME` | The provider's name, as the server reports it. |
 

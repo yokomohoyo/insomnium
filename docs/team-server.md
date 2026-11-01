@@ -310,7 +310,8 @@ Add these to the container's environment and restart it:
 | `INSOMNIUM_TEAM_OIDC_ISSUER` | The provider's issuer URL. The server reads `<issuer>/.well-known/openid-configuration`, and the issuer there has to match. |
 | `INSOMNIUM_TEAM_OIDC_CLIENT_ID` | The client's id. |
 | `INSOMNIUM_TEAM_OIDC_CLIENT_SECRET` | The client's secret. |
-| `INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM` | The claim that names someone's account the first time they sign in. Default `preferred_username`. With `email`, only verified addresses count, and the part before the @ is the name. |
+| `INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM` | The claim that names someone's account the first time they sign in. Default `preferred_username`. With `email`, only verified addresses count, and the part before the @ is the name. A first sign-in never claims an admin's account. |
+| `INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS` | With the `email` claim, and needed for it: the domains whose addresses may sign in, separated by commas, such as `example.com`. |
 | `INSOMNIUM_TEAM_OIDC_CREATE_USERS` | `true` makes an account for someone who has none. Otherwise an admin adds the account first. |
 | `INSOMNIUM_TEAM_OIDC_NAME` | The provider's name, which the server reports to the app. |
 

@@ -70,6 +70,10 @@ Each person's first sign-in claims the team server account with the same name as
 
 Account names on the team server are lower case letters, digits, `.`, `_` and `-`. A DSM name with other characters, such as a directory account's `lee@example.com`, can't be claimed.
 
+A first sign-in doesn't claim an admin's account: admins sign in with their password.
+
+Because a first sign-in claims an account by its name, use a claim people can't choose for themselves: one the provider's admins set, not a name anyone can register or edit.
+
 To keep the team server to some of the NAS's people, don't turn on account creation: only those with an account can sign in. SSO Server can also limit who may use each application to some users or groups.
 
 ### 6. Sign in
@@ -86,7 +90,7 @@ The redirect URL is always `<INSOMNIUM_TEAM_URL>/auth/oidc/callback`, and the cl
 |---|---|---|---|
 | Authentik | **Applications → Providers**, an **OAuth2/OpenID Provider** with client type **Confidential**, then an application that uses it | `https://authentik.example.com/application/o/<application slug>/` | `preferred_username` (the default) |
 | Keycloak | **Clients → Create client**, OpenID Connect, with **Client authentication** on and **Standard flow** | `https://keycloak.example.com/realms/<realm>` | `preferred_username` (the default) |
-| Google | **Google Auth Platform → Clients**, a **Web application** client | `https://accounts.google.com` | `email` (the part before the @ names the account) |
+| Google | **Google Auth Platform → Clients**, a **Web application** client, for an **Internal** audience | `https://accounts.google.com` | `email` (the part before the @ names the account), with `INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS` set to your domain |
 
 The issuer is the address whose `/.well-known/openid-configuration` the provider serves, and must match the `issuer` in it.
 

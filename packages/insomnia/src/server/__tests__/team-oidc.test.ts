@@ -184,7 +184,7 @@ describe('single sign-on for the team server', () => {
       dataDir: dir,
       host: '127.0.0.1',
       port: 0,
-      oidc: { issuer: provider.issuer, clientId: 'insomnium', clientSecret: 'client secret', usernameClaim: 'email', createUsers: true },
+      oidc: { issuer: provider.issuer, clientId: 'insomnium', clientSecret: 'client secret', usernameClaim: 'email', emailDomains: ['example.com'], createUsers: true },
     });
     store = started.store;
     base = `http://127.0.0.1:${(started.server.address() as AddressInfo).port}`;
@@ -201,6 +201,26 @@ describe('single sign-on for the team server', () => {
     expect(store.user('lee')).toMatchObject({ name: 'lee', admin: false });
     // and no password signs in as them
     expect(store.authenticate('lee', '!')).toBeNull();
+
+    // another domain's kim isn't this server's kim
+    provider.next = { sub: 'sub-other-kim', email: 'kim@elsewhere.example', email_verified: true };
+    const elsewhere = await browse(`${base}/auth/oidc/start`);
+    expect(elsewhere.status).toBe(400);
+    expect(elsewhere.text).toContain(escapeHtml("isn't at a domain this server takes"));
+    expect(store.identityOf('kim', provider.issuer)).toBeNull();
+    expect(store.tokens('kim')).toEqual([]);
+  });
+
+  it("won't let a first sign-in claim an admin's account", async () => {
+    store.addUser('boss', 'boss long password', true);
+    provider.next = { sub: 'sub-boss', preferred_username: 'boss' };
+
+    const page = await browse(`${base}/auth/oidc/start`);
+
+    expect(page.status).toBe(400);
+    expect(page.text).toContain(escapeHtml("single sign-on can't claim"));
+    expect(store.identityOf('boss', provider.issuer)).toBeNull();
+    expect(store.tokens('boss')).toEqual([]);
   });
 
   it("won't link an account that another subject already has", async () => {
@@ -275,5 +295,11 @@ describe('the single sign-on settings', () => {
       INSOMNIUM_TEAM_OIDC_CLIENT_SECRET: 's',
       INSOMNIUM_TEAM_OIDC_CREATE_USERS: 'true',
     })).toEqual({ issuer: 'https://id.example.com/application/o/insomnium/', clientId: 'insomnium', clientSecret: 's', usernameClaim: 'preferred_username', createUsers: true, name: undefined });
+  });
+
+  it('need the domains that may sign in with the email claim', () => {
+    const env = { INSOMNIUM_TEAM_OIDC_ISSUER: 'https://accounts.google.com', INSOMNIUM_TEAM_OIDC_CLIENT_ID: 'c', INSOMNIUM_TEAM_OIDC_CLIENT_SECRET: 's', INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM: 'email' };
+    expect(() => parseOidcConfig(env)).toThrow('INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS');
+    expect(parseOidcConfig({ ...env, INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS: ' Example.com, @team.example.org ' })?.emailDomains).toEqual(['example.com', 'team.example.org']);
   });
 });
