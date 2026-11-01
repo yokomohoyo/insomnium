@@ -61,6 +61,17 @@ export const assertWithinRoot = (parent: string, child: string): void => {
   }
 };
 
+// The temp name for a proto file or root directory: its id and when it was
+// modified, which both come from the document, so an imported or synced one
+// can say anything. Only a safe id and a number make it into the path.
+const tempName = (doc: ProtoFile | ProtoDirectory, kind: 'proto file' | 'proto directory') => {
+  assertSafeNameSegment(doc._id, kind);
+  if (typeof doc.modified !== 'number' || !Number.isFinite(doc.modified)) {
+    throw new Error(`Invalid ${kind} modified time: ${JSON.stringify(doc.modified)}`);
+  }
+  return `${doc._id}.${doc.modified}`;
+};
+
 // Write to a unique temp name, then rename into place, so a file that exists
 // at fullPath always has its full content. Concurrent callers skip files that
 // already exist and read them synchronously right away; a plain writeFile
@@ -142,13 +153,12 @@ export const writeProtoFile = async (protoFile: ProtoFile, forceWrite = false): 
     // Find all descendants of the root ancestor directory
     const descendants = await db.withDescendants(rootAncestorProtoDirectory);
     const rootDir = ensureGrpcRootDir();
+    const treeRoot = path.join(rootDir, tempName(rootAncestorProtoDirectory, 'proto directory'));
+    assertWithinRoot(rootDir, treeRoot);
     const treeRootDirs = await recursiveWriteProtoDirectory(
       rootAncestorProtoDirectory,
       descendants,
-      path.join(
-        rootDir,
-        `${rootAncestorProtoDirectory._id}.${rootAncestorProtoDirectory.modified}`,
-      ),
+      treeRoot,
       forceWrite
     );
     return {
@@ -162,13 +172,14 @@ export const writeProtoFile = async (protoFile: ProtoFile, forceWrite = false): 
     // Write single file
     const rootDir = ensureGrpcRootDir();
 
-    const filePath = `${protoFile._id}.${protoFile.modified}.proto`;
+    const filePath = `${tempName(protoFile, 'proto file')}.proto`;
     const result = {
       filePath,
       dirs: [rootDir],
     };
     // Check if file already exists
     const fullPath = path.join(rootDir, filePath);
+    assertWithinRoot(rootDir, fullPath);
     if (!forceWrite && fs.existsSync(fullPath)) {
       return result;
     }
