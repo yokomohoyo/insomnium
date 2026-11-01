@@ -54,7 +54,7 @@ jobs:
           TAG: ${{ github.event.release.tag_name || github.event.inputs.tag }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          # a dry run (unsigned, uploading nothing) can build a commit; a release only a tag
+          # a dry run (unsigned on every OS, uploading nothing) can build a commit; a release only a tag
           if [[ "$DRY_RUN" == "true" && "$TAG" =~ ^[0-9a-f]{40}$ ]]; then
             echo "ref=$TAG" >> "$GITHUB_OUTPUT"
           elif [[ "$TAG" =~ ^[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
@@ -87,8 +87,9 @@ jobs:
 
       # electron-builder.config.js notarizes only when APPLE_API_KEY (a path to
       # the App Store Connect .p8 key) is set, so decode it to a file first.
+      # a dry run can build any commit, so it never gets the signing secrets
       - name: Prepare notarization API key (macOS)
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && !inputs.dry_run
         shell: bash
         env:
           APPLE_API_KEY_BASE64: ${{ secrets.APPLE_API_KEY_BASE64 }}
@@ -101,8 +102,16 @@ jobs:
           printf '%s' "$APPLE_API_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/private_keys/AuthKey.p8"
           echo "APPLE_API_KEY=$RUNNER_TEMP/private_keys/AuthKey.p8" >> "$GITHUB_ENV"
 
+      - name: Package app (macOS, unsigned dry run)
+        if: matrix.os == 'macos-latest' && inputs.dry_run
+        shell: bash
+        run: npm run app-package
+        env:
+          NODE_OPTIONS: "--max_old_space_size=6144"
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
       - name: Package app (macOS)
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && !inputs.dry_run
         shell: bash
         run: npm run app-package
         env:
@@ -115,7 +124,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Verify signature and notarization (macOS)
-        if: matrix.os == 'macos-latest'
+        if: matrix.os == 'macos-latest' && !inputs.dry_run
         shell: bash
         run: |
           app=packages/insomnia/dist/mac-arm64/Insomnium.app
