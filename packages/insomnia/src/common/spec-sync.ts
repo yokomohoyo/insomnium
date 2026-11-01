@@ -81,14 +81,30 @@ export async function syncSpecToWorkspace({ workspaceId, resources }: { workspac
     const specRequests = resources.filter(isRequest);
     const specIds = new Set(specRequests.map(operationKey));
     const claimed = new Set<string>();
+    // the existing requests by operation, and those without one by method and
+    // URL, in order: a lookup each, where scanning them all for each operation
+    // was quadratic in a large spec
+    const bySpecRequestId = new Map<string, Request[]>();
+    const legacyByMethodAndUrl = new Map<string, Request[]>();
+    const methodAndUrl = (request: Pick<Request, 'method' | 'url'>) => `${request.method} ${request.url}`;
+    for (const request of existingRequests) {
+      const [index, key] = request.specRequestId
+        ? [bySpecRequestId, request.specRequestId]
+        : [legacyByMethodAndUrl, methodAndUrl(request)];
+      const list = index.get(key);
+      if (list) {
+        list.push(request);
+      } else {
+        index.set(key, [request]);
+      }
+    }
     for (const fromSpec of specRequests) {
       const specRequestId = operationKey(fromSpec);
       // every request generated for this operation (copies of one too); else,
       // one made before requests kept their operation's id, by method and URL
-      let matches = existingRequests.filter(request => request.specRequestId === specRequestId);
+      let matches = bySpecRequestId.get(specRequestId) || [];
       if (!matches.length) {
-        const legacy = existingRequests.find(request => !request.specRequestId && !claimed.has(request._id)
-          && request.method === fromSpec.method && request.url === fromSpec.url);
+        const legacy = legacyByMethodAndUrl.get(methodAndUrl(fromSpec))?.find(request => !claimed.has(request._id));
         matches = legacy ? [legacy] : [];
       }
 
