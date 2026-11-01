@@ -51,6 +51,26 @@ describe('lintSpec()', () => {
     expect(found).not.toContain('info-contact');
   });
 
+  it('lints the same text with the same ruleset once', async () => {
+    const rulesetPath = ruleset('.spectral.yaml', 'extends: spectral:oas\n');
+    const contents = `${spec}# once\n`;
+
+    const [first, second] = await Promise.all([lintSpec({ contents, rulesetPath }), lintSpec({ contents, rulesetPath })]);
+
+    expect(second).toBe(first);
+    expect(await lintSpec({ contents: `${contents}# changed\n`, rulesetPath })).not.toBe(first);
+  });
+
+  it('lints again once the ruleset has changed', async () => {
+    const rulesetPath = ruleset('.spectral.yaml', 'extends: spectral:oas\n');
+    const contents = `${spec}# ruleset changes\n`;
+    expect(codes(await lintSpec({ contents, rulesetPath }))).toContain('info-contact');
+
+    fs.writeFileSync(rulesetPath, 'extends: spectral:oas\nrules:\n  info-contact: off\n');
+
+    expect(codes(await lintSpec({ contents, rulesetPath }))).not.toContain('info-contact');
+  });
+
   it("lints with a ruleset's own rules", async () => {
     const rulesetPath = ruleset('.spectral.yaml', 'extends: spectral:oas\nrules:\n  info-contact: off\n');
 
