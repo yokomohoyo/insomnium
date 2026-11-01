@@ -71,6 +71,11 @@ const withScripts = (description = '', scripts: Scripts | undefined, note: strin
 
 export const convert: Converter = rawData => {
   let file: UNKNOWN;
+  // Not this format, without parsing it (as insomnia-4.ts): its types all end
+  // in insomnia.rest/5.0, which JSON may write with an escaped /
+  if (!rawData.includes('insomnia.rest')) {
+    return null;
+  }
   try {
     file = YAML.parse(rawData);
   } catch (error) {

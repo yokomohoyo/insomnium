@@ -542,6 +542,11 @@ const convertParameters = (parameters?: OpenAPIV2.Parameter[]) => {
 export const convert: Converter = async rawData => {
   requestCount = 1; // Validate
 
+  // Not a Swagger document, without parsing it: an OpenAPI 3 spec comes here
+  // first, and parsing a large one took most of the time its import did
+  if (!rawData.includes('swagger')) {
+    return null;
+  }
   let api = await parseDocument(rawData);
 
   if (!api || api.swagger !== SUPPORTED_SWAGGER_VERSION) {
