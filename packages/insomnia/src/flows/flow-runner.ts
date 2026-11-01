@@ -5,7 +5,7 @@
 import { t } from '../common/i18n';
 import { getRenderContext, getRenderContextAncestors, render, RENDER_PURPOSE_SEND } from '../common/render';
 import * as models from '../models';
-import { cancelRequestById } from '../network/cancellation';
+import { cancelCurlAndWriteTimeline } from '../network/network';
 import { sendForRun } from '../network/runner';
 import type { FlowRunner } from './run-flow';
 
@@ -17,8 +17,9 @@ export const appFlowRunner = ({ workspaceId, environmentId }: { workspaceId: str
     if (!request || workspace?._id !== workspaceId) {
       throw new Error(t('The request it sends is no longer in this collection: choose another.'));
     }
-    // Stop cancels it, as the request pane's Cancel does
-    const cancel = () => cancelRequestById(request._id);
+    // Stop cancels it, as the runner's Stop does: in the window, or in the
+    // main process for a run over MCP
+    const cancel = () => cancelCurlAndWriteTimeline(request._id);
     signal.addEventListener('abort', cancel, { once: true });
     try {
       const { stored, url } = await sendForRun(request, { environmentId, iterationData: variables });
