@@ -13,7 +13,7 @@ import * as models from '../models/index';
 import type { Workspace } from '../models/workspace';
 import type { CredentialGuard, GuardState, KeyWrapper } from './credential-guard';
 import { generateId } from './misc';
-import type { SqliteStore, StoreDocStamp, StoreQuery } from './sqlite-store';
+import type { SqliteStore, StoreDocStamp, StoreQuery, StoreStamp, StoreWrite } from './sqlite-store';
 
 export interface Query {
   _id?: string | SpecificQuery;
@@ -207,6 +207,15 @@ export const database = {
     }
 
     return docs;
+  },
+
+  // The docs written since a stamp from an earlier call, and the stamp now; the
+  // docs are null when that can't be told (see SqliteStore.changesSince)
+  changesSince: async function(since: StoreStamp | null): Promise<{ stamp: StoreStamp; changes: StoreWrite[] | null }> {
+    if (!store) {
+      return _send('changesSince', ...arguments);
+    }
+    return store.changesSince(since);
   },
 
   /** Transitive descendants of rootId, optionally filtered to types. Walks the tree in SQL. */
@@ -652,7 +661,7 @@ export const database = {
 // What a window can have the main process's database do (db.fn): the
 // functions that forward there (_send), and nothing else of it, init above all
 const FORWARDED_NAMES = [
-  'all', 'batchModifyDocs', 'bufferChanges', 'bufferChangesIndefinitely', 'count', 'duplicate', 'find',
+  'all', 'batchModifyDocs', 'bufferChanges', 'bufferChangesIndefinitely', 'changesSince', 'count', 'duplicate', 'find',
   'findDescendants', 'findMostRecentlyModified', 'findStamps', 'flushChanges', 'get', 'getMostRecentlyModified', 'getWhere',
   'insert', 'remove', 'removeWhere', 'unsafeRemove', 'update', 'upsert', 'withAncestors', 'withDescendants',
 ] as const;

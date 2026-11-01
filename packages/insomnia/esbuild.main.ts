@@ -101,7 +101,18 @@ export default async function build(options: Options) {
     format: 'cjs',
     external: ['electron'],
   });
-  return Promise.all([main, preload, protoWorker, pluginHost, pluginHostPreload]);
+  // Worker thread the main process lints specs on (main/spectral-lint.ts)
+  const spectralWorker = esbuild.build({
+    entryPoints: ['./src/main/spectral-worker.ts'],
+    outfile: path.join(outdir, 'spectral-worker.min.js'),
+    bundle: true,
+    platform: 'node',
+    sourcemap: true,
+    format: 'cjs',
+    define: env,
+    external,
+  });
+  return Promise.all([main, preload, protoWorker, spectralWorker, pluginHost, pluginHostPreload]);
 }
 
 // Build if ran as a cli script
