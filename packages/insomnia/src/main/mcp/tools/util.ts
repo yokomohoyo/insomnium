@@ -5,6 +5,7 @@ import { isMcpRequest } from '../../../models/mcp-request';
 import { isEventStreamRequest, isRequest } from '../../../models/request';
 import { isWebSocketRequest } from '../../../models/websocket-request';
 import type { Workspace } from '../../../models/workspace';
+import { isMetadataHost } from '../../../network/metadata-hosts';
 import { checkRequestPolicy } from '../../../network/request-policy';
 
 // A request's type as the tools name it: an Event Stream is an HTTP request
@@ -19,37 +20,6 @@ export const requestTypeLabel = (req: Pick<BaseModel, 'type'>) =>
 // Re-exported from the network layer so gRPC metadata can reuse it.
 export { assertSafeHeaders } from '../../../network/header-injection';
 
-// Cloud-metadata SSRF targets, compared after canonicalizing the host. (new
-// URL() already normalizes decimal/hex/octal IPv4, so those are covered.)
-const BLOCKED_HOSTS = new Set([
-  '169.254.169.254',           // AWS/GCP/Azure IMDS
-  'fd00:ec2::254',             // AWS IPv6 IMDS
-  'metadata.google.internal',
-  'metadata',
-]);
-
-// Unbracket IPv6 and unwrap IPv4-mapped IPv6 (::ffff:a9fe:a9fe) to its IPv4.
-function canonicalHost(hostname: string): string {
-  let h = hostname.toLowerCase();
-  if (h.startsWith('[') && h.endsWith(']')) {
-    h = h.slice(1, -1);
-  }
-  const mapped = h.match(/^::ffff:(.+)$/);
-  if (mapped) {
-    const rest = mapped[1];
-    if (rest.includes('.')) {
-      return rest;
-    }
-    const hex = rest.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
-    if (hex) {
-      const hi = parseInt(hex[1], 16);
-      const lo = parseInt(hex[2], 16);
-      return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
-    }
-  }
-  return h;
-}
-
 // Restrict an LLM-driven request URL to http(s) (or the schemes given, ws(s)
 // for a WebSocket) and block cloud-metadata hosts. Loopback/private hosts stay
 // allowed (local dev). Throws if disallowed.
@@ -63,7 +33,7 @@ export function assertSafeRequestUrl(rawUrl: string, schemes: string[] = ['http:
   if (!schemes.includes(parsed.protocol)) {
     throw new Error(`Refusing to send: scheme '${parsed.protocol}' is not allowed (only ${schemes.map(scheme => scheme.slice(0, -1)).join(' and ')}).`);
   }
-  if (BLOCKED_HOSTS.has(canonicalHost(parsed.hostname))) {
+  if (isMetadataHost(parsed.hostname)) {
     throw new Error(`Refusing to send: '${parsed.hostname}' is a cloud-metadata endpoint and is blocked.`);
   }
   checkRequestPolicy(rawUrl);

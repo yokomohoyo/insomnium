@@ -26,6 +26,7 @@ import type { WebSocketResponse } from '../../models/websocket-response';
 import { COOKIE, HEADER, QUERY_PARAMS } from '../../network/api-key/constants';
 import { getBasicAuthHeader } from '../../network/basic-auth/get-header';
 import { getBearerAuthHeader } from '../../network/bearer-auth/get-header';
+import { lookupRefusingMetadata, metadataGuarded } from '../../network/metadata-hosts';
 import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { guard } from '../../utils/guard';
@@ -37,6 +38,7 @@ import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProto
 import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
 import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
 import { BinaryEncoding, bytesOf, loggedData, payloadBytes, reconnectLimits } from './websocket-frames';
+import { onWebSocketRedirect } from './websocket-redirect';
 import { describeProxy, proxyFor } from './proxy';
 
 export interface WebSocketConnection extends WebSocket {
@@ -313,8 +315,12 @@ const openWebSocketConnection = async (
       timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Using proxy ${describeProxy(proxy)}`, name: 'Text', timestamp: Date.now() }) + '\n');
     }
     const agent = proxy ? (proxy.startsWith('socks') ? new SocksProxyAgent(proxy) : new HttpsProxyAgent(proxy)) : undefined;
+    // for an MCP client, no connection to a cloud metadata address, however
+    // named or redirected to (network/metadata-hosts.ts)
+    const refuseMetadata = metadataGuarded();
     const ws = new WebSocket(url, protocols, {
       agent,
+      ...(refuseMetadata ? { lookup: lookupRefusingMetadata } : {}),
       headers: lowerCasedEnabledHeaders,
       ca: caCertificate,
       cert: pemCertificates,
@@ -324,6 +330,7 @@ const openWebSocketConnection = async (
       followRedirects,
       maxRedirects: settings.maxRedirects > 0 ? settings.maxRedirects : undefined,
     });
+    onWebSocketRedirect(ws, url, { refuseMetadata });
     WebSocketConnections.set(options.requestId, ws);
     if (mqtt) {
       MqttSessions.set(options.requestId, new MqttSession(mqtt, data => ws.send(data), (text, direction) => {

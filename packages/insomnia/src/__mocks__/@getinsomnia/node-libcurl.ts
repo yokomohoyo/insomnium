@@ -6,6 +6,7 @@ import { CurlFeature } from '@getinsomnia/node-libcurl/dist/enum/CurlFeature';
 import { CurlHttpVersion } from '@getinsomnia/node-libcurl/dist/enum/CurlHttpVersion';
 import { CurlInfoDebug } from '@getinsomnia/node-libcurl/dist/enum/CurlInfoDebug';
 import { CurlNetrc } from '@getinsomnia/node-libcurl/dist/enum/CurlNetrc';
+import { CurlPreReqFunc } from '@getinsomnia/node-libcurl/dist/enum/CurlPreReqFunc';
 import { EventEmitter } from 'events';
 import fs from 'fs';
 
@@ -13,6 +14,16 @@ class Curl extends EventEmitter {
   _options = {};
   _meta = {};
   _features = {};
+  // the address a host name connects to, for PREREQFUNCTION (a test sets
+  // these); global, as a dynamic import gets its own copy of this module
+  static get addresses(): Record<string, string> {
+    // @ts-expect-error -- test-only global
+    return (globalThis.mockCurlAddresses ??= {});
+  }
+  static set addresses(addresses: Record<string, string>) {
+    // @ts-expect-error -- test-only global
+    globalThis.mockCurlAddresses = addresses;
+  }
 
   static info = {
     COOKIELIST: 'COOKIELIST',
@@ -162,6 +173,15 @@ class Curl extends EventEmitter {
 
   perform() {
     process.nextTick(() => {
+      // @ts-expect-error -- TSCONVERSION
+      const prereq = this._options.PREREQFUNCTION;
+      if (prereq) {
+        const host = new URL(String(this._options[Curl.option.URL])).hostname.replace(/^\[(.*)\]$/, '$1');
+        if (prereq(Curl.addresses[host] || host, '127.0.0.1', 80, 50000) === 'Abort') {
+          this.emit('error', new Error('Operation was aborted by an application callback'), 'CURLE_ABORTED_BY_CALLBACK');
+          return;
+        }
+      }
       const data = Buffer.from(
         JSON.stringify({
           options: this._options,
@@ -227,4 +247,5 @@ module.exports = {
   CurlFeature: getTsEnumOnlyWithNamedMembers(CurlFeature),
   CurlNetrc: getTsEnumOnlyWithNamedMembers(CurlNetrc),
   CurlHttpVersion: getTsEnumOnlyWithNamedMembers(CurlHttpVersion),
+  CurlPreReqFunc: getTsEnumOnlyWithNamedMembers(CurlPreReqFunc),
 };

@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 
+import { setMetadataGuard } from '../network/metadata-hosts';
 import { setFileTagAllowed } from '../ui/components/templating/local-template-tags';
 
 // Renders done for someone other than the person at the app: an MCP client's
@@ -8,6 +9,8 @@ import { setFileTagAllowed } from '../ui/components/templating/local-template-ta
 const restricted = new AsyncLocalStorage<true>();
 
 setFileTagAllowed(() => !restricted.getStore());
+// and nothing they send connects to a cloud metadata address (network/metadata-hosts.ts)
+setMetadataGuard(() => Boolean(restricted.getStore()));
 
 export const restrictRenders = <T>(run: () => T): T => restricted.run(true, run);
 

@@ -3,7 +3,7 @@
 import { guard } from '../../utils/guard';
 guard(process.type !== 'renderer', 'Native abstractions for Nodejs module unavailable in renderer');
 
-import { Curl, CurlAuth, CurlCode, CurlFeature, CurlHttpVersion, CurlInfoDebug, CurlNetrc } from '@getinsomnia/node-libcurl';
+import { Curl, CurlAuth, CurlCode, CurlFeature, CurlHttpVersion, CurlInfoDebug, CurlNetrc, CurlPreReqFunc } from '@getinsomnia/node-libcurl';
 import electron from 'electron';
 import fs from 'fs';
 import { env as processEnv } from 'node:process';
@@ -20,6 +20,7 @@ import { getAuthStrategies, RequestHeader } from '../../models/request';
 import { ResponseHeader, ResponseTimings } from '../../models/response';
 import type { Visualization } from '../../common/visualizer';
 import type { AssertionResult } from '../../network/assertions';
+import { isMetadataAddress } from '../../network/metadata-hosts';
 import { getCaBundle } from './ca-bundle';
 import { buildMultipart } from './multipart';
 import { parseHeaderStrings } from './parse-header-strings';
@@ -33,6 +34,8 @@ export interface CurlRequestOptions {
   certificates: ClientCertificate[];
   caCertficatePath: string | null;
   socketPath?: string;
+  // no connection to a cloud metadata address (network/metadata-hosts.ts)
+  refuseMetadata?: boolean;
 }
 interface RequestUsedHere {
   headers: any;
@@ -130,11 +133,11 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
 
     const responseBodyPath = path.join(responsesDir, uuidv4() + '.response');
 
-    const { requestId, req, finalUrl, settings, certificates, caCertficatePath, socketPath } = options;
+    const { requestId, req, finalUrl, settings, certificates, caCertficatePath, socketPath, refuseMetadata } = options;
     const caCert = await getCaBundle(caCertficatePath, settings.useSystemCertificates);
     const systemProxy = !settings.proxyEnabled && settings.useSystemProxy ? await proxyFor(finalUrl, settings) : null;
 
-    const { curl, debugTimeline } = createConfiguredCurlInstance({
+    const { curl, debugTimeline, refusedAddress } = createConfiguredCurlInstance({
       req,
       finalUrl,
       settings,
@@ -142,6 +145,7 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
       certificates,
       socketPath,
       systemProxy,
+      refuseMetadata,
     });
     const { method, body } = req;
     setCurlMethod(curl, method);
@@ -249,7 +253,9 @@ export const curlRequest = (options: CurlRequestOptions) => new Promise<CurlRequ
       let error = err + '';
       let statusMessage = 'Error';
 
-      if (code === CurlCode.CURLE_ABORTED_BY_CALLBACK) {
+      if (code === CurlCode.CURLE_ABORTED_BY_CALLBACK && refusedAddress()) {
+        error = `Refusing to connect to ${refusedAddress()}: cloud metadata addresses are blocked`;
+      } else if (code === CurlCode.CURLE_ABORTED_BY_CALLBACK) {
         error = 'Request aborted';
         statusMessage = 'Abort';
       }
@@ -282,6 +288,7 @@ export const createConfiguredCurlInstance = ({
   certificates,
   socketPath,
   systemProxy,
+  refuseMetadata = false,
 }: {
   req: RequestUsedHere;
   finalUrl: string;
@@ -291,10 +298,24 @@ export const createConfiguredCurlInstance = ({
   socketPath?: string;
   // the system's proxy, resolved by the caller when that setting's on
   systemProxy?: string | null;
+  refuseMetadata?: boolean;
 }) => {
   const debugTimeline: ResponseTimelineEntry[] = [];
   const curl = new Curl();
   curl.setOpt(Curl.option.URL, finalUrl);
+  // each connection's address, before anything is sent on it: so neither a
+  // name that resolves there nor a redirect reaches a cloud metadata address
+  let refusedAddress: string | undefined;
+  if (refuseMetadata) {
+    curl.setOpt('PREREQFUNCTION', (primaryIp: string) => {
+      if (!isMetadataAddress(primaryIp)) {
+        return CurlPreReqFunc.Ok;
+      }
+      refusedAddress = primaryIp;
+      debugTimeline.push({ value: `Refusing to connect to ${primaryIp}: cloud metadata addresses are blocked`, name: 'Text', timestamp: Date.now() });
+      return CurlPreReqFunc.Abort;
+    });
+  }
   socketPath && curl.setOpt(Curl.option.UNIX_SOCKET_PATH, socketPath);
   // HTTP(S) only, for the request and any redirect: curl's other protocols
   // (file, ftp, gopher, smb, ...) would give requests local file access.
@@ -435,7 +456,7 @@ export const createConfiguredCurlInstance = ({
     curl.setOpt(Curl.option.NETRC, CurlNetrc.Required);
   }
 
-  return { curl, debugTimeline };
+  return { curl, debugTimeline, refusedAddress: () => refusedAddress };
 };
 
 const closeReadFunction = (isMultipart: boolean, fd?: number, path?: string) => {

@@ -45,6 +45,7 @@ import { evaluateAssertions } from './assertions';
 import { getAuthHeaders, getAuthQueryParamsList } from './authentication';
 import { cancellableCurlRequest, cancelRequestById } from './cancellation';
 import { assertSafeHeaders } from './header-injection';
+import { assertNotMetadataUrl, metadataGuarded } from './metadata-hosts';
 import { checkRequestPolicy, hasRequestPolicy } from './request-policy';
 import { addSetCookiesToToughCookieJar } from './set-cookie-util';
 import { urlMatchesCertHost } from './url-matches-cert-host';
@@ -116,6 +117,11 @@ export async function sendCurlAndWriteTimeline(
   const { finalUrl, socketPath } = transformUrl(renderedRequest.url, renderedRequest.parameters, renderedRequest.segmentParams, renderedRequest.authentication, renderedRequest.settingEncodeUrl);
   // here rather than in callers, so chained sends (the response tag) are checked too
   checkRequestPolicy(socketPath ? `unix:${socketPath}` : finalUrl);
+  // (libcurl checks each address it connects to, as well: libcurl-promise.ts)
+  const refuseMetadata = metadataGuarded();
+  if (refuseMetadata) {
+    assertNotMetadataUrl(finalUrl);
+  }
 
   timeline.push({ value: `Preparing request to ${finalUrl}`, name: 'Text', timestamp: Date.now() });
   timeline.push({ value: `Current time is ${new Date().toISOString()}`, name: 'Text', timestamp: Date.now() });
@@ -143,6 +149,7 @@ export async function sendCurlAndWriteTimeline(
     settings,
     certificates: clientCertificates.filter(c => !c.disabled && urlMatchesCertHost(setDefaultProtocol(c.host, 'https:'), renderedRequest.url)),
     caCertficatePath: caCert?.disabled === false ? caCert.path : null,
+    refuseMetadata,
   };
 
   // NOTE: conditionally use ipc bridge, renderer cannot import native modules directly
