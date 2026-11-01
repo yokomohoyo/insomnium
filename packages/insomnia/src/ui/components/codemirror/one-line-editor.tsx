@@ -15,6 +15,7 @@ import { NunjucksParsedTag } from '../../../templating/utils';
 import { useNunjucks } from '../../context/nunjucks/use-nunjucks';
 import { RootLoaderData } from '../../routes/root';
 import { isKeyCombinationInRegistry } from '../settings/shortcuts';
+import { closeEditor } from './close-editor';
 export interface OneLineEditorProps {
   defaultValue: string;
   getAutocompleteConstants?: () => string[] | PromiseLike<string[]>;
@@ -197,8 +198,7 @@ export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>
     }
   });
   useUnmount(() => {
-    codeMirror.current?.toTextArea();
-    codeMirror.current?.closeHintDropdown();
+    closeEditor(codeMirror.current);
     codeMirror.current = null;
   });
 

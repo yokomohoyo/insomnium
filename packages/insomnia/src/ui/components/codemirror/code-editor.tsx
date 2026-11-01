@@ -27,6 +27,7 @@ import { FilterHelpModal } from '../modals/filter-help-modal';
 import { showModal } from '../modals/index';
 import { isKeyCombinationInRegistry } from '../settings/shortcuts';
 import { normalizeIrregularWhitespace } from './normalizeIrregularWhitespace';
+import { closeEditor } from './close-editor';
 const TAB_SIZE = 4;
 const MAX_SIZE_FOR_LINTING = 1000000; // Around 1MB
 
@@ -67,7 +68,17 @@ const widget = (cm: CodeMirror.EditorFromTextArea | null, from: CodeMirror.Posit
   }
 };
 // Global object used for storing and persisting editor scroll, lint and folding margin states
-const editorStates: Record<string, EditorState> = {};
+// (the most recent: each keeps the editor's undo history, and there's one for
+// every response, body and spec opened)
+const editorStates = new Map<string, EditorState>();
+const KEPT_EDITOR_STATES = 100;
+const keepEditorState = (key: string, state: EditorState) => {
+  editorStates.delete(key);
+  editorStates.set(key, state);
+  if (editorStates.size > KEPT_EDITOR_STATES) {
+    editorStates.delete(editorStates.keys().next().value!);
+  }
+};
 export interface CodeEditorProps {
   // what a screen reader calls the editor
   ariaLabel?: string;
@@ -390,7 +401,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
     // NOTE: maybe we don't need this anymore?
     const persistState = () => {
       if (uniquenessKey && codeMirror.current) {
-        editorStates[uniquenessKey] = {
+        keepEditorState(uniquenessKey, {
           scroll: codeMirror.current.getScrollInfo(),
           selections: codeMirror.current.listSelections(),
           cursor: codeMirror.current.getCursor(),
@@ -404,7 +415,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
                 to: undefined,
               };
             }),
-        };
+        });
       }
     };
     codeMirror.current.on('blur', () => {
@@ -434,8 +445,9 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
       codeMirror.current.makeLinksClickable(onClickLink);
     }
     // Restore the state
-    if (uniquenessKey && editorStates[uniquenessKey]) {
-      const { scroll, selections, cursor, history, marks } = editorStates[uniquenessKey];
+    const kept = uniquenessKey ? editorStates.get(uniquenessKey) : undefined;
+    if (kept) {
+      const { scroll, selections, cursor, history, marks } = kept;
       codeMirror.current.scrollTo(scroll.left, scroll.top);
       codeMirror.current.setHistory(history);
       // NOTE: These won't be visible unless the editor is focused
@@ -450,8 +462,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
   });
   useUnmount(() => {
     onBlur?.();
-    codeMirror.current?.toTextArea();
-    codeMirror.current?.closeHintDropdown();
+    closeEditor(codeMirror.current);
     codeMirror.current = null;
   });
 

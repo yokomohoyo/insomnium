@@ -222,6 +222,9 @@ const Design: FC = () => {
         severity: ['error', 'warning'][result.severity] ?? 'info',
       }));
     });
+    // CodeMirror keeps its helpers for good: this one, left, kept the page
+    // (the spec's text and all) once it had gone
+    return () => CodeMirror.registerHelper('lint', 'openapi', () => []);
   }, [rulesetPath]);
 
   const onCodeEditorChange = useMemo(() => {
