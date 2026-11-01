@@ -48,6 +48,18 @@ async function readDiscovery(): Promise<Discovery> {
   if (!parsed.port || !parsed.token) {
     return die(`discovery file ${file} is missing port/token`);
   }
+  // the token goes to that URL: only to this computer, whatever the file says
+  if (parsed.url !== undefined) {
+    let host = '';
+    try {
+      host = new URL(parsed.url).hostname.toLowerCase();
+    } catch {
+      return die(`discovery file ${file} has an invalid url: ${parsed.url}`);
+    }
+    if (!(host === 'localhost' || host === '[::1]' || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host))) {
+      return die(`discovery file ${file} url must target loopback, got host: ${host}`);
+    }
+  }
   return parsed;
 }
 

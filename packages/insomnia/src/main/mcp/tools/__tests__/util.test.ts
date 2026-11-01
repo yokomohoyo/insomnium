@@ -1,6 +1,25 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { assertSafeHeaders, assertSafeRequestUrl, redactSecrets } from '../util';
+import { assertSafeHeaders, assertSafeRequestUrl, maskValues, redactSecrets, redactUrl, secretValuesOf } from '../util';
+
+describe('what a client sees of a request', () => {
+  it('has no credentials in its URL', () => {
+    expect(redactUrl('https://bob:hunter22@git.example.com/team/api.git')).toBe('https://git.example.com/team/api.git');
+    expect(redactUrl('https://api.example.com/v1?api_key=abc123&page=2&sig=zzz&access_token=t'))
+      .toBe('https://api.example.com/v1?api_key=***REDACTED***&page=2&sig=***REDACTED***&access_token=***REDACTED***');
+    expect(redactUrl('not a url')).toBe('not a url');
+  });
+
+  it("masks the request's secrets wherever they turn up", () => {
+    const secrets = secretValuesOf({
+      authentication: [{ type: 'apikey', key: 'X-Key', value: 'k3y-value-1' }, { type: 'bearer', token: 'bearer-token-2' }],
+      headers: [{ name: 'Authorization', value: 'Basic Ym9iOmh1bnRlcjI=' }, { name: 'Accept', value: 'application/json' }],
+      parameters: [{ name: 'apikey', value: 'query-key-3' }, { name: 'page', value: '2' }],
+    });
+    expect(secrets.sort()).toEqual(['Basic Ym9iOmh1bnRlcjI=', 'bearer-token-2', 'k3y-value-1', 'query-key-3']);
+    expect(maskValues('sent bearer-token-2 and k3y-value-1 on page 2', secrets)).toBe('sent ***REDACTED*** and ***REDACTED*** on page 2');
+  });
+});
 
 describe('assertSafeRequestUrl', () => {
   it('allows http and https URLs', () => {
