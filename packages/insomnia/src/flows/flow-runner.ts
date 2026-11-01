@@ -17,12 +17,18 @@ export const appFlowRunner = ({ workspaceId, environmentId }: { workspaceId: str
     if (!request || workspace?._id !== workspaceId) {
       throw new Error(t('The request it sends is no longer in this collection: choose another.'));
     }
-    // Stop cancels it, as the runner's Stop does: in the window, or in the
-    // main process for a run over MCP
-    const cancel = () => cancelCurlAndWriteTimeline(request._id);
+    // Stop cancels it and ends the step at once, as the runner's Stop does: a
+    // send cancelled in the main process (a run over MCP) never settles
+    let cancel = () => {};
+    const stopped = new Promise<never>((_resolve, reject) => {
+      cancel = () => {
+        cancelCurlAndWriteTimeline(request._id);
+        reject(new Error(t('Stopped')));
+      };
+    });
     signal.addEventListener('abort', cancel, { once: true });
     try {
-      const { stored, url } = await sendForRun(request, { environmentId, iterationData: variables });
+      const { stored, url } = await Promise.race([sendForRun(request, { environmentId, iterationData: variables }), stopped]);
       if (signal.aborted) {
         throw new Error(t('Stopped'));
       }

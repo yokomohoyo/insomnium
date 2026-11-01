@@ -18,12 +18,8 @@ describe('appFlowRunner', () => {
   it("cancels the send in flight when the flow is stopped, wherever it runs (MCP's runs are in the main process)", async () => {
     const workspace = await models.workspace.create({ name: 'Pets' });
     const request = await models.request.create({ parentId: workspace._id, url: 'http://127.0.0.1/slow' });
-    // the send ends once it's cancelled, as curl's does
-    let finish = () => {};
-    sendForRun.mockImplementation(() => new Promise(resolve => {
-      finish = () => resolve({ stored: { error: 'Request was cancelled' }, url: request.url });
-    }));
-    cancelCurlAndWriteTimeline.mockImplementation(async () => finish());
+    // a send cancelled in the main process never settles
+    sendForRun.mockImplementation(() => new Promise(() => {}));
 
     const stop = new AbortController();
     const sent = appFlowRunner({ workspaceId: workspace._id }).send(request._id, {}, stop.signal);
