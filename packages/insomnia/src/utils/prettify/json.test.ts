@@ -22,4 +22,16 @@ describe('jsonPrettify()', () => {
       expect(result).toBe(output);
     });
   }
+
+  // as the character-at-a-time version gave them
+  it.each([
+    ['{"a":"x\\"y","b":"\\\\"}', '{\n  "a": "x\\"y",\n  "b": "\\\\"\n}'],
+    ['"ends in \\', '"ends in \\'],
+    ['{"a":[1,2', '{\n  "a": [\n    1,\n    2'],
+    ['{"a":{{ v }},"b":{% tag %},"c":{# note #}3}', '{\n  "a": {{ v }},\n  "b": {% tag %},\n  "c": {# note #}\n  3\n}'],
+    ['[ ]', '[\n]'],
+    ['{"a":-1.50e+3,"b":true,"c":null}', '{\n  "a": -1.50e+3,\n  "b": true,\n  "c": null\n}'],
+  ])('keeps %j as it was', (input, output) => {
+    expect(jsonPrettify(input, '  ')).toBe(output);
+  });
 });

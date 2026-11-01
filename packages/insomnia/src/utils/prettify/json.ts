@@ -26,6 +26,22 @@ const NUNJUCKS_CLOSE_STATES: {
   '#}': STATE_IN_NUN_COM,
 };
 
+// character codes
+const QUOTE = 34;
+const BACKSLASH = 92;
+const OPEN_BRACE = 123;
+const CLOSE_BRACE = 125;
+const OPEN_BRACKET = 91;
+const CLOSE_BRACKET = 93;
+const COMMA = 44;
+const COLON = 58;
+const SPACE = 32;
+const NEWLINE = 10;
+const TAB = 9;
+const RETURN = 13;
+// what ends a run of other characters outside a string
+const STRUCTURAL = new Set([QUOTE, OPEN_BRACE, CLOSE_BRACE, OPEN_BRACKET, CLOSE_BRACKET, COMMA, COLON, SPACE, NEWLINE, TAB, RETURN]);
+
 /**
  * Format a JSON string without parsing it as JavaScript.
  *
@@ -47,53 +63,53 @@ export const jsonPrettify = (json?: string, indentChars = '\t', replaceUnicode =
     }
   }
 
-  let i = 0;
   const il = json.length;
   const tab = indentChars;
+  const indents: string[] = [];
+  // (a negative level, from unbalanced input, as repeatString gave it)
+  const indent = (level: number) => level < 0 ? repeatString(tab, level) : (indents[level] ??= tab.repeat(level));
   let newJson = '';
   let indentLevel = 0;
-  let currentChar: string | null = null;
-  let nextChar: string | null = null;
-  let nextTwo: string | null = null;
   let state = STATE_NONE;
 
-  for (; i < il; i += 1) {
-    currentChar = json.charAt(i);
-    nextChar = json.charAt(i + 1) || '';
-    nextTwo = currentChar + nextChar;
+  // Runs (a string's contents, a number, true) are copied whole: a character
+  // at a time, a multi-MB body took ten times as long.
+  let i = 0;
+  while (i < il) {
+    const code = json.charCodeAt(i);
 
     if (state === STATE_IN_STRING) {
-      if (currentChar === '"') {
-        state = STATE_NONE;
-        newJson += currentChar;
-        continue;
-      } else if (currentChar === '\\') {
-        newJson += currentChar + nextChar;
-        i++;
-        continue;
-      } else {
-        newJson += currentChar;
-        continue;
+      // up to the closing quote, an escape taking the character after it along
+      let end = i;
+      while (end < il) {
+        const c = json.charCodeAt(end);
+        if (c === QUOTE) {
+          break;
+        }
+        end += c === BACKSLASH ? 2 : 1;
       }
+      newJson += json.slice(i, end);
+      if (end < il) {
+        newJson += '"';
+        state = STATE_NONE;
+      }
+      i = end + 1;
+      continue;
     }
 
     // Close Nunjucks states
-    if (Object.values(NUNJUCKS_CLOSE_STATES).includes(state)) {
-      const closeState = NUNJUCKS_CLOSE_STATES[nextTwo];
+    if (state !== STATE_NONE) {
+      const closeState = json.charCodeAt(i + 1) === CLOSE_BRACE ? NUNJUCKS_CLOSE_STATES[json.slice(i, i + 2)] : undefined;
       if (closeState) {
         state = STATE_NONE;
-        if (closeState === STATE_IN_NUN_COM) {
-          // Put comments on their own lines
-          newJson += nextTwo + '\n' + repeatString(tab, indentLevel);
-        } else {
-          newJson += nextTwo;
-        }
-        i++;
-        continue;
+        // Put comments on their own lines
+        newJson += closeState === STATE_IN_NUN_COM ? json.slice(i, i + 2) + '\n' + indent(indentLevel) : json.slice(i, i + 2);
+        i += 2;
       } else {
-        newJson += currentChar;
-        continue;
+        newJson += json[i];
+        i++;
       }
+      continue;
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~ //
@@ -101,60 +117,62 @@ export const jsonPrettify = (json?: string, indentChars = '\t', replaceUnicode =
     // ~~~~~~~~~~~~~~~~~~~~~~ //
 
     // Open Nunjucks states
-    const nextState = NUNJUCKS_OPEN_STATES[nextTwo];
+    const nextState = code === OPEN_BRACE ? NUNJUCKS_OPEN_STATES[json.slice(i, i + 2)] : undefined;
     if (nextState) {
       state = nextState;
-      newJson += nextTwo;
-      i++;
+      newJson += json.slice(i, i + 2);
+      i += 2;
       continue;
     }
 
-    switch (currentChar) {
-      case ',':
-        newJson += currentChar + '\n' + repeatString(tab, indentLevel);
+    const nextCode = json.charCodeAt(i + 1);
+    switch (code) {
+      case COMMA:
+        newJson += ',\n' + indent(indentLevel);
+        i++;
         continue;
-      case '{':
-        if (nextChar === '}') {
-          newJson += currentChar + nextChar;
-          i++;
+      case OPEN_BRACE:
+      case OPEN_BRACKET:
+        if (nextCode === (code === OPEN_BRACE ? CLOSE_BRACE : CLOSE_BRACKET)) {
+          newJson += json.slice(i, i + 2);
+          i += 2;
         } else {
           indentLevel++;
-          newJson += currentChar + '\n' + repeatString(tab, indentLevel);
-        }
-        continue;
-      case '[':
-        if (nextChar === ']') {
-          newJson += currentChar + nextChar;
+          newJson += json[i] + '\n' + indent(indentLevel);
           i++;
-        } else {
-          indentLevel++;
-          newJson += currentChar + '\n' + repeatString(tab, indentLevel);
         }
         continue;
-      case '}':
+      case CLOSE_BRACE:
+      case CLOSE_BRACKET:
         indentLevel--;
-        newJson += '\n' + repeatString(tab, indentLevel) + currentChar;
+        newJson += '\n' + indent(indentLevel) + json[i];
+        i++;
         continue;
-      case ']':
-        indentLevel--;
-        newJson += '\n' + repeatString(tab, indentLevel) + currentChar;
-        continue;
-      case ':':
+      case COLON:
         newJson += ': ';
+        i++;
         continue;
-      case '"':
+      case QUOTE:
         state = STATE_IN_STRING;
-        newJson += currentChar;
+        newJson += '"';
+        i++;
         continue;
-      case ' ':
-      case '\n':
-      case '\t':
-      case '\r':
+      case SPACE:
+      case NEWLINE:
+      case TAB:
+      case RETURN:
         // Don't add whitespace
+        i++;
         continue;
-      default:
-        newJson += currentChar;
+      default: {
+        let end = i + 1;
+        while (end < il && !STRUCTURAL.has(json.charCodeAt(end))) {
+          end++;
+        }
+        newJson += json.slice(i, end);
+        i = end;
         continue;
+      }
     }
   }
 
