@@ -109,8 +109,16 @@ export function registerGitTools(server: McpServer, git: GitControls) {
         return text({ error: paths ? 'none of those paths have changes' : 'there is nothing to commit' }, true);
       }
       const names = (await changesOf(opened)).filter(change => chosen.some(item => item.path === change.path));
-      if (!await ask(opened, 'commit', [`"${message}"`, '', ...names.slice(0, 10).map(change => `${change.status}: ${change.name} (${change.type})`), ...(names.length > 10 ? [`and ${names.length - 10} more`] : [])])) {
+      // the client's words, on one line, so they can't pass for the app's
+      const shown = message.replace(/\s+/g, ' ').slice(0, 200);
+      if (!await ask(opened, 'commit', [`Message: "${shown}${message.length > 200 ? '…' : ''}"`, '', ...names.slice(0, 10).map(change => `${change.status}: ${change.name} (${change.type})`), ...(names.length > 10 ? [`and ${names.length - 10} more`] : [])])) {
         return text({ error: 'the user declined the commit' }, true);
+      }
+      // what was asked about, and nothing that changed while the user decided
+      const now = (await getGitChanges(opened.vcs, opened.workspace)).changes;
+      const same = (change: { path: string; status: string }) => now.some(item => item.path === change.path && item.status === change.status);
+      if (!chosen.every(same)) {
+        return text({ error: 'the changes moved while the user was asked: call git_commit again' }, true);
       }
       for (const change of chosen) {
         change.status.includes('deleted') ? await opened.vcs.remove(change.path) : await opened.vcs.add(change.path);
