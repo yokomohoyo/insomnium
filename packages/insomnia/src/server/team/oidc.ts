@@ -22,6 +22,9 @@ export interface OidcConfig {
   clientSecret: string;
   // the claim that names the account on first sign-in
   usernameClaim: string;
+  // with the email claim, the domains whose addresses may sign in: the part
+  // before the @ names the account, so another domain's lee is not ours
+  emailDomains?: string[];
   // make an account for someone the provider signed in who has none
   createUsers: boolean;
   // what the sign-in button says: "Sign in with Authentik"
@@ -329,16 +332,28 @@ export class OidcLogin {
     if (typeof raw !== 'string' || !raw) {
       throw new OidcError(`The provider didn't send the ${this.config.usernameClaim} claim, which names your account`);
     }
-    if (this.config.usernameClaim === 'email' && claims.email_verified !== true) {
-      throw new OidcError('The provider has not verified your email address');
+    let name = raw.toLowerCase();
+    if (this.config.usernameClaim === 'email') {
+      if (claims.email_verified !== true) {
+        throw new OidcError('The provider has not verified your email address');
+      }
+      // an email names the account by the part before the @, so only addresses
+      // at the server's own domains may
+      const at = name.lastIndexOf('@');
+      if (at < 1 || !this.config.emailDomains?.includes(name.slice(at + 1))) {
+        throw new OidcError(`${raw} isn't at a domain this server takes: ask an admin`);
+      }
+      name = name.slice(0, at);
     }
-    // an email names the account by the part before the @
-    const name = (this.config.usernameClaim === 'email' ? raw.split('@')[0] : raw).toLowerCase();
     if (!isName(name)) {
       throw new OidcError(`${name} can't be a user name here: ask an admin`);
     }
     const existing = this.store.user(name);
     if (existing) {
+      // a first sign-in claims an account by its name alone, so never an admin's
+      if (existing.admin) {
+        throw new OidcError(`The account ${name} is an admin's, which single sign-on can't claim: sign in with its password`);
+      }
       if (this.store.identityOf(name, issuer)) {
         throw new OidcError(`The account ${name} is linked to someone else at the provider: ask an admin`);
       }
@@ -382,11 +397,17 @@ export function parseOidcConfig(env: NodeJS.ProcessEnv): OidcConfig | undefined 
   if (!clientId || !clientSecret) {
     throw new Error('Single sign-on needs INSOMNIUM_TEAM_OIDC_CLIENT_ID and INSOMNIUM_TEAM_OIDC_CLIENT_SECRET too');
   }
+  const usernameClaim = env.INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM?.trim() || 'preferred_username';
+  const emailDomains = (env.INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS || '').split(',').map(domain => domain.trim().toLowerCase().replace(/^@/, '')).filter(Boolean);
+  if (usernameClaim === 'email' && !emailDomains.length) {
+    throw new Error('With the email claim, set INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS to the domains whose addresses may sign in, such as example.com');
+  }
   return {
     issuer,
     clientId,
     clientSecret,
-    usernameClaim: env.INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM?.trim() || 'preferred_username',
+    usernameClaim,
+    ...(emailDomains.length ? { emailDomains } : {}),
     createUsers: /^(1|true|yes|on)$/i.test(env.INSOMNIUM_TEAM_OIDC_CREATE_USERS || ''),
     name: env.INSOMNIUM_TEAM_OIDC_NAME?.trim() || undefined,
   };

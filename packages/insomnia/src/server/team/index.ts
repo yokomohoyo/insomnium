@@ -35,6 +35,7 @@ register a confidential client with the redirect URL <url>/auth/oidc/callback, a
   INSOMNIUM_TEAM_OIDC_CLIENT_ID       the client's id
   INSOMNIUM_TEAM_OIDC_CLIENT_SECRET   its secret
   INSOMNIUM_TEAM_OIDC_USERNAME_CLAIM  the claim naming the account (default preferred_username)
+  INSOMNIUM_TEAM_OIDC_EMAIL_DOMAINS   with the email claim: the domains that may sign in (example.com,…)
   INSOMNIUM_TEAM_OIDC_CREATE_USERS    true: make an account for someone who has none
   INSOMNIUM_TEAM_OIDC_NAME            the provider's name, for the sign-in button`;
 
