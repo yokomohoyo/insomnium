@@ -15,6 +15,7 @@ import {
 import { initializeLogging } from '../common/log';
 import { DEFAULT_ORGANIZATION_ID } from '../models/organization';
 import { DEFAULT_PROJECT_ID } from '../models/project';
+import { rememberLocation } from './remember-location';
 import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
 import Root from './routes/root';
@@ -802,22 +803,7 @@ export const setupRouterStuff = (beginningPath: string | null = null) => {
   );
 
   // Store the last location in local storage
-  router.subscribe(({ location }) => {
-    const match = matchPath(
-      {
-        path: '/organization/:organizationId',
-        end: false,
-      },
-      location.pathname
-    );
-
-    if (match?.params.organizationId) {
-      localStorage.setItem('requester_locationHistoryEntry', location.pathname);
-    }
-    localStorage.setItem('locationHistoryEntry', location.pathname);
-    match?.params.organizationId && localStorage.setItem(`locationHistoryEntry:${match?.params.organizationId}`, location.pathname);
-    console.log("location.pathname", location.pathname);
-  });
+  rememberLocation(router);
 
   // for as long as the window's router lives
   revalidateOnDatabaseChanges(router);
