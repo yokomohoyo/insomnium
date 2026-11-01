@@ -33,6 +33,24 @@ interface Header {
   value: string;
 }
 
+// A Google ID token for an audience other than the request's own origin is
+// good for another service, yet goes to this request's host: from an imported
+// request, someone else's. So that needs the user's say, which the window asks
+// for (ui/index.tsx) and the main process asks or refuses (main/gcp-audience.ts).
+export type GcpAudienceApproval = (token: { audience: string; origin: string }) => boolean | Promise<boolean>;
+let approveGcpAudience: GcpAudienceApproval = () => true;
+export const setGcpAudienceApproval = (approve: GcpAudienceApproval) => {
+  approveGcpAudience = approve;
+};
+
+const originOf = (value: string) => {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value;
+  }
+};
+
 // Resolve one auth strategy into a single Header (or undefined if it doesn't emit one).
 async function resolveAuthStrategy(
   strategy: RequestAuthenticationStrategy,
@@ -84,7 +102,11 @@ async function resolveAuthStrategy(
       : credentialSource === 'sa-inline'
         ? { kind: 'sa-inline', json: saInlineJson || '', impersonateServiceAccount: target }
         : { kind: 'adc', impersonateServiceAccount: target };
-    const aud = (audience && audience.trim()) || defaultAudienceForUrl(url);
+    const origin = defaultAudienceForUrl(url);
+    const aud = (audience && audience.trim()) || origin;
+    if (originOf(aud) !== originOf(origin) && !await approveGcpAudience({ audience: aud, origin })) {
+      throw new Error(`Not sending a Google ID token for ${aud} to ${origin}`);
+    }
     const token = await getGcpIdToken({ source, audience: aud });
     return { name: 'Authorization', value: `Bearer ${token}` };
   }
