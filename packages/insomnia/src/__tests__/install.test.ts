@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import childProcess from 'child_process';
 import * as electron from 'electron';
+import { EventEmitter } from 'events';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import { PassThrough } from 'stream';
 
-import installPlugin, { containsYarnErrors, installPluginFromFile, pluginInstallOptions } from '../main/install-plugin';
+import installPlugin, { containsYarnErrors, installPluginFromFile, pluginInstallOptions, yarnProcess } from '../main/install-plugin';
 
 // Output captured from bin/yarn-standalone.js (yarn 1.15.2) run with the same
 // arguments install-plugin.ts uses.
@@ -129,7 +130,7 @@ describe('install.js', () => {
       add = { exitCode: 0, stdout: ADD_DEPRECATED_STDOUT, stderr: '' };
 
       // Replays the yarn output and, when the add succeeded, lays out the modules folder like yarn does
-      jest.spyOn(childProcess, 'execFile').mockImplementation(((_file: string, args: string[], options: { cwd?: string }, callback: Function) => {
+      jest.spyOn(yarnProcess, 'run').mockImplementation(((args: string[], options: { cwd?: string }, callback: Function) => {
         const result = args.includes('info') ? info : add;
         if (args.includes('add') && result.stdout.includes('success') && options.cwd) {
           mkdirSync(path.join(options.cwd, 'insomnia-plugin-request'));
@@ -138,7 +139,6 @@ describe('install.js', () => {
         }
         const err = result.exitCode ? Object.assign(new Error(`Command failed\n${result.stderr}`), { code: result.exitCode }) : null;
         callback(err, result.stdout, result.stderr);
-        return {} as childProcess.ChildProcess;
       }) as any);
     });
 
@@ -190,14 +190,14 @@ describe('install.js', () => {
     it("should install without running the packages' install scripts", async () => {
       await installPlugin('insomnia-plugin-request');
 
-      const addArgs = jest.mocked(childProcess.execFile).mock.calls.map(call => call[1] as string[]).find(args => args.includes('add'));
+      const addArgs = jest.mocked(yarnProcess.run).mock.calls.map(call => call[0]).find(args => args.includes('add'));
       expect(addArgs).toContain('--ignore-scripts');
     });
 
     it('should look up and install from the registry, through the proxy, it is given', async () => {
       await installPlugin('insomnia-plugin-request', { registry: 'https://npm.example.com', proxy: 'http://proxy.example.com:3128' });
 
-      const calls = jest.mocked(childProcess.execFile).mock.calls.map(call => call[1] as string[]);
+      const calls = jest.mocked(yarnProcess.run).mock.calls.map(call => call[0]);
       expect(calls).toHaveLength(2);
       for (const args of calls) {
         expect(args).toEqual(expect.arrayContaining(['--registry', 'https://npm.example.com', '--proxy', 'http://proxy.example.com:3128', '--https-proxy', 'http://proxy.example.com:3128']));
@@ -221,13 +221,12 @@ describe('install.js', () => {
       packageJson = { name: 'insomnia-plugin-local', version: '1.0.0', insomnia: { name: 'local' } };
 
       // yarn add file:…tgz, laid out as yarn does: the package, its dependencies, and it in package.json
-      jest.spyOn(childProcess, 'execFile').mockImplementation(((_file: string, args: string[], options: { cwd: string }, callback: Function) => {
+      jest.spyOn(yarnProcess, 'run').mockImplementation(((args: string[], options: { cwd: string }, callback: Function) => {
         mkdirSync(path.join(options.cwd, 'insomnia-plugin-local'));
         writeFileSync(path.join(options.cwd, 'insomnia-plugin-local', 'package.json'), JSON.stringify(packageJson));
         mkdirSync(path.join(options.cwd, 'left-pad'));
-        writeFileSync(path.join(options.cwd, 'package.json'), JSON.stringify({ dependencies: { 'insomnia-plugin-local': args[3] } }));
+        writeFileSync(path.join(options.cwd, 'package.json'), JSON.stringify({ dependencies: { 'insomnia-plugin-local': args[1] } }));
         callback(null, ADD_DEPRECATED_STDOUT, '');
-        return {} as childProcess.ChildProcess;
       }) as any);
     });
 
@@ -243,8 +242,8 @@ describe('install.js', () => {
       const pluginDir = path.join(dataPath, 'plugins', 'insomnia-plugin-local');
       expect(existsSync(path.join(pluginDir, 'package.json'))).toBe(true);
       expect(existsSync(path.join(pluginDir, 'node_modules', 'left-pad'))).toBe(true);
-      const [[, args]] = jest.mocked(childProcess.execFile).mock.calls as unknown as [string, string[]][];
-      expect(args.slice(2, 4)).toEqual(['add', `file:${tarball}`]);
+      const [[args]] = jest.mocked(yarnProcess.run).mock.calls;
+      expect(args.slice(0, 2)).toEqual(['add', `file:${tarball}`]);
       expect(args).toEqual(expect.arrayContaining(['--registry', 'https://npm.example.com', '--ignore-scripts']));
     });
 
@@ -282,6 +281,27 @@ describe('install.js', () => {
     it('should refuse a registry that is not a web address', async () => {
       await expect(pluginInstallOptions({ ...settings, pluginRegistry: 'file:///etc' })).rejects.toThrow('The plugin registry has to be an http:// or https:// address');
       await expect(pluginInstallOptions({ ...settings, pluginRegistry: 'npm.example.com' })).rejects.toThrow('has to be an http:// or https:// address');
+    });
+  });
+
+  describe('yarnProcess', () => {
+    it('runs yarn in a utility process, not the app run as Node, with its output and exit code', async () => {
+      // @ts-expect-error -- not part of the electron mock
+      electron.app.getAppPath = () => '/app';
+      const child = Object.assign(new EventEmitter(), { stdout: new PassThrough(), stderr: new PassThrough(), kill: jest.fn() });
+      jest.mocked(electron.utilityProcess.fork).mockReturnValue(child as any);
+
+      const result = new Promise(resolve => yarnProcess.run(['info', 'insomnia-plugin-request', '--json'], { timeout: 60_000, cwd: '/tmp/plugin', env: { NODE_ENV: 'production' } }, (err, stdout, stderr) => resolve({ err, stdout, stderr })));
+      child.stdout.end(PLUGIN_INFO);
+      child.stderr.end(INFO_LICENSE_STDERR);
+      child.emit('exit', 1);
+
+      expect(await result).toMatchObject({ err: { code: 1 }, stdout: PLUGIN_INFO, stderr: INFO_LICENSE_STDERR });
+      expect(electron.utilityProcess.fork).toHaveBeenCalledWith(
+        expect.stringMatching(/bin[\\/]yarn-standalone\.js$/),
+        ['info', 'insomnia-plugin-request', '--json'],
+        expect.objectContaining({ execArgv: ['--no-deprecation'], cwd: '/tmp/plugin', env: { NODE_ENV: 'production' }, stdio: 'pipe' }),
+      );
     });
   });
 });

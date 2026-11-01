@@ -29,6 +29,8 @@ export default async function build(options: Options) {
       'process.env.BUILD_DATE': JSON.stringify(new Date()),
     }
     : {
+      // a production build loads only its own page, whatever the environment says
+      'process.env.APP_RENDER_URL': JSON.stringify(''),
       'process.env.NODE_ENV': JSON.stringify('production'),
       'process.env.INSOMNIA_ENV': JSON.stringify('production'),
       'process.env.BUILD_DATE': JSON.stringify(new Date()),

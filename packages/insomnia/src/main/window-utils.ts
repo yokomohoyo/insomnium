@@ -130,7 +130,9 @@ export function createWindow() {
 
   // Load the html of the app.
   const appPath = path.resolve(__dirname, './index.html');
-  const appUrl = process.env.APP_RENDER_URL || pathToFileURL(appPath).href;
+  // the dev server's, in development; a release build loads only its own page,
+  // since this window has Node
+  const appUrl = (!electron.app.isPackaged && process.env.APP_RENDER_URL) || pathToFileURL(appPath).href;
 
   console.log(`[main] Loading ${appUrl}`);
   newWindow?.loadURL(appUrl);

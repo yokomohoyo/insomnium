@@ -9,6 +9,18 @@ const BINARY_PREFIX = "Insomnium.Core";
  */
 const config = {
   npmRebuild: false,
+  // The released app can't be run as something else under its name (its
+  // signature, its keychain item, its macOS permissions): not as plain Node
+  // (ELECTRON_RUN_AS_NODE), with code added through NODE_OPTIONS or a
+  // debugger (--inspect), nor with its app.asar swapped or edited. Plugin
+  // installs run yarn in a utility process (src/main/install-plugin.ts).
+  electronFuses: {
+    runAsNode: false,
+    enableNodeOptionsEnvironmentVariable: false,
+    enableNodeCliInspectArguments: false,
+    enableEmbeddedAsarIntegrityValidation: true,
+    onlyLoadAppFromAsar: true,
+  },
   appId: "com.insomnium.app",
   // Without this, electron-builder writes "Copyright © <year> <author name>"
   // into the macOS Info.plist and the Windows exe and installer, and author is
