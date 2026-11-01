@@ -69,4 +69,22 @@ describe('rendering a request in folders', () => {
     // the request itself is unchanged
     expect((await models.request.getById(request._id))?.authentication).toEqual([]);
   });
+
+  it('renders nothing in a literal request', async () => {
+    const wrk = await models.workspace.create({ name: 'API' });
+    const base = await models.environment.getOrCreateForParentId(wrk._id);
+    await models.environment.update(base, { data: { token: 't0ken' } });
+    const request = await models.request.create({
+      parentId: wrk._id,
+      url: 'http://localhost/{{ token }}',
+      headers: [{ name: 'X-Token', value: '{{ token }}' }],
+      body: { mimeType: 'application/x-www-form-urlencoded', params: [{ name: 'refresh_token', value: "{% uuid 'v4' %}" }] },
+    });
+
+    const { request: rendered } = await getRenderedRequestAndContext({ request, literal: true });
+    expect(rendered.url).toBe('http://localhost/{{ token }}');
+    expect(rendered.headers).toEqual([{ name: 'X-Token', value: '{{ token }}' }]);
+    expect(rendered.body.params).toEqual([{ name: 'refresh_token', value: "{% uuid 'v4' %}" }]);
+    expect((await getRenderedRequestAndContext({ request })).request.url).toBe('http://localhost/t0ken');
+  });
 });

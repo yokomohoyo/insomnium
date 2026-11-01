@@ -490,7 +490,7 @@ export async function getRenderedGrpcRequestMessage(
   return renderedBody;
 }
 
-type RenderRequestOptions = BaseRenderContextOptions & RenderRequest<Request>;
+type RenderRequestOptions = BaseRenderContextOptions & RenderRequest<Request> & { literal?: boolean };
 export interface RequestAndContext {
   request: RenderedRequest;
   context: Record<string, any>;
@@ -502,6 +502,7 @@ export async function getRenderedRequestAndContext(
     extraInfo,
     iterationData,
     purpose,
+    literal,
   }: RenderRequestOptions,
 ): Promise<RequestAndContext> {
   const ancestors = await getRenderContextAncestors(request);
@@ -535,11 +536,12 @@ export async function getRenderedRequestAndContext(
       _cookieJar: cookieJar,
     },
     renderContext,
-    request.settingDisableRenderRequestBody ? /^body.*/ : null,
+    // a literal request: every path, from the top
+    literal ? /^/ : request.settingDisableRenderRequestBody ? /^body.*/ : null,
   );
   const renderedRequest = renderResult._request;
   const renderedCookieJar = renderResult._cookieJar;
-  renderedRequest.description = await render(description, renderContext, null, KEEP_ON_ERROR);
+  renderedRequest.description = literal ? description : await render(description, renderContext, null, KEEP_ON_ERROR);
   const suppressUserAgent = request.headers.some(h => h.name.toLowerCase() === 'user-agent' && h.disabled === true);
   // Remove disabled params
   renderedRequest.parameters = renderedRequest.parameters.filter(p => !p.disabled);

@@ -108,7 +108,7 @@ describe('the files of a token request', () => {
     const network = networkModule as unknown as Record<string, jest.Mock<any>>;
     const workspace = await models.workspace.create({ name: 'Auth' });
     const request = await models.request.create({ parentId: workspace._id });
-    network.fetchRequestData.mockResolvedValue({ request, environment: { _id: 'env_1' }, settings: {}, clientCertificates: [], caCert: null, activeEnvironmentId: null });
+    network.fetchRequestData.mockResolvedValue({ request, workspace, environment: { _id: 'env_1' }, settings: {}, clientCertificates: [], caCert: null, activeEnvironmentId: null });
     network.tryToInterpolateRequest.mockImplementation(async (request: unknown) => ({ request, context: {} }));
     network.tryToTransformRequestWithPlugins.mockImplementation(async ({ request }: { request: unknown }) => request);
     network.sendCurlAndWriteTimeline.mockImplementation(async (sent: { _id: string }) => ({

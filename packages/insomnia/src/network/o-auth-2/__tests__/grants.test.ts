@@ -33,6 +33,7 @@ describe('the newer grants', () => {
   let sent: { url: string; form: Record<string, string>; headers: Record<string, string> }[];
   let answer: (url: string, form: Record<string, string>) => { status: number; body: string };
   let requestId: string;
+  let workspaceId: string;
 
   beforeEach(async () => {
     await globalBeforeEach();
@@ -43,7 +44,8 @@ describe('the newer grants', () => {
     const workspace = await models.workspace.create({ name: 'Auth' });
     const request = await models.request.create({ parentId: workspace._id });
     requestId = request._id;
-    network.fetchRequestData.mockResolvedValue({ request, environment: { _id: 'env_1' }, settings: {}, clientCertificates: [], caCert: null, activeEnvironmentId: null });
+    workspaceId = workspace._id;
+    network.fetchRequestData.mockResolvedValue({ request, workspace, environment: { _id: 'env_1' }, settings: {}, clientCertificates: [], caCert: null, activeEnvironmentId: null });
     network.tryToInterpolateRequest.mockImplementation(async (request: unknown) => ({ request, context: {} }));
     network.tryToTransformRequestWithPlugins.mockImplementation(async ({ request }: { request: unknown }) => request);
     network.sendCurlAndWriteTimeline.mockImplementation(async (request: any) => {
@@ -169,6 +171,33 @@ describe('the newer grants', () => {
     expect(polls).toBe(2);
     // the poll that said "not yet" isn't kept
     expect((await models.response.findByParentId(`${requestId}.other`)).length).toBe(2);
+  });
+
+  it("sends the token request as built, under the workspace, so the request's folders add nothing", async () => {
+    await getOAuth2Token(requestId, { type: 'oauth2', grantType: 'client_credentials', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', clientSecret: 's' });
+
+    const network = networkModule as unknown as Record<string, jest.Mock<any>>;
+    expect(network.tryToInterpolateRequest).toHaveBeenCalledWith(expect.objectContaining({ parentId: workspaceId }), 'env_1', undefined, undefined, undefined, true);
+  });
+
+  it('refreshes only at the token endpoint, for the client, the token came from', async () => {
+    const authentication = { type: 'oauth2', grantType: 'client_credentials', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', clientSecret: 's' };
+    answer = () => ({ status: 200, body: '{"access_token":"at-1","refresh_token":"rt-1","expires_in":1}' });
+    expect(await getOAuth2Token(requestId, authentication)).toMatchObject({ refreshToken: 'rt-1', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app' });
+    const expire = async () => models.oAuth2Token.update((await models.oAuth2Token.getByParentId(requestId))!, { expiresAt: Date.now() - 1000 });
+
+    await expire();
+    await getOAuth2Token(requestId, { ...authentication, accessTokenUrl: 'https://other.example.com/token' });
+    expect(sent[1]).toMatchObject({ url: 'https://other.example.com/token', form: { grant_type: 'client_credentials' } });
+    expect(sent[1].form.refresh_token).toBeUndefined();
+
+    await expire();
+    await getOAuth2Token(requestId, { ...authentication, accessTokenUrl: 'https://other.example.com/token', clientId: 'another' });
+    expect(sent[2].form).toMatchObject({ grant_type: 'client_credentials' });
+
+    await expire();
+    await getOAuth2Token(requestId, { ...authentication, accessTokenUrl: 'https://other.example.com/token', clientId: 'another' });
+    expect(sent[3].form).toMatchObject({ grant_type: 'refresh_token', refresh_token: 'rt-1' });
   });
 });
 

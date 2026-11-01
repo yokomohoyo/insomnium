@@ -26,6 +26,9 @@ export interface BaseOAuth2Token {
   error: string;
   errorDescription: string;
   errorUri: string;
+  // the token endpoint and client it came from (a refresh goes only there)
+  accessTokenUrl: string;
+  clientId: string;
 }
 
 export const isOAuth2Token = (model: Pick<BaseModel, 'type'>): model is OAuth2Token => (
@@ -46,6 +49,8 @@ export function init(): BaseOAuth2Token {
     error: '',
     errorDescription: '',
     errorUri: '',
+    accessTokenUrl: '',
+    clientId: '',
   };
 }
 

@@ -53,6 +53,17 @@ export const getOAuth2Token = async (
   if (oAuth2Token) {
     return oAuth2Token;
   }
+  const token = await getNewOAuth2Token(requestId, authentication);
+  // where it came from, so its refresh token goes back only there
+  return token && models.oAuth2Token.update(token, tokenSource(authentication));
+};
+
+export const tokenSource = (authentication: Pick<AuthTypeOAuth2, 'accessTokenUrl' | 'clientId'>) => ({
+  accessTokenUrl: authentication.accessTokenUrl || '',
+  clientId: authentication.clientId || '',
+});
+
+const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAuth2): Promise<OAuth2Token | null> => {
   const validGrantType = ['implicit', 'authorization_code', 'password', 'client_credentials', GRANT_TYPE_DEVICE_CODE, GRANT_TYPE_JWT_BEARER, GRANT_TYPE_TOKEN_EXCHANGE].includes(authentication.grantType);
   guard(validGrantType, `Invalid grant type ${authentication.grantType}`);
   if (authentication.grantType === 'implicit') {
@@ -292,7 +303,10 @@ async function getExistingAccessTokenAndRefreshIfExpired(
   if (!isExpired && !forceRefresh) {
     return token;
   }
-  if (!token.refreshToken) {
+  // a refresh token goes only to the token endpoint, for the client, it came
+  // from: after either changes, a new grant
+  const source = tokenSource(authentication);
+  if (!token.refreshToken || token.accessTokenUrl !== source.accessTokenUrl || token.clientId !== source.clientId) {
     return null;
   }
 
@@ -391,6 +405,7 @@ const sendAccessTokenRequest = async (requestId: string, authentication: AuthTyp
   console.log(`[network] Sending with settings req=${requestId}`);
   // @TODO unpack oauth into regular timeline and remove oauth timeine dialog
   const { request,
+    workspace,
     environment,
     settings,
     clientCertificates,
@@ -411,10 +426,14 @@ const sendAccessTokenRequest = async (requestId: string, authentication: AuthTyp
     },
   }, {
     _id: request._id + '.other',
-    parentId: request._id,
+    // the workspace's, not the request's: its folders' headers and auth are
+    // for the API, not the token endpoint
+    parentId: workspace._id,
   });
 
-  const renderResult = await tryToInterpolateRequest(newRequest, environment._id);
+  // as built, from values already rendered: rendered again, the token
+  // server's own values (a refresh token, a code) would be templates
+  const renderResult = await tryToInterpolateRequest(newRequest, environment._id, undefined, undefined, undefined, true);
   const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
 
   const response = await sendCurlAndWriteTimeline(
