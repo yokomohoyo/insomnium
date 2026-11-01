@@ -5,6 +5,7 @@ import { database } from '../common/database';
 import { HEADLESS_INSTRUCTIONS, HEADLESS_SERVER_INSTRUCTIONS, registerInstructions } from '../main/mcp/instructions';
 import { registerTools } from '../main/mcp/tools';
 import * as models from '../models';
+import { setGcpAudienceApproval } from '../network/gcp-id-token/get-token';
 import { setRequestPolicy } from '../network/request-policy';
 import { disableTemplateTags } from '../templating';
 import type { Workspace } from '../models/workspace';
@@ -62,6 +63,9 @@ export async function loadSources(config: LoadConfig) {
   await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables, allowedSecrets: config.allowedSecrets || '', useSystemProxy: true });
   // file would let a template read the container's files into a request
   disableTemplateTags(['file']);
+  // no one to ask whether a Google ID token for another service may go to a
+  // request's host (network/gcp-id-token/get-token.ts), so it may not
+  setGcpAudienceApproval(() => false);
   setRequestPolicy(makeHostPolicy(config.allowedHosts));
 
   const workspaces: Workspace[] = [];

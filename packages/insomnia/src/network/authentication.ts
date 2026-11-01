@@ -23,7 +23,7 @@ import { COOKIE, HEADER, QUERY_PARAMS } from './api-key/constants';
 import { getBasicAuthHeader } from './basic-auth/get-header';
 import { getBearerAuthHeader } from './bearer-auth/get-header';
 import { EdgeGridAuth, edgeGridHeader } from './edgegrid';
-import { CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
+import { checkGcpAudience, CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
 import { generateJwt, JwtAuth } from './jwt-auth';
 import getOAuth1Token from './o-auth-1/get-token';
 import { getOAuth2Token } from './o-auth-2/get-token';
@@ -33,23 +33,8 @@ interface Header {
   value: string;
 }
 
-// A Google ID token for an audience other than the request's own origin is
-// good for another service, yet goes to this request's host: from an imported
-// request, someone else's. So that needs the user's say, which the window asks
-// for (ui/index.tsx) and the main process asks or refuses (main/gcp-audience.ts).
-export type GcpAudienceApproval = (token: { audience: string; origin: string }) => boolean | Promise<boolean>;
-let approveGcpAudience: GcpAudienceApproval = () => true;
-export const setGcpAudienceApproval = (approve: GcpAudienceApproval) => {
-  approveGcpAudience = approve;
-};
-
-const originOf = (value: string) => {
-  try {
-    return new URL(value).origin;
-  } catch {
-    return value;
-  }
-};
+export type { GcpAudienceApproval } from './gcp-id-token/get-token';
+export { setGcpAudienceApproval } from './gcp-id-token/get-token';
 
 // Resolve one auth strategy into a single Header (or undefined if it doesn't emit one).
 async function resolveAuthStrategy(
@@ -104,9 +89,7 @@ async function resolveAuthStrategy(
         : { kind: 'adc', impersonateServiceAccount: target };
     const origin = defaultAudienceForUrl(url);
     const aud = (audience && audience.trim()) || origin;
-    if (originOf(aud) !== originOf(origin) && !await approveGcpAudience({ audience: aud, origin })) {
-      throw new Error(`Not sending a Google ID token for ${aud} to ${origin}`);
-    }
+    await checkGcpAudience(aud, origin);
     const token = await getGcpIdToken({ source, audience: aud });
     return { name: 'Authorization', value: `Bearer ${token}` };
   }
