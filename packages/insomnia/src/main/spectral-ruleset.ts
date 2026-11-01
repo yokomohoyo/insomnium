@@ -11,11 +11,25 @@ export function assertDataOnlyRuleset(source: string) {
   if (!ruleset || typeof ruleset !== 'object' || Array.isArray(ruleset)) {
     throw new Error('ruleset is not an object');
   }
+  // Spectral reads the file again with merge keys on, where this parse has
+  // them off: keys merged in with << would get past the checks below
+  assertNoMergeKeys(ruleset);
   assertDataOnlyDefinition(ruleset);
   for (const override of Array.isArray(ruleset.overrides) ? ruleset.overrides : []) {
     if (override && typeof override === 'object') {
       assertDataOnlyDefinition(override);
     }
+  }
+}
+
+function assertNoMergeKeys(value: unknown) {
+  if (Array.isArray(value)) {
+    value.forEach(assertNoMergeKeys);
+  } else if (value && typeof value === 'object') {
+    if ('<<' in value) {
+      throw new Error('rulesets with merge keys (<<) are not supported');
+    }
+    Object.values(value).forEach(assertNoMergeKeys);
   }
 }
 

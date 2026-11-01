@@ -31,6 +31,11 @@ describe('assertDataOnlyRuleset', () => {
     'extends: [[./other.js, all]]',
     'overrides: [{ files: ["*"], functions: [myFunc] }]',
     'overrides: [{ files: ["*"], extends: ./other.yaml }]',
+    '<<: {functionsDir: fns, functions: [pwn]}\nrules: {}',
+    '<<: {extends: ./evil.js}',
+    'base: &base {functions: [pwn]}\n<<: *base',
+    'overrides: [{ files: ["*"], <<: {functions: [pwn]} }]',
+    'rules: {r: {<<: {given: $}}}',
     '- not an object',
     '',
   ])('rejects %j', source => {

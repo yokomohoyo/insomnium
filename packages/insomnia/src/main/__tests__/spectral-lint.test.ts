@@ -63,6 +63,7 @@ describe('lintSpec()', () => {
   it.each([
     ['one with custom functions', 'functions: [myFunc]\n', 'custom functions are not supported'],
     ['one that extends a file', 'extends: ./other.yaml\n', 'can only extend built-in rulesets'],
+    ['one with custom functions merged in', '<<: {functionsDir: fns, functions: [pwn]}\nrules: {r: {given: "$", then: {function: pwn}}}\n', 'merge keys'],
     ['a file that is gone', undefined, 'ENOENT'],
   ])("says so, and lints with the built-in rules, when the ruleset is %s", async (_, source, problem) => {
     const rulesetPath = source === undefined ? path.join(dir, 'gone.yaml') : ruleset('rules.yaml', source);
