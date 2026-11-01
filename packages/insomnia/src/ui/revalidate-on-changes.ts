@@ -8,6 +8,8 @@ type Router = ReturnType<typeof createMemoryRouter>;
 export const REVALIDATE_TYPES = new Set([
   'Workspace', 'Project', 'Request', 'RequestGroup', 'Environment',
   'GrpcRequest', 'WebSocketRequest', 'McpRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
+  // the Flows tab's list, and an open flow changed elsewhere (over MCP, or by Git)
+  'Flow',
 ]);
 
 // A window's navigation, or a fetcher's action (submitting, then loading what
