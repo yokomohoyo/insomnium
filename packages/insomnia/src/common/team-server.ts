@@ -47,3 +47,16 @@ export const isPlainHttpOffMachine = (url: string) => {
     return false;
   }
 };
+
+// the collection's clone URL when it's on the server signed in to, and that
+// server's own one for it when not
+export const onServer = (url: string, collection: Pick<TeamCollection, 'slug' | 'cloneUrl'>) => {
+  try {
+    if (new URL(collection.cloneUrl).origin === new URL(url).origin) {
+      return collection.cloneUrl;
+    }
+  } catch {
+    // not a URL: the server's own
+  }
+  return `${url}/git/${encodeURIComponent(collection.slug)}.git`;
+};

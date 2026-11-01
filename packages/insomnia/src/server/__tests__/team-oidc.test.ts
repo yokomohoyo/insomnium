@@ -200,7 +200,7 @@ describe('single sign-on for the team server', () => {
     expect((await browse(`${base}/auth/oidc/start`)).status).toBe(200);
     expect(store.user('lee')).toMatchObject({ name: 'lee', admin: false });
     // and no password signs in as them
-    expect(store.authenticate('lee', '!')).toBeNull();
+    expect(await store.authenticate('lee', '!')).toBeNull();
 
     // another domain's kim isn't this server's kim
     provider.next = { sub: 'sub-other-kim', email: 'kim@elsewhere.example', email_verified: true };
@@ -266,7 +266,7 @@ describe('single sign-on for the team server', () => {
     }
     const back = new URL(at).searchParams;
     expect(back.get('state')).toBe('app-state');
-    const exchange = (code_verifier: string) => fetch(`${base}/auth/oidc/token`, { method: 'POST', body: JSON.stringify({ code: back.get('code'), code_verifier, label: 'test' }) });
+    const exchange = (code_verifier: string) => fetch(`${base}/auth/oidc/token`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: back.get('code'), code_verifier, label: 'test' }) });
 
     expect((await exchange('w'.repeat(43))).status).toBe(400);
     // a wrong verifier used the code up

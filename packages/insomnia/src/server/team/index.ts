@@ -4,6 +4,7 @@
 // See packages/insomnium-server/README.md.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 
 import { parseTls, TLS_USAGE } from '../tls';
 import { parseOidcConfig } from './oidc';
@@ -22,10 +23,15 @@ which members clone and push with their user name and an access token.
   --port        the port (INSOMNIUM_PORT, default 8080)
   --public-url  how members reach it, for clone URLs, such as https://nas.example.com:8443
                 (INSOMNIUM_TEAM_URL; otherwise from each request)
+  INSOMNIUM_TEAM_TRUSTED_PROXIES  the addresses of the reverse proxies in front of it
+                (127.0.0.1,10.0.0.2,…): their X-Forwarded-For, -Proto and -Host are
+                believed, so failed sign-ins are counted for each member, not the proxy
+  INSOMNIUM_TEAM_MAX_PUSH_MB      the biggest push it takes (default 200)
 
 The first start makes an admin: INSOMNIUM_TEAM_ADMIN names it (default admin), and
-INSOMNIUM_TEAM_ADMIN_PASSWORD sets its password; without one, a password is made
-and printed once. Serve it over HTTPS, as sign-in sends the password or token: put
+INSOMNIUM_TEAM_ADMIN_PASSWORD sets its password (remove it once the server has
+started); without one, a password is made and written to first-admin-password in the
+data folder, until it's changed. Serve it over HTTPS, as sign-in sends the password or token: put
 a reverse proxy in front, or give it a certificate:
 ${TLS_USAGE}
 
@@ -49,6 +55,7 @@ export function parseTeamConfig(argv: string[], env: NodeJS.ProcessEnv): TeamCli
     host: env.INSOMNIUM_HOST || '0.0.0.0',
     port: Number(env.INSOMNIUM_PORT || 8080),
     publicUrl: env.INSOMNIUM_TEAM_URL || undefined,
+    trustedProxies: (env.INSOMNIUM_TEAM_TRUSTED_PROXIES || '').split(',').map(address => address.trim()).filter(Boolean),
     oidc: parseOidcConfig(env),
     tls: parseTls(env),
     command: [],
@@ -83,19 +90,31 @@ export function parseTeamConfig(argv: string[], env: NodeJS.ProcessEnv): TeamCli
   return config;
 }
 
-// The first admin, on a first start
-export function ensureAdmin(store: TeamStore, env: NodeJS.ProcessEnv, print: (text: string) => void) {
+// The first admin, on a first start. A password made for it goes in a file
+// only the server's user can read, not the log, and the file goes once the
+// password is changed.
+export async function ensureAdmin(store: TeamStore, env: NodeJS.ProcessEnv, print: (text: string) => void, dataDir: string) {
+  const name = env.INSOMNIUM_TEAM_ADMIN || 'admin';
+  const file = path.join(dataDir, 'first-admin-password');
   if (store.userCount() > 0) {
+    if (fs.existsSync(file) && !await store.userOfPassword(name, fs.readFileSync(file, 'utf8').trim())) {
+      fs.rmSync(file, { force: true });
+    }
+    if (env.INSOMNIUM_TEAM_ADMIN_PASSWORD) {
+      print('[team] INSOMNIUM_TEAM_ADMIN_PASSWORD is only for the first start: remove it from the environment');
+    }
     return;
   }
-  const name = env.INSOMNIUM_TEAM_ADMIN || 'admin';
   const given = env.INSOMNIUM_TEAM_ADMIN_PASSWORD;
   const password = given || newPassword();
   store.addUser(name, password, true);
   store.log(name, 'user.create', null, { user: name, admin: true, firstStart: true });
-  print(given
-    ? `[team] made the admin ${name}, with the password INSOMNIUM_TEAM_ADMIN_PASSWORD gives`
-    : `[team] made the admin ${name}, with the password ${password}\n[team] it is shown only this once: sign in and change it`);
+  if (given) {
+    print(`[team] made the admin ${name}, with the password INSOMNIUM_TEAM_ADMIN_PASSWORD gives: remove it from the environment now`);
+    return;
+  }
+  fs.writeFileSync(file, `${password}\n`, { mode: 0o600 });
+  print(`[team] made the admin ${name}, with the password in ${file}: sign in and change it, and the file goes`);
 }
 
 // the admin commands, run where the data is (docker exec … insomnium-server team user add kim)
@@ -184,7 +203,7 @@ export async function team(argv: string[], env: NodeJS.ProcessEnv) {
     return 2;
   }
   const { server, store } = await startTeamServer(config);
-  ensureAdmin(store, env, print);
+  await ensureAdmin(store, env, print, config.dataDir);
   print(`[team] serving ${store.collectionsFor({ name: '', admin: true, created: 0 }).length} collections for ${store.userCount()} users at http://${config.host}:${config.port}${config.publicUrl ? ` (${config.publicUrl})` : ''}, from ${config.dataDir}`);
   const stop = () => server.close(() => {
     store.close();

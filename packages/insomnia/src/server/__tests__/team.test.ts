@@ -16,8 +16,9 @@ import { env } from 'node:process';
 import { hasGitHttpBackend, runGit } from '../../__jest__/git-server';
 import { ensureAdmin, parseTeamConfig, runAdminCommand } from '../team';
 import { gitRoute, refChanges, serviceOf } from '../team/git-http';
-import { SignInLimiter, signedIn, startTeamServer } from '../team/server';
-import { checkPassword, hashPassword, slugOf, TeamStore } from '../team/store';
+import { onServer } from '../../common/team-server';
+import { clientAddress, SignInLimiter, signedIn, startTeamServer } from '../team/server';
+import { checkPassword, hashPassword, slugOf, TeamStore, TOKEN_IDLE_MS } from '../team/store';
 
 jest.unmock('isomorphic-git');
 // a refused push fails rather than asking for a password
@@ -50,25 +51,40 @@ describe('the team store', () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it('keeps passwords as scrypt hashes and checks them', () => {
+  it('keeps passwords as scrypt hashes and checks them', async () => {
     const stored = hashPassword('correct horse battery');
     expect(stored).toMatch(/^scrypt\$16384\$/);
-    expect(checkPassword('correct horse battery', stored)).toBe(true);
-    expect(checkPassword('wrong horse battery', stored)).toBe(false);
+    expect(await checkPassword('correct horse battery', stored)).toBe(true);
+    expect(await checkPassword('wrong horse battery', stored)).toBe(false);
   });
 
-  it('signs in with a password or a token, and keeps only the hash of the token', () => {
+  it('signs in with a password or a token, and keeps only the hash of the token', async () => {
     store.addUser('kim', 'a long password', true);
     const token = store.addToken('kim', 'laptop');
-    expect(store.authenticate('kim', 'a long password')?.name).toBe('kim');
-    expect(store.authenticate('kim', token.secret)?.name).toBe('kim');
-    expect(store.authenticate('kim', 'nope')).toBeNull();
-    expect(store.authenticate('nobody', token.secret)).toBeNull();
+    expect((await store.authenticate('kim', 'a long password'))?.name).toBe('kim');
+    expect((await store.authenticate('kim', token.secret))?.name).toBe('kim');
+    expect(await store.authenticate('kim', 'nope')).toBeNull();
+    expect(await store.authenticate('nobody', token.secret)).toBeNull();
+    expect(await store.authenticate('nobody', 'a long password')).toBeNull();
     expect(store.userOfToken(token.secret)?.name).toBe('kim');
     expect(JSON.stringify(store.db.prepare('SELECT * FROM tokens').all())).not.toContain(token.secret);
     expect(store.tokens('kim')[0]).toMatchObject({ label: 'laptop', used: expect.any(Number) });
     store.removeToken('kim', token.id);
-    expect(store.authenticate('kim', token.secret)).toBeNull();
+    expect(await store.authenticate('kim', token.secret)).toBeNull();
+  });
+
+  it('ends tokens with a new password, or after going unused', async () => {
+    store.addUser('kim', 'a long password', true);
+    const laptop = store.addToken('kim', 'laptop');
+    store.setPassword('kim', 'another long password');
+    expect(store.userOfToken(laptop.secret)).toBeNull();
+
+    const old = store.addToken('kim', 'old');
+    const fresh = store.addToken('kim', 'fresh');
+    store.db.prepare('UPDATE tokens SET created = ?, used = ? WHERE id = ?').run(0, Date.now() - TOKEN_IDLE_MS - 1000, old.id);
+    expect(store.userOfToken(old.secret)).toBeNull();
+    expect(store.userOfToken(fresh.secret)?.name).toBe('kim');
+    expect(store.tokens('kim').map(token => token.label)).toEqual(['fresh']);
   });
 
   it('refuses names that are not names, short passwords, and taking away the last admin', () => {
@@ -93,6 +109,7 @@ describe('the team store', () => {
     expect(store.roleOf(lee, 'other')).toBeNull();
     expect(store.collectionsFor(store.user('sam')!).map(c => [c.slug, c.role])).toEqual([['shop', 'viewer']]);
     expect(() => store.removeMember('shop', 'lee')).toThrow('last owner');
+    expect(() => store.setRole('shop', 'lee', 'editor')).toThrow('last owner');
     expect(() => store.setRole('shop', 'sam', 'god' as any)).toThrow('viewer, editor, owner');
     expect(slugOf('Shop API (v2)!')).toBe('shop-api-v2');
   });
@@ -107,19 +124,42 @@ describe('the team store', () => {
     expect(store.audit({ before: all[1].id, limit: 2 }).map(entry => entry.detail.n)).toEqual([2, 1]);
   });
 
-  it('makes the first admin once, and runs the admin commands', () => {
+  it("shows a collection's audit log without that of a removed one with its slug", () => {
+    store.addUser('kim', 'a long password', true);
+    store.addCollection('shop', 'Shop', 'kim');
+    store.log('kim', 'push', 'shop', { n: 1 });
+    store.removeCollection('shop');
+    store.db.prepare('UPDATE audit SET at = at - 1000').run();
+    store.addCollection('shop', 'Shop again', 'kim');
+    store.log('kim', 'push', 'shop', { n: 2 });
+    expect(store.audit({ collection: 'shop' }).map(entry => entry.detail.n)).toEqual([2]);
+    expect(store.audit().map(entry => entry.detail.n)).toEqual([2, 1]);
+  });
+
+  it('makes the first admin once, and runs the admin commands', async () => {
     const printed: string[] = [];
-    ensureAdmin(store, { INSOMNIUM_TEAM_ADMIN: 'root' }, text => printed.push(text));
-    ensureAdmin(store, {}, text => printed.push(text));
+    const env = { INSOMNIUM_TEAM_ADMIN: 'root' };
+    await ensureAdmin(store, env, text => printed.push(text), dir);
+    await ensureAdmin(store, env, text => printed.push(text), dir);
     expect(store.users()).toEqual([expect.objectContaining({ name: 'root', admin: true })]);
-    const password = /password (\S+)/.exec(printed[0])![1];
-    expect(store.authenticate('root', password)).not.toBeNull();
+    // its password is in a file only the server's user reads, not the log
+    const file = path.join(dir, 'first-admin-password');
+    const password = fs.readFileSync(file, 'utf8').trim();
+    expect(printed[0]).not.toContain(password);
+    expect(await store.authenticate('root', password)).not.toBeNull();
+    if (process.platform !== 'win32') {
+      expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    }
     // the second start finds an admin, and says nothing
     expect(printed).toHaveLength(1);
+    // the file goes once the password is changed
+    store.setPassword('root', 'a new long password');
+    await ensureAdmin(store, env, text => printed.push(text), dir);
+    expect(fs.existsSync(file)).toBe(false);
 
     runAdminCommand(store, ['user', 'add', 'kim'], text => printed.push(text));
     const kimPassword = /password: (\S+)/.exec(printed[printed.length - 1])![1];
-    expect(store.authenticate('kim', kimPassword)?.admin).toBe(false);
+    expect((await store.authenticate('kim', kimPassword))?.admin).toBe(false);
     runAdminCommand(store, ['token', 'kim', 'ci'], text => printed.push(text));
     expect(store.userOfToken(printed[printed.length - 1])?.name).toBe('kim');
     expect(() => runAdminCommand(store, ['nonsense'], () => {})).toThrow('Not a team command');
@@ -145,6 +185,21 @@ describe('the team server', () => {
       { ref: 'refs/heads/old', from: 'b', to: null },
       { ref: 'refs/heads/new', from: null, to: 'd' },
     ]);
+  });
+
+  it('takes the address a request is from from the proxies it trusts, and only those', () => {
+    const req = (socket: string, forwarded?: string) => ({ socket: { remoteAddress: socket }, headers: forwarded ? { 'x-forwarded-for': forwarded } : {} }) as any;
+    expect(clientAddress(req('::ffff:10.0.0.2', '203.0.113.7'), ['10.0.0.2'])).toBe('203.0.113.7');
+    expect(clientAddress(req('10.0.0.2', '198.51.100.1, 203.0.113.7, 10.0.0.3'), ['10.0.0.2', '10.0.0.3'])).toBe('203.0.113.7');
+    expect(clientAddress(req('10.0.0.9', '203.0.113.7'), ['10.0.0.2'])).toBe('10.0.0.9');
+    expect(clientAddress(req('10.0.0.2', '203.0.113.7'))).toBe('10.0.0.2');
+    expect(parseTeamConfig([], { INSOMNIUM_TEAM_TRUSTED_PROXIES: '10.0.0.2, 127.0.0.1' }).trustedProxies).toEqual(['10.0.0.2', '127.0.0.1']);
+  });
+
+  it('gives the app a clone URL only on the server it signed in to', () => {
+    expect(onServer('https://nas.example.com', { slug: 'shop', cloneUrl: 'https://nas.example.com/git/shop.git' })).toBe('https://nas.example.com/git/shop.git');
+    expect(onServer('https://nas.example.com', { slug: 'shop', cloneUrl: 'https://elsewhere.example.com/git/shop.git' })).toBe('https://nas.example.com/git/shop.git');
+    expect(onServer('https://nas.example.com', { slug: 'shop', cloneUrl: 'nonsense' })).toBe('https://nas.example.com/git/shop.git');
   });
 
   it('throttles an address after failed sign-ins', () => {
@@ -196,7 +251,43 @@ describe('the team server', () => {
       expect(res.status).toBe(401);
       expect(res.headers.get('www-authenticate')).toMatch(/^Basic/);
       expect((await api('GET', '/me', basic('kim', 'wrong password'))).status).toBe(401);
-      expect(signedIn(store, basic('kim', 'kims long password'))?.name).toBe('kim');
+      expect((await signedIn(store, basic('kim', 'kims long password')))?.user.name).toBe('kim');
+    });
+
+    it("blocks an address's passwords after failed sign-ins, not its tokens", async () => {
+      const token = store.addToken('lee', 'laptop');
+      for (let n = 0; n < 10; n++) {
+        await api('GET', '/me', basic('lee', 'wrong password'));
+      }
+      expect((await api('GET', '/me', basic('lee', 'lees long password'))).status).toBe(429);
+      expect((await api('GET', '/me', `Bearer ${token.secret}`)).body).toEqual({ name: 'lee', admin: false });
+      expect((await api('GET', '/me', basic('lee', token.secret))).status).toBe(200);
+    });
+
+    it('refuses a push bigger than INSOMNIUM_TEAM_MAX_PUSH_MB', async () => {
+      const lee = basic('lee', 'lees long password');
+      await api('POST', '/collections', lee, { name: 'shop' });
+      env.INSOMNIUM_TEAM_MAX_PUSH_MB = '0.0001';
+      try {
+        const res = await fetch(`${base}/git/shop.git/git-receive-pack`, { method: 'POST', headers: { Authorization: lee, 'Content-Type': 'application/x-git-receive-pack-request' }, body: 'x'.repeat(1000) });
+        expect(res.status).toBe(413);
+      } finally {
+        delete env.INSOMNIUM_TEAM_MAX_PUSH_MB;
+      }
+    });
+
+    it('takes only JSON, so a form on another site posts nothing', async () => {
+      const res = await fetch(`${base}/api/tokens`, { method: 'POST', headers: { Authorization: basic('lee', 'lees long password'), 'Content-Type': 'text/plain' }, body: '{"label":"x"}' });
+      expect(res.status).toBe(415);
+      expect(store.tokens('lee')).toEqual([]);
+    });
+
+    it('counts wrong current passwords, and a new one ends the tokens', async () => {
+      const lee = basic('lee', 'lees long password');
+      const token = store.addToken('lee', 'laptop');
+      expect((await api('PUT', '/password', lee, { current: 'wrong password', password: 'a new long password' })).status).toBe(403);
+      expect((await api('PUT', '/password', lee, { current: 'lees long password', password: 'a new long password' })).status).toBe(200);
+      expect((await api('GET', '/me', `Bearer ${token.secret}`)).status).toBe(401);
     });
 
     it('makes collections, shares them by role, and keeps owners and admins in charge', async () => {
@@ -219,7 +310,7 @@ describe('the team server', () => {
       expect((await api('POST', '/users', lee, { name: 'max' })).status).toBe(403);
       const max = await api('POST', '/users', basic('kim', 'kims long password'), { name: 'max' });
       expect(max).toMatchObject({ status: 201, body: { name: 'max', password: expect.any(String) } });
-      expect(store.authenticate('max', max.body.password)).not.toBeNull();
+      expect(await store.authenticate('max', max.body.password)).not.toBeNull();
 
       // deleting keeps the repository in the trash
       expect((await api('DELETE', '/collections/shop-api', lee)).status).toBe(200);
@@ -231,6 +322,9 @@ describe('the team server', () => {
       expect(made.body.secret).toMatch(/^ist_/);
       expect((await api('GET', '/me', `Bearer ${made.body.secret}`)).body).toEqual({ name: 'lee', admin: false });
       expect(JSON.stringify((await api('GET', '/tokens', `Bearer ${made.body.secret}`)).body)).not.toContain(made.body.secret);
+      // a token can't make more tokens; the password can
+      expect((await api('POST', '/tokens', `Bearer ${made.body.secret}`, { label: 'more' })).status).toBe(403);
+      expect((await api('POST', '/tokens', basic('lee', made.body.secret), { label: 'more' })).status).toBe(403);
     });
 
     (hasGitHttpBackend ? describe : describe.skip)('serving Git', () => {
