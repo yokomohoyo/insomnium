@@ -13,6 +13,8 @@ import log, { initializeLogging } from './common/log';
 import { backupDataIfVersionChanged } from './main/backup';
 import { announceCredentialStorage, safeStorageKeyWrapper } from './main/credential-keys';
 import { deepLinks, linksFromArgv } from './main/deep-link-buffer';
+// asks before a Google ID token goes to another audience's host, and refuses MCP clients
+import './main/gcp-audience';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';

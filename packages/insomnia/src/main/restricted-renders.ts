@@ -10,3 +10,5 @@ const restricted = new AsyncLocalStorage<true>();
 setFileTagAllowed(() => !restricted.getStore());
 
 export const restrictRenders = <T>(run: () => T): T => restricted.run(true, run);
+
+export const rendersAreRestricted = () => Boolean(restricted.getStore());
