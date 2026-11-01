@@ -12,6 +12,7 @@ import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getCaBundle } from './ca-bundle';
+import { readEventLog } from './event-log';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
 import { proxyFor } from './proxy';
@@ -362,12 +363,7 @@ const findMany = async (
   if (!response || !response.bodyPath) {
     return [];
   }
-  const body = await fs.promises.readFile(response.bodyPath);
-  return body.toString().split('\n').filter(e => e?.trim())
-    // Parse the message
-    .map(e => JSON.parse(e))
-    // Reverse the list of messages so that we get the latest message first
-    .reverse() || [];
+  return readEventLog<CurlEvent>(response.bodyPath);
 };
 
 export interface CurlBridgeAPI {

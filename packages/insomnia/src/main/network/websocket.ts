@@ -32,6 +32,7 @@ import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
+import { readEventLog } from './event-log';
 import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
 import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
 import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
@@ -685,12 +686,7 @@ const findMany = async (
   if (!response || !response.eventLogPath) {
     return [];
   }
-  const body = await fs.promises.readFile(response.eventLogPath);
-  return body.toString().split('\n').filter(e => e?.trim())
-    // Parse the message
-    .map(e => JSON.parse(e))
-    // Reverse the list of messages so that we get the latest message first
-    .reverse() || [];
+  return readEventLog<WebSocketEvent>(response.eventLogPath);
 };
 
 export interface WebSocketBridgeAPI {
