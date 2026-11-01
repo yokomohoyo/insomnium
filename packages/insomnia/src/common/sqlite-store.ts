@@ -89,6 +89,13 @@ const nedbDateReviver = (_key: string, value: any) =>
 // Hoisted columns; sorts on these run in SQL (NULL ordering matches compareValues).
 const HOISTED_SORT_COLUMNS = new Set(['_id', 'type', 'parentId', 'created', 'modified']);
 
+export interface StoreDocStamp {
+  _id: string;
+  parentId: string | null;
+  created: number;
+  modified: number;
+}
+
 export class SqliteStore {
   private readonly db: DatabaseSync;
   private readonly statements = new Map<string, import('node:sqlite').StatementSync>();
@@ -296,6 +303,19 @@ export class SqliteStore {
     }
     // after filtering: no query matches on a credential field, and discarded rows needn't be decrypted
     return this.opened(docs);
+  }
+
+  // The ids, parents and times of the docs a query on _id and parentId finds,
+  // in find()'s order, without reading the docs: for a caller that keeps what
+  // it worked out from each doc, and reads again only those modified since.
+  findStamps(type: string, query: StoreQuery = {}): StoreDocStamp[] {
+    const { where, params, rest, cacheable } = this.buildWhere(type, query);
+    if (Object.keys(rest).length > 0) {
+      throw new Error('findStamps takes conditions on _id and parentId only');
+    }
+    const sql = `SELECT _id, parentId, created, modified FROM docs WHERE ${where.join(' AND ')} ORDER BY created ASC`;
+    const statement = cacheable ? this.prepare(sql) : this.db.prepare(sql);
+    return statement.all(...params) as unknown as StoreDocStamp[];
   }
 
   count(type: string, query: StoreQuery = {}): number {

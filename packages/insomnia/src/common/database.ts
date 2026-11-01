@@ -13,7 +13,7 @@ import * as models from '../models/index';
 import type { Workspace } from '../models/workspace';
 import type { CredentialGuard, GuardState, KeyWrapper } from './credential-guard';
 import { generateId } from './misc';
-import type { SqliteStore, StoreQuery } from './sqlite-store';
+import type { SqliteStore, StoreDocStamp, StoreQuery } from './sqlite-store';
 
 export interface Query {
   _id?: string | SpecificQuery;
@@ -222,6 +222,15 @@ export const database = {
     }
 
     return docs;
+  },
+
+  // The ids, parents and times of what a query on _id and parentId finds,
+  // without the docs (see SqliteStore.findStamps)
+  findStamps: async function(type: string, query: Query = {}): Promise<StoreDocStamp[]> {
+    if (!store) {
+      return _send<StoreDocStamp[]>('findStamps', ...arguments);
+    }
+    return store.findStamps(type, query as StoreQuery);
   },
 
   findMostRecentlyModified: async function<T extends BaseModel>(
@@ -644,7 +653,7 @@ export const database = {
 // functions that forward there (_send), and nothing else of it, init above all
 const FORWARDED_NAMES = [
   'all', 'batchModifyDocs', 'bufferChanges', 'bufferChangesIndefinitely', 'count', 'duplicate', 'find',
-  'findDescendants', 'findMostRecentlyModified', 'flushChanges', 'get', 'getMostRecentlyModified', 'getWhere',
+  'findDescendants', 'findMostRecentlyModified', 'findStamps', 'flushChanges', 'get', 'getMostRecentlyModified', 'getWhere',
   'insert', 'remove', 'removeWhere', 'unsafeRemove', 'update', 'upsert', 'withAncestors', 'withDescendants',
 ] as const;
 type Forwarded = typeof FORWARDED_NAMES[number];

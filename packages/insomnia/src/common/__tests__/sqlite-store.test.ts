@@ -27,6 +27,18 @@ describe('SqliteStore', () => {
     ...extra,
   });
 
+  it('findStamps() gives the ids, parents and times of what a query finds, in find() order, without the docs', () => {
+    store.insert(doc('req_b', { parentId: 'wrk_1', created: 200, modified: 300 }));
+    store.insert(doc('req_a', { parentId: 'wrk_2', created: 100, modified: 150 }));
+    store.insert(doc('req_c', { parentId: 'wrk_3', created: 50, modified: 60 }));
+
+    expect(store.findStamps('Request', { parentId: { $in: ['wrk_1', 'wrk_2'] } })).toEqual([
+      { _id: 'req_a', parentId: 'wrk_2', created: 100, modified: 150 },
+      { _id: 'req_b', parentId: 'wrk_1', created: 200, modified: 300 },
+    ]);
+    expect(() => store.findStamps('Request', { name: 'x' })).toThrow('_id and parentId only');
+  });
+
   it('round-trips documents', () => {
     store.insert(doc('req_1', { name: 'foo', nested: { a: [1, 2] } }));
     const found = store.find('Request', { _id: 'req_1' });
