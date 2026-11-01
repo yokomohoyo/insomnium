@@ -53,6 +53,8 @@ export function serviceOf(rest: string, search: URLSearchParams) {
 }
 
 const FETCH_LOG_EVERY = 10 * 60_000;
+// the biggest push taken, in bytes as sent
+const maxPushBytes = () => (Number(env.INSOMNIUM_TEAM_MAX_PUSH_MB) || 200) * 1024 * 1024;
 
 export function gitHandler(store: TeamStore, dataDir: string) {
   const lastFetchLogged = new Map<string, number>();
@@ -68,6 +70,14 @@ export function gitHandler(store: TeamStore, dataDir: string) {
     const dir = repoPath(dataDir, route.slug);
     // the push's effect, read from the refs before and after
     const pushing = service === 'push' && req.method === 'POST';
+    const tooBig = () => {
+      res.writeHead(413, { 'Content-Type': 'text/plain', Connection: 'close' });
+      res.end(`That push is bigger than this server takes (INSOMNIUM_TEAM_MAX_PUSH_MB, ${maxPushBytes() / 1024 / 1024} MB)\n`);
+    };
+    if (pushing && Number(req.headers['content-length'] || 0) > maxPushBytes()) {
+      req.resume();
+      return tooBig();
+    }
     const before = pushing ? refsOf(dir) : {};
 
     const cgi = spawn('git', ['http-backend'], {
@@ -89,6 +99,24 @@ export function gitHandler(store: TeamStore, dataDir: string) {
     });
     req.pipe(cgi.stdin);
     cgi.stdin.on('error', () => {});
+    // a chunked push has no length to check first
+    let refused = false;
+    if (pushing) {
+      let size = 0;
+      req.on('data', (chunk: Buffer) => {
+        size += chunk.length;
+        if (size > maxPushBytes() && !refused) {
+          refused = true;
+          req.unpipe(cgi.stdin);
+          cgi.kill();
+          if (res.headersSent) {
+            res.destroy();
+          } else {
+            tooBig();
+          }
+        }
+      });
+    }
 
     // http-backend writes CGI headers, then the body
     let head = Buffer.alloc(0);
@@ -121,6 +149,9 @@ export function gitHandler(store: TeamStore, dataDir: string) {
     });
     cgi.stderr.on('data', chunk => console.error(`[team] git ${route.slug}: ${String(chunk).trim()}`));
     cgi.on('close', () => {
+      if (refused) {
+        return;
+      }
       if (!started) {
         res.writeHead(500, { 'Content-Type': 'text/plain' });
         res.end('git http-backend failed\n');

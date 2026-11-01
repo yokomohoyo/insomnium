@@ -9,7 +9,7 @@ import { createListener, type TlsFiles } from '../tls';
 import { ApiError, handleApi, readJson } from './api';
 import { gitHandler, gitRoute, reposDir } from './git-http';
 import { escapeHtml, OidcError, type OidcConfig, OidcLogin } from './oidc';
-import { TeamStore, type User } from './store';
+import { TeamStore, TOKEN_PREFIX, type User } from './store';
 
 export interface TeamConfig {
   dataDir: string;
@@ -21,26 +21,57 @@ export interface TeamConfig {
   oidc?: OidcConfig;
   // HTTPS from these files, when set
   tls?: TlsFiles;
+  // the reverse proxies in front of it, by address: only their X-Forwarded-*
+  // headers are believed, for who a request is from and how it was asked for
+  trustedProxies?: string[];
 }
 
-// who a request is from: Basic (name and password or token) or Bearer (a token)
-export function signedIn(store: TeamStore, header: string | undefined): User | null {
-  if (!header) {
-    return null;
-  }
-  const [scheme, value = ''] = header.split(' ');
+// what a request signs in with: Basic (name and password or token) or Bearer (a token)
+export function credentialsOf(header: string | undefined): { name?: string; secret: string; token: boolean } | null {
+  const [scheme, value = ''] = (header || '').split(' ');
   if (/^bearer$/i.test(scheme)) {
-    return store.userOfToken(value.trim());
+    return { secret: value.trim(), token: true };
   }
   if (/^basic$/i.test(scheme)) {
     const decoded = Buffer.from(value, 'base64').toString('utf8');
     const at = decoded.indexOf(':');
-    return at > 0 ? store.authenticate(decoded.slice(0, at), decoded.slice(at + 1)) : null;
+    const secret = decoded.slice(at + 1);
+    return at > 0 ? { name: decoded.slice(0, at), secret, token: secret.startsWith(TOKEN_PREFIX) } : null;
   }
   return null;
 }
 
+// who a request is from, and whether it signed in with a token or a password
+export async function signedIn(store: TeamStore, header: string | undefined): Promise<{ user: User; token: boolean } | null> {
+  const credentials = credentialsOf(header);
+  if (!credentials) {
+    return null;
+  }
+  const { name, secret } = credentials;
+  const byToken = store.userOfToken(secret, name);
+  if (byToken) {
+    return { user: byToken, token: true };
+  }
+  const byPassword = name !== undefined ? await store.userOfPassword(name, secret) : null;
+  return byPassword ? { user: byPassword, token: false } : null;
+}
+
+const plainAddress = (address: string) => address.replace(/^::ffff:(?=\d+\.\d+\.\d+\.\d+$)/, '');
+
+// the address a request came from: the socket's, or, from a trusted proxy,
+// the last address before the trusted ones in X-Forwarded-For
+export function clientAddress(req: Pick<http.IncomingMessage, 'headers' | 'socket'>, trustedProxies: string[] = []) {
+  const trusted = new Set(trustedProxies.map(plainAddress));
+  const socket = plainAddress(req.socket.remoteAddress || 'unknown');
+  if (!trusted.has(socket)) {
+    return socket;
+  }
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',').map(hop => plainAddress(hop.trim())).filter(Boolean);
+  return forwarded.reverse().find(hop => !trusted.has(hop)) || socket;
+}
+
 // failed sign-ins from an address: 10 in 5 minutes, then 5 minutes of 429s
+// for its passwords (a token can't be guessed, so still signs in)
 export class SignInLimiter {
   private failures = new Map<string, number[]>();
 
@@ -61,14 +92,18 @@ export function startTeamServer(config: TeamConfig) {
   const store = new TeamStore(config.dataDir);
   const git = gitHandler(store, config.dataDir);
   const limiter = new SignInLimiter();
+  // single sign-ons started from an address: 30 in 10 minutes
+  const ssoStarts = new SignInLimiter(30, 10 * 60_000);
   const oidc = config.oidc ? new OidcLogin(config.oidc, store) : null;
+  const fromProxy = (req: http.IncomingMessage) => (config.trustedProxies || []).map(plainAddress).includes(plainAddress(req.socket.remoteAddress || ''));
   const publicUrl = (req: http.IncomingMessage) => {
     if (config.publicUrl) {
       return config.publicUrl.replace(/\/+$/, '');
     }
-    // behind a reverse proxy, as it was asked for
-    const proto = String(req.headers['x-forwarded-proto'] || (config.tls ? 'https' : 'http')).split(',')[0].trim();
-    const host = String(req.headers['x-forwarded-host'] || req.headers.host || `${config.host}:${config.port}`).split(',')[0].trim();
+    // behind a trusted reverse proxy, as it was asked for
+    const forwarded = (name: string) => (fromProxy(req) && req.headers[name] ? String(req.headers[name]).split(',')[0].trim() : '');
+    const proto = forwarded('x-forwarded-proto') || (config.tls ? 'https' : 'http');
+    const host = forwarded('x-forwarded-host') || req.headers.host || `${config.host}:${config.port}`;
     return `${proto}://${host}`;
   };
 
@@ -84,19 +119,21 @@ export function startTeamServer(config: TeamConfig) {
       if (url.pathname === '/health' && req.method === 'GET') {
         return reply(200, { ok: true });
       }
+      const address = clientAddress(req, config.trustedProxies);
       if (url.pathname.startsWith('/auth/')) {
-        return await handleAuth(req, res, url, reply);
+        return await handleAuth(req, res, url, reply, address);
       }
       const route = gitRoute(url.pathname);
       if (!route && !url.pathname.startsWith('/api/')) {
         return reply(404, { error: 'not found' });
       }
-      const address = req.socket.remoteAddress || 'unknown';
-      if (limiter.blocked(address)) {
-        return reply(429, { error: 'Too many failed sign-ins: wait a few minutes' }, { 'Retry-After': '300' });
+      const tooMany = () => reply(429, { error: 'Too many failed sign-ins: wait a few minutes' }, { 'Retry-After': '300' });
+      // a password from an address that's been guessing waits; a token doesn't
+      if (limiter.blocked(address) && !credentialsOf(req.headers.authorization)?.token) {
+        return tooMany();
       }
-      const user = signedIn(store, req.headers.authorization);
-      if (!user) {
+      const signIn = await signedIn(store, req.headers.authorization);
+      if (!signIn) {
         if (req.headers.authorization) {
           limiter.failed(address);
         }
@@ -104,9 +141,13 @@ export function startTeamServer(config: TeamConfig) {
         return reply(401, { error: 'Sign in with your user name, and a password or access token' }, { 'WWW-Authenticate': 'Basic realm="Insomnium team", charset="UTF-8"' });
       }
       if (route) {
-        return git(req, res, user, route, url.searchParams);
+        return git(req, res, signIn.user, route, url.searchParams);
       }
-      const [status, body] = await handleApi({ store, dataDir: config.dataDir, publicUrl }, req, user, url.pathname, url.searchParams);
+      const signInFailed = () => {
+        limiter.failed(address);
+        return limiter.blocked(address);
+      };
+      const [status, body] = await handleApi({ store, dataDir: config.dataDir, publicUrl, byToken: signIn.token, signInFailed }, req, signIn.user, url.pathname, url.searchParams);
       return reply(status, body);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -117,7 +158,7 @@ export function startTeamServer(config: TeamConfig) {
     }
   }, config.tls);
 
-  async function handleAuth(req: http.IncomingMessage, res: http.ServerResponse, url: URL, reply: (status: number, body: unknown) => void) {
+  async function handleAuth(req: http.IncomingMessage, res: http.ServerResponse, url: URL, reply: (status: number, body: unknown, headers?: Record<string, string>) => void, address: string) {
     const page = (status: number, title: string, body: string) => {
       res.writeHead(status, {
         'Content-Type': 'text/html; charset=utf-8',
@@ -136,6 +177,10 @@ export function startTeamServer(config: TeamConfig) {
     }
     try {
       if (url.pathname === '/auth/oidc/start' && req.method === 'GET') {
+        if (ssoStarts.blocked(address)) {
+          return reply(429, { error: 'Too many sign-ins started: wait a few minutes' }, { 'Retry-After': '600' });
+        }
+        ssoStarts.failed(address);
         const redirectUri = url.searchParams.get('redirect_uri');
         const app = redirectUri ? {
           redirectUri,

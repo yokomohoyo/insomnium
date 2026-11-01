@@ -31,7 +31,13 @@ export class ApiError extends Error {
   }
 }
 
+// JSON only: a form on another site can post text/plain or a form's types
+// with a browser's remembered sign-in, but not application/json
 export const readJson = (req: http.IncomingMessage) => new Promise<Record<string, any>>((resolve, reject) => {
+  if (!/^application\/json\b/i.test(String(req.headers['content-type'] || ''))) {
+    req.resume();
+    return reject(new ApiError(415, 'Send the request body as application/json'));
+  }
   let size = 0;
   const chunks: Buffer[] = [];
   req.on('data', (chunk: Buffer) => {
@@ -62,6 +68,10 @@ export interface ApiContext {
   dataDir: string;
   // how clients reach this server, for clone URLs: https://nas.example.com
   publicUrl: (req: http.IncomingMessage) => string;
+  // whether the request signed in with an access token rather than a password
+  byToken?: boolean;
+  // counts a wrong password given to the API; true when that address is now blocked
+  signInFailed?: () => boolean;
 }
 
 export async function handleApi(context: ApiContext, req: http.IncomingMessage, user: User, pathname: string, search: URLSearchParams): Promise<[number, unknown]> {
@@ -164,6 +174,10 @@ export async function handleApi(context: ApiContext, req: http.IncomingMessage, 
       return [200, store.tokens(user.name)];
     }
     if (!id && method === 'POST') {
+      // a token can't make more of itself: one that leaked would outlive its revoking
+      if (context.byToken) {
+        throw new ApiError(403, 'Sign in with your password to make an access token');
+      }
       const { label } = await readJson(req);
       const token = store.addToken(user.name, typeof label === 'string' ? label : 'token');
       store.log(user.name, 'token.create', null, { id: token.id, label });
@@ -180,7 +194,10 @@ export async function handleApi(context: ApiContext, req: http.IncomingMessage, 
 
   if (resource === 'password' && method === 'PUT' && !id) {
     const { current, password } = await readJson(req);
-    if (typeof current !== 'string' || !store.authenticate(user.name, current) || current.startsWith('ist_')) {
+    if (typeof current !== 'string' || current.startsWith('ist_') || !await store.userOfPassword(user.name, current)) {
+      if (context.signInFailed?.()) {
+        throw new ApiError(429, 'Too many failed sign-ins: wait a few minutes');
+      }
       throw new ApiError(403, 'The current password is wrong');
     }
     try {

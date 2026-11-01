@@ -3,8 +3,9 @@
 // each, and an audit log. One SQLite file in the data folder, through Node's
 // own node:sqlite. Passwords are scrypt hashes; tokens are kept as SHA-256
 // hashes, shown once when made.
-import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, scrypt, scryptSync, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
+import { promisify } from 'node:util';
 type DatabaseSync = import('node:sqlite').DatabaseSync;
 
 export type CollectionRole = 'viewer' | 'editor' | 'owner';
@@ -47,15 +48,19 @@ export function hashPassword(password: string) {
   const hash = scryptSync(password, salt, SCRYPT.keylen, { N: SCRYPT.N, r: SCRYPT.r, p: SCRYPT.p });
   return `scrypt$${SCRYPT.N}$${salt.toString('base64')}$${hash.toString('base64')}`;
 }
-export function checkPassword(password: string, stored: string) {
+const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, keylen: number, options: { N: number; r: number; p: number }) => Promise<Buffer>;
+// off the event loop, so sign-ins don't hold up every other request
+export async function checkPassword(password: string, stored: string) {
   const [kind, n, salt, hash] = stored.split('$');
   if (kind !== 'scrypt' || !salt || !hash) {
     return false;
   }
   const expected = Buffer.from(hash, 'base64');
-  const given = scryptSync(password, Buffer.from(salt, 'base64'), expected.length, { N: Number(n), r: SCRYPT.r, p: SCRYPT.p });
+  const given = await scryptAsync(password, Buffer.from(salt, 'base64'), expected.length, { N: Number(n), r: SCRYPT.r, p: SCRYPT.p });
   return timingSafeEqual(given, expected);
 }
+// checked against for a user who isn't there, so that takes as long as a wrong password
+const DUMMY_HASH = hashPassword(randomBytes(16).toString('hex'));
 
 const sha256 = (text: string) => createHash('sha256').update(text).digest('hex');
 // an access token: ist_ and 32 random bytes, so it's told apart from a password
@@ -64,6 +69,8 @@ const newToken = () => `${TOKEN_PREFIX}${randomBytes(32).toString('base64url')}`
 export const newPassword = () => randomBytes(18).toString('base64url');
 // no password matches it: checkPassword takes only scrypt hashes
 const NO_PASSWORD = '!';
+// a token not used for this long stops working
+export const TOKEN_IDLE_MS = 180 * 24 * 60 * 60_000;
 
 export class TeamStore {
   readonly db: DatabaseSync;
@@ -167,6 +174,8 @@ export class TeamStore {
     if (!this.db.prepare('UPDATE users SET password = ? WHERE name = ?').run(hashPassword(password), name).changes) {
       throw new Error(`No user named ${name}`);
     }
+    // the access tokens made with the old one end with it
+    this.db.prepare('DELETE FROM tokens WHERE user = ?').run(name);
   }
 
   setAdmin(name: string, admin: boolean) {
@@ -187,35 +196,37 @@ export class TeamStore {
     }
   }
 
-  // who a password or a token is: the user, or null. A token beats a password
-  // that happens to look like one.
-  authenticate(name: string, secret: string): User | null {
-    const user = this.user(name);
-    if (!user || !secret) {
-      return null;
-    }
-    if (secret.startsWith(TOKEN_PREFIX)) {
-      const token = this.db.prepare('SELECT id FROM tokens WHERE hash = ? AND user = ?').get(sha256(secret), name) as { id: string } | undefined;
-      if (token) {
-        this.db.prepare('UPDATE tokens SET used = ? WHERE id = ?').run(Date.now(), token.id);
-        return user;
-      }
-    }
-    const row = this.db.prepare('SELECT password FROM users WHERE name = ?').get(name) as { password: string };
-    return checkPassword(secret, row.password) ? user : null;
-  }
-
-  // a bearer token alone, for the API
-  userOfToken(secret: string): User | null {
+  // who a token is, if it's that user's when a name is given: null for one
+  // that isn't a token, or has gone unused too long
+  userOfToken(secret: string, name?: string): User | null {
     if (!secret.startsWith(TOKEN_PREFIX)) {
       return null;
     }
+    this.db.prepare('DELETE FROM tokens WHERE COALESCE(used, created) < ?').run(Date.now() - TOKEN_IDLE_MS);
     const token = this.db.prepare('SELECT id, user FROM tokens WHERE hash = ?').get(sha256(secret)) as { id: string; user: string } | undefined;
-    if (!token) {
+    if (!token || (name !== undefined && token.user !== name)) {
       return null;
     }
     this.db.prepare('UPDATE tokens SET used = ? WHERE id = ?').run(Date.now(), token.id);
     return this.user(token.user);
+  }
+
+  // who a password is: the user, or null; as slow for a user who isn't there
+  async userOfPassword(name: string, password: string): Promise<User | null> {
+    const user = this.user(name);
+    const row = user ? this.db.prepare('SELECT password FROM users WHERE name = ?').get(name) as { password: string } : null;
+    const usable = !!row && row.password !== NO_PASSWORD;
+    const right = await checkPassword(password, usable ? row.password : DUMMY_HASH);
+    return usable && right ? user : null;
+  }
+
+  // who a password or a token is: the user, or null. A token beats a password
+  // that happens to look like one.
+  async authenticate(name: string, secret: string): Promise<User | null> {
+    if (!secret) {
+      return null;
+    }
+    return (secret.startsWith(TOKEN_PREFIX) && this.userOfToken(secret, name)) || this.userOfPassword(name, secret);
   }
 
   // access tokens: the secret is returned once, and only its hash kept
@@ -276,6 +287,10 @@ export class TeamStore {
     if (!this.user(user)) {
       throw new Error(`No user named ${user}`);
     }
+    const owners = this.members(slug).filter(member => member.role === 'owner');
+    if (role !== 'owner' && owners.length === 1 && owners[0].user === user) {
+      throw new Error('The last owner stays: make someone else an owner first');
+    }
     this.db.prepare('INSERT INTO members (collection, user, role) VALUES (?, ?, ?) ON CONFLICT (collection, user) DO UPDATE SET role = excluded.role').run(slug, user, role);
   }
 
@@ -306,10 +321,12 @@ export class TeamStore {
     this.db.prepare('INSERT INTO audit (at, user, action, collection, detail) VALUES (?, ?, ?, ?, ?)').run(Date.now(), user, action, collection, JSON.stringify(detail));
   }
 
-  // newest first; before: an id, for the next page
+  // newest first; before: an id, for the next page. A collection's is its
+  // own, not also that of a removed one that had its slug.
   audit({ collection, before, limit = 100 }: { collection?: string; before?: number; limit?: number } = {}): AuditEntry[] {
-    const clauses = [collection ? 'collection = ?' : '', before ? 'id < ?' : ''].filter(Boolean);
-    const args = [collection, before].filter(value => value !== undefined) as (string | number)[];
+    const since = collection ? this.collection(collection)?.created : undefined;
+    const clauses = [collection ? 'collection = ?' : '', since !== undefined ? 'at >= ?' : '', before ? 'id < ?' : ''].filter(Boolean);
+    const args = [collection, since, before].filter(value => value !== undefined) as (string | number)[];
     const rows = this.db.prepare(`SELECT id, at, user, action, collection, detail FROM audit ${clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''} ORDER BY id DESC LIMIT ?`)
       .all(...args, Math.min(Math.max(limit, 1), 500)) as { id: number; at: number; user: string; action: string; collection: string | null; detail: string }[];
     return rows.map(row => ({ ...row, detail: JSON.parse(row.detail) }));

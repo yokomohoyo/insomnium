@@ -202,12 +202,12 @@ docker run -d --name insomnium-team --restart unless-stopped \
   -v /volume1/docker/insomnium-team:/data \
   -e INSOMNIUM_TEAM_ADMIN=kim \
   ghcr.io/yokomohoyo/insomnium-server team
-docker logs insomnium-team   # the admin's password, made on the first start and shown once
+cat /volume1/docker/insomnium-team/first-admin-password   # the admin's password, made on the first start
 ```
 
-The folder on `/data` keeps everything: the accounts (`team.sqlite`) and the repositories (`repos/`). Back it up. The container runs as uid 1000, so the folder has to be writable by it (`chown 1000 …`, or on a Synology, give the folder's permissions to everyone, or run the container with `--user` set to your account's uid). Set `INSOMNIUM_TEAM_ADMIN_PASSWORD` to choose the first admin's password instead.
+The folder on `/data` keeps everything: the accounts (`team.sqlite`) and the repositories (`repos/`). Back it up. The container runs as uid 1000, so the folder has to be writable by it (`chown 1000 …`, or on a Synology, give the folder's permissions to everyone, or run the container with `--user` set to your account's uid). The admin's password is in `first-admin-password` in that folder, readable only by the server's user, not in the log; the file goes once the password is changed. Or set `INSOMNIUM_TEAM_ADMIN_PASSWORD` to choose it, and remove it from the container's environment after the first start.
 
-**Serve it over HTTPS.** Every Git and API call carries a password or token, so don't expose the plain HTTP port beyond a network you trust. On a Synology, add a reverse proxy rule in Control Panel → Login Portal → Advanced (https on, say, 8443, to localhost:8080), and set `INSOMNIUM_TEAM_URL=https://nas.example.com:8443` so the clone URLs it gives out are the HTTPS ones. Or, with a certificate of your own, mount it and set `INSOMNIUM_TLS_CERT` and `INSOMNIUM_TLS_KEY`: the server then speaks HTTPS on its port, with no proxy.
+**Serve it over HTTPS.** Every Git and API call carries a password or token, so don't expose the plain HTTP port beyond a network you trust. On a Synology, add a reverse proxy rule in Control Panel → Login Portal → Advanced (https on, say, 8443, to localhost:8080), and set `INSOMNIUM_TEAM_URL=https://nas.example.com:8443` so the clone URLs it gives out are the HTTPS ones. Set `INSOMNIUM_TEAM_TRUSTED_PROXIES` to the proxy's address (`127.0.0.1`, or the container network's gateway, such as `172.17.0.1`), so the server tells members apart by their own addresses. Or, with a certificate of your own, mount it and set `INSOMNIUM_TLS_CERT` and `INSOMNIUM_TLS_KEY`: the server then speaks HTTPS on its port, with no proxy.
 
 **In Insomnium,** open the **Team Server** tab in Git Clone, or in a workspace's Git Settings. Sign in with the server's address, your user name and your password (or **Sign In with SSO**, below). Insomnium makes an access token for that computer and keeps only that. Then pick a collection to clone, or one to sync the workspace to.
 
@@ -234,7 +234,7 @@ Set `INSOMNIUM_TEAM_URL` too, so the redirect URL is the one you registered. The
 
 **Roles,** for each collection: a **viewer** can clone and pull, an **editor** can also push, and an **owner** can also manage its members and read its log. The person who makes a collection owns it. An admin owns every collection and manages the accounts. Someone who isn't a member gets a "not found", so they can't tell a collection exists.
 
-**The log** records each push (who, and which branches moved from which commit to which), fetches (at most once every 10 minutes per person and collection), and changes to collections, members, accounts and tokens. Ten failed sign-ins from one address in five minutes block it for five minutes.
+**The log** records each push (who, and which branches moved from which commit to which), fetches (at most once every 10 minutes per person and collection), and changes to collections, members, accounts and tokens. Ten failed sign-ins from one address in five minutes block its passwords for five minutes; access tokens still sign in. Behind a reverse proxy, set `INSOMNIUM_TEAM_TRUSTED_PROXIES`, or every member shares the proxy's address. A token that goes unused for 180 days stops working, and a new password ends all of that user's tokens. Pushes are capped at 200 MB (`INSOMNIUM_TEAM_MAX_PUSH_MB`).
 
 **Admin commands,** run in the container:
 
@@ -245,7 +245,7 @@ docker exec insomnium-team node /app/dist/index.js team user reset-password lee
 docker exec insomnium-team node /app/dist/index.js team user list
 ```
 
-**The API,** at `/api`, signed in with Basic (your name, and your password or a token) or `Authorization: Bearer <token>`:
+**The API,** at `/api`, signed in with Basic (your name, and your password or a token) or `Authorization: Bearer <token>`. Request bodies are JSON, sent as `Content-Type: application/json`:
 
 | | |
 |---|---|
@@ -257,8 +257,8 @@ docker exec insomnium-team node /app/dist/index.js team user list
 | `PUT /api/collections/<slug>/members/<user>` `{"role": "editor"}` | (owner) Add someone, or change their role. |
 | `DELETE /api/collections/<slug>/members/<user>` | (owner) Take someone off. A collection keeps one owner. |
 | `GET /api/collections/<slug>/audit` | (owner) Its log, newest first; `?before=<id>` for the next page. |
-| `GET /api/tokens`, `POST /api/tokens` `{"label": "laptop"}`, `DELETE /api/tokens/<id>` | Your access tokens. A new one's secret is shown once; only its hash is kept. |
-| `PUT /api/password` `{"current": "…", "password": "…"}` | Change your password (10 characters at least). |
+| `GET /api/tokens`, `POST /api/tokens` `{"label": "laptop"}`, `DELETE /api/tokens/<id>` | Your access tokens. A new one's secret is shown once; only its hash is kept. Making one takes your password, not a token. |
+| `PUT /api/password` `{"current": "…", "password": "…"}` | Change your password (10 characters at least). Your access tokens stop working. |
 | `GET /api/users`, `POST /api/users` `{"name": "lee", "admin": false}`, `PUT /api/users/<name>` `{"admin": true, "resetPassword": true}`, `DELETE /api/users/<name>` | (admin) Accounts. A new user, or a reset, gets a password made for them, returned once. |
 | `GET /api/audit` | (admin) Everything's log. |
 
@@ -266,7 +266,9 @@ docker exec insomnium-team node /app/dist/index.js team user list
 |---|---|
 | `--data <dir>` | Where it keeps everything (`INSOMNIUM_TEAM_DATA`; default `/data`). |
 | `--port <n>`, `--host <address>` | Where it listens (`INSOMNIUM_PORT`, `INSOMNIUM_HOST`; default 0.0.0.0:8080). |
-| `--public-url <url>` | How people reach it, for clone URLs (`INSOMNIUM_TEAM_URL`); otherwise from each request, or the reverse proxy's `X-Forwarded-Host`. |
+| `--public-url <url>` | How people reach it, for clone URLs (`INSOMNIUM_TEAM_URL`); otherwise from each request, or a trusted reverse proxy's `X-Forwarded-Host`. |
+| `INSOMNIUM_TEAM_TRUSTED_PROXIES` | The reverse proxies in front of it, by address (`127.0.0.1,172.17.0.1`). Only their `X-Forwarded-For`, `-Proto` and `-Host` are believed. |
+| `INSOMNIUM_TEAM_MAX_PUSH_MB` | The biggest push it takes, in MB (default 200). |
 
 ## Not yet
 

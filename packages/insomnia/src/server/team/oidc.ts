@@ -207,8 +207,9 @@ export class OidcLogin {
       }
     }
     this.prune();
-    if (this.pending.size >= MAX_PENDING) {
-      throw new OidcError('Too many sign-ins under way: try again in a few minutes');
+    // full: the oldest started makes way, so a flood can't stop everyone signing in
+    while (this.pending.size >= MAX_PENDING) {
+      this.pending.delete(this.pending.keys().next().value as string);
     }
     const { authorization_endpoint } = await this.discover();
     const state = random();

@@ -8,7 +8,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import os from 'node:os';
 
 import type { TeamServerSignIn } from '../common/settings';
-import { normalizeTeamUrl, type TeamCollection, type TeamServerKey } from '../common/team-server';
+import { normalizeTeamUrl, onServer, type TeamCollection, type TeamServerKey } from '../common/team-server';
 import * as models from '../models';
 import { authorizeInSystemBrowser } from './authorize-in-system-browser';
 import { axiosRequest } from './network/axios-request';
@@ -129,7 +129,8 @@ export async function teamCollections(key: TeamServerKey): Promise<TeamCollectio
   if (!Array.isArray(collections)) {
     throw new Error(`${signIn.url} doesn't look like an Insomnium team server`);
   }
-  return collections;
+  // the token goes with each clone and push: only to the server it's for
+  return collections.map(collection => ({ ...collection, cloneUrl: onServer(signIn.url, collection) }));
 }
 
 export async function teamCreateCollection(options: TeamServerKey & { name: string }): Promise<TeamCollection> {
