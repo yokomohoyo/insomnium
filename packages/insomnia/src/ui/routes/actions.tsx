@@ -18,6 +18,7 @@ import { Workspace } from '../../models/workspace';
 import { WorkspaceMeta } from '../../models/workspace-meta';
 import { getSendRequestCallback } from '../../network/unit-test-feature';
 import { guard } from '../../utils/guard';
+import { mayRunTests, trustTestCode } from '../test-code-trust';
 
 // Project
 export const createNewProjectAction: ActionFunction = async ({ request, params }) => {
@@ -310,6 +311,9 @@ export const runAllTestsAction: ActionFunction = async ({
       code: t.code,
       defaultRequestId: t.requestId,
     }));
+  if (!mayRunTests(tests)) {
+    return null;
+  }
 
   const src = generate([{ name: 'My Suite', suites: [], tests }]);
 
@@ -356,10 +360,12 @@ export const createNewTestAction: ActionFunction = async ({ request, params }) =
   const name = formData.get('name');
   guard(typeof name === 'string', 'Name is required');
 
+  const code = `const response1 = await insomnia.send();
+expect(response1.status).to.equal(200);`;
+  trustTestCode([code]);
   await models.unitTest.create({
     parentId: testSuiteId,
-    code: `const response1 = await insomnia.send();
-expect(response1.status).to.equal(200);`,
+    code,
     name,
   });
 
@@ -400,6 +406,8 @@ export const updateTestAction: ActionFunction = async ({ request, params }) => {
   });
   guard(unitTest, 'Test not found');
 
+  // written here, so it runs without asking
+  trustTestCode([code]);
   await models.unitTest.update(unitTest, { name, code, requestId: requestId || null });
 
   return null;
@@ -421,6 +429,9 @@ export const runTestAction: ActionFunction = async ({ params }) => {
       defaultRequestId: unitTest.requestId,
     },
   ];
+  if (!mayRunTests(tests)) {
+    return null;
+  }
   const src = generate([{ name: 'My Suite', suites: [], tests }]);
 
   const sendRequest = getSendRequestCallback();

@@ -19,7 +19,11 @@ test.describe('Design interactions', async () => {
     // Switch to Test tab
     await page.click('a:has-text("Test")');
 
-    // Run tests and check results
+    // Run tests and check results: imported, so it asks first
+    page.once('dialog', dialog => {
+      expect(dialog.message()).toContain("weren't written in this app");
+      dialog.accept();
+    });
     await page.click('#wrapper >> text=Run Tests');
     await expect(page.locator('.app')).toContainText('Request A is found');
     await expect(page.locator('.app')).toContainText('Request B is not found');
