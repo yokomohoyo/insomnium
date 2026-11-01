@@ -311,7 +311,8 @@ function _followLanguage() {
 // Start/stop MCP server based on Settings.mcpEnabled. Subscribes to settings
 // changes so toggling or port changes in the UI take effect without restart.
 async function _initMcpServer() {
-  const { startMcpServer, stopMcpServer, getRunningMcpServer } = await import('./main/mcp/server');
+  // the server and its tools, loaded once it's turned on rather than as the app starts
+  let server: typeof import('./main/mcp/server') | undefined;
   // Serialize apply() invocations - nedb fires multiple settings change events
   // when the user touches several fields, and overlapping start/stop calls
   // race on the listen port.
@@ -319,6 +320,11 @@ async function _initMcpServer() {
   const apply = () => {
     inFlight = inFlight.then(async () => {
       const s = await models.settings.getOrCreate();
+      if (!s.mcpEnabled && !server) {
+        return; // never started
+      }
+      server ??= await import('./main/mcp/server');
+      const { startMcpServer, stopMcpServer, getRunningMcpServer } = server;
       const running = getRunningMcpServer();
       if (!s.mcpEnabled) {
         if (running) await stopMcpServer();
