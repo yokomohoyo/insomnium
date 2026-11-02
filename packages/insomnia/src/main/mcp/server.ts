@@ -37,13 +37,14 @@ import { registerWebSocketTools } from './tools/websockets';
 interface RunningServer {
   http: http.Server;
   port: number;
+  token: string;
   transports: Map<string, SSEServerTransport>;
 }
 
 let current: RunningServer | null = null;
 
-export function getRunningMcpServer(): { port: number } | null {
-  return current ? { port: current.port } : null;
+export function getRunningMcpServer(): { port: number; token: string } | null {
+  return current ? { port: current.port, token: current.token } : null;
 }
 
 export async function ensureMcpToken(): Promise<string> {
@@ -135,7 +136,7 @@ export async function startMcpServer(): Promise<{ port: number }> {
 
   const addr = httpServer.address();
   const port = typeof addr === 'object' && addr ? addr.port : requestedPort;
-  current = { http: httpServer, port, transports };
+  current = { http: httpServer, port, token, transports };
   // Advertise port + token for the external launcher; non-fatal on failure.
   try {
     await writeDiscoveryFile({ port, token });
