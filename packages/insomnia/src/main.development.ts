@@ -22,6 +22,7 @@ import { registerCurlHandlers } from './main/network/curl';
 import { registerFolderSyncHandlers } from './main/folder-sync';
 import { registerPluginSandboxHandlers } from './main/plugin-sandbox';
 import { registerGitSshHandlers } from './main/git-ssh';
+import { mcpServerAction } from './main/mcp/server-state';
 import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
 import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
@@ -325,14 +326,16 @@ async function _initMcpServer() {
       }
       server ??= await import('./main/mcp/server');
       const { startMcpServer, stopMcpServer, getRunningMcpServer } = server;
-      const running = getRunningMcpServer();
-      if (!s.mcpEnabled) {
-        if (running) await stopMcpServer();
+      const action = mcpServerAction(s, getRunningMcpServer());
+      if (action === 'none') {
         return;
       }
-      const portChanged = running && s.mcpPort > 0 && running.port !== s.mcpPort;
-      if (running && !portChanged) return; // already in the desired state
-      if (running) await stopMcpServer();
+      if (action !== 'start') {
+        await stopMcpServer();
+      }
+      if (action === 'stop') {
+        return;
+      }
       try {
         await startMcpServer();
       } catch (err) {
