@@ -35,15 +35,17 @@ jobs:
       # a build provenance attestation for each release asset
       id-token: write
       attestations: write
-    # the Windows build signs through SignPath Foundation: the environment has
-    # the SignPath project's names and the CI user's API token (only release
-    # tags and main deploy there)
+    # the macOS build's Apple certificate and notarization key live in
+    # apple-signing; the Windows build signs through SignPath Foundation, and
+    # windows-signing has the SignPath project's names and the CI user's API
+    # token (only release tags and main deploy to either)
     environment: ${{ matrix.environment }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest
+            environment: apple-signing
           - os: windows-latest
             environment: windows-signing
           - os: ubuntu-latest
