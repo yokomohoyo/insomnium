@@ -91,6 +91,8 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm rebuild @getinsomnia/node-libcurl electron-winstaller
+          # the binary node-libcurl downloaded is the one pinned
+          npm run verify:libcurl --workspace=packages/insomnia
 
       # electron-builder.config.js notarizes only when APPLE_API_KEY (a path to
       # the App Store Connect .p8 key) is set, so decode it to a file first.
