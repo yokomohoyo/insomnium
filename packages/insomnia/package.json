@@ -38,6 +38,7 @@
     "bench": "jest --testRegex '\\.bench\\.tsx?$' --runInBand",
     "perf:fixtures": "esr scripts/perf-fixtures.ts",
     "type-check": "tsc --noEmit --project tsconfig.build.json",
+    "verify:libcurl": "esr scripts/verify-libcurl.ts",
     "type-check:watch": "npm run type-check -- --watch",
     "convert-svg": "npm_config_yes=true npx @svgr/cli@6.4.0 --no-index --config-file svgr.config.js --out-dir src/ui/components/assets/svgr src/ui/components/assets/"
   },
