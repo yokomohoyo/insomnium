@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { EventEmitter } from 'events';
 
+import { appPageUrl } from '../main/ipc/app-senders';
+
 const mockWindows: { webContents: unknown }[] = [];
 const createMockWindow = () => {
   const window = {
@@ -74,6 +76,9 @@ const startApp = () => {
   return jest.requireMock('electron') as { app: EventEmitter; ipcMain: EventEmitter };
 };
 
+// an IPC event from the app's page in the current window (main/ipc/app-senders.ts)
+const fromApp = (window = mockWindow) => ({ sender: window.webContents, senderFrame: { url: appPageUrl(), parent: null } });
+
 const waitForLaunch = async (ipcMain: EventEmitter) => {
   while (!ipcMain.listenerCount('halfSecondAfterAppStart')) {
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -107,7 +112,7 @@ describe('main.development deep links', () => {
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
     expect(mockWindow.focus).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
     // The window is brought to the front as the held link opens
@@ -118,7 +123,7 @@ describe('main.development deep links', () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
 
     app.emit('open-url', { preventDefault: () => {} }, 'insomnia://app/alert?title=hi');
     expect(mockWindow.focus).toHaveBeenCalled();
@@ -134,7 +139,7 @@ describe('main.development deep links', () => {
     await waitForLaunch(ipcMain);
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
   });
@@ -149,7 +154,7 @@ describe('main.development deep links', () => {
     expect(mockWindow.focus).toHaveBeenCalled();
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
   });
@@ -159,7 +164,7 @@ describe('main.development deep links', () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
 
     // On macOS the app keeps running with all windows closed, so the link gets a new window
     const firstWindow = mockWindow;
@@ -168,7 +173,7 @@ describe('main.development deep links', () => {
     expect(mockWindow.focus).toHaveBeenCalled();
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
     expect(firstWindow.webContents.send).not.toHaveBeenCalled();
@@ -179,13 +184,13 @@ describe('main.development deep links', () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
 
     mockWindow = createMockWindow();
     app.emit('second-instance', {}, ['/opt/Insomnium/insomnium', url]);
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
   });
@@ -199,7 +204,7 @@ describe('main.development deep links', () => {
     await waitForLaunch(ipcMain);
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
   });
@@ -210,13 +215,13 @@ describe('main.development deep links', () => {
     app.emit('web-contents-created', {}, mockWindow.webContents);
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
 
     mockWindow.webContents.emit('did-navigate');
     app.emit('open-url', { preventDefault: () => {} }, url);
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
   });
@@ -227,12 +232,12 @@ describe('main.development deep links', () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
 
     const secondWindow = createMockWindow();
-    ipcMain.emit('halfSecondAfterAppStart', { sender: secondWindow.webContents });
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp(secondWindow));
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(secondWindow.webContents.send).not.toHaveBeenCalled();
   });
@@ -244,16 +249,16 @@ describe('main.development deep links', () => {
     app.emit('web-contents-created', {}, firstWindow.webContents);
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: firstWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp(firstWindow));
 
     mockWindow = createMockWindow();
     app.emit('open-url', { preventDefault: () => {} }, url);
     // The first window reloads and signals before the new one has loaded
     firstWindow.webContents.emit('did-navigate');
-    ipcMain.emit('halfSecondAfterAppStart', { sender: firstWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp(firstWindow));
     expect(firstWindow.webContents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).toHaveBeenCalledTimes(1);
     expect(mockWindow.webContents.send).toHaveBeenCalledWith('shell:open', url);
   });
@@ -262,7 +267,7 @@ describe('main.development deep links', () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
 
     const closedWindow = createMockWindow();
     mockWindow = closedWindow;
@@ -272,7 +277,7 @@ describe('main.development deep links', () => {
 
     // A window opened later, for example from the dock, does not get the old link
     mockWindow = createMockWindow();
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
     app.emit('open-url', { preventDefault: () => {} }, 'insomnia://app/alert?title=Fresh');
     expect(mockWindow.webContents.send.mock.calls).toEqual([['shell:open', 'insomnia://app/alert?title=Fresh']]);
@@ -287,18 +292,18 @@ describe('main.development deep links', () => {
     await waitForLaunch(ipcMain);
     const openUrl = (title: string) => app.emit('open-url', { preventDefault: () => {} }, `insomnia://app/alert?title=${title}`);
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: contents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     contents.emit('render-process-gone', {}, { reason: 'crashed' });
     openUrl('Crash');
     expect(contents.send).not.toHaveBeenCalled();
 
-    ipcMain.emit('halfSecondAfterAppStart', { sender: contents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     contents.emit('did-fail-load', {}, -102, 'ERR_CONNECTION_REFUSED', 'http://localhost:3334/', true);
     openUrl('ErrorPage');
     expect(contents.send.mock.calls).toEqual([['shell:open', 'insomnia://app/alert?title=Crash']]);
 
     // A cancelled load or a failing subframe leaves the page listening
-    ipcMain.emit('halfSecondAfterAppStart', { sender: contents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     contents.emit('did-fail-load', {}, -3, 'ERR_ABORTED', 'http://localhost:3334/', true);
     contents.emit('did-fail-load', {}, -102, 'ERR_CONNECTION_REFUSED', 'http://example.com/', false);
     openUrl('StillListening');
@@ -315,7 +320,7 @@ describe('main.development deep links', () => {
     const { app, ipcMain } = startApp();
     app.emit('ready');
     await waitForLaunch(ipcMain);
-    ipcMain.emit('halfSecondAfterAppStart', { sender: mockWindow.webContents });
+    ipcMain.emit('halfSecondAfterAppStart', fromApp());
     expect(mockWindow.webContents.send).not.toHaveBeenCalled();
   });
 

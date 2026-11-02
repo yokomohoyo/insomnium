@@ -2,7 +2,6 @@ import electron, { type BrowserWindow as ElectronBrowserWindow, type MenuItemCon
 import fs from 'fs';
 import * as os from 'os';
 import path from 'path';
-import { pathToFileURL } from 'url';
 
 import {
   changelogUrl,
@@ -17,6 +16,7 @@ import {
 import { docsBase } from '../common/documentation';
 import { menuLabel } from '../common/i18n';
 import * as log from '../common/log';
+import { appPageUrl } from './ipc/app-senders';
 import LocalStorage from './local-storage';
 import { showUpdateCheck } from './release-check';
 
@@ -129,10 +129,7 @@ export function createWindow() {
   });
 
   // Load the html of the app.
-  const appPath = path.resolve(__dirname, './index.html');
-  // the dev server's, in development; a release build loads only its own page,
-  // since this window has Node
-  const appUrl = (!electron.app.isPackaged && process.env.APP_RENDER_URL) || pathToFileURL(appPath).href;
+  const appUrl = appPageUrl();
 
   console.log(`[main] Loading ${appUrl}`);
   newWindow?.loadURL(appUrl);
