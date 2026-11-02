@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, jest } from '@jest/globals';
+import crypto from 'crypto';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -77,6 +78,31 @@ describe('SqliteStore with a credential guard', () => {
     store.compact();
     expect(fileBytes(file)).not.toContain(SECRET);
     expect(store.find('OAuth2Token')[0].accessToken).toBe(SECRET);
+    store.close();
+  });
+
+  it('moves version 1 envelopes to 2, and then opens no version 1 one', async () => {
+    const file = tempFile();
+    const store = await guarded(file);
+    store.insert(tokenDoc);
+    // sealed as before 0.8.4: bound to the type and field only
+    const [stored] = JSON.parse(store.getMeta('credentials.keys') as string);
+    const key = Buffer.from(Buffer.from(stored.wrapped, 'base64').toString().slice(3), 'base64');
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+    cipher.setAAD(Buffer.from('OAuth2Token\0accessToken'));
+    const encrypted = Buffer.concat([cipher.update(JSON.stringify(SECRET), 'utf8'), cipher.final()]);
+    const legacy = { ...(store as any).raw('oa2_1'), accessToken: { $enc: 1, k: stored.id, v: Buffer.concat([iv, encrypted, cipher.getAuthTag()]).toString('base64') } };
+    const put = (doc: object) => (store as any).prepare('UPDATE docs SET json = ? WHERE _id = ?').run(JSON.stringify(doc), 'oa2_1');
+    put(legacy);
+    expect(store.find('OAuth2Token')[0].accessToken).toBe(SECRET);
+    expect(store.hasUnsealedCredentials()).toBe(true);
+    expect(store.sealCredentials()).toBe(1);
+    expect((store as any).raw('oa2_1').accessToken.$enc).toBe(2);
+    expect(store.find('OAuth2Token')[0].accessToken).toBe(SECRET);
+    // the old row, put back, doesn't open
+    put(legacy);
+    expect(store.find('OAuth2Token')[0].accessToken).toBe('');
     store.close();
   });
 

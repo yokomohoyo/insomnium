@@ -204,6 +204,10 @@ export class SqliteStore {
         }
       }
     });
+    // every version 1 envelope moved (none left under a key this session can't open)
+    if (!this.credentialRows().some(doc => guard.hasLegacyEnvelope(doc))) {
+      guard.retireLegacyEnvelopes();
+    }
     return changed;
   }
 

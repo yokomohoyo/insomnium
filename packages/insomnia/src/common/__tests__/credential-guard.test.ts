@@ -1,4 +1,5 @@
 import { describe, expect, it, jest } from '@jest/globals';
+import crypto from 'node:crypto';
 
 import { CredentialGuard, isEnvelope, KeyWrapper, WrappedKey } from '../credential-guard';
 
@@ -42,6 +43,16 @@ const ready = async (wrapper = keychain(), meta = memoryMeta()) => {
   await guard.load();
   await guard.ensureKey();
   return { guard, wrapper, meta };
+};
+// an envelope as versions before 0.8.4 sealed it: bound to the type and field only
+const legacySeal = (meta: ReturnType<typeof memoryMeta>, type: string, field: string, value: unknown) => {
+  const [stored] = storedKeys(meta);
+  const key = Buffer.from(Buffer.from(stored.wrapped, 'base64').toString().split('|')[3], 'base64');
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  cipher.setAAD(Buffer.from(`${type}\0${field}`));
+  const encrypted = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
+  return { $enc: 1, k: stored.id, v: Buffer.concat([iv, encrypted, cipher.getAuthTag()]).toString('base64') };
 };
 const token = (accessToken: unknown, extra = {}) => ({ _id: 'oa2_1', type: 'OAuth2Token', accessToken, refreshToken: '', identityToken: '', ...extra });
 
@@ -98,6 +109,34 @@ describe('CredentialGuard', () => {
     const { guard } = await ready();
     const stored = guard.sealDoc(token('abc'), null);
     expect(guard.openDoc({ ...stored, refreshToken: stored.accessToken }).refreshToken).toBe('');
+  });
+
+  it('binds ciphertext to its doc', async () => {
+    const { guard } = await ready();
+    const stored = guard.sealDoc(token('abc'), null);
+    expect(stored.accessToken.$enc).toBe(2);
+    expect(guard.openDoc({ ...stored, _id: 'oa2_2' }).accessToken).toBe('');
+    expect(guard.openDoc(stored).accessToken).toBe('abc');
+  });
+
+  it('opens a version 1 envelope until the startup pass has moved them all to 2', async () => {
+    const meta = memoryMeta();
+    const { guard } = await ready(keychain(), meta);
+    const legacy = token(legacySeal(meta, 'OAuth2Token', 'accessToken', 'abc'));
+    expect(guard.openDoc(legacy).accessToken).toBe('abc');
+    expect(guard.needsSealing(legacy)).toBe(true);
+    expect(guard.hasLegacyEnvelope(legacy)).toBe(true);
+    const resealed = guard.sealDoc(guard.openDoc(legacy), legacy);
+    expect(resealed.accessToken.$enc).toBe(2);
+    expect(guard.hasLegacyEnvelope(resealed)).toBe(false);
+
+    guard.retireLegacyEnvelopes();
+    expect(guard.openDoc(legacy).accessToken).toBe('');
+    expect(guard.needsSealing(legacy)).toBe(false);
+    // and in the sessions after
+    const { guard: next } = await ready(keychain(), meta);
+    expect(next.openDoc(legacy).accessToken).toBe('');
+    expect(next.openDoc(resealed).accessToken).toBe('abc');
   });
 
   it('encrypts input that merely looks encrypted', async () => {

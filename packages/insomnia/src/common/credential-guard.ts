@@ -19,8 +19,10 @@ export const CREDENTIAL_FIELDS: Readonly<Record<string, readonly string[]>> = {
   Workspace: ['certificates'],
 };
 
+// 1: bound to the doc's type and field only, from before 0.8.4; read until the
+// startup pass has moved every one to 2, which binds the doc's _id as well
 export interface Envelope {
-  $enc: 1;
+  $enc: 1 | 2;
   k: string;
   v: string;
 }
@@ -52,6 +54,8 @@ export interface GuardMeta {
 export type GuardState = 'none' | 'ready' | 'weak' | 'locked' | 'unavailable';
 
 const KEYS_META = 'credentials.keys';
+// set once no version 1 envelope is left, after which none opens
+const ENVELOPES_META = 'credentials.envelopes';
 // how long to wait on the keychain before carrying on without it this session
 export const KEYCHAIN_TIMEOUT_MS = 30_000;
 interface Doc {
@@ -62,11 +66,12 @@ interface Doc {
 
 const isEmpty = (value: unknown) => value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
 export const isEnvelope = (value: unknown): value is Envelope =>
-  !!value && typeof value === 'object' && (value as Envelope).$enc === 1 && typeof (value as Envelope).k === 'string' && typeof (value as Envelope).v === 'string';
+  !!value && typeof value === 'object' && ((value as Envelope).$enc === 1 || (value as Envelope).$enc === 2) && typeof (value as Envelope).k === 'string' && typeof (value as Envelope).v === 'string';
 // what a field reads as when its envelope can't be opened
 const placeholder = (field: string) => (field === 'credentials' ? null : field === 'certificates' ? [] : '');
 const keyCheck = (key: Buffer) => crypto.createHmac('sha256', key).update('insomnium-key-check').digest('base64').slice(0, 22);
-const aad = (type: string, field: string) => Buffer.from(`${type}\0${field}`);
+const aad = (version: Envelope['$enc'], doc: Doc, field: string) =>
+  Buffer.from(version === 1 ? `${doc.type}\0${field}` : `${doc.type}\0${doc._id}\0${field}`);
 
 class KeychainTimeout extends Error {}
 
@@ -77,6 +82,7 @@ export class CredentialGuard {
   // credentials entered while the keychain is unavailable: kept for the session only
   private sessionValues = new Map<string, unknown>();
   private creating: Promise<void> | null = null;
+  private legacyRetired = false;
   state: GuardState = 'none';
   // saved keys this keychain can't open: made on another computer or account, or
   // under a keychain since reset. Their credentials read as empty.
@@ -96,6 +102,7 @@ export class CredentialGuard {
   // Unwraps existing keys. Touches the keychain only if a key was saved before.
   async load() {
     this.storedKeys = JSON.parse(this.meta.get(KEYS_META) || '[]') as WrappedKey[];
+    this.legacyRetired = this.meta.get(ENVELOPES_META) === '2';
     if (!this.storedKeys.length) {
       this.state = 'none';
       return;
@@ -226,16 +233,29 @@ export class CredentialGuard {
     return this.state === 'none' && this.needsSealing(doc);
   }
 
-  private seal(type: string, field: string, value: unknown): Envelope {
+  // Stops opening version 1 envelopes, once the store holds none.
+  retireLegacyEnvelopes() {
+    this.legacyRetired = true;
+    this.meta.set(ENVELOPES_META, '2');
+  }
+
+  hasLegacyEnvelope(doc: Doc) {
+    return (CREDENTIAL_FIELDS[doc.type] || []).some(field => isEnvelope(doc[field]) && doc[field].$enc === 1);
+  }
+
+  private seal(doc: Doc, field: string, value: unknown): Envelope {
     const key = this.keys.get(this.currentKeyId as string) as Buffer;
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-    cipher.setAAD(aad(type, field));
+    cipher.setAAD(aad(2, doc, field));
     const encrypted = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
-    return { $enc: 1, k: this.currentKeyId as string, v: Buffer.concat([iv, encrypted, cipher.getAuthTag()]).toString('base64') };
+    return { $enc: 2, k: this.currentKeyId as string, v: Buffer.concat([iv, encrypted, cipher.getAuthTag()]).toString('base64') };
   }
 
-  private open(type: string, field: string, envelope: Envelope): unknown {
+  private open(doc: Doc, field: string, envelope: Envelope): unknown {
+    if (envelope.$enc === 1 && this.legacyRetired) {
+      throw new Error('a version 1 envelope after all were moved to 2');
+    }
     const key = this.keys.get(envelope.k);
     if (!key) {
       throw new Error(`no key ${envelope.k}`);
@@ -245,21 +265,21 @@ export class CredentialGuard {
       throw new Error('truncated ciphertext');
     }
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, raw.subarray(0, 12), { authTagLength: 16 });
-    decipher.setAAD(aad(type, field));
+    decipher.setAAD(aad(envelope.$enc, doc, field));
     decipher.setAuthTag(raw.subarray(raw.length - 16));
     return JSON.parse(Buffer.concat([decipher.update(raw.subarray(12, raw.length - 16)), decipher.final()]).toString('utf8'));
   }
 
-  private tryOpen(type: string, field: string, value: unknown): { opened: unknown } | null {
+  private tryOpen(doc: Doc, field: string, value: unknown): { opened: unknown } | null {
     try {
-      return isEnvelope(value) ? { opened: this.open(type, field, value) } : null;
+      return isEnvelope(value) ? { opened: this.open(doc, field, value) } : null;
     } catch {
       return null;
     }
   }
 
-  private canOpen(type: string, field: string, value: unknown) {
-    return this.tryOpen(type, field, value) !== null;
+  private canOpen(doc: Doc, field: string, value: unknown) {
+    return this.tryOpen(doc, field, value) !== null;
   }
 
   // The copy of doc to store. previous is the row as stored now, if any.
@@ -277,7 +297,7 @@ export class CredentialGuard {
       if (isEmpty(value)) {
         this.sessionValues.delete(sessionKey);
         // an unreadable credential reads as empty; writing that back must not destroy it
-        if (isEnvelope(before) && !this.canOpen(doc.type, field, before)) {
+        if (isEnvelope(before) && !this.canOpen(doc, field, before)) {
           stored[field] = before;
         }
         // Workspace drops its legacy certificates on every write once they're extracted
@@ -290,10 +310,10 @@ export class CredentialGuard {
       if (encrypting) {
         this.sessionValues.delete(sessionKey);
         // unchanged: keep the stored ciphertext rather than re-encrypting on every
-        // write, unless it's under an older key
-        const current = this.tryOpen(doc.type, field, before);
-        const keep = current && (before as Envelope).k === this.currentKeyId && isDeepStrictEqual(current.opened, value);
-        stored[field] = keep ? before : this.seal(doc.type, field, value);
+        // write, unless it's under an older key or version
+        const current = this.tryOpen(doc, field, before);
+        const keep = current && (before as Envelope).k === this.currentKeyId && (before as Envelope).$enc === 2 && isDeepStrictEqual(current.opened, value);
+        stored[field] = keep ? before : this.seal(doc, field, value);
       } else if (!isDeepStrictEqual(value, before)) {
         // never write a new credential in plaintext: keep it for this session
         // and leave whatever was stored (plaintext from before this version, or ciphertext)
@@ -322,7 +342,7 @@ export class CredentialGuard {
         opened[field] = this.sessionValues.get(sessionKey);
       } else if (isEnvelope(doc[field])) {
         try {
-          opened[field] = this.open(doc.type, field, doc[field]);
+          opened[field] = this.open(doc, field, doc[field]);
         } catch (err) {
           // a missing key was reported once by load(); a failed decrypt means tampering
           if (this.keys.has(doc[field].k)) {
@@ -336,11 +356,11 @@ export class CredentialGuard {
   }
 
   // Docs the startup pass should rewrite: credentials in plaintext from before
-  // encryption, or under an older key this session can open.
+  // encryption, or under an older key or version this session can open.
   needsSealing(doc: Doc) {
     return (CREDENTIAL_FIELDS[doc.type] || []).some(field => {
       const value = doc[field];
-      return !isEmpty(value) && (!isEnvelope(value) || (value.k !== this.currentKeyId && this.keys.has(value.k)));
+      return !isEmpty(value) && (!isEnvelope(value) || ((value.k !== this.currentKeyId || value.$enc === 1) && this.canOpen(doc, field, value)));
     });
   }
 }
