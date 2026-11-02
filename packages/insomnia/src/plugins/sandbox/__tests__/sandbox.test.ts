@@ -254,17 +254,27 @@ describe('reading a plugin\'s code', () => {
   });
   afterEach(() => fs.rmSync(base, { recursive: true, force: true }));
 
-  it('reads code under its folder, and the node_modules it sits in, and nothing else', () => {
+  it('reads code under its folder, and the packages beside it that it depends on, and nothing else', () => {
     writePlugin(base, {
+      'node_modules/insomnia-plugin-x/package.json': JSON.stringify({ dependencies: { dep: '1', '../../outside': '1' }, peerDependencies: { '@scope/peer': '1' } }),
       'node_modules/insomnia-plugin-x/index.js': 'x',
       'node_modules/insomnia-plugin-x/notes.txt': 'not code',
+      'node_modules/dep/package.json': JSON.stringify({ dependencies: { 'dep-of-dep': '1' } }),
       'node_modules/dep/index.js': 'dep',
+      'node_modules/dep-of-dep/index.js': 'dep of dep',
+      'node_modules/@scope/peer/index.js': 'peer',
+      'node_modules/insomnia-plugin-other/index.js': 'another plugin',
+      'outside/index.js': 'not a package beside it',
       'secret.js': 'not the plugin\'s',
     });
     const dir = path.join(base, 'node_modules', 'insomnia-plugin-x');
     const roots = codeRoots(dir);
     expect(readPluginFile(path.join(dir, 'index.js'), roots)).toBe('x');
     expect(readPluginFile(path.join(base, 'node_modules', 'dep', 'index.js'), roots)).toBe('dep');
+    expect(readPluginFile(path.join(base, 'node_modules', 'dep-of-dep', 'index.js'), roots)).toBe('dep of dep');
+    expect(readPluginFile(path.join(base, 'node_modules', '@scope', 'peer', 'index.js'), roots)).toBe('peer');
+    expect(readPluginFile(path.join(base, 'node_modules', 'insomnia-plugin-other', 'index.js'), roots)).toBeNull();
+    expect(readPluginFile(path.join(base, 'outside', 'index.js'), roots)).toBeNull();
     expect(readPluginFile(path.join(dir, 'notes.txt'), roots)).toBeNull();
     expect(readPluginFile(path.join(base, 'secret.js'), roots)).toBeNull();
     expect(readPluginFile(path.join(dir, '..', '..', 'secret.js'), roots)).toBeNull();
