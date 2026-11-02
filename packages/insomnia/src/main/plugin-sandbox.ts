@@ -52,20 +52,47 @@ function sandboxSession(name: string) {
   return sandboxed;
 }
 
-// where a plugin's code can come from: its own folder, and the node_modules folder it sits in, if it does
-export function codeRoots(directory: string) {
-  const roots = [path.resolve(directory)];
-  const parent = path.dirname(roots[0]);
-  if (path.basename(parent) === 'node_modules' || path.basename(path.dirname(parent)) === 'node_modules') {
-    roots.push(path.basename(parent) === 'node_modules' ? parent : path.dirname(parent));
-  }
-  return roots;
-}
-
 const within = (file: string, root: string) => {
   const relative = path.relative(root, file);
   return !!relative && !relative.startsWith('..') && !path.isAbsolute(relative);
 };
+
+const MAX_DEPENDENCIES = 1000;
+
+const dependenciesOf = (folder: string) => {
+  try {
+    const manifest = JSON.parse(fs.readFileSync(path.join(folder, 'package.json'), 'utf8'));
+    return [manifest.dependencies, manifest.optionalDependencies, manifest.peerDependencies]
+      .flatMap(names => (names && typeof names === 'object' ? Object.keys(names) : []));
+  } catch {
+    return [];
+  }
+};
+
+// where a plugin's code can come from: its own folder and, if it sits in a
+// node_modules folder, the packages there it depends on (and they do), but not
+// the other plugins and packages beside it
+export function codeRoots(directory: string) {
+  const own = path.resolve(directory);
+  const parent = path.dirname(own);
+  const shared = path.basename(parent) === 'node_modules' ? parent : path.basename(path.dirname(parent)) === 'node_modules' ? path.dirname(parent) : null;
+  const roots = [own];
+  if (!shared) {
+    return roots;
+  }
+  const queue = [own];
+  while (queue.length && roots.length < MAX_DEPENDENCIES) {
+    for (const name of dependenciesOf(queue.shift() as string)) {
+      const folder = path.join(shared, name);
+      // a dependency of its own (in a nested node_modules) is under its root already
+      if (/^(@[\w.-]+\/)?[\w.-]+$/.test(name) && within(folder, shared) && !roots.includes(folder) && fs.existsSync(folder)) {
+        roots.push(folder);
+        queue.push(folder);
+      }
+    }
+  }
+  return roots;
+}
 
 // a file of the plugin's, if it's code under one of its roots (after following links)
 export function readPluginFile(file: string, roots: string[]): string | null {
