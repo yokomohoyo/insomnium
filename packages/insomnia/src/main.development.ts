@@ -15,6 +15,7 @@ import { announceCredentialStorage, safeStorageKeyWrapper } from './main/credent
 import { deepLinks, linksFromArgv } from './main/deep-link-buffer';
 // asks before a Google ID token goes to another audience's host, and refuses MCP clients
 import './main/gcp-audience';
+import { onlyAppSenders } from './main/ipc/app-senders';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
@@ -56,6 +57,8 @@ if (envDataPath) {
 global.window = global.window || undefined;
 
 hardenWebContents();
+// before any handler is registered
+onlyAppSenders(ipcMain);
 
 // setup right click menu
 app.on('web-contents-created', (_, contents) => {
