@@ -11,9 +11,12 @@ name: npm Packages
 # prefix and runs its command, so a missing file or dependency fails here, not
 # for users. `publish` only uploads those tarballs, with provenance.
 #
-# Required secret: NPM_TOKEN, an npm granular access token that can publish
-# both packages, stored in the `npm` environment, which only main may deploy
-# to. Until it is set, `publish` skips with a warning.
+# No token: `publish` uses npm trusted publishing (OIDC). Each package on
+# npmjs.com names this repository, this workflow file and the `npm`
+# environment (which only main may deploy to) as its trusted publisher. npm
+# can only set that on a package that exists, so a package's first version is
+# published by hand from this workflow's tarball; until then `publish` skips it
+# with a warning.
 
 on:
   workflow_run:
@@ -137,7 +140,7 @@ jobs:
     environment: npm
     permissions:
       contents: read
-      id-token: write # npm provenance
+      id-token: write # trusted publishing and provenance
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -149,17 +152,23 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - name: Publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Trusted publishing needs npm 11.5.1 or later.
+      - name: Check npm
         run: |
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "::warning::NPM_TOKEN is not set in the npm environment; nothing published"
-            exit 0
+          v=$(npm --version)
+          if [ "$(printf '%s\n' 11.5.1 "$v" | sort -V | head -1)" != 11.5.1 ]; then
+            echo "::error::npm $v can't use trusted publishing (needs 11.5.1 or later)"; exit 1
           fi
+
+      - name: Publish
+        run: |
           for tgz in packs/*.tgz; do
             name=$(tar -xOzf "$tgz" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).name")
             version=$(tar -xOzf "$tgz" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0)).version")
+            if [ -z "$(npm view "$name" name 2>/dev/null)" ]; then
+              echo "::warning::$name isn't on npm yet; publish its first version by hand, then add this workflow as its trusted publisher"
+              continue
+            fi
             if [ "$(npm view "$name@$version" version 2>/dev/null)" = "$version" ]; then
               echo "::notice::$name@$version is already on npm; skipped"
               continue
