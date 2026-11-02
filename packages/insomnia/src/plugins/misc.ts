@@ -93,6 +93,63 @@ export const validateThemeName = (name: string) => {
   return validName;
 };
 
+const BLOCK_COLORS = {
+  background: ['default', 'success', 'notice', 'warning', 'danger', 'surprise', 'info'],
+  foreground: ['default', 'success', 'notice', 'warning', 'danger', 'surprise', 'info'],
+  highlight: ['default', 'xxs', 'xs', 'sm', 'md', 'lg', 'xl'],
+} as const;
+const STYLE_BLOCKS: (keyof StylesThemeBlocks)[] = ['appHeader', 'dialog', 'dialogFooter', 'dialogHeader', 'dropdown', 'editor', 'link', 'overlay', 'pane', 'paneHeader', 'sidebar', 'sidebarHeader', 'sidebarList', 'tooltip', 'transparentOverlay'];
+
+const colorOf = (value: unknown) => {
+  if (typeof value !== 'string' || value.length > 64) {
+    return undefined;
+  }
+  try {
+    Color(value);
+    return value as ThemeColor;
+  } catch {
+    return undefined;
+  }
+};
+
+const blockFromLink = (block: any): ThemeBlock | undefined => {
+  if (!block || typeof block !== 'object') {
+    return undefined;
+  }
+  const picked: Record<string, Record<string, ThemeColor>> = {};
+  for (const [part, keys] of Object.entries(BLOCK_COLORS)) {
+    const colors: Record<string, ThemeColor> = {};
+    for (const key of keys) {
+      const color = colorOf(block[part]?.[key]);
+      if (color) {
+        colors[key] = color;
+      }
+    }
+    if (colors.default) {
+      picked[part] = colors;
+    }
+  }
+  return Object.keys(picked).length ? picked as ThemeBlock : undefined;
+};
+
+// A theme from a deep link: its colors, and nothing that styles the app (raw
+// CSS) or reaches out of it, which a theme plugin still can
+export const themeFromLink = (theme: any): PluginTheme => {
+  const inner = theme?.theme ?? {};
+  const styles: StylesThemeBlocks = {};
+  for (const name of STYLE_BLOCKS) {
+    const block = blockFromLink(inner.styles?.[name]);
+    if (block) {
+      styles[name] = block;
+    }
+  }
+  return {
+    name: String(theme?.name ?? ''),
+    displayName: String(theme?.displayName ?? theme?.name ?? '').slice(0, 100),
+    theme: { ...blockFromLink(inner), ...(Object.keys(styles).length ? { styles } : {}) },
+  };
+};
+
 export const containsNunjucks = (data: string) => (
   data.includes('{{') && data.includes('}}')
 );
