@@ -6,7 +6,7 @@ name: APT Repository
 # The .deb files themselves are NOT committed to git — they are pulled from
 # GitHub Release assets each run and deployed as a Pages artifact.
 #
-# Required repository secrets:
+# Required secrets, in the github-pages environment (only main deploys there):
 #   APT_GPG_PRIVATE_KEY  ASCII-armoured private key used to sign the release index
 #   APT_GPG_PASSPHRASE   passphrase for that key (set to an empty secret if none)
 #

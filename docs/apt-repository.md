@@ -42,9 +42,11 @@ Find the key id:
 gpg --list-secret-keys --keyid-format=long
 ```
 
-### 2. Add the repository secrets
+### 2. Add the secrets to the github-pages environment
 
-Under **Settings → Secrets and variables → Actions**, add:
+Under **Settings → Environments → github-pages → Environment secrets**, add
+these. Only main deploys to that environment, so other branches' workflows
+can't read the key.
 
 | Secret | Value |
 | --- | --- |
