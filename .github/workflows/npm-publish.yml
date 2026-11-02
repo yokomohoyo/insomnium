@@ -173,6 +173,7 @@ jobs:
               echo "::notice::$name@$version is already on npm; skipped"
               continue
             fi
-            npm publish "$tgz" --access public --provenance
+            # ./ so npm reads a file: packs/x.tgz looks like a GitHub owner/repo
+            npm publish "./$tgz" --access public --provenance
             echo "::notice::published $name@$version"
           done
