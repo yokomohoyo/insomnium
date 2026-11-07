@@ -11,7 +11,10 @@ import url from 'node:url';
 const REPO = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const INSOMNIA = path.join(REPO, 'packages', 'insomnia');
 const BUNDLE = process.env.BUNDLE || 'build';
-const electronBin = path.join(REPO, 'node_modules', '.bin', 'electron');
+// Node won't spawn a .cmd (CVE-2024-27980), so on Windows launch electron.exe itself
+const electronBin = process.platform === 'win32'
+  ? path.join(REPO, 'node_modules', 'electron', 'dist', 'electron.exe')
+  : path.join(REPO, 'node_modules', '.bin', 'electron');
 const mainJs = path.join(INSOMNIA, BUNDLE === 'dev' ? 'src' : 'build', 'main.min.js');
 
 // Inline server avoids depending on httpbin.org / network in CI.
