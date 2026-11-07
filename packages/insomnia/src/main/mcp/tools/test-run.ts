@@ -17,7 +17,8 @@ export interface TestRunRequest {
   workspace: string;
   tests: string[];
 }
-export type ConfirmTestRun = (run: TestRunRequest) => Promise<boolean>;
+// the signal is the MCP request's: a run the client gives up on is a no
+export type ConfirmTestRun = (run: TestRunRequest, signal?: AbortSignal) => Promise<boolean>;
 
 // the test runner keeps its helpers on the global object: one run at a time
 let queue: Promise<unknown> = Promise.resolve();
@@ -33,7 +34,7 @@ export function registerTestRunTools(server: McpServer, confirm: ConfirmTestRun)
     'run_test_suite',
     "Run a test suite's unit tests, as the Test tab's Run does, and store the result there. Unit tests are JavaScript that runs with the app's full access, so the app asks the user to allow each run; a declined run returns an error and runs nothing. Returns each test's result and any error.",
     { testSuiteId: z.string() },
-    async ({ testSuiteId }) => {
+    async ({ testSuiteId }, { signal }) => {
       const suite = await models.unitTestSuite.getById(testSuiteId);
       if (!suite) {
         return text({ error: 'test suite not found' }, true);
@@ -43,7 +44,7 @@ export function registerTestRunTools(server: McpServer, confirm: ConfirmTestRun)
       if (!unitTests.length) {
         return text({ error: 'the test suite has no tests' }, true);
       }
-      const allowed = await confirm({ suite: suite.name, workspace: workspace?.name || '', tests: unitTests.map(test => test.name) });
+      const allowed = await confirm({ suite: suite.name, workspace: workspace?.name || '', tests: unitTests.map(test => test.name) }, signal);
       // a record of each answer, in the app's log
       console.log(`[mcp] run_test_suite ${testSuiteId}: the user ${allowed === true ? 'allowed' : 'declined'} the run`);
       // only a plain yes runs anything

@@ -24,7 +24,8 @@ export interface GitActionRequest {
 
 export interface GitControls {
   open: (workspaceId: string) => Promise<OpenedWorkspaceGit>;
-  confirm: (request: GitActionRequest) => Promise<boolean>;
+  // the signal is the MCP request's: a request the client gives up on is a no
+  confirm: (request: GitActionRequest, signal?: AbortSignal) => Promise<boolean>;
 }
 
 // git keeps its own files: one operation on a repository at a time
@@ -62,14 +63,14 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     return changes.map(change => ({ name: statusNames[change.path] || path.basename(change.path), type: change.type, status: change.status, path: change.path }));
   };
 
-  const ask = async (opened: OpenedWorkspaceGit, action: GitActionRequest['action'], details: string[]) => {
+  const ask = async (opened: OpenedWorkspaceGit, action: GitActionRequest['action'], details: string[], signal: AbortSignal) => {
     const allowed = await git.confirm({
       action,
       workspace: opened.workspace.name,
       branch: await opened.vcs.getBranch(),
       remote: opened.gitRepository.uri,
       details,
-    });
+    }, signal);
     console.log(`[mcp] git_${action} ${opened.workspace._id}: the user ${allowed === true ? 'allowed' : 'declined'} it`);
     return allowed === true;
   };
@@ -102,7 +103,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     'git_commit',
     "Commit a Git-synced workspace's changes (all of them, or the paths given, as git_status lists them) with a message. The app asks the user first; a declined commit returns an error and changes nothing.",
     { workspaceId: z.string(), message: z.string().trim().min(1), paths: z.array(z.string()).optional() },
-    async ({ workspaceId, message, paths }) => withRepo(workspaceId, async opened => {
+    async ({ workspaceId, message, paths }, { signal }) => withRepo(workspaceId, async opened => {
       const { changes } = await getGitChanges(opened.vcs, opened.workspace);
       const chosen = paths ? changes.filter(change => paths.includes(change.path)) : changes;
       if (!chosen.length) {
@@ -111,7 +112,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
       const names = (await changesOf(opened)).filter(change => chosen.some(item => item.path === change.path));
       // the client's words, on one line, so they can't pass for the app's
       const shown = message.replace(/\s+/g, ' ').slice(0, 200);
-      if (!await ask(opened, 'commit', [`Message: "${shown}${message.length > 200 ? '…' : ''}"`, '', ...names.slice(0, 10).map(change => `${change.status}: ${change.name} (${change.type})`), ...(names.length > 10 ? [`and ${names.length - 10} more`] : [])])) {
+      if (!await ask(opened, 'commit', [`Message: "${shown}${message.length > 200 ? '…' : ''}"`, '', ...names.slice(0, 10).map(change => `${change.status}: ${change.name} (${change.type})`), ...(names.length > 10 ? [`and ${names.length - 10} more`] : [])], signal)) {
         return text({ error: 'the user declined the commit' }, true);
       }
       // what was asked about, and nothing that changed while the user decided
@@ -132,11 +133,11 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     'git_pull',
     "Pull a Git-synced workspace's branch from its remote (merging, or rebasing with rebase: true). The app asks the user first. Conflicting changes aren't resolved here: the result lists them, to settle in the app.",
     { workspaceId: z.string(), rebase: z.boolean().default(false) },
-    async ({ workspaceId, rebase }) => withRepo(workspaceId, async opened => {
+    async ({ workspaceId, rebase }, { signal }) => withRepo(workspaceId, async opened => {
       if (!opened.gitRepository.uri) {
         return text({ error: 'the repository has no remote' }, true);
       }
-      if (!await ask(opened, 'pull', [`${rebase ? 'Rebase onto' : 'Merge in'} what the remote has, changing this computer's copy of "${opened.workspace.name}".`])) {
+      if (!await ask(opened, 'pull', [`${rebase ? 'Rebase onto' : 'Merge in'} what the remote has, changing this computer's copy of "${opened.workspace.name}".`], signal)) {
         return text({ error: 'the user declined the pull' }, true);
       }
       const bufferId = await database.bufferChanges();
@@ -163,7 +164,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     'git_push',
     "Push a Git-synced workspace's branch to its remote. The app asks the user first. A push the remote refuses (it has commits this branch doesn't) says so: pull first.",
     { workspaceId: z.string() },
-    async ({ workspaceId }) => withRepo(workspaceId, async opened => {
+    async ({ workspaceId }, { signal }) => withRepo(workspaceId, async opened => {
       if (!opened.gitRepository.uri) {
         return text({ error: 'the repository has no remote' }, true);
       }
@@ -171,7 +172,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
         return text({ error: 'nothing to push' }, true);
       }
       const [latest] = await opened.vcs.log({ depth: 1 });
-      if (!await ask(opened, 'push', [`Send this branch's commits to ${opened.gitRepository.uri}.`, ...(latest ? ['', `Latest: ${latest.commit.message.trim().split('\n')[0]}`] : [])])) {
+      if (!await ask(opened, 'push', [`Send this branch's commits to ${opened.gitRepository.uri}.`, ...(latest ? ['', `Latest: ${latest.commit.message.trim().split('\n')[0]}`] : [])], signal)) {
         return text({ error: 'the user declined the push' }, true);
       }
       try {

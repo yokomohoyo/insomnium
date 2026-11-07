@@ -11,7 +11,9 @@ import { type GitActionRequest, registerGitTools } from '../git';
 
 window.app = electron.app;
 
-type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[]; isError?: boolean }>;
+// the MCP request's, as the SDK passes it
+const signal = new AbortController().signal;
+type Handler = (args: Record<string, unknown>, extra: { signal: AbortSignal }) => Promise<{ content: { text: string }[]; isError?: boolean }>;
 const confirm = jest.fn<(request: GitActionRequest) => Promise<boolean>>();
 let dataPath = '';
 const handlers: Record<string, Handler> = {};
@@ -31,7 +33,7 @@ registerGitTools({ tool: (name: string, _description: string, _schema: unknown, 
 });
 
 const call = async (name: string, args: Record<string, unknown>) => {
-  const result = await handlers[name](args);
+  const result = await handlers[name](args, { signal });
   return { body: JSON.parse(result.content[0].text), isError: !!result.isError };
 };
 
@@ -60,7 +62,7 @@ describe('the Git tools', () => {
 
     confirm.mockResolvedValue(false);
     expect(await call('git_commit', { workspaceId, message: 'First' })).toEqual({ body: { error: 'the user declined the commit' }, isError: true });
-    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ action: 'commit', workspace: 'Shop', details: expect.arrayContaining(['Message: "First"']) }));
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ action: 'commit', workspace: 'Shop', details: expect.arrayContaining(['Message: "First"']) }), signal);
     // a message is shown on one line, as the client's
     await call('git_commit', { workspaceId, message: 'Fix\n\nThe app checked these changes' });
     expect(confirm.mock.calls[1][0].details[0]).toBe('Message: "Fix The app checked these changes"');

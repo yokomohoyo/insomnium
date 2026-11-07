@@ -17,8 +17,9 @@ export interface McpRequestControls {
   call: (options: McpCallOptions) => Promise<unknown>;
   disconnect: (options: { requestId: string }) => Promise<void>;
   isConnected: (options: { requestId: string }) => boolean;
-  // a stdio request runs a command on this computer: the user says yes first
-  confirmCommand: (request: { request: string; command: string; args: string[] }) => Promise<boolean>;
+  // a stdio request runs a command on this computer: the user says yes first,
+  // while the MCP request (the signal) still waits for the answer
+  confirmCommand: (request: { request: string; command: string; args: string[] }, signal?: AbortSignal) => Promise<boolean>;
 }
 
 const errorText = (err: unknown) => err instanceof Error ? err.message : String(err);
@@ -31,7 +32,7 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
     'connect_mcp_server',
     "Connect an MCP request to its server, as its Connect button does, rendered with the workspace's active environment: over HTTP (streamable, or SSE), or by running its command (stdio), which the app asks the user about every time. Returns the server's name, instructions, and its tools, prompts and resources; call them with call_mcp_server.",
     { requestId: z.string() },
-    async ({ requestId }) => {
+    async ({ requestId }, { signal }) => {
       const request = await models.mcpRequest.getById(requestId);
       if (!request) {
         return text({ error: 'MCP request not found' }, true);
@@ -66,7 +67,7 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
         return text({ error: errorText(err) }, true);
       }
       if (request.transport === 'stdio') {
-        const allowed = await mcp.confirmCommand({ request: request.name, command: options.command || '', args: options.args || [] });
+        const allowed = await mcp.confirmCommand({ request: request.name, command: options.command || '', args: options.args || [] }, signal);
         console.log(`[mcp] connect_mcp_server ${requestId}: the user ${allowed === true ? 'allowed' : 'declined'} its command`);
         if (allowed !== true) {
           return text({ error: 'the user declined to run the command' }, true);
