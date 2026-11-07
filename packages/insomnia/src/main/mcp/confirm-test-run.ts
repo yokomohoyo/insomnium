@@ -1,19 +1,18 @@
-import { BrowserWindow, dialog } from 'electron';
-
+import { askInApp } from './ask-in-app';
 import type { TestRunRequest } from './tools/test-run';
 
 const LISTED = 10;
 
 // Asks the user, in the app, before an MCP client runs unit tests: their code
-// runs with the app's full access. Declining is the default.
-export async function confirmTestRun({ suite, workspace, tests }: TestRunRequest): Promise<boolean> {
+// runs with the app's full access. Declining is the default, and so is a
+// request the client gives up on.
+export async function confirmTestRun({ suite, workspace, tests }: TestRunRequest, signal?: AbortSignal): Promise<boolean> {
   const listed = tests.slice(0, LISTED).map(name => `• ${name}`);
   if (tests.length > LISTED) {
     listed.push(`and ${tests.length - LISTED} more`);
   }
-  const buttons = ['Run the Tests', "Don't Run"];
-  const options = {
-    type: 'warning' as const,
+  return askInApp({
+    type: 'warning',
     title: 'Run unit tests?',
     message: `An MCP client wants to run ${tests.length === 1 ? 'the 1 unit test' : `the ${tests.length} unit tests`} in "${suite}"${workspace ? ` (${workspace})` : ''}.`,
     detail: [
@@ -21,14 +20,9 @@ export async function confirmTestRun({ suite, workspace, tests }: TestRunRequest
       '',
       ...listed,
     ].join('\n'),
-    buttons,
+    buttons: ['Run the Tests', "Don't Run"],
     defaultId: 1,
     cancelId: 1,
     noLink: true,
-  };
-  const window = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-  window?.flashFrame(true);
-  const { response } = window ? await dialog.showMessageBox(window, options) : await dialog.showMessageBox(options);
-  window?.flashFrame(false);
-  return response === 0;
+  }, signal);
 }

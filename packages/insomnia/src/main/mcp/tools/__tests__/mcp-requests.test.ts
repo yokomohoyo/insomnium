@@ -33,14 +33,16 @@ const controls: McpRequestControls = {
   confirmCommand,
 };
 
-type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[]; isError?: boolean }>;
+// the MCP request's, as the SDK passes it
+const signal = new AbortController().signal;
+type Handler = (args: Record<string, unknown>, extra: { signal: AbortSignal }) => Promise<{ content: { text: string }[]; isError?: boolean }>;
 const handlers: Record<string, Handler> = {};
 registerMcpRequestTools({ tool: (name: string, _description: string, _schema: unknown, handler: Handler) => {
   handlers[name] = handler;
 } } as any, controls);
 
 const call = async (name: string, args: Record<string, unknown>) => {
-  const result = await handlers[name](args);
+  const result = await handlers[name](args, { signal });
   return { body: JSON.parse(result.content[0].text), isError: !!result.isError };
 };
 
@@ -85,7 +87,7 @@ describe('the MCP request tools', () => {
     const stdioId = (await models.mcpRequest.create({ parentId: workspaceId, name: 'Local', transport: 'stdio', command: 'npx', args: '-y\n@modelcontextprotocol/server-everything' } as any))._id;
     confirmCommand.mockResolvedValue(false);
     expect(await call('connect_mcp_server', { requestId: stdioId })).toEqual({ body: { error: 'the user declined to run the command' }, isError: true });
-    expect(confirmCommand).toHaveBeenCalledWith({ request: 'Local', command: 'npx', args: ['-y', '@modelcontextprotocol/server-everything'] });
+    expect(confirmCommand).toHaveBeenCalledWith({ request: 'Local', command: 'npx', args: ['-y', '@modelcontextprotocol/server-everything'] }, signal);
     expect(connects).toEqual([]);
 
     confirmCommand.mockResolvedValue(true);

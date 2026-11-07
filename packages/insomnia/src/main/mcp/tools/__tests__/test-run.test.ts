@@ -8,7 +8,9 @@ import { type ConfirmTestRun, registerTestRunTools } from '../test-run';
 
 window.app = electron.app;
 
-type Handler = (args: Record<string, unknown>) => Promise<{ content: { text: string }[]; isError?: boolean }>;
+// the MCP request's, as the SDK passes it
+const signal = new AbortController().signal;
+type Handler = (args: Record<string, unknown>, extra: { signal: AbortSignal }) => Promise<{ content: { text: string }[]; isError?: boolean }>;
 const confirm = jest.fn<ConfirmTestRun>();
 const handlers: Record<string, Handler> = {};
 registerTestRunTools({ tool: (name: string, _description: string, _schema: unknown, handler: Handler) => {
@@ -16,7 +18,7 @@ registerTestRunTools({ tool: (name: string, _description: string, _schema: unkno
 } } as any, confirm);
 
 const call = async (args: Record<string, unknown>) => {
-  const result = await handlers.run_test_suite(args);
+  const result = await handlers.run_test_suite(args, { signal });
   return { body: JSON.parse(result.content[0].text), isError: !!result.isError };
 };
 
@@ -39,7 +41,7 @@ describe('run_test_suite', () => {
   it('asks the user first, and runs nothing when they decline', async () => {
     confirm.mockResolvedValue(false);
     expect(await call({ testSuiteId: suiteId })).toEqual({ body: { error: 'the user declined to run the tests' }, isError: true });
-    expect(confirm).toHaveBeenCalledWith({ suite: 'Smoke', workspace: 'Shop', tests: ['is up', 'is teapot'] });
+    expect(confirm).toHaveBeenCalledWith({ suite: 'Smoke', workspace: 'Shop', tests: ['is up', 'is teapot'] }, signal);
     expect(await models.unitTestResult.all()).toEqual([]);
     expect(await models.response.all()).toEqual([]);
   });
