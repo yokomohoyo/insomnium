@@ -24,7 +24,10 @@ const pathLookup: Record<string, string> = {
 export const cwd = path.resolve(__dirname, '..', '..', 'insomnia');
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const insomniaBinary = path.join(cwd, 'dist', pathLookup[process.platform]);
-const electronBinary = path.join(repoRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron');
+// Node won't spawn a .cmd (CVE-2024-27980), so on Windows launch electron.exe itself
+const electronBinary = process.platform === 'win32'
+  ? path.join(repoRoot, 'node_modules', 'electron', 'dist', 'electron.exe')
+  : path.join(repoRoot, 'node_modules', '.bin', 'electron');
 
 export const executablePath = bundleType() === 'package' ? insomniaBinary : electronBinary;
 
