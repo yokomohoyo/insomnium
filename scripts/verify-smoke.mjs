@@ -5,6 +5,7 @@
 //   BUNDLE=build node scripts/verify-smoke.mjs
 import { _electron as electron } from 'playwright-core';
 import http from 'node:http';
+import os from 'node:os';
 import path from 'node:path';
 import url from 'node:url';
 
@@ -33,7 +34,8 @@ const app = await electron.launch({
   args: [mainJs],
   env: {
     ...process.env,
-    INSOMNIA_DATA_PATH: path.join('/tmp', `insomnia-smoke-${Date.now()}`),
+    // app.setPath wants a drive letter on Windows, so not /tmp
+    INSOMNIA_DATA_PATH: path.join(os.tmpdir(), `insomnia-smoke-${Date.now()}`),
     PLAYWRIGHT: 'true',
   },
   timeout: 30_000,
