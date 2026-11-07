@@ -7,7 +7,8 @@ declare global {
     dialog: Pick<Electron.Dialog, 'showOpenDialog' | 'showSaveDialog'>;
     app: Pick<Electron.App, 'getPath' | 'getAppPath'>;
     shell: Pick<Electron.Shell, 'showItemInFolder'>;
-    clipboard: Pick<Electron.Clipboard, 'readText' | 'writeText' | 'clear'>;
+    // sync over IPC, though Electron's own clipboard is async since 44
+    clipboard: { readText(): string; writeText(text: string): void; clear(): void };
   }
 }
 

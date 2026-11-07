@@ -12,12 +12,12 @@ import fs from 'fs';
 import path from 'path';
 
 export const LIBCURL_VERSION = '5.1.2-insomnium.3';
-// for Electron 43.2, by process.platform-process.arch
+// for Electron 45.0, by process.platform-process.arch
 export const LIBCURL_BINARIES: Record<string, string> = {
-  'darwin-arm64': 'a68fa1023aa587dda5c5415513521b9520d53f6e51484cb5f1a65d36d8b432ca',
-  'darwin-x64': 'eefb04fb48ea62687f94fd3a8916d42e742d3c57afa4715b5fefb921f2d8095b',
-  'linux-x64': '97fa753e96c77655549813e1c3b48a2f2905e1aab1ead60e0b3827679c43ed17',
-  'win32-x64': 'f83503c74f33891fac17c0173bc463e0dd7192910968a8e6fd5490f0ea2d8666',
+  'darwin-arm64': 'a6306fe6d710bd63333aa91764659e946e50930adc543a0228f88282b5899b28',
+  'darwin-x64': 'c01f11920c8a25aea49d67bef06c4c03db84fbaab9cfb9d4bf7b6f1159fad5bd',
+  'linux-x64': '272fcbe42576a528c7979dfeacb716bdfd4257ce4440cae724332c4f0813d08d',
+  'win32-x64': '24adb42d49b9444e590e0b80b6e34fd80b99efe406b21829d1bed39f638f8260',
 };
 
 export const LIBCURL_DIR = path.join(__dirname, '..', 'node_modules', '@getinsomnia', 'node-libcurl');

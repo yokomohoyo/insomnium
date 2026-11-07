@@ -96,12 +96,13 @@ export function registerElectronHandlers() {
     shell.showItemInFolder(name);
   });
 
-  ipcMain.on('readText', event => {
-    event.returnValue = clipboard.readText();
+  // sendSync waits until returnValue is set, so the renderer side stays sync
+  ipcMain.on('readText', async event => {
+    event.returnValue = await clipboard.readText().catch(() => '');
   });
 
   ipcMain.on('writeText', (_, text: string) => {
-    clipboard.writeText(text);
+    clipboard.writeText(text).catch(err => console.warn('[clipboard] write failed', err));
   });
 
   ipcMain.on('clear', () => {
