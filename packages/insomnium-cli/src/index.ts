@@ -11,6 +11,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+
 import { CliError, readDiscovery, VERSION, withClient } from './connect.js';
 
 const HELP = `insomnium — drive a running Insomnium app over MCP
@@ -32,6 +34,8 @@ Call arguments:
                               PowerShell 5.1, use --arg: its quotes get lost)
   --arg key=value             Single argument (repeatable); values are parsed as
                               JSON when possible, else treated as a string
+  --timeout <seconds>         How long to wait for the result (default 3600; 0 for
+                              no limit). Flows, runs and approvals can take a while
 
 Global options:
   --json                      Print JSON: for call, the tool's result as one document
@@ -51,6 +55,7 @@ interface Parsed {
   dir?: string;
   argsJson?: string;
   argPairs: string[];
+  timeout?: string;
   help: boolean;
   version: boolean;
 }
@@ -65,6 +70,7 @@ function parse(argv: string[]): Parsed {
     else if (a === '--args') out.argsJson = argv[++i];
     else if (a === '--arg') out.argPairs.push(argv[++i]);
     else if (a === '--dir') out.dir = argv[++i];
+    else if (a === '--timeout') out.timeout = argv[++i];
     else if (a.startsWith('-')) throw new CliError(`unknown option: ${a}`);
     else out.positional.push(a);
   }
@@ -146,9 +152,33 @@ function resultValue(content: unknown[]): unknown {
   return values.length === 1 ? values[0] : values;
 }
 
+// The MCP SDK gives up on a request after 60 s, but a flow can run for an hour
+// (run_flow's cap) and an approval waits on the user, so allow that by default
+const DEFAULT_TIMEOUT_SECONDS = 3600;
+// setTimeout's limit, about 24 days: the closest there is to no limit
+const MAX_TIMEOUT_MS = 2 ** 31 - 1;
+
+function timeoutMs(value: string | undefined): number {
+  if (value === undefined) return DEFAULT_TIMEOUT_SECONDS * 1000;
+  const seconds = Number(value);
+  if (!/^\d+$/.test(value) || !Number.isSafeInteger(seconds)) {
+    throw new CliError(`--timeout must be a whole number of seconds, got: ${value}`);
+  }
+  return seconds === 0 ? MAX_TIMEOUT_MS : Math.min(seconds * 1000, MAX_TIMEOUT_MS);
+}
+
 async function cmdCall(name: string, p: Parsed): Promise<void> {
   const args = buildArgs(p);
-  const result = await withClient(c => c.callTool({ name, arguments: args }));
+  const timeout = timeoutMs(p.timeout);
+  let result;
+  try {
+    result = await withClient(c => c.callTool({ name, arguments: args }, undefined, { timeout }));
+  } catch (err) {
+    if (err instanceof McpError && err.code === ErrorCode.RequestTimeout) {
+      throw new CliError(`${name} didn't answer within ${p.timeout ?? DEFAULT_TIMEOUT_SECONDS} s; give it longer with --timeout <seconds> (0 for no limit)`);
+    }
+    throw err;
+  }
   const content = Array.isArray(result.content) ? result.content : [];
   if (p.json) {
     out(JSON.stringify(resultValue(content), null, 2));

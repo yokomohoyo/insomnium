@@ -43,6 +43,9 @@ installs a skill for Claude Code (in `~/.claude/skills/insomnium`; `--dir` for a
 - `--arg key=value` — a single argument (repeatable). Values are parsed as JSON
   when possible (numbers, booleans, `null`, objects), otherwise treated as a
   string. `--arg` pairs override keys from `--args`.
+- `--timeout <seconds>` — how long `call` waits for the result: 3600 by
+  default, `0` for no limit. Flows, runs, long gRPC streams and tools that wait
+  for your approval in the app can take more than a minute.
 - In Windows PowerShell 5.1, the double quotes inside `--args '{"…"}'` don't
   reach the CLI, so it rejects the JSON. Use `--arg key=value` there, or
   PowerShell 7.3 or later.
