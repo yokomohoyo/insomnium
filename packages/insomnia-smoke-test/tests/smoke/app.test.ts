@@ -25,6 +25,8 @@ test('can send requests @ci', async ({ app, page }) => {
   await page.getByRole('menuitemradio', { name: 'From Curl' }).click();
   await page.getByRole('dialog').locator('.CodeMirror textarea').fill('curl --request GET --url http://127.0.0.1:4010/pets/1');
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
+  // the new request opens once it's made
+  await expect(page.getByTestId('request-pane')).toContainText('http://127.0.0.1:4010/pets/1');
   await page.getByTestId('request-pane').getByRole('button', { name: 'Send' }).click();
   await expect(statusTag).toContainText('200 OK');
 
