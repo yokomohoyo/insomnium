@@ -31,8 +31,12 @@ Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can
 ### macOS (Homebrew)
 
 ```sh
+brew tap yokomohoyo/tap
+brew trust yokomohoyo/tap
 brew install --cask yokomohoyo/tap/insomnium
 ```
+
+Homebrew won't load casks from a third-party tap until you trust it, so the install fails without `brew trust`.
 
 ### Debian / Ubuntu (APT)
 
