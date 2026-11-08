@@ -74,14 +74,12 @@ test.describe('Environment Editor', async () => {
 
     // TODO(filipe) add an environment variable that returns value of a nunjucks template (e.g. timestamp)
 
-    // Check new variables are in the timeline. The body is saved 100ms after
-    // the last keystroke, so a send straight after may still carry the old one.
+    // Check new variables are in the timeline: sent straight after typing, the
+    // body is the one just typed
+    await page.getByRole('button', { name: 'Send' }).click();
+    await page.getByRole('tab', { name: 'Timeline' }).click();
     const timeline = page.getByTestId('response-pane').getByTestId('CodeEditor');
-    await expect(async () => {
-      await page.getByRole('button', { name: 'Send' }).click();
-      await page.getByRole('tab', { name: 'Timeline' }).click();
-      await expect(timeline).toContainText('| 9000', { timeout: 2000 });
-      await expect(timeline).toContainText('| Gandalf', { timeout: 2000 });
-    }).toPass();
+    await expect(timeline).toContainText('| 9000');
+    await expect(timeline).toContainText('| Gandalf');
   });
 });

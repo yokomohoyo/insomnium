@@ -7,12 +7,12 @@ import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react
 import { useRouteLoaderData } from 'react-router-dom';
 import { useMount, useUnmount } from 'react-use';
 
-import { DEBOUNCE_MILLIS } from '../../../common/constants';
 import * as misc from '../../../common/misc';
 import { KeyCombination } from '../../../common/settings';
 import { getTagDefinitions } from '../../../templating/index';
 import { NunjucksParsedTag } from '../../../templating/utils';
 import { useNunjucks } from '../../context/nunjucks/use-nunjucks';
+import { debounceEdit } from '../../pending-edits';
 import { RootLoaderData } from '../../routes/root';
 import { isKeyCombinationInRegistry } from '../settings/shortcuts';
 import { closeEditor } from './close-editor';
@@ -203,13 +203,16 @@ export const OneLineEditor = forwardRef<OneLineEditorHandle, OneLineEditorProps>
   });
 
   useEffect(() => {
-    const fn = misc.debounce((doc: CodeMirror.Editor) => {
+    const edit = debounceEdit((doc: CodeMirror.Editor) => {
       if (onChange) {
         onChange(doc.getValue() || '');
       }
-    }, DEBOUNCE_MILLIS);
-    codeMirror.current?.on('changes', fn);
-    return () => codeMirror.current?.off('changes', fn);
+    });
+    codeMirror.current?.on('changes', edit.call);
+    return () => {
+      codeMirror.current?.off('changes', edit.call);
+      edit.flush();
+    };
   }, [onChange]);
 
   useEffect(() => {

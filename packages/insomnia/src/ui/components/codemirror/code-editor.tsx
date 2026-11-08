@@ -12,7 +12,7 @@ import { useRouteLoaderData } from 'react-router-dom';
 import { useMount, useUnmount } from 'react-use';
 import vkBeautify from 'vkbeautify';
 
-import { DEBOUNCE_MILLIS, isMac } from '../../../common/constants';
+import { isMac } from '../../../common/constants';
 import * as misc from '../../../common/misc';
 import { KeyCombination } from '../../../common/settings';
 import { getTagDefinitions } from '../../../templating/index';
@@ -20,6 +20,7 @@ import { NunjucksParsedTag } from '../../../templating/utils';
 import { jsonPrettify } from '../../../utils/prettify/json';
 import { queryXPath } from '../../../utils/xpath/query';
 import { useGatedNunjucks } from '../../context/nunjucks/use-gated-nunjucks';
+import { debounceEdit } from '../../pending-edits';
 import { RootLoaderData } from '../../routes/root';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../base/dropdown';
 import { createKeybindingsHandler, useDocBodyKeyboardShortcuts } from '../keydown-binder';
@@ -467,7 +468,7 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
   });
 
   useEffect(() => {
-    const fn = misc.debounce((doc: CodeMirror.Editor) => {
+    const edit = debounceEdit((doc: CodeMirror.Editor) => {
       if (onChange) {
         const value = doc.getValue()?.trim() || '';
         // Disable linting if the document reaches a maximum size or is empty
@@ -486,9 +487,12 @@ export const CodeEditor = forwardRef<CodeEditorHandle, CodeEditorProps>(({
         onChange(doc.getValue() || '');
         setOriginalCode(doc.getValue() || '');
       }
-    }, DEBOUNCE_MILLIS);
-    codeMirror.current?.on('changes', fn);
-    return () => codeMirror.current?.off('changes', fn);
+    });
+    codeMirror.current?.on('changes', edit.call);
+    return () => {
+      codeMirror.current?.off('changes', edit.call);
+      edit.flush();
+    };
   }, [lintOptions, noLint, onChange]);
 
   useEffect(() => {
