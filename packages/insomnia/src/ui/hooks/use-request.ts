@@ -11,19 +11,17 @@ import { RequestMeta } from '../../models/request-meta';
 import { Settings } from '../../models/settings';
 import { WebSocketRequest } from '../../models/websocket-request';
 import { WorkspaceMeta } from '../../models/workspace-meta';
+import { trackSave } from '../pending-edits';
 
 export const useRequestSetter = () => {
   const { organizationId, projectId, workspaceId } = useParams<{ organizationId: string; projectId: string; workspaceId: string }>();
   const fetcher = useFetcher();
   return (requestId: string, patch: Partial<GrpcRequest> | Partial<Request> | Partial<WebSocketRequest> | Partial<McpRequest>) => {
-    // const s = JSON.stringify(patch)
-    // console.log("XX", s);
-
-    fetcher.submit(JSON.stringify(patch), {
+    trackSave(fetcher.submit(JSON.stringify(patch), {
       action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/update`,
       method: 'post',
       encType: 'application/json',
-    });
+    }));
   };
 };
 

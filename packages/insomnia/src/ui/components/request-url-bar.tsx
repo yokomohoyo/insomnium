@@ -15,6 +15,7 @@ import { useReadyState, useShowConnectionWhenOpened } from '../hooks/use-ready-s
 import { useRequestSetter } from '../hooks/use-request';
 import { useRequestMetaPatcher } from '../hooks/use-request';
 import { useTimeoutWhen } from '../hooks/useTimeoutWhen';
+import { settleEdits } from '../pending-edits';
 import { ConnectActionParams, RequestLoaderData, SendActionParams } from '../routes/request';
 import { RootLoaderData } from '../routes/root';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from './base/dropdown';
@@ -108,6 +109,8 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
     setCurrentTimeout(undefined);
 
     try {
+      // what was typed last, saved first
+      await settleEdits();
       const { request,
         environment } = await fetchRequestData(requestId);
       if (isEventStreamRequest(request)) {
