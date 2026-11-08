@@ -7,6 +7,7 @@ import { createServer } from 'https';
 import { join } from 'path';
 
 import { basicAuthRouter } from './basic-auth';
+import { gitRouter } from './git';
 import { schema } from './graphql';
 import { startGRPCServer } from './grpc';
 import { mcpRouter } from './mcp';
@@ -36,6 +37,7 @@ app.get('/cookies', (_req, res) => {
 
 app.use('/file', express.static('fixtures/files'));
 app.use('/auth/basic', basicAuthRouter);
+app.use('/git', gitRouter);
 
 app.get('/delay/seconds/:duration', (req, res) => {
   const delaySec = Number.parseInt(req.params.duration || '2');

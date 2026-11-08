@@ -1,12 +1,38 @@
+import { expect } from '@playwright/test';
+
 import { test } from '../../playwright/test';
-test('Clone from github', async ({ page }) => {
-  await page.getByRole('button', { name: 'Git Clone' }).click();
-  await page.getByRole('tab', { name: ' Git' }).click();
-  await page.getByPlaceholder('https://github.com/org/repo.git').fill('https://github.com/gatzjames/insomnia-git-example.git');
-  await page.getByPlaceholder('Name').fill('J');
-  await page.getByPlaceholder('Email').fill('J');
-  await page.getByPlaceholder('MyUser').fill('J');
-  await page.getByPlaceholder('88e7ee63b254e4b0bf047559eafe86ba9dd49507').fill('J');
-  await page.getByTestId('git-repository-settings-modal__sync-btn').click();
-  await page.getByRole('button', { name: 'Toggle Preview' }).click();
+
+// the smoke server's example.git: two commits on main, and pushes take smoke:token
+test('clones a repository over HTTP, branches, and says when a push is refused @ci', async ({ page }) => {
+  await page.getByTestId('project').click();
+  await page.getByRole('button', { name: 'Create in project' }).click();
+  await page.getByRole('menuitemradio', { name: 'Git Clone' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Git URI').fill('http://127.0.0.1:4010/git/example.git');
+  await dialog.getByLabel('Author Name').fill('Kim');
+  await dialog.getByLabel('Author Email').fill('kim@example.com');
+  await dialog.getByLabel('Username').fill('smoke');
+  await dialog.getByLabel('Authentication Token').fill('wrong');
+  await dialog.getByRole('button', { name: 'Clone' }).click();
+  await expect(page.getByRole('button', { name: 'example.git' })).toBeVisible();
+
+  // its history came with it
+  const gitMenu = page.getByTestId('git-dropdown').locator('button');
+  await gitMenu.click();
+  await page.getByRole('menuitem', { name: 'History' }).click();
+  await expect(dialog.getByRole('cell', { name: 'second commit' })).toBeVisible();
+  await expect(dialog.getByRole('cell', { name: 'first commit' })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Done' }).click();
+
+  // a new branch, pushed with the wrong token
+  await gitMenu.click();
+  await page.getByRole('menuitem', { name: 'Branches' }).click();
+  await dialog.getByPlaceholder('testing-branch').fill('test123');
+  await dialog.getByRole('button', { name: '+ Create' }).click();
+  // made and checked out
+  await expect(page.getByTestId('git-dropdown')).toContainText('test123');
+  await gitMenu.click();
+  await page.getByRole('menuitem', { name: 'Push' }).click();
+  await expect(dialog).toContainText('Push Failed');
+  await expect(dialog).toContainText('401 Unauthorized');
 });
