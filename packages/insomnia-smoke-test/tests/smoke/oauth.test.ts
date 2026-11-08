@@ -1,9 +1,10 @@
 import { expect } from '@playwright/test';
 
+import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
-test('can make oauth2 requests', async ({ app, page }) => {
+test('can make oauth2 requests @ci', async ({ app, page }) => {
   if (process.platform === 'darwin') {
     test.setTimeout(6 * 60 * 1000);
   } else {
@@ -16,23 +17,13 @@ test('can make oauth2 requests', async ({ app, page }) => {
     has: page.locator('.CodeMirror-activeline'),
   });
 
-  const projectView = page.locator('#wrapper');
-  await projectView.getByRole('button', { name: 'Create in project' }).click();
-
-  const text = await loadFixture('oauth.yaml');
-  await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-
-  await page.getByRole('menuitemradio', { name: 'Import' }).click();
-  await page.getByText('Clipboard').click();
-  await page.getByRole('button', { name: 'Scan' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByText('CollectionOAuth Testingjust now').click();
+  await importIntoCollection(app, page, await loadFixture('oauth.yaml'));
 
   // Authorization code
-  await projectView.getByLabel('Request Collection').getByRole('row', { name: 'Authorization Code' }).click();
+  await page.getByLabel('Request Collection').getByRole('row', { name: 'Authorization Code' }).click();
 
   // No PKCE
-  await projectView.getByLabel('Request Collection').getByRole('row', { name: 'No PKCE' }).click();
+  await page.getByLabel('Request Collection').getByRole('row', { name: 'No PKCE' }).click();
   await expect(page.locator('.app')).toContainText('http://127.0.0.1:4010/oidc/me');
 
   const [authorizationCodePage] = await Promise.all([
@@ -50,7 +41,8 @@ test('can make oauth2 requests', async ({ app, page }) => {
   await expect(responseBody).toContainText('"sub": "admin"');
 
   // Navigate to the OAuth2 Tab and refresh the token from there
-  await page.getByRole('tab', { name: 'OAuth 2' }).click();
+  await page.getByTestId('request-pane').getByRole('tab', { name: /Add Auth/ }).click();
+  await page.keyboard.press('Escape');
 
   const tokenInput = page.locator('[for="Access-Token"] > input');
   const prevToken = await tokenInput.inputValue();
@@ -85,14 +77,11 @@ test('can make oauth2 requests', async ({ app, page }) => {
   await expect(statusTag).toContainText('200 OK');
   await expect(responseBody).toContainText('"sub": "admin"');
 
-  // PKCE Plain
+  // PKCE Plain: shown, not sent, as the test server (oidc-provider 9) takes only S256
   await page.getByLabel('Request Collection').getByRole('row', { name: 'PKCE Plain' }).click();
   await expect(page.locator('.app')).toContainText('http://127.0.0.1:4010/oidc/me');
   await expect(page.locator('#Grant-Type')).toHaveValue('authorization_code');
   await expect(page.locator('#Code-Challenge-Method')).toHaveValue('plain');
-  await sendButton.click();
-  await expect(statusTag).toContainText('200 OK');
-  await expect(responseBody).toContainText('"sub": "admin"');
 
   // Reset the OAuth 2 session from Preferences
   if (process.platform === 'darwin') {
