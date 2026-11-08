@@ -3,7 +3,7 @@ import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
-import { parseServerSentEvents, readLlmStream } from '../../../common/llm-stream';
+import { oldestFirst, parseServerSentEvents, readLlmStream } from '../../../common/llm-stream';
 import { getSetCookieHeaders } from '../../../common/misc';
 import { CurlEvent, CurlMessageEvent } from '../../../main/network/curl';
 import { ResponseTimelineEntry } from '../../../main/network/libcurl-promise';
@@ -172,7 +172,7 @@ const RealtimeActiveResponsePane: FC<{ response: WebSocketResponse | Response }>
     if (protocol !== 'curl') {
       return null;
     }
-    const inOrder = [...allEvents].sort((a, b) => a.timestamp - b.timestamp);
+    const inOrder = oldestFirst(allEvents);
     const chunks = inOrder.filter((event): event is CurlMessageEvent => event.type === 'message' && typeof event.data === 'string')
       .map(event => ({ data: event.data, timestamp: event.timestamp }));
     return chunks.length ? readLlmStream(parseServerSentEvents(chunks), inOrder.find(event => event.type === 'open')?.timestamp ?? inOrder[0]?.timestamp) : null;
