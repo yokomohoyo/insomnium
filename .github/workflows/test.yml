@@ -181,6 +181,53 @@ jobs:
           path: packages/insomnia-smoke-test/traces
           retention-days: 7
 
+  E2E-Linux:
+    # And on Linux, under a virtual display. Ubuntu 24 restricts unprivileged
+    # user namespaces, which Electron's sandbox needs.
+    name: E2E Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Display and sandbox
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xvfb
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Build app
+        run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-build
+
+      - name: Smoke test (electron + libcurl round-trip)
+        run: xvfb-run -a node scripts/verify-smoke.mjs
+        env:
+          BUNDLE: build
+
+      - name: Playwright
+        working-directory: packages/insomnia-smoke-test
+        run: xvfb-run -a npx playwright test --project=Smoke --grep @ci
+        env:
+          BUNDLE: build
+
+      - name: Upload traces and screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-linux-${{ github.run_number }}-${{ github.run_attempt }}
+          path: packages/insomnia-smoke-test/traces
+          retention-days: 7
+
   Server:
     # The headless MCP server image (packages/insomnium-server): build it, run
     # it against a local echo server, and drive it over MCP. Not required yet.
