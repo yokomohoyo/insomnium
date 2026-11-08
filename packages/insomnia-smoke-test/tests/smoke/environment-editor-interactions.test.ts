@@ -81,7 +81,7 @@ test.describe('Environment Editor', async () => {
       await page.getByRole('button', { name: 'Send' }).click();
       await page.getByRole('tab', { name: 'Timeline' }).click();
       await expect(timeline).toContainText('| 9000', { timeout: 2000 });
+      await expect(timeline).toContainText('| Gandalf', { timeout: 2000 });
     }).toPass();
-    await expect(timeline).toContainText('| Gandalf');
   });
 });
