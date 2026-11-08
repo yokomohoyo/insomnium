@@ -1,12 +1,13 @@
+import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
-test('Preferences through click', async ({ page }) => {
+test('Preferences through click @ci', async ({ page }) => {
   await page.locator('[data-testid="settings-button"]').click();
   await page.locator('text=Insomnium Preferences').first().click();
 });
 
-test('Preferences through keyboard shortcut', async ({ page }) => {
+test('Preferences through keyboard shortcut @ci', async ({ page }) => {
   if (process.platform === 'darwin') {
     await page.locator('.app').press('Meta+,');
   } else {
@@ -16,15 +17,8 @@ test('Preferences through keyboard shortcut', async ({ page }) => {
 });
 
 // Quick reproduction for Kong/insomnia#5664 and INS-2267
-test('Check filter responses by environment preference', async ({ app, page }) => {
-  await page.getByRole('button', { name: 'Create in project' }).click();
-  const text = await loadFixture('simple.yaml');
-  await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-  await page.getByRole('menuitemradio', { name: 'Import' }).click();
-  await page.getByText('Clipboard').click();
-  await page.getByRole('button', { name: 'Scan' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByText('Collectionsimplejust now').click();
+test('Check filter responses by environment preference @ci', async ({ app, page }) => {
+  await importIntoCollection(app, page, await loadFixture('simple.yaml'));
 
   // Send a request
   await page.getByLabel('Request Collection').getByRole('row', { name: 'example http' }).click();

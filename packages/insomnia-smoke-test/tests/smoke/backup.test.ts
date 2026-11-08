@@ -4,7 +4,7 @@ import path from 'path';
 
 import { bundleType, cwd, executablePath, mainPath, randomDataPath } from '../../playwright/paths';
 
-test('backs up the data on the first launch of a new version', async ({ playwright }) => {
+test('backs up the data on the first launch of a new version @ci', async ({ playwright }) => {
   // Data left behind by an older version
   const dataPath = randomDataPath();
   fs.cpSync(path.join(__dirname, '..', '..', 'fixtures', 'inso-nedb'), dataPath, { recursive: true });
