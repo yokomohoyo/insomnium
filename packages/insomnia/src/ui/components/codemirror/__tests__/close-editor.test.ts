@@ -27,6 +27,19 @@ describe('closeEditor()', () => {
     expect(removed.mock.calls.filter(([type]) => type === 'scroll').map(([, listener]) => listener)).toEqual(scrollListeners);
   });
 
+  it('lets an update the mouse scheduled just before run out without an error', () => {
+    jest.useFakeTimers();
+    const textarea = document.createElement('textarea');
+    document.body.appendChild(textarea);
+    const editor = CodeMirror.fromTextArea(textarea, { selectionPointer: 'default' } as CodeMirror.EditorConfiguration);
+    editor.getWrapperElement().dispatchEvent(new MouseEvent('mousemove', { clientX: 1, clientY: 1 }));
+
+    closeEditor(editor);
+
+    expect(() => jest.advanceTimersByTime(100)).not.toThrow();
+    jest.useRealTimers();
+  });
+
   it('does nothing without an editor', () => {
     expect(() => closeEditor(null)).not.toThrow();
   });
