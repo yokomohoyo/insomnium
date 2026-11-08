@@ -1,25 +1,17 @@
 import { expect } from '@playwright/test';
 
+import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
-test('can make websocket connection', async ({ app, page }) => {
+test('can make websocket connection @ci', async ({ app, page }) => {
   test.slow(process.platform === 'darwin' || process.platform === 'win32', 'Slow app start on these platforms');
   const statusTag = page.locator('[data-testid="response-status-tag"]:visible');
   const responseBody = page.locator('[data-testid="response-pane"] >> [data-testid="CodeEditor"]:visible', {
     has: page.locator('.CodeMirror-activeline'),
   });
 
-  await page.getByRole('button', { name: 'Create in project' }).click();
-
-  const text = await loadFixture('websockets.yaml');
-  await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-
-  await page.getByRole('menuitemradio', { name: 'Import' }).click();
-  await page.getByText('Clipboard').click();
-  await page.getByRole('button', { name: 'Scan' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByText('CollectionWebSocketsjust now').click();
+  await importIntoCollection(app, page, await loadFixture('websockets.yaml'));
 
   await page.getByLabel('Request Collection').getByRole('row', { name: 'localhost:4010' }).click();
   await expect(page.locator('.app')).toContainText('ws://localhost:4010');

@@ -1,26 +1,19 @@
 import { expect } from '@playwright/test';
 
+import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
-test('can render schema and send GraphQL requests', async ({ app, page }) => {
+test('can render schema and send GraphQL requests @ci', async ({ app, page }) => {
   test.slow(process.platform === 'darwin' || process.platform === 'win32', 'Slow app start on these platforms');
 
-  await page.getByRole('button', { name: 'Create in project' }).click();
-
-  // Copy the collection with the graphql query to clipboard
-  const text = await loadFixture('graphql.yaml');
-  await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-
-  // Import from clipboard
-  await page.getByRole('menuitemradio', { name: 'Import' }).click();
-  await page.getByText('Clipboard').click();
-  await page.getByRole('button', { name: 'Scan' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByText('CollectionSmoke GraphQLjust now').click();
+  await importIntoCollection(app, page, await loadFixture('graphql.yaml'));
   // Open the graphql request
   await page.getByLabel('Request Collection').getByRole('row', { name: 'GraphQL request' }).click();
-  // Assert the schema is fetched after switching to GraphQL request
+  // introspection waits for the request to be sent once, or a refresh
+  await expect(page.locator('.graphql-editor__meta')).toContainText('schema not yet fetched');
+  await page.getByRole('button', { name: 'schema' }).click();
+  await page.getByRole('menuitem', { name: 'Refresh Schema' }).click();
   await expect(page.locator('.graphql-editor__meta')).toContainText('schema fetched just now');
 
   // Assert schema documentation stuff
@@ -43,18 +36,10 @@ test('can render schema and send GraphQL requests', async ({ app, page }) => {
   await expect(responseBody).toContainText('"bearer": "Gandalf"');
 });
 
-test('can send GraphQL requests after editing and prettifying query', async ({ app, page }) => {
+test('can send GraphQL requests after editing and prettifying query @ci', async ({ app, page }) => {
   test.slow(process.platform === 'darwin' || process.platform === 'win32', 'Slow app start on these platforms');
 
-  await page.getByRole('button', { name: 'Create in project' }).click();
-
-  const text = await loadFixture('graphql.yaml');
-  await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-  await page.getByRole('menuitemradio', { name: 'Import' }).click();
-  await page.getByText('Clipboard').click();
-  await page.getByRole('button', { name: 'Scan' }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-  await page.getByText('CollectionSmoke GraphQLjust now').click();
+  await importIntoCollection(app, page, await loadFixture('graphql.yaml'));
   await page.getByLabel('Request Collection').getByRole('row', { name: 'GraphQL request' }).click();
 
   // Edit and prettify query
