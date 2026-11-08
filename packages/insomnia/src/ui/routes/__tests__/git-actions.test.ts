@@ -9,7 +9,7 @@ import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR } from '../..
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
 import { routableFSClient } from '../../../sync/git/routable-fs-client';
-import { gitStashAction, mergeGitBranchAction, rebaseGitBranchAction } from '../git-actions';
+import { gitStashAction, mergeGitBranchAction, rebaseGitBranchAction, updateGitRepoAction } from '../git-actions';
 
 const WORKSPACE = '.insomnium/Workspace/wrk_1.yml';
 const REQUEST = '.insomnium/Request/req_1.yml';
@@ -93,5 +93,29 @@ describe('a doc git rewrites', () => {
     expect(await submit(gitStashAction, { intent: 'pop', id: stash.id })).toEqual({});
     expect((await models.request.getById('req_1'))?.url).toBe(URL);
     expect(told()).toBe(true);
+  });
+});
+
+// a cloned repository's settings: its address stays, its sign-in can change
+describe("a repository's settings", () => {
+  beforeEach(async () => {
+    await globalBeforeEach();
+    await models.workspace.create({ _id: 'wrk_1', parentId: DEFAULT_PROJECT_ID });
+    const repo = await models.gitRepository.create({ uri: 'https://example.com/repo.git', credentials: { username: 'kim', password: 'old-token' } });
+    await models.workspaceMeta.update(await models.workspaceMeta.getOrCreateByParentId('wrk_1'), { gitRepositoryId: repo._id });
+  });
+  const saved = async () => (await models.gitRepository.all())[0];
+  const fields = { uri: '', authorName: 'Kim', authorEmail: 'kim@example.com', username: 'kim' };
+
+  it('take a new token, and keep the address', async () => {
+    await submit(updateGitRepoAction, { ...fields, token: 'new-token' });
+    expect((await saved()).credentials).toEqual({ username: 'kim', password: 'new-token' });
+    expect((await saved()).uri).toBe('https://example.com/repo.git');
+  });
+
+  it('keep the token they had when the field is left empty', async () => {
+    await submit(updateGitRepoAction, { ...fields, authorName: 'Kim Lee', token: '' });
+    expect((await saved()).credentials).toEqual({ username: 'kim', password: 'old-token' });
+    expect((await saved()).author.name).toBe('Kim Lee');
   });
 });

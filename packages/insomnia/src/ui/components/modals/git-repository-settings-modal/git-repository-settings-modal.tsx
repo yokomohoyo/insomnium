@@ -149,9 +149,9 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
                 {t('Close')}
               </button>
             )}
-            {hasGitRepository ? !gitRepository?.uri && (
-              // a repository on this computer only keeps its fields open: an
-              // address to push to, the author, and a sign-in can be added
+            {hasGitRepository ? (
+              // the author and sign-in can change; a repository on this
+              // computer only can also be given an address to push to
               <button
                 type="submit"
                 disabled={isLoading}

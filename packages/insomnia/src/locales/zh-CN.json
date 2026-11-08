@@ -882,5 +882,6 @@
   "Build details": "构建详情",
   "Copy details": "复制详情",
   "All collections in {name}": "{name} 中的所有集合",
-  "Switch to": "切换到"
+  "Switch to": "切换到",
+  "Saved: type a new one to replace it": "已保存：输入新的以替换"
 }

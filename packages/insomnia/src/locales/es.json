@@ -882,5 +882,6 @@
   "Build details": "Detalles de la compilación",
   "Copy details": "Copiar detalles",
   "All collections in {name}": "Todas las colecciones de {name}",
-  "Switch to": "Cambiar a"
+  "Switch to": "Cambiar a",
+  "Saved: type a new one to replace it": "Guardado: escribe uno nuevo para reemplazarlo"
 }
