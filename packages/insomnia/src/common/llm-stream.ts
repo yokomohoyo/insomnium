@@ -16,6 +16,12 @@ export interface StreamChunk {
   timestamp: number;
 }
 
+// A response's events oldest first, from the pane's list (newest first): those
+// that came in the same millisecond, as a fast stream's chunks do, keep the
+// order they came in
+export const oldestFirst = <T extends { timestamp: number }>(newestFirst: T[]): T[] =>
+  [...newestFirst].reverse().sort((a, b) => a.timestamp - b.timestamp);
+
 // The events in a stream's chunks, which can split an event or hold several
 export function parseServerSentEvents(chunks: StreamChunk[]): ServerSentEvent[] {
   const events: ServerSentEvent[] = [];

@@ -1,10 +1,28 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { parseServerSentEvents, readLlmStream } from '../llm-stream';
+import { oldestFirst, parseServerSentEvents, readLlmStream } from '../llm-stream';
 
 // a stream's text cut into chunks at the given places, a chunk every 100 ms from 1000
 const chunked = (text: string, ...cuts: number[]) => [0, ...cuts, text.length].slice(0, -1)
   .map((start, index, starts) => ({ data: text.slice(start, starts[index + 1] ?? text.length), timestamp: 1000 + (index + 1) * 100 }));
+
+describe('oldestFirst()', () => {
+  it('turns the newest-first list around, keeping chunks from the same millisecond in the order they came', () => {
+    const newestFirst = [
+      { data: ' model.', timestamp: 1050 },
+      { data: ' fake', timestamp: 1050 },
+      { data: ' the', timestamp: 1050 },
+      { data: ' from', timestamp: 1050 },
+      { data: 'Hello', timestamp: 1000 },
+    ];
+    expect(oldestFirst(newestFirst).map(chunk => chunk.data).join('')).toBe('Hello from the fake model.');
+    expect(newestFirst[0].data).toBe(' model.');
+  });
+
+  it('puts events that came out of step in time order', () => {
+    expect(oldestFirst([{ timestamp: 2 }, { timestamp: 3 }, { timestamp: 1 }]).map(event => event.timestamp)).toEqual([1, 2, 3]);
+  });
+});
 
 describe('parseServerSentEvents()', () => {
   it('reads events split over chunks, and several in one, with names and multi-line data', () => {
