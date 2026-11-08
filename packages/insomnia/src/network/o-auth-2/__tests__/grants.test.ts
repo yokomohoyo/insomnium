@@ -189,6 +189,18 @@ describe('the newer grants', () => {
     expect(sent).toHaveLength(1);
   });
 
+  it('authorization code with PKCE: hashes the challenge with SHA-256, as the form shows, when no method was picked', async () => {
+    const authorizeUserInWindow = jest.fn(async ({ url }: { url: string }) =>
+      `https://app.example.com/callback?code=c0de&state=${new URL(url).searchParams.get('state')}`);
+    (window as any).main = { authorizeUserInWindow };
+    const authentication = { type: 'oauth2', grantType: 'authorization_code', usePkce: true, authorizationUrl: 'https://auth.example.com/authorize', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', redirectUrl: 'https://app.example.com/callback' };
+
+    await getOAuth2Token(requestId, authentication);
+    const authorize = new URL(authorizeUserInWindow.mock.calls[0][0].url).searchParams;
+    expect(authorize.get('code_challenge_method')).toBe('S256');
+    expect(authorize.get('code_challenge')).toBe(crypto.createHash('sha256').update(sent[0].form.code_verifier).digest('base64url'));
+  });
+
   it("sends the token request as built, under the workspace, so the request's folders add nothing", async () => {
     await getOAuth2Token(requestId, { type: 'oauth2', grantType: 'client_credentials', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', clientSecret: 's' });
 

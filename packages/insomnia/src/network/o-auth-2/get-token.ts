@@ -116,7 +116,9 @@ const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAut
     guard(authentication.authorizationUrl, 'Invalid authorization URL');
 
     const codeVerifier = authentication.usePkce ? encodePKCE(crypto.randomBytes(32)) : '';
-    const usePkceAnd256 = authentication.usePkce && authentication.pkceMethod === PKCE_CHALLENGE_S256;
+    // the form shows SHA-256 until another method is picked
+    const pkceMethod = authentication.pkceMethod || PKCE_CHALLENGE_S256;
+    const usePkceAnd256 = authentication.usePkce && pkceMethod === PKCE_CHALLENGE_S256;
     const codeChallenge = usePkceAnd256 ? encodePKCE(crypto.createHash('sha256').update(codeVerifier).digest()) : codeVerifier;
     const authCodeUrl = new URL(authentication.authorizationUrl);
     const responseType: OAuth2ResponseType = 'code';
@@ -130,7 +132,7 @@ const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAut
       ...insertAuthKeyIf('resource', authentication.resource),
       ...(codeChallenge ? [
         { name: 'code_challenge', value: codeChallenge },
-        { name: 'code_challenge_method', value: authentication.pkceMethod },
+        { name: 'code_challenge_method', value: pkceMethod },
       ] : []),
     ].forEach(p => p.value && authCodeUrl.searchParams.append(p.name, p.value));
     let redirectedTo: string;
