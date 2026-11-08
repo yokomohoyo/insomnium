@@ -9,7 +9,7 @@ import { isWorkspace, Workspace } from '../models/workspace';
 import { guard } from '../utils/guard';
 import { database as db } from './database';
 import { generateId } from './misc';
-import { ResourceCache, isApiSpecImport, isSubEnvironmentResource } from './import';
+import { ResourceCache, isApiSpecImport, isSubEnvironmentResource, remapTemplateIds } from './import';
 
 export const importResourcesToNewWorkspace = async (projectId: string, _resources?: BaseModel[], workspaceToImport?: Workspace) => {
 
@@ -74,7 +74,8 @@ export const importResourcesToNewWorkspace = async (projectId: string, _resource
       : (await models.environment.getOrCreateForParentId(newWorkspace._id))._id);
   }
 
-  for (const resource of resourcesWithoutWorkspaceAndApiSpec) {
+  for (const unmapped of resourcesWithoutWorkspaceAndApiSpec) {
+    const resource = remapTemplateIds(unmapped, ResourceIdMap);
     const model = getModel(resource.type);
 
     if (model) {

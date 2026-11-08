@@ -115,6 +115,12 @@ describe('insomnium-server', () => {
     expect(JSON.stringify(environments)).toContain('staging');
   });
 
+  it('lists the project its workspaces are in', async () => {
+    const projects = (await call('list_projects', {})).data;
+    const [workspace] = (await call('list_workspaces', {})).data;
+    expect(projects.map(({ id }: { id: string }) => id)).toEqual([workspace.parentId]);
+  });
+
   it('sends to an allowed host, rendered', async () => {
     const sent = await call('send_http_request', { requestId: await requestId('allowed') });
     expect(sent.isError).toBe(false);
