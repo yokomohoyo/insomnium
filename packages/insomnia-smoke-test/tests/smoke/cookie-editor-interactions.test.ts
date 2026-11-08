@@ -1,3 +1,6 @@
+import { expect } from '@playwright/test';
+
+import { importIntoProject } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';
@@ -5,17 +8,10 @@ import { test } from '../../playwright/test';
 test.describe('Cookie editor', async () => {
 
   test.beforeEach(async ({ app, page }) => {
-    await page.getByRole('button', { name: 'Create in project' }).click();
-    const text = await loadFixture('simple.yaml');
-    await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-    await page.getByRole('menuitemradio', { name: 'Import' }).click();
-    await page.getByText('Clipboard').click();
-    await page.getByRole('button', { name: 'Scan' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-    await page.getByText('Collectionsimplejust now').click();
+    await importIntoProject(app, page, await loadFixture('simple.yaml'), 'simple');
   });
 
-  test('create and send a cookie', async ({ page }) => {
+  test('create and send a cookie @ci', async ({ page }) => {
 
     // Open cookie editor
     await page.click('button:has-text("Cookies")');
@@ -50,7 +46,7 @@ test.describe('Cookie editor', async () => {
 
     // Send ws request
     await openRequest(page, 'example websocket');
-    await page.click('text=ws://localhost:4010');
+    await expect(page.getByTestId('request-pane')).toContainText('ws://localhost:4010');
     await page.click('[data-testid="request-pane"] >> text=Connect');
 
     // Check in the timeline that the cookie was sent
