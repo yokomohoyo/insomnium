@@ -6,8 +6,8 @@ import { test } from '../../playwright/test';
 test.describe('Dashboard', async () => {
   test.slow(process.platform === 'darwin' || process.platform === 'win32', 'Slow app start on these platforms');
   test.describe('Projects', async () => {
-    test('Can create, rename and delete new project', async ({ page }) => {
-      await page.getByLabel('All Files (0)').click();
+    test('Can create, rename and delete new project @ci', async ({ page }) => {
+      await page.getByTestId('project').click();
       await expect(page.locator('.app')).not.toContainText('Git Sync');
       await expect(page.locator('.app')).not.toContainText('Setup Git Sync');
 
@@ -41,18 +41,14 @@ test.describe('Dashboard', async () => {
       // After deleting project, return to default Insomnium Dashboard
       await expect(page.locator('.app')).toContainText('Insomnium');
       await expect(page.locator('.app')).not.toContainText('My Project123');
-      await expect(page.locator('.app')).toContainText('New Document');
-      await page.getByLabel('All Files (0)').click();
+      await expect(page.locator('.app')).toContainText('My Collection');
       await expect(page.locator('.app')).not.toContainText('Setup Git Sync');
     });
   });
   test.describe('Interactions', async () => { // Not sure about the name here
     // TODO(INS-2504) - we don't support importing multiple collections at this time
-    test.skip('Can filter through multiple collections', async ({ app, page }) => {
-      await page.getByLabel('All Files (0)').click();
-      await expect(page.locator('.app')).not.toContainText('Git Sync');
-      await expect(page.locator('.app')).not.toContainText('Setup Git Sync');
-
+    test('Can filter through multiple collections @ci', async ({ app, page }) => {
+      await page.getByTestId('project').click();
       await page.getByRole('button', { name: 'Create in project' }).click();
       const text = await loadFixture('multiple-workspaces.yaml');
       await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
@@ -60,34 +56,27 @@ test.describe('Dashboard', async () => {
       await page.getByText('Clipboard').click();
       await page.getByRole('button', { name: 'Scan' }).click();
       await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-      await page.getByText('CollectionSmoke testsjust now').click();
-      // Check that 10 new workspaces are imported besides the default one
+
+      // 10 new workspaces besides My Collection
       const workspaceCards = page.getByLabel('Workspaces').getByRole('gridcell');
       await expect(workspaceCards).toHaveCount(11);
-      await expect(page.locator('.app')).toContainText('New Document');
       await expect(page.locator('.app')).toContainText('collection 1');
       await expect(page.locator('.app')).toContainText('design doc 1');
       await expect(page.locator('.app')).toContainText('Swagger Petstore V3 JSON 1.0.0');
       await expect(page.locator('.app')).toContainText('Swagger Petstore V3 YAML 1.0.0');
 
-      // Filter by collection
-      const filter = page.locator('[placeholder="Filter\\.\\.\\."]');
-
-      // Filter by word with results expected
+      const filter = page.getByLabel('Workspaces').locator('..').getByPlaceholder('Filter');
       await filter.fill('design');
-      await expect(page.locator('.card-badge')).toHaveCount(4);
-
-      // Filter by number
+      await expect(workspaceCards).toHaveCount(4);
+      // collection 3, design doc 3 and the two Petstore V3s
       await filter.fill('3');
-      await expect(page.locator('.card-badge')).toHaveCount(2);
-
-      // Filter by word with no results expected
+      await expect(workspaceCards).toHaveCount(4);
       await filter.fill('invalid');
-      await expect(page.locator('.card-badge')).toHaveCount(0);
+      await expect(page.locator('.app')).toContainText('No documents found for invalid');
     });
 
-    test('Can create, rename and delete a document', async ({ page }) => {
-      await page.getByLabel('All Files (0)').click();
+    test('Can create, rename and delete a document @ci', async ({ page }) => {
+      await page.getByTestId('project').click();
       await expect(page.locator('.app')).not.toContainText('Git Sync');
       await expect(page.locator('.app')).not.toContainText('Setup Git Sync');
 
@@ -114,17 +103,18 @@ test.describe('Dashboard', async () => {
       await page.getByTestId('project').click();
 
       const workspaceCards = page.getByLabel('Workspaces').getByRole('gridcell');
-      await expect(workspaceCards).toHaveCount(2);
+      // and My Collection, which every project starts with
+      await expect(workspaceCards).toHaveCount(3);
 
       // Delete document
       await page.click('text=Documenttest123just now >> button');
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.locator('text=Yes').click();
-      await expect(workspaceCards).toHaveCount(1);
+      await expect(workspaceCards).toHaveCount(2);
     });
 
-    test('Can create, rename and delete a collection', async ({ page }) => {
-      await page.getByLabel('All Files (0)').click();
+    test('Can create, rename and delete a collection @ci', async ({ page }) => {
+      await page.getByTestId('project').click();
       await expect(page.locator('.app')).not.toContainText('Git Sync');
       await expect(page.locator('.app')).not.toContainText('Setup Git Sync');
 
@@ -150,13 +140,14 @@ test.describe('Dashboard', async () => {
 
       await page.getByTestId('project').click();
       const workspaceCards = page.getByLabel('Workspaces').getByRole('gridcell');
-      await expect(workspaceCards).toHaveCount(2);
+      // and My Collection, which every project starts with
+      await expect(workspaceCards).toHaveCount(3);
 
       // Delete collection
       await page.click('text=Collectiontest123just now >> button');
       await page.getByRole('menuitem', { name: 'Delete' }).click();
       await page.locator('text=Yes').click();
-      await expect(workspaceCards).toHaveCount(1);
+      await expect(workspaceCards).toHaveCount(2);
     });
   });
 });
