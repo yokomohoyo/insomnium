@@ -41,6 +41,9 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
   const [transport, setTransport] = useState<'ssh' | 'https'>('ssh');
   const overSsh = isSsh && transport === 'ssh';
   const sshCredentials = credentials && 'sshKey' in credentials ? credentials : { sshKey: '', sshPassphrase: '' };
+  // a cloned repository's address stays, but its author and sign-in can change
+  // (a token runs out); its secret isn't shown, and left empty, it's kept
+  const keepSaved = t('Saved: type a new one to replace it');
 
   return (
     <form
@@ -132,7 +135,6 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
               type="text"
               name="authorName"
               placeholder={t('Name')}
-              disabled={Boolean(uri)}
               defaultValue={author.name}
             />
           </label>
@@ -145,7 +147,6 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
               type="text"
               name="authorEmail"
               placeholder={t('Email')}
-              disabled={Boolean(uri)}
               defaultValue={author.email}
             />
           </label>
@@ -164,7 +165,6 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
                   type="text"
                   name="sshKey"
                   placeholder="~/.ssh/id_ed25519"
-                  disabled={Boolean(uri)}
                   defaultValue={sshCredentials.sshKey || ''}
                 />
               </label>
@@ -175,7 +175,7 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
                 <input
                   type="password"
                   name="sshPassphrase"
-                  disabled={Boolean(uri)}
+                  placeholder={uri ? keepSaved : undefined}
                   defaultValue={sshCredentials.sshPassphrase || ''}
                 />
               </label>
@@ -195,7 +195,6 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
               type="text"
               name="username"
               placeholder="MyUser"
-              disabled={Boolean(uri)}
               defaultValue={credentials?.username}
             />
           </label>
@@ -224,9 +223,8 @@ export const CustomRepositorySettingsFormGroup: FunctionComponent<Props> = ({
               ref={tokenRef}
               type="password"
               name="token"
-              disabled={Boolean(uri)}
               defaultValue={'token' in credentials ? credentials?.token : ''}
-              placeholder="88e7ee63b254e4b0bf047559eafe86ba9dd49507"
+              placeholder={uri ? keepSaved : '88e7ee63b254e4b0bf047559eafe86ba9dd49507'}
             />
           </label>
         </div>

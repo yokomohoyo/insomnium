@@ -560,9 +560,15 @@ export const updateGitRepoAction: ActionFunction = async ({
     email: authorEmail,
   };
 
-  // Git Credentials
+  // Git Credentials: a repository's secret isn't shown in its settings, so
+  // left empty there, the one it has is kept
+  const saved = existing?.credentials;
   if (ssh) {
-    repoSettingsPatch.credentials = sshCredentialsFrom(formData);
+    const credentials = sshCredentialsFrom(formData);
+    repoSettingsPatch.credentials = {
+      ...credentials,
+      sshPassphrase: credentials.sshPassphrase || (saved && 'sshPassphrase' in saved ? saved.sshPassphrase || '' : ''),
+    };
   } else {
     const token = formData.get('token');
     guard(typeof token === 'string', 'Token is required');
@@ -570,7 +576,7 @@ export const updateGitRepoAction: ActionFunction = async ({
     guard(typeof username === 'string', 'Username is required');
 
     repoSettingsPatch.credentials = {
-      password: token,
+      password: token || (saved && 'password' in saved ? saved.password : ''),
       username,
     };
   }

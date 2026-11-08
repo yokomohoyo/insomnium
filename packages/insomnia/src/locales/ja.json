@@ -882,5 +882,6 @@
   "Build details": "ビルドの詳細",
   "Copy details": "詳細をコピー",
   "All collections in {name}": "{name} のすべてのコレクション",
-  "Switch to": "切り替え先"
+  "Switch to": "切り替え先",
+  "Saved: type a new one to replace it": "保存済み：置き換えるには新しい値を入力"
 }
