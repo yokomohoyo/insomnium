@@ -8,7 +8,7 @@ resources:
     modified: 1670587923683
     created: 1670587797191
     url: localhost:4010/
-    name: New Request
+    name: show environment variables
     description: ""
     method: GET
     body:
