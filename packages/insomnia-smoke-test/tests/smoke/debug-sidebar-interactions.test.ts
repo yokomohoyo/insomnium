@@ -1,23 +1,17 @@
 import { expect } from '@playwright/test';
 
+import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
 
 test.describe('Debug-Sidebar', async () => {
   test.slow(process.platform === 'darwin' || process.platform === 'win32', 'Slow app start on these platforms');
   test.beforeEach(async ({ app, page }) => {
-    await page.getByRole('button', { name: 'Create in project' }).click();
-    const text = await loadFixture('simple.yaml');
-    await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), text);
-    await page.getByRole('menuitemradio', { name: 'Import' }).click();
-    await page.getByText('Clipboard').click();
-    await page.getByRole('button', { name: 'Scan' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click();
-    await page.getByText('Collectionsimplejust now').click();
+    await importIntoCollection(app, page, await loadFixture('simple.yaml'));
   });
 
   test.describe('Interact with sidebar', async () => {
-    test('Open Properties in Request Sidebar', async ({ page }) => {
+    test('Open Properties in Request Sidebar @ci', async ({ page }) => {
       const requestLocator = page.getByLabel('Request Collection').getByRole('row', { name: 'example http' });
       await requestLocator.click();
       await requestLocator.getByLabel('Request Actions').click();
@@ -57,26 +51,26 @@ test.describe('Debug-Sidebar', async () => {
       await page.locator('.app').press('Escape');
     });
 
-    test('Open properties of the collection', async ({ page }) => {
+    test('Open properties of the collection @ci', async ({ page }) => {
       await page.getByTestId('workspace-dropdown').locator('button').click();
       await page.getByRole('menuitem', { name: 'Settings' }).click();
       await page.getByText('Collection Settings').click();
     });
 
-    test('Filter by request name', async ({ page }) => {
+    test('Filter by request name @ci', async ({ page }) => {
       await page.getByLabel('Request filter').click();
       await page.getByLabel('Request filter').fill('example http');
       await page.getByLabel('Request Collection').getByRole('row', { name: 'example http' }).click();
     });
 
-    test('Filter by a folder name', async ({ page }) => {
+    test('Filter by a folder name @ci', async ({ page }) => {
       await page.getByLabel('Request filter').click();
       await page.getByLabel('Request filter').fill('test folder');
       await page.getByLabel('Request filter').press('Enter');
       await page.getByLabel('Request Collection').getByRole('row', { name: 'test folder' }).click();
     });
 
-    test('Open Generate code', async ({ page }) => {
+    test('Open Generate code @ci', async ({ page }) => {
       const requestLocator = page.getByLabel('Request Collection').getByRole('row', { name: 'example http' });
       await requestLocator.click();
       await requestLocator.getByLabel('Request Actions').click();
@@ -85,11 +79,7 @@ test.describe('Debug-Sidebar', async () => {
       await page.locator('text=Done').click();
     });
 
-    test.skip('Use Copy as Curl for a request', async ({}) => {
-      // TODO: implement this in a separate ticket
-    });
-
-    test('Pin a Request', async ({ page }) => {
+    test('Pin a Request @ci', async ({ page }) => {
       const requestLocator = page.getByLabel('Request Collection').getByRole('row', { name: 'example http' });
       await requestLocator.click();
       await requestLocator.getByLabel('Request Actions').click();
@@ -101,7 +91,7 @@ test.describe('Debug-Sidebar', async () => {
       await requestLocator.click();
     });
 
-    test('Delete Request', async ({ page }) => {
+    test('Delete Request @ci', async ({ page }) => {
       const requestLocator = page.getByLabel('Request Collection').getByRole('row', { name: 'example http' });
       await requestLocator.click();
       await requestLocator.getByLabel('Request Actions').click();
@@ -109,7 +99,7 @@ test.describe('Debug-Sidebar', async () => {
       await expect(page.locator('.app')).not.toContainText('example http');
     });
 
-    test('Rename a request', async ({ page }) => {
+    test('Rename a request @ci', async ({ page }) => {
       const requestLocator = page.getByLabel('Request Collection').getByRole('row', { name: 'example http' });
       await requestLocator.click();
       await requestLocator.getByLabel('Request Actions').click();
@@ -119,7 +109,7 @@ test.describe('Debug-Sidebar', async () => {
       await page.getByLabel('Request Collection').getByRole('row', { name: 'example http1' }).click();
     });
 
-    test('Update a request folder via settings', async ({ page }) => {
+    test('Update a request folder via settings @ci', async ({ page }) => {
       const folderLocator = page.getByLabel('Request Collection').getByRole('row', { name: 'test folder' });
       await folderLocator.click();
       await folderLocator.getByLabel('Request Group Actions').click();
@@ -129,7 +119,7 @@ test.describe('Debug-Sidebar', async () => {
       await page.getByLabel('Request Collection').getByRole('row', { name: 'test folder1' }).click();
     });
 
-    test('Create a new HTTP request', async ({ page }) => {
+    test('Create a new HTTP request @ci', async ({ page }) => {
       await page.getByLabel('Create in collection').click();
       await page.getByRole('menuitemradio', { name: 'Http Request' }).click();
       await expect(page.locator('.app')).toContainText('New Request');
