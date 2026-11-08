@@ -3,6 +3,12 @@ import { Configuration, Provider } from 'oidc-provider';
 // @ts-expect-error no typings available for this module
 import { InvalidGrant } from 'oidc-provider/lib/helpers/errors';
 
+// Any login is an account of that name, whose claims are just its subject
+const findAccount = async (_: unknown, sub: string) => ({
+  accountId: sub,
+  claims: async () => ({ sub }),
+});
+
 export const oauthRoutes = (port: number) => {
   const clientIDAuthorizationCode = 'authorization_code';
   const clientIDAuthorizationCodePKCE = 'authorization_code_pkce';
@@ -16,6 +22,7 @@ export const oauthRoutes = (port: number) => {
 
   /* eslint-disable camelcase */
   const oidcConfig: Configuration = {
+    findAccount,
     interactions: {
       url: (_, interaction) => {
         return `/oidc/interaction/${interaction.uid}`;
@@ -82,10 +89,6 @@ export const oauthRoutes = (port: number) => {
       },
     ],
     pkce: {
-      methods: [
-        'S256',
-        'plain',
-      ],
       required: (_, client) => {
         // Require PKCE for the PKCE client id
         return client.clientId === clientIDAuthorizationCodePKCE;
@@ -229,10 +232,7 @@ export const oauthRoutes = (port: number) => {
     try {
       await oidc.interactionDetails(req, res);
 
-      const account = await (oidc.Account as any).findAccount(
-        null,
-        req.body.login,
-      );
+      const account = await findAccount(null, req.body.login);
 
       const result = {
         login: {
@@ -269,7 +269,7 @@ function allowLocalhostImplicit(oidc: Provider) {
 // https://github.com/panva/node-oidc-provider/tree/main/docs#password-grant-type-ropc
 const parameters = ['username', 'password', 'scope'];
 function registerROPC(oidc: Provider) {
-  oidc.registerGrantType('password', async (ctx, next) => {
+  oidc.registerGrantType('password', async ctx => {
     const params = ctx.oidc.params;
 
     if (!params) {
@@ -284,10 +284,7 @@ function registerROPC(oidc: Provider) {
       throw new InvalidGrant('invalid credentials provided');
     }
 
-    const account = await ctx.oidc.provider.Account.findAccount(
-      ctx,
-      params.username
-    );
+    const account = await findAccount(ctx, params.username);
     if (!account) {
       throw new InvalidGrant('invalid account');
     }
@@ -324,8 +321,6 @@ function registerROPC(oidc: Provider) {
       token_type: at.tokenType,
     };
     /* eslint-enable camelcase */
-
-    await next();
   }, parameters);
 }
 
