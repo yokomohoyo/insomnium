@@ -235,6 +235,55 @@ describe('importing as a new collection', () => {
   });
 });
 
+describe('response tags', () => {
+  beforeEach(globalBeforeEach);
+
+  // one request's body chained into another's URL, a header and a sub environment
+  const chained = `_type: export
+__export_format: 4
+resources:
+  - { _id: wrk_1, _type: workspace, parentId: null, name: Chained, scope: collection }
+  - { _id: env_1, _type: environment, parentId: wrk_1, name: Base Environment, data: { first: "{% response 'body', 'req_login', 'b64::JC50b2tlbg==::46b', 'never', 60 %}" } }
+  - { _id: env_2, _type: environment, parentId: env_1, name: dev, data: { again: "{% response 'header', 'req_login', 'b64::WC1JZA==::46b', 'never', 60 %}" } }
+  - { _id: req_login, _type: request, parentId: wrk_1, name: login, method: POST, url: 'https://example.com/login' }
+  - _id: req_use
+    _type: request
+    parentId: wrk_1
+    name: use
+    method: GET
+    url: "https://example.com/{% response 'body', 'req_login', 'b64::JC5pZA==::46b', 'never', 60 %}"
+    headers: [{ name: X-Other, value: "{% response 'body', \\"req_elsewhere\\", '', 'never', 60 %} req_login" }]
+`;
+
+  const check = async (workspaceId: string) => {
+    const requests = await request.all();
+    const login = requests.find(({ name }) => name === 'login')!;
+    const use = requests.find(({ name }) => name === 'use')!;
+    expect(login._id).not.toBe('req_login');
+    expect(use.url).toBe(`https://example.com/{% response 'body', '${login._id}', 'b64::JC5pZA==::46b', 'never', 60 %}`);
+    // an id the import doesn't have, and one outside a tag, are left alone
+    expect(use.headers[0].value).toBe(`{% response 'body', "req_elsewhere", '', 'never', 60 %} req_login`);
+    const base = await environment.getOrCreateForParentId(workspaceId);
+    expect(base.data.first).toContain(`'${login._id}'`);
+    const [dev] = await environment.findByParentId(base._id);
+    expect(dev.data.again).toContain(`'${login._id}'`);
+  };
+
+  it('point at the imported requests when imported as a new collection', async () => {
+    await importUtil.scanResources({ content: chained });
+    await importResourcesToProject.importResourcesToProject({ projectId: DEFAULT_PROJECT_ID });
+    const [created] = await workspace.findByParentId(DEFAULT_PROJECT_ID);
+    await check(created._id);
+  });
+
+  it('point at the imported requests when imported into an existing collection', async () => {
+    const existing = await workspace.create({ name: 'Mine', parentId: DEFAULT_PROJECT_ID });
+    await importUtil.scanResources({ content: chained });
+    await importUtil.importResourcesToWorkspace({ workspaceId: existing._id });
+    await check(existing._id);
+  });
+});
+
 describe('importing into an existing collection', () => {
   beforeEach(globalBeforeEach);
 

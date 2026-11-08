@@ -37,6 +37,22 @@ export const isSubEnvironmentResource = (environment: Environment) => {
   return !environment.parentId || environment.parentId.startsWith(models.environment.prefix) || environment.parentId.startsWith('__BASE_ENVIRONMENT_ID__');
 };
 
+// A {% response %} tag names its request by id, so an import, which gives
+// every resource a new id, points the tags in its strings at the new ones, as
+// it does a flow's requests. Only quoted ids inside {% %} tags change.
+export const remapTemplateIds = <T>(value: T, ids: Map<string, string>): T => {
+  if (typeof value === 'string') {
+    return value.replace(/{%[\s\S]*?%}/g, tag => tag.replace(/(['"])([a-z]+_[\w-]+)\1/g, (quoted, quote, id) => (ids.has(id) ? `${quote}${ids.get(id)}${quote}` : quoted))) as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map(item => remapTemplateIds(item, ids)) as T;
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, remapTemplateIds(item, ids)])) as T;
+  }
+  return value;
+};
+
 export const isInsomniaV4Import = ({ id }: Pick<InsomniaImporter, 'id'>) =>
   id === 'insomnia-4';
 
@@ -203,13 +219,24 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
       !isEnvironment(resource)
   );
 
+  // Create new ids for each resource below optionalResources, and the sub
+  // environments, first: their strings' tags are pointed at them
+  for (const resource of optionalResources) {
+    const model = getModel(resource.type);
+    model && ResourceIdMap.set(resource._id, generateId(model.prefix));
+  }
+  for (const environment of resources.filter(isEnvironment).filter(isSubEnvironmentResource)) {
+    const model = getModel(environment.type);
+    model && ResourceIdMap.set(environment._id, generateId(model.prefix));
+  }
+
   const baseEnvironment = await models.environment.getOrCreateForParentId(workspaceId);
   guard(baseEnvironment, 'Could not create base environment');
 
   // the imported collection's own variables (its base environment): those this
   // workspace doesn't have yet, so an import adds them without changing a
   // value set here
-  const importedBase = resources.filter(isEnvironment).find(environment => !isSubEnvironmentResource(environment));
+  const importedBase = remapTemplateIds(resources.filter(isEnvironment).find(environment => !isSubEnvironmentResource(environment)), ResourceIdMap);
   const added = Object.keys(importedBase?.data || {}).filter(key => !(key in (baseEnvironment.data || {})));
   if (importedBase && added.length) {
     const order = baseEnvironment.dataPropertyOrder;
@@ -223,20 +250,11 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
   const subEnvironments = resources.filter(isEnvironment).filter(isSubEnvironmentResource) || [];
 
   for (const environment of subEnvironments) {
-    const model = getModel(environment.type);
-    model && ResourceIdMap.set(environment._id, generateId(model.prefix));
-
     await db.docCreate(environment.type, {
-      ...environment,
+      ...remapTemplateIds(environment, ResourceIdMap),
       _id: ResourceIdMap.get(environment._id),
       parentId: baseEnvironment._id,
     });
-  }
-
-  // Create new ids for each resource below optionalResources
-  for (const resource of optionalResources) {
-    const model = getModel(resource.type);
-    model && ResourceIdMap.set(resource._id, generateId(model.prefix));
   }
 
   // in the order they came: one sort key each where the format gives none, as
@@ -249,7 +267,7 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
 
   // Preserve optionalResource relationships
   for (const [index, unsorted] of optionalResources.entries()) {
-    const resource = sortKeyed(unsorted, index);
+    const resource = remapTemplateIds(sortKeyed(unsorted, index), ResourceIdMap);
     const model = getModel(resource.type);
     if (model) {
       // Make sure we point to the new proto file

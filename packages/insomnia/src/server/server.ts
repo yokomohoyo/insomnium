@@ -1,10 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { version } from '../../package.json';
+import { getProductName } from '../common/constants';
 import { database } from '../common/database';
 import { HEADLESS_INSTRUCTIONS, HEADLESS_SERVER_INSTRUCTIONS, registerInstructions } from '../main/mcp/instructions';
 import { registerTools } from '../main/mcp/tools';
 import * as models from '../models';
+import { DEFAULT_PROJECT_ID } from '../models/project';
 import { setGcpAudienceApproval } from '../network/gcp-id-token/get-token';
 import { isMetadataHost, setMetadataGuard } from '../network/metadata-hosts';
 import { setRequestPolicy } from '../network/request-policy';
@@ -59,7 +61,9 @@ type LoadConfig = Sources & Pick<ServerConfig, 'environment' | 'variables' | 'va
 // the clones' folders.
 export async function loadSources(config: LoadConfig) {
   await database.init(models.types(), { inMemoryOnly: true }, true, () => {});
-  await models.project.all();
+  // the project the collections are imported into, as the app makes it, so
+  // list_projects has it
+  await models.project.create({ _id: DEFAULT_PROJECT_ID, name: getProductName() });
   // the proxy a container or CI runner is given: HTTPS_PROXY, HTTP_PROXY, NO_PROXY
   await models.settings.patch({ validateSSL: config.validateSSL, allowedEnvironmentVariables: config.allowedEnvironmentVariables, allowedSecrets: config.allowedSecrets || '', useSystemProxy: true });
   // file would let a template read the container's files into a request
