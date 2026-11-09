@@ -128,15 +128,54 @@ jobs:
           cache: "npm"
           cache-dependency-path: package-lock.json
 
+      # where @electron/get and electron-builder keep what they download from
+      # GitHub Releases (Electron, electron-builder's tools), restored from the
+      # last run on main so a 504 there doesn't fail the package step. Both
+      # check what they download against its checksum
+      - name: Point the download caches at the runner
+        shell: bash
+        run: |
+          echo "ELECTRON_CACHE=$RUNNER_TEMP/electron-cache" >> "$GITHUB_ENV"
+          echo "ELECTRON_BUILDER_CACHE=$RUNNER_TEMP/electron-builder-cache" >> "$GITHUB_ENV"
+
+      - name: Restore Electron downloads
+        uses: actions/cache@v6
+        with:
+          path: |
+            ${{ runner.temp }}/electron-cache
+            ${{ runner.temp }}/electron-builder-cache
+          key: electron-downloads-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-downloads-${{ runner.os }}-
+
       # no dependency's install script runs in the job that later holds the
       # signing secrets; only those the build needs, by name: node-libcurl's
       # fetches its prebuilt binary, electron-winstaller's picks its 7-Zip
       - name: Install packages
+        shell: bash
+        env:
+          # npm's own retries, for the registry and the node-libcurl tarball
+          npm_config_fetch_retries: '5'
+          npm_config_fetch_retry_mintimeout: '10000'
+          npm_config_fetch_retry_maxtimeout: '60000'
+        # GitHub Releases (node-libcurl's package and binary) answer 504 now and
+        # then, so each command is tried up to three times. Inline rather than
+        # .github/actions/install: this job checks out a release's commit,
+        # which may predate that action
         run: |
-          npm ci --ignore-scripts
-          npm rebuild @getinsomnia/node-libcurl electron-winstaller
-          # the binary node-libcurl downloaded is the one pinned
-          npm run verify:libcurl --workspace=packages/insomnia
+          retry() {
+            for attempt in 1 2 3; do
+              "$@" && return 0
+              [ "$attempt" = 3 ] && return 1
+              echo "::warning::'$*' failed, trying again in $((attempt * 30)) s"
+              sleep $((attempt * 30))
+            done
+          }
+          retry npm ci --ignore-scripts
+          retry npm rebuild @getinsomnia/node-libcurl electron-winstaller
+
+      # the binary node-libcurl downloaded is the one pinned
+      - name: Check node-libcurl's binary
+        run: npm run verify:libcurl --workspace=packages/insomnia
 
       # electron-builder.config.js notarizes only when APPLE_API_KEY (a path to
       # the App Store Connect .p8 key) is set, so decode it to a file first.

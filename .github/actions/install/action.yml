@@ -1,0 +1,57 @@
+name: Install packages
+description: >
+  npm ci, tried up to three times, with Electron's and electron-builder's
+  downloads cached. Several dependencies come from GitHub Releases (the
+  node-libcurl fork's package and prebuilt binary, Electron, electron-builder's
+  tools), which answer 504 now and then; one blip used to fail every job.
+
+inputs:
+  command:
+    description: the install command (one line; each line is tried on its own)
+    default: npm ci
+
+runs:
+  using: composite
+  steps:
+    # where @electron/get and electron-builder keep what they download, kept
+    # for the steps after this one (packaging) too
+    - name: Point the download caches at the runner
+      shell: bash
+      run: |
+        echo "ELECTRON_CACHE=$RUNNER_TEMP/electron-cache" >> "$GITHUB_ENV"
+        echo "ELECTRON_BUILDER_CACHE=$RUNNER_TEMP/electron-builder-cache" >> "$GITHUB_ENV"
+
+    # keyed on the lockfile, falling back to the last one: a version bump
+    # changes the lockfile but rarely Electron
+    - name: Restore Electron downloads
+      uses: actions/cache@v6
+      with:
+        path: |
+          ${{ runner.temp }}/electron-cache
+          ${{ runner.temp }}/electron-builder-cache
+        key: electron-downloads-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: electron-downloads-${{ runner.os }}-
+
+    - name: Install
+      shell: bash
+      env:
+        # npm's own retries, for the registry and the node-libcurl tarball
+        npm_config_fetch_retries: '5'
+        npm_config_fetch_retry_mintimeout: '10000'
+        npm_config_fetch_retry_maxtimeout: '60000'
+        COMMANDS: ${{ inputs.command }}
+      run: |
+        while IFS= read -r command; do
+          [ -n "$command" ] || continue
+          for attempt in 1 2 3; do
+            if bash -c "$command"; then
+              break
+            fi
+            if [ "$attempt" = 3 ]; then
+              echo "::error::'$command' failed three times"
+              exit 1
+            fi
+            echo "::warning::'$command' failed, trying again in $((attempt * 30)) s"
+            sleep $((attempt * 30))
+          done
+        done <<< "$COMMANDS"

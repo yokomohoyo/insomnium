@@ -36,7 +36,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Bump version
         shell: bash
