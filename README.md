@@ -9,7 +9,7 @@ Insomnium is a 100% local and privacy-focused open-source API client for testing
 [![license](https://img.shields.io/github/license/yokomohoyo/insomnium.svg)](LICENSE)
 [![GitHub Discussions](https://img.shields.io/github/discussions/yokomohoyo/insomnium)](https://github.com/yokomohoyo/insomnium/discussions)
 
-![Insomnium API Client](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/v0.1.png)
+![Insomnium API Client](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/v0.8.png)
 
 ## Current Status
 
