@@ -6,7 +6,11 @@ WORKDIR /src
 # the bundle needs no Electron; libcurl's install still fetches its prebuilt binary
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 COPY . .
-RUN npm ci --no-audit --no-fund && npm run build:server --workspace=packages/insomnia
+# node-libcurl's package and prebuilt binary come from GitHub Releases, which
+# answer 504 now and then: npm retries its fetches, and the install is tried
+# up to three times
+ENV npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=10000 npm_config_fetch_retry_maxtimeout=60000
+RUN for attempt in 1 2 3; do npm ci --no-audit --no-fund && break; [ "$attempt" = 3 ] && exit 1; sleep $((attempt * 30)); done   && npm run build:server --workspace=packages/insomnia
 
 FROM node:26-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39
 ENV NODE_ENV=production \

@@ -75,7 +75,26 @@ jobs:
 
       # Root devDependencies supply typescript and @types/node.
       - name: Install
-        run: npm ci --ignore-scripts
+        shell: bash
+        env:
+          # npm's own retries, for the registry and the node-libcurl tarball
+          npm_config_fetch_retries: '5'
+          npm_config_fetch_retry_mintimeout: '10000'
+          npm_config_fetch_retry_maxtimeout: '60000'
+        # GitHub Releases (node-libcurl's package and binary) answer 504 now and
+        # then, so each command is tried up to three times. Inline rather than
+        # .github/actions/install: this job checks out a release's commit,
+        # which may predate that action
+        run: |
+          retry() {
+            for attempt in 1 2 3; do
+              "$@" && return 0
+              [ "$attempt" = 3 ] && return 1
+              echo "::warning::'$*' failed, trying again in $((attempt * 30)) s"
+              sleep $((attempt * 30))
+            done
+          }
+          retry npm ci --ignore-scripts
 
       - name: Build and pack
         run: |

@@ -35,7 +35,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Lint
         run: npm run lint
@@ -59,7 +59,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Type checks
         run: npm run type-check
@@ -90,7 +90,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Build app
         run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-build
@@ -117,7 +117,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Build app
         run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-build
@@ -157,7 +157,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Build app
         run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-build
@@ -204,7 +204,7 @@ jobs:
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Build app
         run: NODE_OPTIONS='--max_old_space_size=6144' npm run app-build
@@ -263,7 +263,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install packages
-        run: npm ci
+        uses: ./.github/actions/install
 
       - name: Check node-libcurl's binary
         run: npm run verify:libcurl --workspace=packages/insomnia
