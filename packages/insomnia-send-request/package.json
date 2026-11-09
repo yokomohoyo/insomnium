@@ -20,7 +20,7 @@
     "hkdf": "0.0.2",
     "html-entities": "^2.4.0",
     "httpsnippet": "^3.0.10",
-    "isomorphic-git": "^1.5.0",
+    "isomorphic-git": "^1.44.12",
     "jshint": "^2.13.6",
     "jsonlint-mod-fixed": "1.7.7",
     "jsonpath-plus": "^10.4.0",
