@@ -53,6 +53,17 @@ export const remapTemplateIds = <T>(value: T, ids: Map<string, string>): T => {
   return value;
 };
 
+// In the order they came: a sort key each for the resources a format gives
+// none (a curl list, a Postman collection, a hand-written export), as the same
+// millisecond's -Date.now() would tie and sort by id
+export const sortKeyer = () => {
+  const sortBase = -Date.now();
+  return <T extends BaseModel & { metaSortKey?: number }>(resource: T, index: number): T =>
+    resource.metaSortKey === undefined && 'metaSortKey' in (getModel(resource.type)?.init() || {})
+      ? { ...resource, metaSortKey: sortBase + index }
+      : resource;
+};
+
 export const isInsomniaV4Import = ({ id }: Pick<InsomniaImporter, 'id'>) =>
   id === 'insomnia-4';
 
@@ -257,13 +268,7 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
     });
   }
 
-  // in the order they came: one sort key each where the format gives none, as
-  // the same millisecond's -Date.now() would tie and sort by id
-  const sortBase = -Date.now();
-  const sortKeyed = (resource: BaseModel & { metaSortKey?: number }, index: number) =>
-    resource.metaSortKey === undefined && 'metaSortKey' in (getModel(resource.type)?.init() || {})
-      ? { ...resource, metaSortKey: sortBase + index }
-      : resource;
+  const sortKeyed = sortKeyer();
 
   // Preserve optionalResource relationships
   for (const [index, unsorted] of optionalResources.entries()) {
