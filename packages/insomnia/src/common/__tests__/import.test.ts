@@ -233,6 +233,22 @@ describe('importing as a new collection', () => {
     const subs = await environment.findByParentId(base._id);
     expect(subs.map(({ name, data }) => ({ name, data }))).toEqual([{ name: 'dev', data: { base_url: 'https://dev.example.com' } }]);
   });
+
+  it("keeps a format's order when it gives no sort keys, as a Postman collection or hand-written export doesn't", async () => {
+    const names = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+    await importUtil.scanResources({
+      content: JSON.stringify({
+        info: { name: 'Ordered', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json' },
+        item: names.map(name => ({ name, request: { method: 'GET', url: `https://example.com/${name}` } })),
+      }),
+    });
+    await importResourcesToProject.importResourcesToProject({ projectId: DEFAULT_PROJECT_ID });
+
+    const imported = await request.all();
+    // no ties, which the sidebar and the runner break by id
+    expect(new Set(imported.map(({ metaSortKey }) => metaSortKey)).size).toBe(names.length);
+    expect(imported.sort((a, b) => a.metaSortKey - b.metaSortKey).map(({ name }) => name)).toEqual(names);
+  });
 });
 
 describe('response tags', () => {
