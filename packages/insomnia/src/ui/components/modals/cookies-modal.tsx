@@ -66,7 +66,7 @@ export const CookiesModal = ({ onHide }: ModalProps) => {
                         setVisibleCookieIndexes(visibleCookieIndexes);
                       }}
                       type="text"
-                      placeholder="insomnia.rest"
+                      placeholder="example.com"
                       defaultValue=""
                     />
                   </label>

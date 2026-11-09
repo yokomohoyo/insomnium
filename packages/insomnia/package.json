@@ -3,7 +3,7 @@
   "version": "0.8.10",
   "productName": "Insomnium",
   "private": true,
-  "description": "The Collaborative API Design Tool",
+  "description": "A 100% local and privacy-focused API client",
   "homepage": "https://github.com/yokomohoyo/insomnium",
   "bugs": {
     "url": "https://github.com/yokomohoyo/insomnium/issues"

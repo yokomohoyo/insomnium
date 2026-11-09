@@ -18,7 +18,7 @@ describe('the About dialog', () => {
 
     expect(view.getByRole('heading', { name: 'Insomnium' })).toBeTruthy();
     expect(view.getByText('Version 0.7.4')).toBeTruthy();
-    expect(view.getByText('A 100% local and privacy-focused fork of Insomnia')).toBeTruthy();
+    expect(view.getByText('A 100% local and privacy-focused API client')).toBeTruthy();
     const list = view.getByLabelText('Build details');
     expect(within(list).getByText('Electron')).toBeTruthy();
     expect(within(list).getByText('43.0.0')).toBeTruthy();

@@ -13,11 +13,11 @@ Insomnium is a 100% local and privacy-focused open-source API client for testing
 
 ## Current Status
 
-This fork is being actively maintained — Insomnium is a useful tool worth keeping in working order. Recent work includes a full dependency security pass (Electron upgraded, native modules refreshed, application-layer security fixes), CI hardening, and packaged builds for macOS / Windows / Linux on every release. Issues and pull requests are welcome.
+Insomnium is actively maintained. Recent work includes a full dependency security pass (Electron upgraded, native modules refreshed, application-layer security fixes), CI hardening, and packaged builds for macOS / Windows / Linux on every release. Issues and pull requests are welcome.
 
 ## General
 
-I have removed user login, tracking, analytics, etc, from Insomnia so it is now a 100% local app. (And runs faster!)
+Insomnium has no user login, tracking or analytics: it is a 100% local app. (And runs faster!)
 
 **Getting around:** the rail on the left switches between a collection's requests, tests and flows (and its spec, for a design document). The top bar shows where you are: the project's name leads back to all its collections, and the collection's name opens its menu, including **Switch to** another one. **Ctrl+P** (**⌘P**) searches the collection's requests and jumps to other collections too. On Windows and Linux the menu bar stays hidden in new installs; press **Alt** to show it.
 
@@ -315,8 +315,6 @@ You can use any editor you'd like, but make sure to have support/plugins for the
 
 Before submitting a bug or a feature request, you can read the
 [issue guidelines](CONTRIBUTING.md#using-the-issue-tracker).
-
-<!-- For more generic product questions and feedback, join the [Slack Team](https://chat.insomnia.rest). -->
 
 ## Contributing
 

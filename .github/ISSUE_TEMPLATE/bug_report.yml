@@ -69,7 +69,7 @@ body:
   attributes:
     label: Installation method
     description: How did you install Insomnium?
-    placeholder: "e.g. download from insomnia.rest, homebrew, apt, etc."
+    placeholder: "e.g. download from GitHub releases, homebrew, apt, etc."
   validations:
     required: true
 - type: input
