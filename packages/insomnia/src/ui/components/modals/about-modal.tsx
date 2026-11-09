@@ -48,7 +48,7 @@ export const AboutModal = forwardRef<AboutModalHandle, ModalProps>((_, ref) => {
             <h2 className="m-0 text-[length:var(--font-size-xl)] font-semibold">{details.productName}</h2>
             <span className="text-[--hl]">{t('Version {version}', { version: details.version })}</span>
             <p className="flex items-center gap-1 m-0 mt-[--padding-xs]">
-              {t('A 100% local and privacy-focused fork of Insomnia')}
+              {t('A 100% local and privacy-focused API client')}
               <Icon className="text-[--color-danger]" icon="heart" />
             </p>
           </div>
