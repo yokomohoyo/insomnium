@@ -388,10 +388,16 @@ export class GitVCS {
   }
 
   async status(filepath: string) {
-    return git.status({
-      ...this._baseOpts,
-      filepath: convertToPosixSep(filepath),
-    });
+    filepath = convertToPosixSep(filepath);
+    const status = await git.status({ ...this._baseOpts, filepath });
+    if (status !== 'absent') {
+      return status;
+    }
+    // isomorphic-git finds a file it has never seen by listing the folders down to it, and the
+    // workspace's data folder is mounted where the folder above lists nothing (routable-fs-client.ts)
+    const { promises: fs } = this._baseOpts.fs as git.PromiseFsClient;
+    const exists = await fs.lstat(path.posix.join(this._baseOpts.dir, filepath)).then(() => true, () => false);
+    return exists ? '*added' : status;
   }
 
   async add(relPath: string) {
@@ -1248,7 +1254,8 @@ export class GitVCS {
 
   async repoExists() {
     try {
-      await git.getConfig({ ...this._baseOpts, path: '' });
+      // a repository's HEAD, a branch even before its first commit (getConfig no longer throws without one)
+      await git.resolveRef({ ...this._baseOpts, ref: 'HEAD', depth: 1 });
     } catch (err) {
       return false;
     }

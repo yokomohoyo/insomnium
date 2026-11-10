@@ -25,6 +25,8 @@ module.exports = {
     // a file's text, as vite gives it
     '\\?raw$': '<rootDir>/src/__mocks__/raw.ts',
     'styled-components': path.join(__dirname, '../../node_modules/styled-components'),
+    // its ES module build is what jsdom's export conditions pick
+    '^isomorphic-git$': path.join(__dirname, '../../node_modules/isomorphic-git/index.cjs'),
     'jsonpath-plus': path.join(__dirname, '../../node_modules/jsonpath-plus/dist/index-node-cjs.cjs'),
   },
   collectCoverage: !!process.env.CI,

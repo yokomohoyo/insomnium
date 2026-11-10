@@ -1,3 +1,5 @@
+import type { HttpClient } from 'isomorphic-git';
+
 import { isSshTransportUrl, SSH_KEY_HEADER, SSH_PASSPHRASE_HEADER } from './ssh-url';
 
 const collect = async (body: AsyncIterable<Uint8Array> | Uint8Array[] | undefined) => {
@@ -14,6 +16,11 @@ const collect = async (body: AsyncIterable<Uint8Array> | Uint8Array[] | undefine
   return all;
 };
 
+// isomorphic-git reads a response body as an async iterator
+async function* bodyOf(chunk: Uint8Array) {
+  yield chunk;
+}
+
 // how a request leaves: the main process's SSH and HTTP (main/git-ssh, axios-request)
 export interface GitTransport {
   gitSshRequest: Window['main']['gitSshRequest'];
@@ -21,13 +28,13 @@ export interface GitTransport {
 }
 
 /** A client for isomorphic-git {@link https://isomorphic-git.org/docs/en/http}, over a transport */
-export const makeHttpClient = (transport: () => GitTransport) => ({
-  request: async (config: any) => {
+export const makeHttpClient = (transport: () => GitTransport): HttpClient => ({
+  request: async config => {
     // an SSH remote (ssh-url.ts), which the main process speaks to over SSH
     if (isSshTransportUrl(config.url)) {
       const response = await transport().gitSshRequest({
         url: config.url,
-        method: config.method,
+        method: config.method || 'GET',
         headers: config.headers || {},
         body: config.method === 'POST' ? await collect(config.body) : undefined,
       });
@@ -35,7 +42,7 @@ export const makeHttpClient = (transport: () => GitTransport) => ({
         url: config.url,
         method: config.method,
         headers: response.headers,
-        body: [response.body],
+        body: bodyOf(response.body),
         statusCode: response.statusCode,
         statusMessage: response.statusMessage,
       };
@@ -61,7 +68,7 @@ export const makeHttpClient = (transport: () => GitTransport) => ({
       url: config.url,
       method: config.method,
       headers: response.headers as Record<string, string>,
-      body: [response.data],
+      body: bodyOf(new Uint8Array(response.data)),
       statusCode: response.status,
       statusMessage: response.statusText,
     };
