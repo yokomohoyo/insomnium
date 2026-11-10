@@ -309,9 +309,8 @@ export class NeDBClient {
     return [...ids, ...otherFolders].sort();
   }
 
-  async mkdir() {
-    throw new Error('NeDBClient is not writable');
-  }
+  // its folders are the app's types, always there: a checkout making them is a no-op
+  async mkdir() {}
 
   async stat(filePath: string) {
     filePath = path.normalize(filePath);

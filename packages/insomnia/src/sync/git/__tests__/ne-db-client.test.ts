@@ -401,11 +401,11 @@ describe('NeDBClient', () => {
   });
 
   describe('mkdir()', () => {
-    it('should throw error', async () => {
+    it('makes nothing: its folders are always there', async () => {
       const workspaceId = 'wrk_1';
       const neDbClient = new NeDBClient(workspaceId, DEFAULT_PROJECT_ID);
       const promiseResult = neDbClient.mkdir();
-      await expect(promiseResult).rejects.toThrowError('NeDBClient is not writable');
+      await expect(promiseResult).resolves.toBeUndefined();
     });
   });
 });
