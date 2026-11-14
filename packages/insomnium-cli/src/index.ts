@@ -13,7 +13,8 @@ import { fileURLToPath } from 'node:url';
 
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 
-import { CliError, readDiscovery, VERSION, withClient } from './connect.js';
+import { CliError, VERSION, withClient } from './connect.js';
+import { DiscoveryError, endpointUrl, readDiscovery } from './discovery.js';
 
 const HELP = `insomnium — drive a running Insomnium app over MCP
 
@@ -209,7 +210,7 @@ function checkHealth(port: number): Promise<boolean> {
 
 async function cmdStatus(json: boolean): Promise<void> {
   const disc = await readDiscovery();
-  const url = disc.url ?? `http://127.0.0.1:${disc.port}/sse`;
+  const url = endpointUrl(disc);
   const healthy = await checkHealth(disc.port);
   // So a script can wait on it: `until insomnium status; do sleep 1; done`
   if (!healthy) process.exitCode = 1;
@@ -271,7 +272,7 @@ async function main(argv: string[]): Promise<void> {
 }
 
 main(process.argv).catch(err => {
-  const msg = err instanceof CliError ? err.message : String(err);
+  const msg = err instanceof CliError || err instanceof DiscoveryError ? err.message : String(err);
   process.stderr.write(`insomnium: ${msg}\n`);
   process.exit(1);
 });

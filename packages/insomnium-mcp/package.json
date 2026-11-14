@@ -38,6 +38,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/discovery.test.mjs",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

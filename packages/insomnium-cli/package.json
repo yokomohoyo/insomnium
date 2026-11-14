@@ -35,8 +35,9 @@
     "url": "https://github.com/yokomohoyo/insomnium/issues"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "type-check": "tsc -p tsconfig.json --noEmit",
+    "sync": "node scripts/sync-discovery.mjs",
+    "build": "npm run sync && tsc -p tsconfig.json",
+    "type-check": "npm run sync && tsc -p tsconfig.json --noEmit",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

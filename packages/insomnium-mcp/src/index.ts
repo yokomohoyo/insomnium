@@ -3,81 +3,28 @@
 // running Insomnium app's loopback HTTP+SSE server, located via its discovery
 // file. Enable "MCP automation server" in Insomnium, then run `npx insomnium-mcp`.
 
-import { promises as fs } from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 
-interface Discovery {
-  port: number;
-  token: string;
-  url?: string;
-}
-
-// Mirrors packages/insomnia/src/main/mcp/discovery.ts — keep in sync.
-function discoveryFilePath(): string {
-  return process.env.INSOMNIUM_MCP_DISCOVERY_FILE
-    || path.join(os.homedir(), '.insomnium', 'mcp.json');
-}
+import { authHeaders, DiscoveryError, endpointUrl, readDiscovery } from './discovery.js';
 
 function die(message: string): never {
   process.stderr.write(`insomnium-mcp: ${message}\n`);
   process.exit(1);
 }
 
-async function readDiscovery(): Promise<Discovery> {
-  const file = discoveryFilePath();
-  let raw: string;
-  try {
-    raw = await fs.readFile(file, 'utf8');
-  } catch {
-    return die(
-      `could not read ${file}. Is Insomnium running with the MCP automation `
-      + 'server enabled? (Settings → MCP automation)',
-    );
-  }
-  let parsed: Discovery;
-  try {
-    parsed = JSON.parse(raw) as Discovery;
-  } catch {
-    return die(`discovery file ${file} is not valid JSON`);
-  }
-  if (!parsed.port || !parsed.token) {
-    return die(`discovery file ${file} is missing port/token`);
-  }
-  if (!Number.isInteger(parsed.port) || parsed.port < 1 || parsed.port > 65535) {
-    return die(`discovery file ${file} has an invalid port: ${parsed.port}`);
-  }
-  // the token goes to that URL: only to this computer, whatever the file says
-  if (parsed.url !== undefined) {
-    let host = '';
-    try {
-      host = new URL(parsed.url).hostname.toLowerCase();
-    } catch {
-      return die(`discovery file ${file} has an invalid url: ${parsed.url}`);
-    }
-    if (!(host === 'localhost' || host === '[::1]' || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host))) {
-      return die(`discovery file ${file} url must target loopback, got host: ${host}`);
-    }
-  }
-  return parsed;
-}
-
 async function main(): Promise<void> {
   const disc = await readDiscovery();
-  const endpoint = new URL(disc.url ?? `http://127.0.0.1:${disc.port}/sse`);
+  const endpoint = new URL(endpointUrl(disc));
   // --minimal: only the core tools, for a client with little room for them
   if (process.argv.includes('--minimal')) {
     endpoint.searchParams.set('tools', 'minimal');
   }
-  const authHeader = `Bearer ${disc.token}`;
 
   // requestInit.headers is applied to both the SSE stream and POST messages.
   const upstream = new SSEClientTransport(endpoint, {
-    requestInit: { headers: { Authorization: authHeader } },
+    requestInit: { headers: authHeaders(disc) },
   });
   const downstream = new StdioServerTransport();
 
@@ -130,4 +77,4 @@ async function main(): Promise<void> {
   await downstream.start();
 }
 
-main().catch(err => die(String(err)));
+main().catch(err => die(err instanceof DiscoveryError ? err.message : String(err)));
