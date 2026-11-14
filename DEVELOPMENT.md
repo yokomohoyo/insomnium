@@ -86,7 +86,6 @@ This is just a brief summary of Insomnium's current technical debt.
 - [ ] drag and drop is flakey
 - [ ] sync code is spaghetti
 - [ ] template rendering is spaghetti and has poor discoverability
-- [ ] inso abstraction limits networking improvements
 - [ ] testing feature doesn't scale with investment
 - [ ] unify curl.ts and libcurl-promise implementations
 
@@ -99,5 +98,4 @@ bump the following node and electron versions
 - `.npmrc`
 - `.nvmrc`
 - `packages/insomnia/package.json` electron and node-libcurl
-- `packages/insomnia-send-request/package.json` node-libcurl
 - `shell.nix`

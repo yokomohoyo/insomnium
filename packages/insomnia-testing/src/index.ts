@@ -7,7 +7,6 @@ export {
 
 export {
   runTests,
-  runTestsCli,
 } from './run';
 
 export { Test, TestSuite, TestResults };

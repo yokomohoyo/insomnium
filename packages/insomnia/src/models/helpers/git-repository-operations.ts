@@ -8,19 +8,3 @@ export const createGitRepository = async (workspaceId: string, repo: Partial<Git
     gitRepositoryId: newRepo._id,
   });
 };
-
-export const deleteGitRepository = async (repo: GitRepository) => {
-  const id = repo._id;
-  const workspaceMeta = await models.workspaceMeta.getByGitRepositoryId(id);
-
-  if (workspaceMeta) {
-    await models.workspaceMeta.update(workspaceMeta, {
-      gitRepositoryId: null,
-      cachedGitLastCommitTime: null,
-      cachedGitRepositoryBranch: null,
-      cachedGitLastAuthor: null,
-    });
-  }
-
-  await models.gitRepository.remove(repo);
-};

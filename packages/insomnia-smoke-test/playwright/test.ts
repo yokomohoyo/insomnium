@@ -12,7 +12,6 @@ import {
 
 interface EnvOptions {
   INSOMNIA_DATA_PATH: string;
-  INSOMNIA_API_URL: string;
   INSOMNIUM_LANGUAGE: string;
 }
 
@@ -20,11 +19,8 @@ export const test = baseTest.extend<{
   app: ElectronApplication;
 }>({
   app: async ({ playwright, trace }, use, testInfo) => {
-    const webServerUrl = testInfo.config.webServer?.url;
-
     const options: EnvOptions = {
       INSOMNIA_DATA_PATH: randomDataPath(),
-      INSOMNIA_API_URL: webServerUrl + '/api',
       // English, whatever this computer's language: the tests find things by their English names
       INSOMNIUM_LANGUAGE: 'en',
     };

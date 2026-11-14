@@ -64,9 +64,6 @@ export const sortKeyer = () => {
       : resource;
 };
 
-export const isInsomniaV4Import = ({ id }: Pick<InsomniaImporter, 'id'>) =>
-  id === 'insomnia-4';
-
 export async function fetchImportContentFromURI(
   { uri, allowLocalFiles = false }: { uri: string; allowLocalFiles?: boolean },
 ) {
@@ -197,11 +194,6 @@ export const importPure = async (json: { resources: BaseModel[] } & any) => {
 export const importResourcesToWorkspace = async ({ workspaceId }: { workspaceId: string }) => {
   guard(ResourceCache, 'No resources to import');
   const resources = ResourceCache.resources;
-  return await importToWorkspace({ workspaceId, resources });
-};
-
-export const importToWorkspaceFromJSON = async ({ workspaceId, json }: { workspaceId: string; json: { resources: BaseModel[] } } & any) => {
-  const resources = json.resources;
   return await importToWorkspace({ workspaceId, resources });
 };
 

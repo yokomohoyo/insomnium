@@ -35,7 +35,6 @@ export function showModal<TModalProps extends ModalProps & React.RefAttributes<{
 ) {
   const name = modalComponent.name || modalComponent.displayName;
   guard(name, 'Modal must have a name or displayName');
-  window.main.trackPageView({ name });
 
   const modalHandle = getModalComponentHandle(name) as unknown as GetRefHandleFromProps<TModalProps>;
 

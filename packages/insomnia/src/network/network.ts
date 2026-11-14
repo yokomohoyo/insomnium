@@ -423,22 +423,6 @@ const extractCookies = async (headerResults: HeaderResult[], cookieJar: any, fin
 
 export const getSetCookiesFromResponseHeaders = (headers: any[]) => getSetCookieHeaders(headers).map(h => h.value);
 
-export const getCurrentUrl = ({ headerResults, finalUrl }: { headerResults: any; finalUrl: string }): string => {
-  if (!headerResults || !headerResults.length) {
-    return finalUrl;
-  }
-  const lastRedirect = headerResults[headerResults.length - 1];
-  const location = getLocationHeader(lastRedirect.headers);
-  if (!location || !location.value) {
-    return finalUrl;
-  }
-  try {
-    return new URL(location.value, finalUrl).toString();
-  } catch (error) {
-    return finalUrl;
-  }
-};
-
 async function _applyRequestPluginHooks(
   renderedRequest: RenderedRequest,
   renderedContext: Record<string, any>,

@@ -86,23 +86,6 @@ const writeTempFile = (sourceCode: string) => {
   return path;
 };
 
-type CliOptions<TNetworkResponse> = InsomniaOptions<TNetworkResponse> & {
-  reporter?: Reporter;
-};
-
-/**
- * Run a test file using Mocha
- */
-export const runTestsCli = async <TNetworkResponse>(
-  testSrc: string | string[],
-  { reporter, ...options }: CliOptions<TNetworkResponse>,
-) => runInternal(
-  testSrc,
-  options,
-  reporter,
-  runner => !Boolean(runner.stats?.failures),
-);
-
 /**
  * Run a test file using Mocha and returns JS results
  */

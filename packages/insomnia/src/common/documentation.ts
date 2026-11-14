@@ -6,7 +6,6 @@ const insomniumDocs = (page: string) => `https://github.com/yokomohoyo/insomnium
 export const docsBase = insomniumDocs('README.md');
 export const docsGitSync = insomniumDocs('git-sync.md');
 export const docsTemplateTags = insomniumDocs('template-tags.md');
-export const docsVersionControl = insomniumDocs('git-sync.md');
 export const docsPlugins = insomniumDocs('plugins.md');
 export const docsImportExport = insomniumDocs('import-export.md');
 export const docsKeyMaps = insomniumDocs('keyboard-shortcuts.md');

@@ -94,8 +94,6 @@ export const RequestPane: FC<Props> = ({
       setUrlImports(count => count + 1);
     }
   }, [activeRequest?.url, importedUrl]);
-
-  useState(false);
   const handleImportQueryFromUrl = () => {
     let query;
 
@@ -120,25 +118,6 @@ export const RequestPane: FC<Props> = ({
     }
   };
   const gitVersion = useGitVCSVersion();
-
-  // const {
-  //   activeProject,
-  //   activeWorkspace,
-  //   gitRepository,
-  //   activeWorkspaceMeta,
-  // } = useRouteLoaderData(
-  //   ':workspaceId'
-  // ) as WorkspaceLoaderData;
-
-  // const gitRepoDataFetcher = useFetcher<GitRepoLoaderData>();
-  // alert(gitVersion)
-  // const { branches, branch: currentBranch } =
-  //   gitRepoDataFetcher.data && 'branches' in gitRepoDataFetcher.data
-  //     ? gitRepoDataFetcher.data
-  //     : { branches: [], branch: '' };
-
-  console.log("gitVersion ->", gitVersion);
-
 
   const activeRequestSyncVersion = useActiveRequestSyncVCSVersion();
 
@@ -176,7 +155,6 @@ export const RequestPane: FC<Props> = ({
             key={requestId}
             uniquenessKey={`${uniqueKeyReq}::${urlImports}`}
             handleAutocompleteUrls={() => queryAllWorkspaceUrls(workspaceId, models.request.type, requestId)}
-            nunjucksPowerUserMode={settings.nunjucksPowerUserMode}
             setLoading={setLoading}
             onPaste={onPaste}
           />
