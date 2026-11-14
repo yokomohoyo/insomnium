@@ -15,7 +15,7 @@ import {
 
 import { AUTH_API_KEY, AUTH_BASIC, AUTH_BEARER } from '../../common/constants';
 import { jarFromCookies } from '../../common/cookies';
-import { generateId } from '../../common/misc';
+import { generateId, getSetCookieHeaders } from '../../common/misc';
 import { webSocketRequest } from '../../models';
 import * as models from '../../models';
 import { CookieJar } from '../../models/cookie-jar';
@@ -339,12 +339,10 @@ const openWebSocketConnection = async (
       }));
     }
 
-    // The server's HTTP answer as the response; a reconnect carries on in the
-    // one it has
+    // The server's HTTP answer as the response. Not for a reconnect, which
+    // carries on in the one it has: its handlers go on without waiting, so
+    // what they write to the timeline comes before what 'open' writes.
     const recordResponse = async ({ responseHeaders, statusCode, statusMessage, httpVersion }: ReturnType<typeof parseResponseAndBuildTimeline>) => {
-      if (resume) {
-        return;
-      }
       const responsePatch: Partial<WebSocketResponse> = {
         _id: responseId,
         parentId: request._id,
@@ -368,9 +366,11 @@ const openWebSocketConnection = async (
       const internalRequestHeader = ws._req._header;
       const parsed = parseResponseAndBuildTimeline(url, incomingMessage, internalRequestHeader);
       const { timeline, responseHeaders } = parsed;
-      await recordResponse(parsed);
+      if (!resume) {
+        await recordResponse(parsed);
+      }
 
-      if (request.settingStoreCookies) {
+      if (request.settingStoreCookies && getSetCookieHeaders(responseHeaders).length) {
         // the stored URL, not the one connected to
         await storeSetCookies({ headers: responseHeaders, currentUrl: request.url, cookieJar: options.cookieJar, timeline });
       }
@@ -387,7 +387,9 @@ const openWebSocketConnection = async (
       const internalRequestHeader = clientRequest._header;
       const parsed = parseResponseAndBuildTimeline(url, incomingMessage, internalRequestHeader);
       parsed.timeline.forEach(entry => logs.timeline(options.requestId, entry));
-      await recordResponse(parsed);
+      if (!resume) {
+        await recordResponse(parsed);
+      }
       deleteRequestMaps(request._id, `Unexpected response ${incomingMessage.statusCode}`);
       afterDrop(request._id);
     });
@@ -559,9 +561,12 @@ const createErrorResponse = (responseId: string, requestId: string, environmentI
   saveErrorResponse(models.webSocketResponse, responseId, requestId, environmentId, timelinePath, message);
 
 const deleteRequestMaps = async (requestId: string, message: string, event?: WebSocketCloseEvent | WebSocketErrorEvent) => {
+  if (event) {
+    logs.event(requestId, event);
+  }
   MqttSessions.get(requestId)?.stop();
   MqttSessions.delete(requestId);
-  logs.close(requestId, message, event);
+  logs.close(requestId, message);
   WebSocketConnections.delete(requestId);
 };
 
