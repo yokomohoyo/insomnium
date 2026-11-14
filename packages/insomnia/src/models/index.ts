@@ -1,21 +1,3 @@
-import {
-  EXPORT_TYPE_API_SPEC,
-  EXPORT_TYPE_COOKIE_JAR,
-  EXPORT_TYPE_ENVIRONMENT,
-  EXPORT_TYPE_FLOW,
-  EXPORT_TYPE_GRPC_REQUEST,
-  EXPORT_TYPE_MCP_REQUEST,
-  EXPORT_TYPE_PROTO_DIRECTORY,
-  EXPORT_TYPE_PROTO_FILE,
-  EXPORT_TYPE_REQUEST,
-  EXPORT_TYPE_REQUEST_GROUP,
-  EXPORT_TYPE_RESPONSE_EXAMPLE,
-  EXPORT_TYPE_UNIT_TEST,
-  EXPORT_TYPE_UNIT_TEST_SUITE,
-  EXPORT_TYPE_WEBSOCKET_PAYLOAD,
-  EXPORT_TYPE_WEBSOCKET_REQUEST,
-  EXPORT_TYPE_WORKSPACE,
-} from '../common/constants';
 import { generateId } from '../common/misc';
 import * as _apiSpec from './api-spec';
 import * as _caCertificate from './ca-certificate';
@@ -225,21 +207,39 @@ export async function initModel<T extends BaseModel>(type: string, ...sources: R
   return migratedDoc;
 }
 
-export const MODELS_BY_EXPORT_TYPE: Record<string, any> = {
-  [EXPORT_TYPE_REQUEST]: request,
-  [EXPORT_TYPE_WEBSOCKET_PAYLOAD]: webSocketPayload,
-  [EXPORT_TYPE_RESPONSE_EXAMPLE]: responseExample,
-  [EXPORT_TYPE_WEBSOCKET_REQUEST]: webSocketRequest,
-  [EXPORT_TYPE_MCP_REQUEST]: mcpRequest,
-  [EXPORT_TYPE_GRPC_REQUEST]: grpcRequest,
-  [EXPORT_TYPE_REQUEST_GROUP]: requestGroup,
-  [EXPORT_TYPE_UNIT_TEST_SUITE]: unitTestSuite,
-  [EXPORT_TYPE_UNIT_TEST]: unitTest,
-  [EXPORT_TYPE_FLOW]: flow,
-  [EXPORT_TYPE_WORKSPACE]: workspace,
-  [EXPORT_TYPE_COOKIE_JAR]: cookieJar,
-  [EXPORT_TYPE_ENVIRONMENT]: environment,
-  [EXPORT_TYPE_API_SPEC]: apiSpec,
-  [EXPORT_TYPE_PROTO_FILE]: protoFile,
-  [EXPORT_TYPE_PROTO_DIRECTORY]: protoDirectory,
-};
+// The `_type` a document of each exported model has in an Insomnia v4 export.
+// A model that is not here is not exported, nor imported.
+export const EXPORT_TYPE_BY_MODEL_TYPE = {
+  [request.type]: 'request',
+  [webSocketPayload.type]: 'websocket_payload',
+  [responseExample.type]: 'response_example',
+  [webSocketRequest.type]: 'websocket_request',
+  [mcpRequest.type]: 'mcp_request',
+  [grpcRequest.type]: 'grpc_request',
+  [requestGroup.type]: 'request_group',
+  [unitTestSuite.type]: 'unit_test_suite',
+  [unitTest.type]: 'unit_test',
+  [flow.type]: 'flow',
+  [workspace.type]: 'workspace',
+  [cookieJar.type]: 'cookie_jar',
+  [environment.type]: 'environment',
+  [apiSpec.type]: 'api_spec',
+  [protoFile.type]: 'proto_file',
+  [protoDirectory.type]: 'proto_directory',
+} as const;
+
+type ExportedModelType = keyof typeof EXPORT_TYPE_BY_MODEL_TYPE;
+export type ExportType = typeof EXPORT_TYPE_BY_MODEL_TYPE[ExportedModelType];
+type ExportedModel = Extract<ReturnType<typeof all>[number], { type: ExportedModelType }>;
+
+const isExportedModelType = (type: string): type is ExportedModelType =>
+  Object.prototype.hasOwnProperty.call(EXPORT_TYPE_BY_MODEL_TYPE, type);
+
+export const getExportType = (modelType: string): ExportType | undefined =>
+  isExportedModelType(modelType) ? EXPORT_TYPE_BY_MODEL_TYPE[modelType] : undefined;
+
+export const MODELS_BY_EXPORT_TYPE: Partial<Record<string, ExportedModel>> = Object.fromEntries(
+  all()
+    .filter((model): model is ExportedModel => isExportedModelType(model.type))
+    .map(model => [EXPORT_TYPE_BY_MODEL_TYPE[model.type], model]),
+);
