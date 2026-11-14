@@ -21,7 +21,7 @@ const common: BuildOptions = {
   plugins: [
     alias({
       // just enough of electron for the network and model code
-      'electron': path.resolve(__dirname, './send-request/electron/index.js'),
+      'electron': path.resolve(__dirname, './src/server/electron-stub/index.js'),
     }),
   ],
   loader: { '.node': 'copy' },

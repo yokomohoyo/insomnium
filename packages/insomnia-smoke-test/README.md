@@ -4,8 +4,6 @@
 
 This project contains the smoke testing suite for Insomnium App.
 
-> To find more about Inso CLI smoke tests, check [this document](CLI.md).
-
 - [Insomnium Smoke Tests](#insomnium-smoke-tests)
   - [Quick-start](#quick-start)
   - [Debugging and Developing Tests locally](#debugging-and-developing-tests-locally)

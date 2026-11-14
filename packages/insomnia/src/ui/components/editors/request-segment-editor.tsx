@@ -33,7 +33,6 @@ export const RequestSegmentEditor: FC<Props> = ({
   if (matches.length === 0) {
     return <></>;
   }
-  console.log(matches);
 
   // pairs : empty with strings
   const segmentedCreatedViaUI = useMemo(() => {

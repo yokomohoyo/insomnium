@@ -1,14 +1,8 @@
 import { describe, expect, it } from '@jest/globals';
 
 import {
-  ACTIVITY_DEBUG,
-  ACTIVITY_HOME,
-  ACTIVITY_SPEC,
-  ACTIVITY_UNIT_TEST,
   FLEXIBLE_URL_REGEX,
   getContentTypeName,
-  isValidActivity,
-  isWorkspaceActivity,
 } from '../constants';
 
 describe('URL Regex', () => {
@@ -34,35 +28,6 @@ describe('URL Regex', () => {
     expect('"https://google.com"').not.toMatch(FLEXIBLE_URL_REGEX);
     expect('(https://google.com)').not.toMatch(FLEXIBLE_URL_REGEX);
     expect('[https://google.com]').not.toMatch(FLEXIBLE_URL_REGEX);
-  });
-});
-
-describe('isWorkspaceActivity', () => {
-  it('should return true', () => {
-    expect(isWorkspaceActivity(ACTIVITY_SPEC)).toBe(true);
-    expect(isWorkspaceActivity(ACTIVITY_DEBUG)).toBe(true);
-    expect(isWorkspaceActivity(ACTIVITY_UNIT_TEST)).toBe(true);
-  });
-
-  it('should return false', () => {
-    expect(isWorkspaceActivity(ACTIVITY_HOME)).toBe(false);
-  });
-});
-
-describe('isValidActivity', () => {
-  it('should return true', () => {
-    expect(isValidActivity(ACTIVITY_SPEC)).toBe(true);
-    expect(isValidActivity(ACTIVITY_DEBUG)).toBe(true);
-    expect(isValidActivity(ACTIVITY_UNIT_TEST)).toBe(true);
-    expect(isValidActivity(ACTIVITY_HOME)).toBe(true);
-  });
-
-  it('should return false', () => {
-    expect(isValidActivity('something else')).toBe(false);
-    // @ts-expect-error intentionally invalid
-    expect(isValidActivity(null)).toBe(false);
-    // @ts-expect-error intentionally invalid
-    expect(isValidActivity(undefined)).toBe(false);
   });
 });
 

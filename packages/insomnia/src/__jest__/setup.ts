@@ -24,7 +24,4 @@ globalThis.console.log = (...args) => {
   }
 };
 
-global.main = {
-  trackSegmentEvent: () => { },
-  trackPageView: () => { },
-};
+global.main = {};

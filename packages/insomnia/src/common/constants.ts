@@ -11,16 +11,11 @@ export const getProductName = () => appConfig.productName;
 export const getAppDefaultTheme = () => appConfig.theme;
 export const getAppDefaultLightTheme = () => appConfig.lightTheme;
 export const getAppDefaultDarkTheme = () => appConfig.darkTheme;
-export const getAppSynopsis = () => appConfig.synopsis;
-export const getAppId = () => appConfig.appId;
 export const getAppPlatform = () => process.platform;
 export const isMac = () => getAppPlatform() === 'darwin';
-export const isLinux = () => getAppPlatform() === 'linux';
 export const isWindows = () => getAppPlatform() === 'win32';
 export const getAppEnvironment = () => process.env.INSOMNIA_ENV || 'production';
 export const isDevelopment = () => getAppEnvironment() === 'development';
-export const getSegmentWriteKey = () => '';
-export const getSentryDsn = () => '';
 export const getAppBuildDate = () => new Date(process.env.BUILD_DATE ?? '').toLocaleDateString();
 export type AuthType =
   | 'none'
@@ -41,11 +36,6 @@ export type AuthType =
   | 'plugin'
   | 'sha256'
   | 'sha1';
-export const getBrowserUserAgent = () => encodeURIComponent(
-  String(window.navigator.userAgent)
-    .replace(new RegExp(`${getAppId()}\\/\\d+\\.\\d+\\.\\d+ `), '')
-    .replace(/Electron\/\d+\.\d+\.\d+ /, ''),
-).replace('%2C', ',');
 
 // There is no in-app updater. The Squirrel updater inherited from Insomnia
 // pointed at update feeds on archgpt.dev, a domain this project doesn't control
@@ -54,12 +44,10 @@ export const getBrowserUserAgent = () => encodeURIComponent(
 // (https://github.com/yokomohoyo/insomnium/releases) and through the APT
 // repository and Homebrew.
 
-export const getClientString = () => `${getAppEnvironment()}::${getAppPlatform()}::${getAppVersion()}`;
 // export const changelogUrl = () => appConfig.changelogUrl + '#' + version;
 export const changelogUrl = () => appConfig.changelogUrl;
 
 // Global Stuff
-export const DB_PERSIST_INTERVAL = 1000 * 60 * 30; // Compact every once in a while
 export const DEBOUNCE_MILLIS = 100;
 export const REQUEST_TIME_TO_SHOW_COUNTER = 1; // Seconds
 
@@ -122,14 +110,8 @@ export const displayModifierKey = (key: keyof Omit<KeyCombination, 'keyCode'>) =
   }
 };
 
-// API
-export const getApiBaseURL = () => env.INSOMNIA_API_URL || 'https://api.insomnia.rest';
-
 // License
 export const getLicenseURL = () => env.INSOMNIUM_LICENSE_URL || 'https://github.com/yokomohoyo/insomnium/blob/main/LICENSE';
-
-// SYNC
-export const DEFAULT_BRANCH_NAME = 'master';
 
 // PLUGIN
 // plugins are npm packages, usually named insomnia-plugin-…
@@ -161,50 +143,6 @@ export type GlobalActivity =
   | 'home';
 export const ACTIVITY_SPEC: GlobalActivity = 'spec';
 export const ACTIVITY_DEBUG: GlobalActivity = 'debug';
-export const ACTIVITY_UNIT_TEST: GlobalActivity = 'unittest';
-export const ACTIVITY_HOME: GlobalActivity = 'home';
-
-export const isWorkspaceActivity = (activity?: string): activity is GlobalActivity =>
-  isDesignActivity(activity) || isCollectionActivity(activity);
-
-export const isDesignActivity = (activity?: string): activity is GlobalActivity => {
-  switch (activity) {
-    case ACTIVITY_SPEC:
-    case ACTIVITY_DEBUG:
-    case ACTIVITY_UNIT_TEST:
-      return true;
-
-    case ACTIVITY_HOME:
-    default:
-      return false;
-  }
-};
-
-export const isCollectionActivity = (activity?: string): activity is GlobalActivity => {
-  switch (activity) {
-    case ACTIVITY_DEBUG:
-      return true;
-
-    case ACTIVITY_SPEC:
-    case ACTIVITY_UNIT_TEST:
-    case ACTIVITY_HOME:
-    default:
-      return false;
-  }
-};
-
-export const isValidActivity = (activity: string): activity is GlobalActivity => {
-  switch (activity) {
-    case ACTIVITY_SPEC:
-    case ACTIVITY_DEBUG:
-    case ACTIVITY_UNIT_TEST:
-    case ACTIVITY_HOME:
-      return true;
-
-    default:
-      return false;
-  }
-};
 
 // HTTP Methods
 export const METHOD_GET = 'GET';
@@ -223,9 +161,6 @@ export const HTTP_METHODS = [
   METHOD_OPTIONS,
   METHOD_HEAD,
 ];
-
-// Additional methods
-export const METHOD_GRPC = 'GRPC';
 
 // Preview Modes
 export const PREVIEW_MODE_FRIENDLY = 'friendly';
@@ -338,16 +273,6 @@ export const SORT_ORDERS = [
   SORT_TYPE_DESC,
   SORT_TYPE_ASC,
 ] as const;
-export const sortOrderName: Record<SortOrder, string> = {
-  [SORT_TYPE_MANUAL]: 'Manual',
-  [SORT_NAME_ASC]: 'Name Ascending (A-Z)',
-  [SORT_NAME_DESC]: 'Name Descending (Z-A)',
-  [SORT_CREATED_ASC]: 'Oldest First',
-  [SORT_CREATED_DESC]: 'Newest First',
-  [SORT_HTTP_METHOD]: 'HTTP Method',
-  [SORT_TYPE_DESC]: 'Folders First',
-  [SORT_TYPE_ASC]: 'Requests First',
-};
 
 export type DashboardSortOrder =
   | 'name-asc'
@@ -363,14 +288,6 @@ export const DASHBOARD_SORT_ORDERS: DashboardSortOrder[] = [
   SORT_CREATED_ASC,
   SORT_CREATED_DESC,
 ];
-
-export const dashboardSortOrderName: Record<DashboardSortOrder, string> = {
-  [SORT_NAME_ASC]: 'Name Ascending (A-Z)',
-  [SORT_NAME_DESC]: 'Name Descending (Z-A)',
-  [SORT_CREATED_ASC]: 'Oldest First',
-  [SORT_CREATED_DESC]: 'Newest First',
-  [SORT_MODIFIED_DESC]: 'Last Modified',
-};
 
 export type PreviewMode = 'friendly' | 'source' | 'raw' /*| 'frontend' */;
 
@@ -561,8 +478,6 @@ export const RESPONSE_CODE_REASONS: Record<number, string> = {
   599: 'Network Connect Timeout Error',
 };
 
-export const WORKSPACE_ID_KEY = '__WORKSPACE_ID__';
-export const BASE_ENVIRONMENT_ID_KEY = '__BASE_ENVIRONMENT_ID__';
 export const EXPORT_TYPE_REQUEST = 'request';
 export const EXPORT_TYPE_GRPC_REQUEST = 'grpc_request';
 export const EXPORT_TYPE_WEBSOCKET_REQUEST = 'websocket_request';

@@ -1,5 +1,5 @@
 import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
-import { app, BrowserWindow, ipcMain, IpcRendererEvent, shell } from 'electron';
+import { app, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { credentialStorageStatus } from '../../common/database';
@@ -13,7 +13,6 @@ import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
 import { type CaptureBridgeAPI, registerCaptureHandlers } from '../capture-proxy';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
 import { credentialStorageNotices } from '../credential-keys';
-import { insomniaFetch } from '../insomniaFetch';
 import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import * as models from '../../models';
 import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
@@ -29,7 +28,6 @@ import { WebSocketBridgeAPI } from '../network/websocket';
 import { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {
-  loginStateChange: () => void;
   openInBrowser: (url: string) => void;
   restart: () => void;
   halfSecondAfterAppStart: () => void;
@@ -60,12 +58,9 @@ export interface MainBridgeAPI {
   folderSync: FolderSyncBridgeAPI;
   grpc: gRPCBridgeAPI;
   curl: CurlBridgeAPI;
-  trackSegmentEvent: (options: { event: string; properties?: Record<string, unknown> }) => void;
-  trackPageView: (options: { name: string }) => void;
   axiosRequest: typeof axiosRequest;
   // one of isomorphic-git's requests of an SSH remote (main/git-ssh)
   gitSshRequest: (request: GitSshRequest) => Promise<GitSshResponse>;
-  insomniaFetch: typeof insomniaFetch;
   showContextMenu: (options: { key: string }) => void;
   webUtilsGetPathForFile: (file: File) => string;
   getMcpStatus: () => Promise<{ running: boolean; port: number | null }>;
@@ -97,16 +92,8 @@ async function revokeFullAccess(name: string) {
 }
 
 export function registerMainHandlers() {
-  ipcMain.handle('insomniaFetch', async (_, options: Parameters<typeof insomniaFetch>[0]) => {
-    return insomniaFetch(options);
-  });
   ipcMain.handle('axiosRequest', async (_, options: Parameters<typeof axiosRequest>[0]) => {
     return axiosRequest(options);
-  });
-  ipcMain.on('loginStateChange', async () => {
-    BrowserWindow.getAllWindows().forEach(w => {
-      w.webContents.send('loggedIn');
-    });
   });
   ipcMain.handle('authorizeUserInWindow', (_, options: Parameters<typeof authorizeUserInWindow>[0]) => {
     const { url, urlSuccessRegex, urlFailureRegex, sessionId } = options;
@@ -146,13 +133,6 @@ export function registerMainHandlers() {
 
   ipcMain.on('cancelCurlRequest', (_, requestId: string): void => {
     cancelCurlRequest(requestId);
-  });
-
-  ipcMain.on('trackSegmentEvent', (_, options: {}): void => {
-  //  removed tracking from insomnia
-  });
-  ipcMain.on('trackPageView', (_, options: { name: string }): void => {
-    // removed tracking from insomnia
   });
 
   registerCaptureHandlers();

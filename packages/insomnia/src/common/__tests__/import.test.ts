@@ -22,17 +22,6 @@ describe('isApiSpecImport()', () => {
   });
 });
 
-describe('isInsomniaV4Import()', () => {
-  it.each(['insomnia-4'])('should return true if spec id is %o', (id: string) => {
-    expect(importUtil.isInsomniaV4Import({ id })).toBe(true);
-  });
-
-  it('should return false if spec id is not valid', () => {
-    const id = 'invalid-id';
-    expect(importUtil.isInsomniaV4Import({ id })).toBe(false);
-  });
-});
-
 describe('importRaw()', () => {
   beforeEach(globalBeforeEach);
 

@@ -82,7 +82,6 @@ const grpc: gRPCBridgeAPI = {
   validateProto: (filePath, includeDirs) => ipcRenderer.invoke('grpc.validateProto', filePath, includeDirs),
 };
 const main: Window['main'] = {
-  loginStateChange: () => ipcRenderer.send('loginStateChange'),
   restart: () => ipcRenderer.send('restart'),
   openInBrowser: options => ipcRenderer.send('openInBrowser', options),
   halfSecondAfterAppStart: () => ipcRenderer.send('halfSecondAfterAppStart'),
@@ -145,11 +144,8 @@ const main: Window['main'] = {
   capture,
   grpc,
   curl,
-  trackSegmentEvent: options => ipcRenderer.send('trackSegmentEvent', options),
-  trackPageView: options => ipcRenderer.send('trackPageView', options),
   axiosRequest: options => ipcRenderer.invoke('axiosRequest', options),
   gitSshRequest: request => ipcRenderer.invoke('gitSshRequest', request),
-  insomniaFetch: options => ipcRenderer.invoke('insomniaFetch', options),
   showContextMenu: options => ipcRenderer.send('show-context-menu', options),
   webUtilsGetPathForFile: (file: File) => webUtils.getPathForFile(file),
 };

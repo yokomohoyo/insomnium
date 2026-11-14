@@ -49,11 +49,6 @@ export function getContentTypeHeader<T extends Header>(headers: T[]): T | null {
   return matches.length ? matches[0] : null;
 }
 
-export function getMethodOverrideHeader<T extends Header>(headers: T[]): T | null {
-  const matches = filterHeaders(headers, 'x-http-method-override');
-  return matches.length ? matches[0] : null;
-}
-
 export function getHostHeader<T extends Header>(headers: T[]): T | null {
   const matches = filterHeaders(headers, 'host');
   return matches.length ? matches[0] : null;

@@ -1107,23 +1107,6 @@ describe('getSetCookiesFromResponseHeaders', () => {
     expect(getSetCookiesFromResponseHeaders(headers)).toEqual(['monster', 'mash']);
   });
 });
-describe('getCurrentUrl for tough-cookie', () => {
-  it('defaults to finalUrl', () => {
-    const headerResults = [];
-    const finalUrl = 'http://mergemyshit.dev';
-    expect(networkUtils.getCurrentUrl({ headerResults, finalUrl })).toEqual(finalUrl);
-  });
-  it('append location to finalUrl', () => {
-    const headerResults = [{ headers: [{ name: 'Location', value: '/cookies' }] }];
-    const finalUrl = 'http://mergemyshit.dev';
-    expect(networkUtils.getCurrentUrl({ headerResults, finalUrl })).toEqual(finalUrl + '/cookies');
-  });
-  it('appends only last location to finalUrl', () => {
-    const headerResults = [{ headers: [{ name: 'Location', value: '/cookies' }] }, { headers: [{ name: 'location', value: '/biscuit' }] }];
-    const finalUrl = 'http://mergemyshit.dev';
-    expect(networkUtils.getCurrentUrl({ headerResults, finalUrl })).toEqual(finalUrl + '/biscuit');
-  });
-});
 
 describe('renderEventStreamConnection()', () => {
   beforeEach(globalBeforeEach);
