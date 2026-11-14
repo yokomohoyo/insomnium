@@ -15,6 +15,7 @@ import { FlowEditor } from '../components/flows/flow-editor';
 import { showPrompt } from '../components/modals';
 import { SidebarLayout } from '../components/sidebar-layout';
 import { Button } from '../components/themed-button';
+import { requestDisplayName } from '../utils/request-name';
 import { workspacePath } from './paths';
 
 // a request a flow can send: the collection's HTTP requests, in the sidebar's order
@@ -35,7 +36,7 @@ export const loader: LoaderFunction = async ({ params }): Promise<FlowsLoaderDat
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
   const flows = (await models.flow.findByParentId(workspaceId)).sort((a, b) => a.created - b.created);
-  const requests = (await listRunnableRequests(workspaceId)).map(({ request, folders }) => ({ _id: request._id, name: request.name, method: request.method, folders }));
+  const requests = (await listRunnableRequests(workspaceId)).map(({ request, folders }) => ({ _id: request._id, name: requestDisplayName(request), method: request.method, folders }));
   return { flows, requests };
 };
 

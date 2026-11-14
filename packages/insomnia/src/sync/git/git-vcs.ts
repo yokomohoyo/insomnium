@@ -362,6 +362,10 @@ export class GitVCS {
 
   async fetchRemoteBranches() {
     const uri = await this.getRemoteOriginURI();
+    if (!uri) {
+      // a repository kept on this computer only: no server to ask
+      return [];
+    }
     try {
       const branches = await git.listServerRefs({
         ...this._baseOpts,

@@ -86,6 +86,7 @@ import { ConnectionCircle } from '../components/websockets/action-bar';
 import { RealtimeResponsePane } from '../components/websockets/realtime-response-pane';
 import { WebSocketRequestPane } from '../components/websockets/websocket-request-pane';
 import { useReadyState } from '../hooks/use-ready-state';
+import { requestDisplayName } from '../utils/request-name';
 import {
   CreateRequestType,
   useRequestGroupMetaPatcher,
@@ -108,7 +109,7 @@ export interface GrpcMessage {
 }
 
 const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | WebSocketRequest | McpRequest): string => {
-  return !isRequestGroup(doc) ? doc.name || doc.url || t('Untitled request') : doc.name || t('Untitled folder');
+  return !isRequestGroup(doc) ? requestDisplayName(doc) : doc.name || t('Untitled folder');
 };
 
 // a sort order's name, in the app's language
@@ -767,7 +768,7 @@ export const Debug: FC = () => {
                 <Popover className="min-w-max">
                   <ListBox<Environment>
                     key={activeEnvironment._id}
-                    className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+                    className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none"
                   >
                     {item => (
                       <Item
@@ -890,7 +891,7 @@ export const Debug: FC = () => {
                   <Icon icon="sort" />
                 </Button>
                 <Popover className="min-w-max">
-                  <ListBox<{ id: string; name: string }> className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none">
+                  <ListBox<{ id: string; name: string }> className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none">
                     {item => (
                       <Item
                         id={item.id}
@@ -935,7 +936,7 @@ export const Debug: FC = () => {
                       }
                     }}
                     items={createInCollectionActionList}
-                    className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+                    className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none"
                   >
                     {item => (
                       <Item

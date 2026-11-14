@@ -177,6 +177,36 @@ First commit!
     });
   });
 
+  describe('fetchRemoteBranches()', () => {
+    const failures = (log: { mock: { calls: unknown[][] } }) =>
+      log.mock.calls.filter(([message]) => String(message).includes('Failed to list remote branches'));
+
+    it('asks no server when the repository has no remote', async () => {
+      await GitVCS.init({ uri: '', repoId: '', directory: GIT_CLONE_DIR, fs: MemClient.createClient() });
+      const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+      try {
+        expect(await GitVCS.fetchRemoteBranches()).toEqual([]);
+        expect(failures(log)).toEqual([]);
+      } finally {
+        log.mockRestore();
+      }
+    });
+
+    it('still logs when a remote cannot be reached', async () => {
+      const request = jest.fn<() => Promise<never>>().mockRejectedValue(new Error('offline'));
+      await GitVCS.init({ uri: '', repoId: '', directory: GIT_CLONE_DIR, fs: MemClient.createClient(), http: { request } });
+      await GitVCS.addRemote('https://git.example.invalid/acme/api.git');
+      const log = jest.spyOn(console, 'log').mockImplementation(() => {});
+      try {
+        expect(await GitVCS.fetchRemoteBranches()).toEqual([]);
+        expect(request).toHaveBeenCalled();
+        expect(failures(log)).toHaveLength(1);
+      } finally {
+        log.mockRestore();
+      }
+    });
+  });
+
   describe('push()', () => {
     it('should throw an exception when push response contains errors', async () => {
       git.push.mockReturnValue({
