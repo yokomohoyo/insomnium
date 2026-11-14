@@ -10,6 +10,7 @@ import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, notRunnable, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
 import { requestPath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
+import { requestDisplayName } from '../../utils/request-name';
 import { LoadTestPanel } from '../load-test-panel';
 import { RunStatsTable } from '../run-stats-table';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
@@ -247,7 +248,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
                     }}
                   />
                   <span className="faint monospace txt-sm">{request.method}</span>
-                  {resultName({ folders: requestFolders, name: request.name })}
+                  {resultName({ folders: requestFolders, name: requestDisplayName(request) })}
                   {notRunnable(request) && <span className="faint txt-sm">(event stream, not run)</span>}
                 </label>
               </li>

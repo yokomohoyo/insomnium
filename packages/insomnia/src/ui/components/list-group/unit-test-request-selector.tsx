@@ -2,6 +2,7 @@ import React, { FunctionComponent } from 'react';
 import styled from 'styled-components';
 
 import { Request } from '../../../models/request';
+import { requestDisplayName } from '../../utils/request-name';
 
 export interface UnitTestRequestSelectorProps {
   onSetActiveRequest: React.ChangeEventHandler<HTMLSelectElement>;
@@ -53,9 +54,9 @@ export const UnitTestRequestSelector: FunctionComponent<UnitTestRequestSelectorP
         <option value="__NULL__">
           {selectableRequests.length ? '-- Select Request --' : '-- No Requests --'}
         </option>
-        {selectableRequests.map(({ name, _id }) => (
-          <option key={_id} value={_id}>
-            {name}
+        {selectableRequests.map(request => (
+          <option key={request._id} value={request._id}>
+            {requestDisplayName(request)}
           </option>
         ))}
       </select>

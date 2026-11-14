@@ -19,7 +19,8 @@ const List = styled.ul({
   paddingBottom: 'var(--radius-md)',
   borderRadius: 'var(--radius-md)',
   overflowY: 'auto',
-  maxHeight: '85vh',
+  // the popover carries the space left in the window as its max height
+  maxHeight: 'inherit',
 
   '&:focus': {
     outline: '0',

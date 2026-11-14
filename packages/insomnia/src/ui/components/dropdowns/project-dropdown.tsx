@@ -82,7 +82,7 @@ export const ProjectDropdown: FC<Props> = ({ project, organizationId }) => {
               projectActionList.find(({ id }) => key === id)?.action(project._id);
             }}
             items={projectActionList}
-            className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+            className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none"
           >
             {item => (
               <Item

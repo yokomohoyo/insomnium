@@ -685,7 +685,7 @@ const ProjectRoute: FC = () => {
                     <ListBox<{
                       id: string;
                       name: string;
-                    }> className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+                    }> className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none"
                     >
                       {item => (
                         <Item
@@ -733,7 +733,7 @@ const ProjectRoute: FC = () => {
                         }
                       }}
                       items={createInProjectActionList}
-                      className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+                      className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none"
                     >
                       {item => (
                         <Item

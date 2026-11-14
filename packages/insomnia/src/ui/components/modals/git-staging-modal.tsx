@@ -43,6 +43,8 @@ export const GitStagingModal: FC<ModalProps> = ({
   const formRef = useRef<HTMLFormElement>(null);
   const [checkAllModified, setCheckAllModified] = React.useState(false);
   const [checkAllUnversioned, setCheckAllUnversioned] = React.useState(false);
+  // rows the user ticked or unticked; always controlled, so select-all never flips the input's mode
+  const [picked, setPicked] = useState<Record<string, boolean>>({});
   const gitChangesFetcher = useFetcher<GitChangesLoaderData>();
   const gitCommitFetcher = useFetcher<CommitToGitRepoResult>();
   const rollbackFetcher = useFetcher<GitRollbackChangesResult>();
@@ -70,6 +72,10 @@ export const GitStagingModal: FC<ModalProps> = ({
   };
 
   const hasChanges = Boolean(changes.length);
+  const isPicked = (item: { path: string; staged: boolean }) => picked[item.path] ?? item.staged;
+  const pick = (path: string, checked: boolean) => setPicked(prev => ({ ...prev, [path]: checked }));
+  // rows stay ticked once select-all is unticked
+  const keepPicked = (items: { path: string }[]) => setPicked(prev => ({ ...prev, ...Object.fromEntries(items.map(i => [i.path, true])) }));
 
   const modifiedChanges = changes.filter(i => !i.status.includes('added'));
   const unversionedChanges = changes.filter(i => i.status.includes('added'));
@@ -203,9 +209,12 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   type="checkbox"
                                   checked={checkAllModified}
                                   name="allModified"
-                                  onChange={() =>
-                                    setCheckAllModified(!checkAllModified)
-                                  }
+                                  onChange={() => {
+                                    if (checkAllModified) {
+                                      keepPicked(modifiedChanges);
+                                    }
+                                    setCheckAllModified(!checkAllModified);
+                                  }}
                                   indeterminate={!checkAllModified}
                                 />
                               </span>{' '}
@@ -224,10 +233,8 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   disabled={!item.editable || checkAllModified}
                                   className="space-right"
                                   type="checkbox"
-                                  {...(checkAllModified
-                                    ? { checked: true }
-                                    : {})}
-                                  defaultChecked={item.staged}
+                                  checked={checkAllModified || isPicked(item)}
+                                  onChange={event => pick(item.path, event.currentTarget.checked)}
                                   value={item.path}
                                   name="paths"
                                 />{' '}
@@ -310,9 +317,12 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   type="checkbox"
                                   name="allUnversioned"
                                   checked={checkAllUnversioned}
-                                  onChange={() =>
-                                    setCheckAllUnversioned(!checkAllUnversioned)
-                                  }
+                                  onChange={() => {
+                                    if (checkAllUnversioned) {
+                                      keepPicked(unversionedChanges);
+                                    }
+                                    setCheckAllUnversioned(!checkAllUnversioned);
+                                  }}
                                   indeterminate={!checkAllUnversioned}
                                 />
                               </span>{' '}
@@ -335,10 +345,8 @@ export const GitStagingModal: FC<ModalProps> = ({
                                   type="checkbox"
                                   value={item.path}
                                   name="paths"
-                                  {...(checkAllUnversioned
-                                    ? { checked: true }
-                                    : {})}
-                                  defaultChecked={item.staged}
+                                  checked={checkAllUnversioned || isPicked(item)}
+                                  onChange={event => pick(item.path, event.currentTarget.checked)}
                                 />{' '}
                                 {statusNames?.[item.path] || t('n/a')}
                               </label>

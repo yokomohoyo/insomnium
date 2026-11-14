@@ -2,6 +2,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { render } from '@testing-library/react';
 import React from 'react';
 
+import { Request } from '../../../../models/request';
 import { SidebarFilter } from '../../spec-editor/sidebar/sidebar-filter';
 import { UnitTestRequestSelector } from '../unit-test-request-selector';
 
@@ -9,6 +10,12 @@ describe('unlabelled controls', () => {
   it("names a unit test's request picker", () => {
     const view = render(<UnitTestRequestSelector onSetActiveRequest={jest.fn()} selectableRequests={[]} />);
     expect(view.getByRole('combobox', { name: 'Request' })).toBeTruthy();
+  });
+
+  it('lists a nameless request by its URL', () => {
+    const requests = [{ _id: 'req_1', name: '', url: 'http://localhost:4010/pets' }] as Request[];
+    const view = render(<UnitTestRequestSelector onSetActiveRequest={jest.fn()} selectableRequests={requests} />);
+    expect(view.getByRole('option', { name: 'http://localhost:4010/pets' })).toBeTruthy();
   });
 
   it("names the Design outline's filter", () => {
