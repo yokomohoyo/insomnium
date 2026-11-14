@@ -11,9 +11,7 @@ import * as models from '../../../models';
 import { resultName } from '../../../network/run-files';
 import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, runRequests } from '../../../network/runner';
-import { findWorkspaceForRequest, foreignEnvironment } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { findWorkspaceForRequest, foreignEnvironment, text } from './util';
 
 // Whole-collection tools: folders, cookies, import and export, and the runner
 export function registerCollectionTools(server: McpServer) {

@@ -9,9 +9,7 @@ import { ASSERTION_OPERATORS, ASSERTION_SOURCES, type AssertionOperator, type As
 import * as models from '../../../models';
 import type { UnitTest } from '../../../models/unit-test';
 import { isDesign } from '../../../models/workspace';
-import { foreignEnvironment, redactSecrets } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { foreignEnvironment, redactSecrets, text } from './util';
 
 const notFound = (what: string) => text({ error: `${what} not found` }, true);
 

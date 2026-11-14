@@ -6,9 +6,7 @@ import * as models from '../../../models';
 import type { RequestHeader } from '../../../models/request';
 import { argsOf } from '../../../ui/components/mcp/arguments';
 import type { McpCallOptions, McpConnectOptions, McpServerSummary } from '../../network/mcp-client';
-import { assertSafeRequestUrl, findWorkspaceForRequest } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { assertSafeRequestUrl, findWorkspaceForRequest, json } from './util';
 
 // what the app's MCP client (main/network/mcp-client.ts) offers the tools, and
 // the question asked before a request's command runs
@@ -35,18 +33,18 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
     async ({ requestId }, { signal }) => {
       const request = await models.mcpRequest.getById(requestId);
       if (!request) {
-        return text({ error: 'MCP request not found' }, true);
+        return json({ error: 'MCP request not found' }, true);
       }
       const workspace = await findWorkspaceForRequest(request.parentId);
       if (!workspace) {
-        return text({ error: "the request's workspace was not found" }, true);
+        return json({ error: "the request's workspace was not found" }, true);
       }
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspace._id);
       const environmentId = meta.activeEnvironmentId || (await models.environment.getOrCreateForParentId(workspace._id))._id;
       // a command's template tags would run (send requests, read secrets)
       // before the user is asked about it: an MCP client gets variables only
       if (request.transport === 'stdio' && /{%/.test([request.command, request.args].join(' '))) {
-        return text({ error: 'its command has template tags, which an MCP client can\'t run: connect it in the app' }, true);
+        return json({ error: 'its command has template tags, which an MCP client can\'t run: connect it in the app' }, true);
       }
       let options: McpConnectOptions;
       try {
@@ -64,18 +62,18 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
           assertSafeRequestUrl(rendered.url);
         }
       } catch (err) {
-        return text({ error: errorText(err) }, true);
+        return json({ error: errorText(err) }, true);
       }
       if (request.transport === 'stdio') {
         const allowed = await mcp.confirmCommand({ request: request.name, command: options.command || '', args: options.args || [] }, signal);
         console.log(`[mcp] connect_mcp_server ${requestId}: the user ${allowed === true ? 'allowed' : 'declined'} its command`);
         if (allowed !== true) {
-          return text({ error: 'the user declined to run the command' }, true);
+          return json({ error: 'the user declined to run the command' }, true);
         }
       }
       try {
         const summary = await mcp.connect(options);
-        return text({
+        return json({
           ok: true,
           name: summary.name,
           version: summary.version,
@@ -86,7 +84,7 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
           resources: summary.resources.map(resource => ({ uri: resource.uri, name: resource.name, description: resource.description })),
         });
       } catch (err) {
-        return text({ error: errorText(err) }, true);
+        return json({ error: errorText(err) }, true);
       }
     },
   );
@@ -103,17 +101,17 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
     },
     async ({ requestId, kind, name, uri, args }) => {
       if (!mcp.isConnected({ requestId })) {
-        return text({ error: 'not connected: connect_mcp_server first' }, true);
+        return json({ error: 'not connected: connect_mcp_server first' }, true);
       }
       let options: McpCallOptions;
       if (kind === 'resource') {
         if (!uri) {
-          return text({ error: 'a resource needs its uri' }, true);
+          return json({ error: 'a resource needs its uri' }, true);
         }
         options = { requestId, kind, uri };
       } else {
         if (!name) {
-          return text({ error: `a ${kind} needs its name` }, true);
+          return json({ error: `a ${kind} needs its name` }, true);
         }
         options = kind === 'tool'
           ? { requestId, kind, name, args }
@@ -121,9 +119,9 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
       }
       try {
         const result = await mcp.call(options) as { isError?: boolean };
-        return text(result, result?.isError === true);
+        return json(result, result?.isError === true);
       } catch (err) {
-        return text({ error: errorText(err) }, true);
+        return json({ error: errorText(err) }, true);
       }
     },
   );
@@ -135,7 +133,7 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
     async ({ requestId }) => {
       const wasConnected = mcp.isConnected({ requestId });
       await mcp.disconnect({ requestId });
-      return text({ ok: true, wasConnected });
+      return json({ ok: true, wasConnected });
     },
   );
 }

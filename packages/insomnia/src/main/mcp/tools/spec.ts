@@ -7,8 +7,7 @@ import { syncSpecToWorkspace } from '../../../common/spec-sync';
 import { spectralRulesetFor } from '../../../common/spectral-ruleset-path';
 import * as models from '../../../models';
 import { isDesign } from '../../../models/workspace';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { text } from './util';
 
 const SEVERITIES = ['error', 'warning', 'info', 'hint'] as const;
 

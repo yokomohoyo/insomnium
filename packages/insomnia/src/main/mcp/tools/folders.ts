@@ -2,9 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import * as models from '../../../models';
-import { findWorkspaceForRequest } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { findWorkspaceForRequest, text } from './util';
 
 // whether id is folderId or one of the folders inside it
 async function isWithin(id: string, folderId: string) {

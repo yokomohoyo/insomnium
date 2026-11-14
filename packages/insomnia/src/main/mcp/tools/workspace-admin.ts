@@ -6,8 +6,7 @@ import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
 import type { Workspace } from '../../../models/workspace';
 import { isDesign } from '../../../models/workspace';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { text } from './util';
 
 const summary = ({ _id, name, scope, parentId }: Workspace) => ({ id: _id, name, scope, parentId });
 

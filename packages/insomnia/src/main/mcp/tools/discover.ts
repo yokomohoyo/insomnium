@@ -6,9 +6,7 @@ import { exportHarWithRequest } from '../../../common/har';
 import type { BaseModel } from '../../../models';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
-import { findWorkspaceForRequest, foreignEnvironment, requestTypeLabel } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { findWorkspaceForRequest, foreignEnvironment, json, requestTypeLabel } from './util';
 
 const REQUEST_TYPES = [models.request.type, models.grpcRequest.type, models.webSocketRequest.type, models.mcpRequest.type];
 
@@ -30,7 +28,7 @@ export function registerDiscoveryTools(server: McpServer) {
         ? [await models.workspace.getById(workspaceId)].filter(Boolean)
         : await models.workspace.all();
       if (workspaceId && !workspaces.length) {
-        return text({ error: 'workspace not found' }, true);
+        return json({ error: 'workspace not found' }, true);
       }
       // every workspace's folders and environments, to say where each result is
       const folders: Named[] = [];
@@ -62,7 +60,7 @@ export function registerDiscoveryTools(server: McpServer) {
         : doc.type === models.environment.type ? 'environment'
         : 'request';
       const found = [...requests, ...folders, ...workspaces as Named[], ...environments].filter(matches);
-      return text({
+      return json({
         total: found.length,
         results: found.slice(0, limit).map(doc => ({
           id: doc._id,
@@ -87,23 +85,23 @@ export function registerDiscoveryTools(server: McpServer) {
     async ({ requestId, target, client, environmentId }) => {
       const request = await models.request.getById(requestId);
       if (!request || !isRequest(request)) {
-        return text({ error: 'HTTP request not found' }, true);
+        return json({ error: 'HTTP request not found' }, true);
       }
       const { HTTPSnippet, availableTargets } = await import('httpsnippet');
       const targets = availableTargets();
       const choices = targets.map(({ key, clients }) => ({ target: key, clients: clients.map(({ key: clientKey }) => clientKey) }));
       const chosenTarget = targets.find(({ key }) => key === target);
       if (!chosenTarget) {
-        return text({ error: `no target '${target}'`, targets: choices }, true);
+        return json({ error: `no target '${target}'`, targets: choices }, true);
       }
       const chosenClient = client ? chosenTarget.clients.find(({ key }) => key === client) : chosenTarget.clients.find(({ key }) => key === chosenTarget.default) || chosenTarget.clients[0];
       if (!chosenClient) {
-        return text({ error: `no client '${client}' for ${target}`, clients: choices.find(choice => choice.target === target)?.clients }, true);
+        return json({ error: `no client '${client}' for ${target}`, clients: choices.find(choice => choice.target === target)?.clients }, true);
       }
       const workspace = await findWorkspaceForRequest(request.parentId);
       const foreign = await foreignEnvironment(workspace?._id, environmentId);
       if (foreign) {
-        return text({ error: foreign }, true);
+        return json({ error: foreign }, true);
       }
       let envId = environmentId;
       if (envId === undefined) {
@@ -113,16 +111,16 @@ export function registerDiscoveryTools(server: McpServer) {
       try {
         har = await exportHarWithRequest(request, envId);
       } catch (err) {
-        return text({ error: (err as Error).message }, true);
+        return json({ error: (err as Error).message }, true);
       }
       if (!har) {
-        return text({ error: 'the request could not be rendered' }, true);
+        return json({ error: 'the request could not be rendered' }, true);
       }
       const code = new HTTPSnippet(har as any).convert(chosenTarget.key, chosenClient.key);
       if (code === false) {
-        return text({ error: `httpsnippet could not write ${chosenTarget.key} ${chosenClient.key} for this request` }, true);
+        return json({ error: `httpsnippet could not write ${chosenTarget.key} ${chosenClient.key} for this request` }, true);
       }
-      return text({ target: chosenTarget.key, client: chosenClient.key, code: Array.isArray(code) ? code.join('\n') : code });
+      return json({ target: chosenTarget.key, client: chosenClient.key, code: Array.isArray(code) ? code.join('\n') : code });
     },
   );
 }

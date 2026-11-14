@@ -12,7 +12,7 @@ import { getMethodType, getSelectedMethod } from '../../ipc/grpc';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../../network/grpc-credentials';
 import { type GrpcMetadata, plainMetadata } from '../../network/grpc-metadata';
 import { makeGrpcClient } from '../../network/proxy';
-import { assertSafeHeaders, findWorkspaceForRequest, foreignEnvironment } from './util';
+import { assertSafeHeaders, compact, fail, findWorkspaceForRequest, foreignEnvironment, json, notFound } from './util';
 
 export function registerGrpcTools(server: McpServer) {
   server.tool(
@@ -35,10 +35,7 @@ export function registerGrpcTools(server: McpServer) {
         return await sendGrpcInner(args);
       } catch (err) {
         // Don't return err.stack - it leaks absolute paths (username/install layout).
-        return {
-          content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message || String(err) }) }],
-          isError: true,
-        };
+        return fail((err as Error).message || String(err));
       }
     },
   );
@@ -58,10 +55,10 @@ export function registerGrpcTools(server: McpServer) {
     async ({ requestId, metadata }) => {
       const req = await models.grpcRequest.getById(requestId);
       if (!req || !isGrpcRequest(req)) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'gRPC request not found' }) }], isError: true };
+        return notFound('gRPC request');
       }
       await models.grpcRequest.update(req, { metadata });
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, requestId, entries: metadata.length }) }] };
+      return compact({ ok: true, requestId, entries: metadata.length });
     },
   );
 }
@@ -138,13 +135,13 @@ function settleWithBackstop(
 async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeoutMs, maxResponses, messages }: SendGrpcArgs): Promise<any> {
   const req = await models.grpcRequest.getById(requestId);
   if (!req || !isGrpcRequest(req)) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: 'gRPC request not found' }) }], isError: true };
+    return notFound('gRPC request');
   }
   // WorkspaceMeta is keyed by workspace id; a folder id would mint a junk meta doc.
   const workspace = await findWorkspaceForRequest(req.parentId);
   const foreign = await foreignEnvironment(workspace?._id, environmentId);
   if (foreign) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: foreign }) }], isError: true };
+    return fail(foreign);
   }
   let envId: string | null | undefined = environmentId;
   if (envId === undefined) {
@@ -163,7 +160,7 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   }
   const { url, enableTls } = parseGrpcUrl(rendered.url);
   if (!url) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: 'URL not specified' }) }], isError: true };
+    return fail('URL not specified');
   }
 
   // before the method lookup, which can connect for reflection
@@ -171,11 +168,11 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
     checkRequestPolicy(`${enableTls ? 'https' : 'http'}://${url}`);
     assertGrpcAuthSupported((rendered as any).authentication);
   } catch (err) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+    return fail((err as Error).message);
   }
   const method = await getSelectedMethod(rendered as any);
   if (!method) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `method ${rendered.protoMethodName} not found - set protoFileId on the request, or ensure server reflection is enabled` }) }], isError: true };
+    return fail(`method ${rendered.protoMethodName} not found - set protoFileId on the request, or ensure server reflection is enabled`);
   }
   const methodType = getMethodType(method);
   // gRPC has no HTTP method/body: only header-emitting strategies work here;
@@ -198,7 +195,7 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
 
   const needsClientMessages = methodType === 'client' || methodType === 'bidi';
   if (needsClientMessages && (!messages || messages.length === 0)) {
-    return { content: [{ type: 'text', text: JSON.stringify({ error: `method ${method.path} is ${methodType}-streaming; provide \`messages\` array` }) }], isError: true };
+    return fail(`method ${method.path} is ${methodType}-streaming; provide \`messages\` array`);
   }
 
   let firstBody: any = undefined;
@@ -206,7 +203,7 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
     try {
       firstBody = JSON.parse(rendered.body.text || '{}');
     } catch (err) {
-      return { content: [{ type: 'text', text: JSON.stringify({ error: `invalid JSON body: ${(err as Error).message}` }) }], isError: true };
+      return fail(`invalid JSON body: ${(err as Error).message}`);
     }
   }
 
@@ -326,25 +323,23 @@ async function sendGrpcInner({ requestId, environmentId, protoMethodName, timeou
   }
 
   const elapsedMs = Date.now() - started;
+  // isError is always there, false too, as it was before the helpers
   return {
-    content: [{
-      type: 'text',
-      text: JSON.stringify({
-        ok: result.ok,
-        methodType,
-        method: method.path,
-        url,
-        tls: enableTls,
-        elapsedMs,
-        response: result.response,
-        responses: result.responses,
-        responseCount: result.responses?.length,
-        truncated: result.status?.truncated || false,
-        error: result.error,
-        headers: result.headers,
-        trailers: result.trailers,
-      }, null, 2),
-    }],
+    ...json({
+      ok: result.ok,
+      methodType,
+      method: method.path,
+      url,
+      tls: enableTls,
+      elapsedMs,
+      response: result.response,
+      responses: result.responses,
+      responseCount: result.responses?.length,
+      truncated: result.status?.truncated || false,
+      error: result.error,
+      headers: result.headers,
+      trailers: result.trailers,
+    }),
     isError: !result.ok,
   };
 }

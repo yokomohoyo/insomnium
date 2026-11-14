@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { setEnvironmentData } from '../../../common/environment-secrets';
 import * as models from '../../../models';
+import { compact, fail, notFound } from './util';
 
 export function registerEnvironmentMutationTools(server: McpServer) {
   server.tool(
@@ -16,7 +17,7 @@ export function registerEnvironmentMutationTools(server: McpServer) {
     async ({ workspaceId, name, data }) => {
       const base = await models.environment.getOrCreateForParentId(workspaceId);
       const env = await models.environment.create({ parentId: base._id, name, data: data || {} });
-      return { content: [{ type: 'text', text: JSON.stringify({ id: env._id, name: env.name }) }] };
+      return compact({ id: env._id, name: env.name });
     },
   );
 
@@ -31,7 +32,7 @@ export function registerEnvironmentMutationTools(server: McpServer) {
     async ({ environmentId, name, data }) => {
       const env = await models.environment.getById(environmentId);
       if (!env) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       const patch: any = {};
       if (typeof name === 'string') patch.name = name;
@@ -45,7 +46,7 @@ export function registerEnvironmentMutationTools(server: McpServer) {
       } else {
         await models.environment.update(env, patch);
       }
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, environmentId }) }] };
+      return compact({ ok: true, environmentId });
     },
   );
 
@@ -56,15 +57,15 @@ export function registerEnvironmentMutationTools(server: McpServer) {
     async ({ environmentId }) => {
       const env = await models.environment.getById(environmentId);
       if (!env) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       const parent = await models.environment.getById(env.parentId);
       // Base envs have a workspace parent (not an env), so getById returns null.
       if (!parent) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'cannot delete base environment' }) }], isError: true };
+        return fail('cannot delete base environment');
       }
       await models.environment.remove(env);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, environmentId }) }] };
+      return compact({ ok: true, environmentId });
     },
   );
 }

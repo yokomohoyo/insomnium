@@ -8,6 +8,7 @@ import * as models from '../../../models';
 import { addDirectoryFromPath, addFileFromPath, setProtoValidator } from '../../../network/grpc/proto-loader';
 import { loadMethods } from '../../ipc/grpc';
 import { validateProto } from '../../proto-worker';
+import { fail, json, notFound } from './util';
 
 // addFileFromPath and addDirectoryFromPath validate through IPC in the renderer
 setProtoValidator(validateProto);
@@ -33,16 +34,7 @@ export function registerProtoTools(server: McpServer) {
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
       const filtered = await database.findDescendants(workspaceId, [models.protoFile.type]);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(
-            filtered.map(p => ({ id: p._id, name: p.name, parentId: p.parentId })),
-            null,
-            2,
-          ),
-        }],
-      };
+      return json(filtered.map(p => ({ id: p._id, name: p.name, parentId: p.parentId })));
     },
   );
 
@@ -53,18 +45,9 @@ export function registerProtoTools(server: McpServer) {
     async ({ protoFileId }) => {
       try {
         const methods = await loadMethods(protoFileId);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(
-              methods.map(m => ({ fullPath: m.fullPath, type: m.type, example: m.example })),
-              null,
-              2,
-            ),
-          }],
-        };
+        return json(methods.map(m => ({ fullPath: m.fullPath, type: m.type, example: m.example })));
       } catch (err) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+        return fail((err as Error).message);
       }
     },
   );
@@ -79,26 +62,21 @@ export function registerProtoTools(server: McpServer) {
     async ({ workspaceId, directoryPath }) => {
       const workspace = await models.workspace.getById(workspaceId);
       if (!workspace) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'workspace not found' }) }], isError: true };
+        return notFound('workspace');
       }
       try {
         assertSafeProtoPath(directoryPath, false);
       } catch (err) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+        return fail((err as Error).message);
       }
       const result = await addDirectoryFromPath(directoryPath, workspace);
       const loaded = result.success ? result.loaded : [];
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: result.success,
-            loadedCount: loaded.length,
-            loaded: loaded.map(f => ({ id: f._id, name: f.name, parentId: f.parentId })),
-            errors: result.errors,
-          }, null, 2),
-        }],
-      };
+      return json({
+        success: result.success,
+        loadedCount: loaded.length,
+        loaded: loaded.map(f => ({ id: f._id, name: f.name, parentId: f.parentId })),
+        errors: result.errors,
+      });
     },
   );
 
@@ -112,24 +90,19 @@ export function registerProtoTools(server: McpServer) {
     async ({ workspaceId, filePath }) => {
       const workspace = await models.workspace.getById(workspaceId);
       if (!workspace) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'workspace not found' }) }], isError: true };
+        return notFound('workspace');
       }
       try {
         assertSafeProtoPath(filePath, true);
       } catch (err) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+        return fail((err as Error).message);
       }
       const result = await addFileFromPath(filePath, workspace);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            success: result.success,
-            loaded: result.success ? result.loaded.map(f => ({ id: f._id, name: f.name })) : [],
-            errors: result.errors,
-          }, null, 2),
-        }],
-      };
+      return json({
+        success: result.success,
+        loaded: result.success ? result.loaded.map(f => ({ id: f._id, name: f.name })) : [],
+        errors: result.errors,
+      });
     },
   );
 }

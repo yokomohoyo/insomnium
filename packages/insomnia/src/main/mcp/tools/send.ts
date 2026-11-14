@@ -6,7 +6,7 @@ import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import * as networkUtils from '../../../network/network';
 import { runPreRequestScript } from '../../../scripting/request-scripts';
-import { assertSafeRequestUrl, findWorkspaceForRequest, foreignEnvironment, maskValues, redactUrl, secretValuesOf } from './util';
+import { assertSafeRequestUrl, fail, findWorkspaceForRequest, foreignEnvironment, json, maskValues, notFound, redactUrl, secretValuesOf } from './util';
 
 export function registerSendTool(server: McpServer) {
   server.tool(
@@ -19,12 +19,12 @@ export function registerSendTool(server: McpServer) {
     async ({ requestId, environmentId }) => {
       const req = await models.request.getById(requestId);
       if (!req || !isRequest(req)) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'HTTP request not found' }) }], isError: true };
+        return notFound('HTTP request');
       }
       const workspace = await findWorkspaceForRequest(req.parentId);
       const foreign = await foreignEnvironment(workspace?._id, environmentId);
       if (foreign) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: foreign }) }], isError: true };
+        return fail(foreign);
       }
       let envId: string | null | undefined = environmentId;
       if (envId === undefined && workspace) {
@@ -37,7 +37,7 @@ export function registerSendTool(server: McpServer) {
       try {
         scripted = await runPreRequestScript(req, { environmentId: envId || null });
       } catch (err) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+        return fail((err as Error).message);
       }
       const { request: rendered, context } = await getRenderedRequestAndContext({
         request: scripted.request,
@@ -51,7 +51,7 @@ export function registerSendTool(server: McpServer) {
         const { finalUrl } = networkUtils.transformUrl(rendered.url, rendered.parameters, rendered.segmentParams, rendered.authentication, rendered.settingEncodeUrl);
         assertSafeRequestUrl(finalUrl);
       } catch (err) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: (err as Error).message }) }], isError: true };
+        return fail((err as Error).message);
       }
       // No redirects: the SSRF guard only checks the initial url, so libcurl
       // following a 30x to a metadata host would bypass it.
@@ -73,28 +73,23 @@ export function registerSendTool(server: McpServer) {
       // what a script logged can hold the request's credentials, and the URL a query string's
       const secrets = secretValuesOf(rendered);
       const masked = (text: string) => maskValues(text, secrets);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            responseId: stored._id,
-            statusCode: stored.statusCode,
-            statusMessage: stored.statusMessage,
-            elapsedTime: stored.elapsedTime,
-            ...(stored.timings ? { timings: stored.timings } : {}),
-            url: stored.url && masked(redactUrl(stored.url)),
-            error: stored.error,
-            ...(results ? {
-              assertions: {
-                passed: results.filter(result => result.passed).length,
-                failed: results.filter(result => !result.passed).length,
-                results: results.map(({ passed, message }) => ({ passed, message })),
-              },
-            } : {}),
-            ...(checked.scriptLogs ? { scriptLogs: checked.scriptLogs.map(log => ({ ...log, message: masked(log.message) })) } : {}),
-          }, null, 2),
-        }],
-      };
+      return json({
+        responseId: stored._id,
+        statusCode: stored.statusCode,
+        statusMessage: stored.statusMessage,
+        elapsedTime: stored.elapsedTime,
+        ...(stored.timings ? { timings: stored.timings } : {}),
+        url: stored.url && masked(redactUrl(stored.url)),
+        error: stored.error,
+        ...(results ? {
+          assertions: {
+            passed: results.filter(result => result.passed).length,
+            failed: results.filter(result => !result.passed).length,
+            results: results.map(({ passed, message }) => ({ passed, message })),
+          },
+        } : {}),
+        ...(checked.scriptLogs ? { scriptLogs: checked.scriptLogs.map(log => ({ ...log, message: masked(log.message) })) } : {}),
+      });
     },
   );
 }

@@ -45,12 +45,9 @@ export const filterTools = (server: McpServer, include: (name: string) => boolea
     : Reflect.get(target, property, receiver),
 });
 
-// `include` limits the tools by name (the headless server's read and send
-// set); the tools only ever call server.tool
-export function registerTools(server: McpServer, include?: (name: string) => boolean) {
-  const target = include
-    ? { tool: (name: string, ...rest: unknown[]) => include(name) ? (server.tool as (...args: unknown[]) => unknown)(name, ...rest) : undefined } as unknown as McpServer
-    : server;
+// the tools only ever call server.tool, so filterTools can limit them by name
+// (the headless server's read and send set)
+export function registerTools(target: McpServer) {
   registerWorkspaceTools(target);
   registerEnvironmentTools(target);
   registerRequestTools(target);

@@ -7,9 +7,7 @@ import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { GitConflictsError } from '../../../sync/git/git-vcs';
 import { getGitChanges, type OpenedWorkspaceGit } from '../../../sync/git/workspace-git';
-import { redactUrl } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { json, redactUrl } from './util';
 
 // What the user is asked before a client commits, pulls or pushes: each
 // changes their history, or someone else's
@@ -43,18 +41,18 @@ const errorText = (err: unknown) => err instanceof Errors.HttpError
 // The app's only: the Git a workspace syncs with, opened apart from the
 // window's. Reading needs no answer; commit, pull and push ask the user.
 export function registerGitTools(server: McpServer, git: GitControls) {
-  const withRepo = (workspaceId: string, task: (opened: OpenedWorkspaceGit) => Promise<ReturnType<typeof text>>) =>
+  const withRepo = (workspaceId: string, task: (opened: OpenedWorkspaceGit) => Promise<ReturnType<typeof json>>) =>
     oneAtATime(workspaceId, async () => {
       let opened: OpenedWorkspaceGit;
       try {
         opened = await git.open(workspaceId);
       } catch (err) {
-        return text({ error: errorText(err) }, true);
+        return json({ error: errorText(err) }, true);
       }
       try {
         return await task(opened);
       } catch (err) {
-        return text({ error: errorText(err) }, true);
+        return json({ error: errorText(err) }, true);
       }
     });
 
@@ -79,7 +77,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     'git_status',
     "A Git-synced workspace's branch, its remote, and what has changed since the last commit: each changed document's name, type and status (added, modified, deleted).",
     { workspaceId: z.string() },
-    async ({ workspaceId }) => withRepo(workspaceId, async opened => text({
+    async ({ workspaceId }) => withRepo(workspaceId, async opened => json({
       branch: await opened.vcs.getBranch(),
       // without a user name or token a URL may hold
       remote: opened.gitRepository.uri ? redactUrl(opened.gitRepository.uri) : null,
@@ -91,7 +89,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     'git_log',
     "A Git-synced workspace's latest commits on its branch: id, message, author and time.",
     { workspaceId: z.string(), depth: z.number().int().min(1).max(100).default(20) },
-    async ({ workspaceId, depth }) => withRepo(workspaceId, async ({ vcs }) => text((await vcs.log({ depth })).map(entry => ({
+    async ({ workspaceId, depth }) => withRepo(workspaceId, async ({ vcs }) => json((await vcs.log({ depth })).map(entry => ({
       oid: entry.oid,
       message: entry.commit.message.trim(),
       author: entry.commit.author.name,
@@ -107,25 +105,25 @@ export function registerGitTools(server: McpServer, git: GitControls) {
       const { changes } = await getGitChanges(opened.vcs, opened.workspace);
       const chosen = paths ? changes.filter(change => paths.includes(change.path)) : changes;
       if (!chosen.length) {
-        return text({ error: paths ? 'none of those paths have changes' : 'there is nothing to commit' }, true);
+        return json({ error: paths ? 'none of those paths have changes' : 'there is nothing to commit' }, true);
       }
       const names = (await changesOf(opened)).filter(change => chosen.some(item => item.path === change.path));
       // the client's words, on one line, so they can't pass for the app's
       const shown = message.replace(/\s+/g, ' ').slice(0, 200);
       if (!await ask(opened, 'commit', [`Message: "${shown}${message.length > 200 ? '…' : ''}"`, '', ...names.slice(0, 10).map(change => `${change.status}: ${change.name} (${change.type})`), ...(names.length > 10 ? [`and ${names.length - 10} more`] : [])], signal)) {
-        return text({ error: 'the user declined the commit' }, true);
+        return json({ error: 'the user declined the commit' }, true);
       }
       // what was asked about, and nothing that changed while the user decided
       const now = (await getGitChanges(opened.vcs, opened.workspace)).changes;
       const same = (change: { path: string; status: string }) => now.some(item => item.path === change.path && item.status === change.status);
       if (!chosen.every(same)) {
-        return text({ error: 'the changes moved while the user was asked: call git_commit again' }, true);
+        return json({ error: 'the changes moved while the user was asked: call git_commit again' }, true);
       }
       for (const change of chosen) {
         change.status.includes('deleted') ? await opened.vcs.remove(change.path) : await opened.vcs.add(change.path);
       }
       const oid = await opened.vcs.commit(message);
-      return text({ ok: true, oid, committed: chosen.length });
+      return json({ ok: true, oid, committed: chosen.length });
     }),
   );
 
@@ -135,17 +133,17 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     { workspaceId: z.string(), rebase: z.boolean().default(false) },
     async ({ workspaceId, rebase }, { signal }) => withRepo(workspaceId, async opened => {
       if (!opened.gitRepository.uri) {
-        return text({ error: 'the repository has no remote' }, true);
+        return json({ error: 'the repository has no remote' }, true);
       }
       if (!await ask(opened, 'pull', [`${rebase ? 'Rebase onto' : 'Merge in'} what the remote has, changing this computer's copy of "${opened.workspace.name}".`], signal)) {
-        return text({ error: 'the user declined the pull' }, true);
+        return json({ error: 'the user declined the pull' }, true);
       }
       const bufferId = await database.bufferChanges();
       try {
         await opened.vcs.pull(opened.gitRepository.credentials, {}, rebase);
       } catch (err) {
         if (err instanceof GitConflictsError) {
-          return text({ error: err.message, conflicts: err.conflicts.map(conflict => ({ name: conflict.name, file: conflict.file })) }, true);
+          return json({ error: err.message, conflicts: err.conflicts.map(conflict => ({ name: conflict.name, file: conflict.file })) }, true);
         }
         throw err;
       } finally {
@@ -156,7 +154,7 @@ export function registerGitTools(server: McpServer, git: GitControls) {
       if (meta && latest) {
         await models.workspaceMeta.update(meta, { cachedGitLastCommitTime: latest.commit.author.timestamp * 1000, cachedGitLastAuthor: latest.commit.author.name });
       }
-      return text({ ok: true, head: latest?.oid });
+      return json({ ok: true, head: latest?.oid });
     }),
   );
 
@@ -166,24 +164,24 @@ export function registerGitTools(server: McpServer, git: GitControls) {
     { workspaceId: z.string() },
     async ({ workspaceId }, { signal }) => withRepo(workspaceId, async opened => {
       if (!opened.gitRepository.uri) {
-        return text({ error: 'the repository has no remote' }, true);
+        return json({ error: 'the repository has no remote' }, true);
       }
       if (!await opened.vcs.canPush(opened.gitRepository.credentials)) {
-        return text({ error: 'nothing to push' }, true);
+        return json({ error: 'nothing to push' }, true);
       }
       const [latest] = await opened.vcs.log({ depth: 1 });
       if (!await ask(opened, 'push', [`Send this branch's commits to ${opened.gitRepository.uri}.`, ...(latest ? ['', `Latest: ${latest.commit.message.trim().split('\n')[0]}`] : [])], signal)) {
-        return text({ error: 'the user declined the push' }, true);
+        return json({ error: 'the user declined the push' }, true);
       }
       try {
         await opened.vcs.push(opened.gitRepository.credentials);
       } catch (err) {
         if (err instanceof Errors.PushRejectedError) {
-          return text({ error: `the remote has commits this branch doesn't have: pull first (${err.message})` }, true);
+          return json({ error: `the remote has commits this branch doesn't have: pull first (${err.message})` }, true);
         }
         throw err;
       }
-      return text({ ok: true });
+      return json({ ok: true });
     }),
   );
 }
