@@ -145,7 +145,7 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
                       <select
                         defaultValue={request.settingFollowRedirects}
                         name="settingFollowRedirects"
-                        onChange={toggleCheckBox}
+                        onChange={event => patchRequest(request._id, { settingFollowRedirects: event.currentTarget.value as WebSocketRequest['settingFollowRedirects'] })}
                       >
                         <option value={'global'}>{t('Use global setting')}</option>
                         <option value={'off'}>{t("Don't follow redirects")}</option>

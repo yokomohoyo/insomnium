@@ -512,7 +512,10 @@ export function createMenu() {
       },
       {
         label: label('R&estart'),
-        click: window?.main.restart,
+        click: () => {
+          app.relaunch();
+          app.exit();
+        },
       },
       {
         label: label('Set window for &FHD Screenshot'),

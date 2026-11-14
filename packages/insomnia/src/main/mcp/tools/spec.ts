@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { parseApiSpec } from '../../../common/api-specs';
-import { ResourceCache, scanResources } from '../../../common/import';
+import { scanResources } from '../../../common/import';
 import { syncSpecToWorkspace } from '../../../common/spec-sync';
 import { spectralRulesetFor } from '../../../common/spectral-ruleset-path';
 import * as models from '../../../models';
@@ -75,10 +75,10 @@ export function registerSpecTools(server: McpServer) {
         return text({ error: `the spec has ${linted.errors} lint error(s): fix them first`, problems: linted.problems.filter(problem => problem.severity === 'error') }, true);
       }
       const scanned = await scanResources({ content: contents });
-      if (scanned.errors.length || !ResourceCache) {
+      if (scanned.errors.length || !scanned.resources) {
         return text({ error: scanned.errors[0] || 'no requests found in the spec' }, true);
       }
-      const { added, updated, unchanged, notInSpec } = await syncSpecToWorkspace({ workspaceId, resources: ResourceCache.resources });
+      const { added, updated, unchanged, notInSpec } = await syncSpecToWorkspace({ workspaceId, resources: scanned.resources });
       const brief = ({ _id, name, method, url }: { _id: string; name: string; method: string; url: string }) => ({ id: _id, name, method, url });
       return text({ ok: true, added: added.map(brief), updated: updated.map(brief), unchanged: unchanged.length, notInSpec: notInSpec.map(brief) });
     },
