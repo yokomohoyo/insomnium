@@ -1,4 +1,5 @@
 import { database as db } from '../common/database';
+import { duplicateAfter } from './helpers/duplicate-after';
 import type { BaseModel } from './index';
 import type { RequestAuthenticationStrategy, RequestHeader } from './request';
 
@@ -78,30 +79,7 @@ export async function duplicate(requestGroup: RequestGroup, patch: Partial<Reque
   if (!patch.name) {
     patch.name = `${requestGroup.name} (Copy)`;
   }
-
-  // Get sort key of next request
-  const q = {
-    metaSortKey: {
-      $gt: requestGroup.metaSortKey,
-    },
-  };
-
-  // @ts-expect-error -- TSCONVERSION appears to be a genuine error
-  const [nextRequestGroup] = await db.find<RequestGroup>(type, q, {
-    metaSortKey: 1,
-  });
-
-  const nextSortKey = nextRequestGroup
-    ? nextRequestGroup.metaSortKey
-    : requestGroup.metaSortKey + 100;
-
-  // Calculate new sort key
-  const sortKeyIncrement = (nextSortKey - requestGroup.metaSortKey) / 2;
-  const metaSortKey = requestGroup.metaSortKey + sortKeyIncrement;
-  return db.duplicate<RequestGroup>(requestGroup, {
-    metaSortKey,
-    ...patch,
-  });
+  return duplicateAfter(type, requestGroup, patch);
 }
 
 export const isRequestGroupId = (id: string) => id.startsWith(prefix);

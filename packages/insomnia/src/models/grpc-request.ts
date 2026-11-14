@@ -1,4 +1,5 @@
 import { database as db } from '../common/database';
+import { duplicateAfter } from './helpers/duplicate-after';
 import type { BaseModel } from './index';
 import type { RequestAuthentication } from './request';
 
@@ -98,7 +99,6 @@ export function findByParentId(parentId: string) {
   return db.find<GrpcRequest>(type, { parentId });
 }
 
-// This is duplicated (lol) from models/request.js
 export async function duplicate(request: GrpcRequest, patch: Partial<GrpcRequest> = {}) {
   // Only set name and "(Copy)" if the patch does
   // not define it and the request itself has a name.
@@ -107,27 +107,7 @@ export async function duplicate(request: GrpcRequest, patch: Partial<GrpcRequest
   if (!patch.name && request.name) {
     patch.name = `${request.name} (Copy)`;
   }
-
-  // Get sort key of next request
-  const q = {
-    metaSortKey: {
-      $gt: request.metaSortKey,
-    },
-  };
-  // @ts-expect-error -- TSCONVERSION
-  const [nextRequest] = await db.find<GrpcRequest>(type, q, {
-    metaSortKey: 1,
-  });
-  const nextSortKey = nextRequest ? nextRequest.metaSortKey : request.metaSortKey + 100;
-  // Calculate new sort key
-  const sortKeyIncrement = (nextSortKey - request.metaSortKey) / 2;
-  const metaSortKey = request.metaSortKey + sortKeyIncrement;
-  // Inherit the original name (incl. '' for unnamed) instead of the module
-  // display-name constant ('GrpcRequest').
-  return db.duplicate<GrpcRequest>(request, {
-    metaSortKey,
-    ...patch,
-  });
+  return duplicateAfter(type, request, patch);
 }
 
 export function all() {
