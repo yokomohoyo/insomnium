@@ -14,6 +14,7 @@ import { DEFAULT_PROJECT_ID } from '../../models/project';
 import {
   WorkspaceScopeKeys,
 } from '../../models/workspace';
+import type { WorkspaceMeta } from '../../models/workspace-meta';
 import { fsClient } from '../../sync/git/fs-client';
 import { gitRollback } from '../../sync/git/git-rollback';
 import GitVCS, {
@@ -39,6 +40,82 @@ import {
 import { type GitChange, getGitChanges } from '../../sync/git/workspace-git';
 import { guard } from '../../utils/guard';
 
+const requireWorkspace = async (workspaceId: string) => {
+  const workspace = await models.workspace.getById(workspaceId);
+  guard(workspace, 'Workspace not found');
+  return workspace;
+};
+
+// a workspace's repository and the meta that links it: throws without one
+const requireGitRepository = async (workspaceId: string) => {
+  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
+  guard(workspaceMeta?.gitRepositoryId, 'Workspace is not linked to a git repository');
+  const gitRepository = await models.gitRepository.getById(workspaceMeta.gitRepositoryId);
+  guard(gitRepository, 'Git Repository not found');
+  return { workspaceMeta, gitRepository };
+};
+
+const requireGitContext = async (workspaceId: string) => {
+  const workspace = await requireWorkspace(workspaceId);
+  return { workspace, ...(await requireGitRepository(workspaceId)) };
+};
+
+// for loaders that show it: a workspace without a repository is an error returned, not thrown
+const gitRepositoryOrErrors = async (
+  workspaceId: string
+): Promise<{ gitRepository: GitRepository } | { errors: string[] }> => {
+  await requireWorkspace(workspaceId);
+  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
+  guard(workspaceMeta, 'Workspace meta not found');
+  if (!workspaceMeta.gitRepositoryId) {
+    return {
+      errors: ['Workspace is not linked to a git repository'],
+    };
+  }
+
+  const gitRepository = await models.gitRepository.getById(
+    workspaceMeta.gitRepositoryId
+  );
+  guard(gitRepository, 'Git Repository not found');
+  return { gitRepository };
+};
+
+// an error's message, or for something thrown that isn't one the fallback, else its text
+const messageOf = (err: unknown, fallback?: string) => err instanceof Error ? err.message : fallback ?? String(err);
+
+// the same, with the remote's response for an HTTP error
+const remoteMessageOf = (err: unknown, fallback?: string) =>
+  err instanceof Errors.HttpError ? `${err.message}, ${err.data.response}` : messageOf(err, fallback);
+
+// what a merge that stopped returns: its conflicts to choose between, or its error
+const conflictsOr = (err: unknown, message: string) =>
+  err instanceof GitConflictsError ? { conflicts: err.conflicts } : { errors: [message] };
+
+// holds the database's changes back while fn runs, and sends them however it ends
+async function withBufferedChanges<T>(fn: () => Promise<T>): Promise<T> {
+  const bufferId = await database.bufferChanges();
+  try {
+    return await fn();
+  } finally {
+    // sent, not dropped: editors showing a doc git rewrote remount on it
+    await database.flushChanges(bufferId);
+  }
+}
+
+// caches the last commit's time and author on the workspace, with anything else in patch
+const cacheLastCommit = async (workspaceMeta: WorkspaceMeta, patch: Partial<WorkspaceMeta> = {}) => {
+  const log = (await GitVCS.log({ depth: 1 })) || [];
+
+  const author = log[0] ? log[0].commit.author : null;
+  const cachedGitLastCommitTime = author ? author.timestamp * 1000 : null;
+
+  await models.workspaceMeta.update(workspaceMeta, {
+    cachedGitLastCommitTime,
+    ...patch,
+    cachedGitLastAuthor: author?.name || null,
+  });
+};
+
 // Loaders
 export type GitRepoLoaderData =
   | {
@@ -58,20 +135,11 @@ export const gitRepoAction: ActionFunction = async ({
     guard(typeof workspaceId === 'string', 'Workspace Id is required');
     guard(typeof projectId === 'string', 'Project Id is required');
 
-    const workspace = await models.workspace.getById(workspaceId);
-    guard(workspace, 'Workspace not found');
-    const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-    guard(workspaceMeta, 'Workspace meta not found');
-    if (!workspaceMeta.gitRepositoryId) {
-      return {
-        errors: ['Workspace is not linked to a git repository'],
-      };
+    const linked = await gitRepositoryOrErrors(workspaceId);
+    if ('errors' in linked) {
+      return linked;
     }
-
-    const gitRepository = await models.gitRepository.getById(
-      workspaceMeta.gitRepositoryId
-    );
-    guard(gitRepository, 'Git Repository not found');
+    const { gitRepository } = linked;
 
     if (GitVCS.isInitializedForRepo(gitRepository._id)) {
       return {
@@ -145,10 +213,8 @@ export const gitRepoAction: ActionFunction = async ({
     };
   } catch (e) {
     console.error(e);
-    const errorMessage =
-      e instanceof Error ? e.message : 'Error while fetching git repository.';
     return {
-      errors: [errorMessage],
+      errors: [messageOf(e, 'Error while fetching git repository.')],
     };
   }
 };
@@ -171,20 +237,10 @@ export const gitBranchesLoader: LoaderFunction = async ({
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
   guard(typeof projectId === 'string', 'Project Id is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-  guard(workspaceMeta, 'Workspace meta not found');
-  if (!workspaceMeta.gitRepositoryId) {
-    return {
-      errors: ['Workspace is not linked to a git repository'],
-    };
+  const linked = await gitRepositoryOrErrors(workspaceId);
+  if ('errors' in linked) {
+    return linked;
   }
-
-  const gitRepository = await models.gitRepository.getById(
-    workspaceMeta.gitRepositoryId
-  );
-  guard(gitRepository, 'Git Repository not found');
 
   const branches = await GitVCS.listBranches();
 
@@ -208,20 +264,11 @@ export const gitFetchAction: ActionFunction = async ({
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
   guard(typeof projectId === 'string', 'Project Id is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-  guard(workspaceMeta, 'Workspace meta not found');
-  if (!workspaceMeta.gitRepositoryId) {
-    return {
-      errors: ['Workspace is not linked to a git repository'],
-    };
+  const linked = await gitRepositoryOrErrors(workspaceId);
+  if ('errors' in linked) {
+    return linked;
   }
-
-  const gitRepository = await models.gitRepository.getById(
-    workspaceMeta.gitRepositoryId
-  );
-  guard(gitRepository, 'Git Repository not found');
+  const { gitRepository } = linked;
 
   try {
     await GitVCS.fetch({
@@ -255,20 +302,10 @@ export const gitLogLoader: LoaderFunction = async ({
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
   guard(typeof projectId === 'string', 'Project Id is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-  guard(workspaceMeta, 'Workspace meta not found');
-  if (!workspaceMeta.gitRepositoryId) {
-    return {
-      errors: ['Workspace is not linked to a git repository'],
-    };
+  const linked = await gitRepositoryOrErrors(workspaceId);
+  if ('errors' in linked) {
+    return linked;
   }
-
-  const gitRepository = await models.gitRepository.getById(
-    workspaceMeta.gitRepositoryId
-  );
-  guard(gitRepository, 'Git Repository not found');
   try {
     const log = await GitVCS.log({ depth: 35 });
 
@@ -295,18 +332,7 @@ export const gitChangesLoader: LoaderFunction = async ({
   const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const gitRepository = await models.gitRepository.getById(repoId);
-
-  guard(gitRepository, 'Git Repository not found');
+  const { workspace } = await requireGitContext(workspaceId);
 
   const branch = await GitVCS.getBranch();
   try {
@@ -609,29 +635,15 @@ export const resetGitRepoAction: ActionFunction = async ({ params }) => {
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const repo = await models.gitRepository.getById(repoId);
-
-  guard(repo, 'Git Repository not found');
+  const { workspaceMeta, gitRepository: repo } = await requireGitContext(workspaceId);
 
   const flushId = await database.bufferChanges();
-  if (workspaceMeta) {
-    await models.workspaceMeta.update(workspaceMeta, {
-      gitRepositoryId: null,
-      cachedGitLastCommitTime: null,
-      cachedGitRepositoryBranch: null,
-      cachedGitLastAuthor: null,
-    });
-  }
+  await models.workspaceMeta.update(workspaceMeta, {
+    gitRepositoryId: null,
+    cachedGitLastCommitTime: null,
+    cachedGitRepositoryBranch: null,
+    cachedGitLastAuthor: null,
+  });
 
   await models.gitRepository.remove(repo);
   await database.flushChanges(flushId);
@@ -650,16 +662,7 @@ export const commitToGitRepoAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const repo = await models.gitRepository.getById(repoId);
-  guard(repo, 'Git Repository not found');
+  const { workspace } = await requireGitContext(workspaceId);
 
   const formData = await request.formData();
 
@@ -698,9 +701,7 @@ export const commitToGitRepoAction: ActionFunction = async ({
 
 
   } catch (e) {
-    const message =
-      e instanceof Error ? e.message : 'Error while committing changes';
-    return { errors: [message] };
+    return { errors: [messageOf(e, 'Error while committing changes')] };
   }
 
   return {};
@@ -717,16 +718,7 @@ export const createNewGitBranchAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const repo = await models.gitRepository.getById(repoId);
-  guard(repo, 'Git Repository not found');
+  const { workspaceMeta } = await requireGitContext(workspaceId);
 
   const formData = await request.formData();
 
@@ -737,23 +729,12 @@ export const createNewGitBranchAction: ActionFunction = async ({
     await GitVCS.checkout(branch);
 
   } catch (err) {
-    if (err instanceof Errors.HttpError) {
-      return {
-        errors: [`${err.message}, ${err.data.response}`],
-      };
-    }
-    const errorMessage =
-      err instanceof Error
-        ? err.message
-        : 'Something went wrong while creating a new branch';
     return {
-      errors: [errorMessage],
+      errors: [remoteMessageOf(err, 'Something went wrong while creating a new branch')],
     };
   }
   // the new branch is checked out, as after a checkout
-  if (workspaceMeta) {
-    await models.workspaceMeta.update(workspaceMeta, { cachedGitRepositoryBranch: branch });
-  }
+  await models.workspaceMeta.update(workspaceMeta, { cachedGitRepositoryBranch: branch });
 
   return {};
 };
@@ -768,18 +749,7 @@ export const checkoutGitBranchAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const repo = await models.gitRepository.getById(repoId);
-  guard(repo, 'Git Repository not found');
+  const { workspaceMeta } = await requireGitContext(workspaceId);
 
   const formData = await request.formData();
 
@@ -802,18 +772,7 @@ export const checkoutGitBranchAction: ActionFunction = async ({
     };
   }
 
-  if (workspaceMeta) {
-    const log = (await GitVCS.log({ depth: 1 })) || [];
-
-    const author = log[0] ? log[0].commit.author : null;
-    const cachedGitLastCommitTime = author ? author.timestamp * 1000 : null;
-
-    await models.workspaceMeta.update(workspaceMeta, {
-      cachedGitLastCommitTime,
-      cachedGitRepositoryBranch: branch,
-      cachedGitLastAuthor: author?.name || null,
-    });
-  }
+  await cacheLastCommit(workspaceMeta, { cachedGitRepositoryBranch: branch });
 
   await database.flushChanges(bufferId);
 
@@ -844,44 +803,22 @@ export const mergeGitBranchAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const repo = await models.gitRepository.getById(repoId);
-  guard(repo, 'Git Repository not found');
+  await requireGitContext(workspaceId);
 
   const formData = await request.formData();
   const branch = formData.get('branch');
   guard(typeof branch === 'string', 'Branch name is required');
 
   // the merge stays on the current branch, which the work tree follows
-  const bufferId = await database.bufferChanges();
-  try {
-    await GitVCS.mergeByField(branch, mergeChoicesFrom(formData));
-  } catch (err) {
-    if (err instanceof GitConflictsError) {
-      return { conflicts: err.conflicts };
+  return withBufferedChanges(async () => {
+    try {
+      await GitVCS.mergeByField(branch, mergeChoicesFrom(formData));
+    } catch (err) {
+      return conflictsOr(err, remoteMessageOf(err, 'Unknown error'));
     }
-    if (err instanceof Errors.HttpError) {
-      return {
-        errors: [`${err.message}, ${err.data.response}`],
-      };
-    }
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return { errors: [errorMessage] };
-  } finally {
-    // sent, not dropped: editors showing a doc git rewrote remount on it
-    await database.flushChanges(bufferId);
-  }
 
-  return {};
+    return {};
+  });
 };
 
 export const rebaseGitBranchAction: ActionFunction = async ({
@@ -898,21 +835,15 @@ export const rebaseGitBranchAction: ActionFunction = async ({
   guard(typeof branch === 'string', 'Branch name is required');
 
   // the current branch's commits go on top of branch's, and the work tree follows
-  const bufferId = await database.bufferChanges();
-  try {
-    await GitVCS.rebase(branch, mergeChoicesFrom(formData));
-  } catch (err) {
-    if (err instanceof GitConflictsError) {
-      return { conflicts: err.conflicts };
+  return withBufferedChanges(async () => {
+    try {
+      await GitVCS.rebase(branch, mergeChoicesFrom(formData));
+    } catch (err) {
+      return conflictsOr(err, messageOf(err, 'Unknown error'));
     }
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return { errors: [errorMessage] };
-  } finally {
-    // sent, not dropped: editors showing a doc git rewrote remount on it
-    await database.flushChanges(bufferId);
-  }
 
-  return {};
+    return {};
+  });
 };
 
 export interface DeleteGitBranchResult {
@@ -926,18 +857,7 @@ export const deleteGitBranchAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const repo = await models.gitRepository.getById(repoId);
-  guard(repo, 'Git Repository not found');
+  await requireGitContext(workspaceId);
 
   const formData = await request.formData();
 
@@ -948,8 +868,7 @@ export const deleteGitBranchAction: ActionFunction = async ({
     await GitVCS.deleteBranch(branch);
 
   } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return { errors: [errorMessage] };
+    return { errors: [messageOf(err, 'Unknown error')] };
   }
 
   return {};
@@ -967,37 +886,21 @@ export const pushToGitRemoteAction: ActionFunction = async ({
 }): Promise<PushToGitRemoteResult> => {
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
+  await requireWorkspace(workspaceId);
 
   const formData = await request.formData();
 
   // sent as text: 'false' is no force
   const force = formData.get('force') === 'true';
 
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const gitRepository = await models.gitRepository.getById(repoId);
-
-  guard(gitRepository, 'Git Repository not found');
+  const { gitRepository } = await requireGitRepository(workspaceId);
 
   // Check if there is anything to push
   let canPush = false;
   try {
     canPush = await GitVCS.canPush(gitRepository.credentials);
   } catch (err) {
-    if (err instanceof Errors.HttpError) {
-      return {
-        errors: [`${err.message}, ${err.data.response}`],
-      };
-    }
-    const errorMessage = err instanceof Error ? err.message : 'Unknown Error';
-
-    return { errors: [errorMessage] };
+    return { errors: [remoteMessageOf(err, 'Unknown Error')] };
   }
   // If nothing to push, display that to the user
   if (!canPush) {
@@ -1017,7 +920,7 @@ export const pushToGitRemoteAction: ActionFunction = async ({
         errors: [`${err.message}, ${err.data.response}`],
       };
     }
-    const errorMessage = err instanceof Error ? err.message : 'Unknown Error';
+    const errorMessage = messageOf(err, 'Unknown Error');
 
     if (err instanceof Errors.PushRejectedError) {
       return {
@@ -1047,18 +950,7 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
 }): Promise<PullFromGitRemoteResult> => {
   const { workspaceId } = params;
   guard(workspaceId, 'Workspace ID is required');
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const gitRepository = await models.gitRepository.getById(repoId);
-
-  guard(gitRepository, 'Git Repository not found');
+  const { workspaceMeta, gitRepository } = await requireGitContext(workspaceId);
 
   const bufferId = await database.bufferChanges();
 
@@ -1069,30 +961,10 @@ export const pullFromGitRemoteAction: ActionFunction = async ({
     await GitVCS.pull(gitRepository.credentials, mergeChoicesFrom(formData), formData.get('rebase') === 'true');
   } catch (err: unknown) {
     await database.flushChanges(bufferId);
-    if (err instanceof GitConflictsError) {
-      return { conflicts: err.conflicts };
-    }
-    if (err instanceof Errors.HttpError) {
-      return { errors: [`${err.message}, ${err.data.response}`] };
-    }
-    const errorMessage = err instanceof Error ? err.message : 'Unknown Error';
-
-    return {
-      errors: [`${errorMessage}`],
-    };
+    return conflictsOr(err, remoteMessageOf(err, 'Unknown Error'));
   }
 
-  if (workspaceMeta) {
-    const log = (await GitVCS.log({ depth: 1 })) || [];
-
-    const author = log[0] ? log[0].commit.author : null;
-    const cachedGitLastCommitTime = author ? author.timestamp * 1000 : null;
-
-    await models.workspaceMeta.update(workspaceMeta, {
-      cachedGitLastCommitTime,
-      cachedGitLastAuthor: author?.name || null,
-    });
-  }
+  await cacheLastCommit(workspaceMeta);
 
   await database.flushChanges(bufferId);
 
@@ -1114,7 +986,7 @@ export const gitTagsLoader: LoaderFunction = async (): Promise<GitTagsLoaderData
     const [head] = await GitVCS.log({ depth: 1 });
     return { tags: await GitVCS.listTags(), head: head?.oid || '', hasRemote: !!(await GitVCS.getRemote('origin'))?.url };
   } catch (err) {
-    return { tags: [], head: '', hasRemote: false, errors: [err instanceof Error ? err.message : String(err)] };
+    return { tags: [], head: '', hasRemote: false, errors: [messageOf(err)] };
   }
 };
 
@@ -1143,10 +1015,7 @@ export const gitTagAction: ActionFunction = async ({ request, params }): Promise
       await GitVCS.deleteTag(name, { remote: formData.get('remote') === 'true', gitCredentials: gitRepository.credentials });
     }
   } catch (err) {
-    if (err instanceof Errors.HttpError) {
-      return { errors: [`${err.message}, ${err.data.response}`] };
-    }
-    return { errors: [err instanceof Error ? err.message : String(err)] };
+    return { errors: [remoteMessageOf(err)] };
   }
   return {};
 };
@@ -1162,8 +1031,7 @@ export interface GitStashesLoaderData {
 export const gitStashesLoader: LoaderFunction = async ({ params }): Promise<GitStashesLoaderData> => {
   const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
+  const workspace = await requireWorkspace(workspaceId);
   const { changes, statusNames } = await getGitChanges(GitVCS, workspace);
   // a stash's files are git paths, with / where Windows' names have \
   const names = Object.fromEntries(Object.entries(statusNames).map(([file, name]) => [convertToPosixSep(file), name]));
@@ -1183,37 +1051,31 @@ export interface GitStashResult {
 export const gitStashAction: ActionFunction = async ({ request, params }): Promise<GitStashResult> => {
   const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
+  const workspace = await requireWorkspace(workspaceId);
 
   const formData = await request.formData();
   const intent = formData.get('intent');
   const id = String(formData.get('id') || '');
-  const bufferId = await database.bufferChanges();
-  try {
-    if (intent === 'stash') {
-      const { changes } = await getGitChanges(GitVCS, workspace);
-      const files = changes.filter(change => change.editable).map(change => ({ filePath: change.path, status: change.status }));
-      if (!files.length) {
-        return { errors: ['There are no changes to stash.'] };
+  return withBufferedChanges(async () => {
+    try {
+      if (intent === 'stash') {
+        const { changes } = await getGitChanges(GitVCS, workspace);
+        const files = changes.filter(change => change.editable).map(change => ({ filePath: change.path, status: change.status }));
+        if (!files.length) {
+          return { errors: ['There are no changes to stash.'] };
+        }
+        await GitVCS.stash(files.map(change => change.filePath), String(formData.get('message') || ''));
+        await gitRollback(GitVCS, files);
+      } else if (intent === 'apply' || intent === 'pop') {
+        await GitVCS.applyStash(id, { drop: intent === 'pop', choices: mergeChoicesFrom(formData) });
+      } else if (intent === 'drop') {
+        await GitVCS.dropStash(id);
       }
-      await GitVCS.stash(files.map(change => change.filePath), String(formData.get('message') || ''));
-      await gitRollback(GitVCS, files);
-    } else if (intent === 'apply' || intent === 'pop') {
-      await GitVCS.applyStash(id, { drop: intent === 'pop', choices: mergeChoicesFrom(formData) });
-    } else if (intent === 'drop') {
-      await GitVCS.dropStash(id);
+    } catch (err) {
+      return conflictsOr(err, messageOf(err));
     }
-  } catch (err) {
-    if (err instanceof GitConflictsError) {
-      return { conflicts: err.conflicts };
-    }
-    return { errors: [err instanceof Error ? err.message : String(err)] };
-  } finally {
-    // sent, not dropped: editors showing a doc git rewrote remount on it
-    await database.flushChanges(bufferId);
-  }
-  return {};
+    return {};
+  });
 };
 
 export interface GitRollbackChangesResult {
@@ -1227,18 +1089,7 @@ export const gitRollbackChangesAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
-
-  const workspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
-
-  const repoId = workspaceMeta?.gitRepositoryId;
-
-  guard(repoId, 'Workspace is not linked to a git repository');
-
-  const gitRepository = await models.gitRepository.getById(repoId);
-
-  guard(gitRepository, 'Git Repository not found');
+  const { workspace } = await requireGitContext(workspaceId);
 
   const formData = await request.formData();
 
@@ -1264,10 +1115,8 @@ export const gitRollbackChangesAction: ActionFunction = async ({
 
     await gitRollback(GitVCS, files);
   } catch (e) {
-    const errorMessage =
-      e instanceof Error ? e.message : 'Error while rolling back changes';
     return {
-      errors: [errorMessage],
+      errors: [messageOf(e, 'Error while rolling back changes')],
     };
   }
 
@@ -1286,8 +1135,7 @@ export const gitStatusAction: ActionFunction = async ({
   const { workspaceId } = params;
   guard(typeof workspaceId === 'string', 'Workspace Id is required');
 
-  const workspace = await models.workspace.getById(workspaceId);
-  guard(workspace, 'Workspace not found');
+  const workspace = await requireWorkspace(workspaceId);
   try {
     const { changes } = await getGitChanges(GitVCS, workspace);
     const localChanges = changes.filter(i => i.editable).length;

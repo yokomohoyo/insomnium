@@ -15,6 +15,7 @@ import { FlowEditor } from '../components/flows/flow-editor';
 import { showPrompt } from '../components/modals';
 import { SidebarLayout } from '../components/sidebar-layout';
 import { Button } from '../components/themed-button';
+import { workspacePath } from './paths';
 
 // a request a flow can send: the collection's HTTP requests, in the sidebar's order
 export interface FlowRequest {
@@ -39,7 +40,7 @@ export const loader: LoaderFunction = async ({ params }): Promise<FlowsLoaderDat
 };
 
 const flowsPath = ({ organizationId, projectId, workspaceId }: Record<string, string | undefined>) =>
-  `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/flows`;
+  workspacePath({ organizationId, projectId, workspaceId }, 'flows');
 
 export const createFlowAction: ActionFunction = async ({ request, params }) => {
   const { workspaceId } = params;

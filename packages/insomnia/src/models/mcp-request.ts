@@ -1,4 +1,5 @@
 import { database } from '../common/database';
+import { duplicateAfter } from './helpers/duplicate-after';
 import type { BaseModel } from '.';
 import { RequestHeader } from './request';
 
@@ -77,12 +78,7 @@ export async function duplicate(request: McpRequest, patch: Partial<McpRequest> 
   if (!patch.name && request.name) {
     patch.name = `${request.name} (Copy)`;
   }
-  // after the original, before the next one
-  // @ts-expect-error -- Database TSCONVERSION
-  const [nextRequest] = await database.find<McpRequest>(type, { metaSortKey: { $gt: request.metaSortKey } }, { metaSortKey: 1 });
-  const nextSortKey = nextRequest ? nextRequest.metaSortKey : request.metaSortKey + 100;
-  const metaSortKey = request.metaSortKey + (nextSortKey - request.metaSortKey) / 2;
-  return database.duplicate<McpRequest>(request, { metaSortKey, ...patch });
+  return duplicateAfter(type, request, patch);
 }
 
 export const getById = (_id: string) => database.getWhere<McpRequest>(type, { _id });

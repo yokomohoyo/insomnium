@@ -4,6 +4,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { Project } from '../../../models/project';
+import { projectPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
@@ -47,7 +48,7 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
                       name: e.currentTarget.value,
                     },
                     {
-                      action: `/organization/${organizationId}/project/${project._id}/rename`,
+                      action: projectPath({ organizationId, projectId: project._id }, 'rename'),
                       method: 'post',
                     }
                   );
@@ -61,7 +62,7 @@ export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, o
               onClick={() =>
                 submit(
                   {},
-                  { method: 'post', action: `/organization/${organizationId}/project/${project._id}/delete` }
+                  { method: 'post', action: projectPath({ organizationId, projectId: project._id }, 'delete') }
                 )
               }
               className="width-auto btn btn--clicky"

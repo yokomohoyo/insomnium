@@ -5,6 +5,7 @@ import styled from 'styled-components';
 
 import { t } from '../../../../common/i18n';
 import type { GitRepository } from '../../../../models/git-repository';
+import { gitPath } from '../../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
 import { ModalBody } from '../../base/modal-body';
 import { ModalFooter } from '../../base/modal-footer';
@@ -59,7 +60,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
         ...credentials,
       },
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/update`,
+        action: gitPath({ organizationId, projectId, workspaceId }, 'update'),
         method: 'post',
       }
     );
@@ -132,7 +133,7 @@ export const GitRepositorySettingsModal = (props: ModalProps & {
               disabled={!gitRepository}
               onClick={() => {
                 deleteGitRepositoryFetcher.submit({}, {
-                  action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/reset`,
+                  action: gitPath({ organizationId, projectId, workspaceId }, 'reset'),
                   method: 'post',
                 });
               }}

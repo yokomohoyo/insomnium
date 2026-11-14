@@ -8,6 +8,7 @@ import { isMcpRequest } from '../../models/mcp-request';
 import { isRequest } from '../../models/request';
 import { isRequestGroup } from '../../models/request-group';
 import { isWebSocketRequest } from '../../models/websocket-request';
+import { debugPath } from '../routes/paths';
 import { WorkspaceLoaderData } from '../routes/workspace';
 import { getMethodShortHand } from './tags/method-tag';
 
@@ -77,7 +78,7 @@ export const RequestTabs: FC = () => {
     return null;
   }
 
-  const debug = `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug`;
+  const debug = debugPath({ organizationId, projectId, workspaceId });
   const close = async (id: string) => {
     setLoaded(current => current && { ...current, ids: withoutTab(current.ids, id) });
     if (id !== requestId) {

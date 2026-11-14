@@ -9,16 +9,15 @@ import { getAuthStrategies, type RequestAuthenticationStrategy, type RequestHead
 import type { RequestGroup } from '../../../models/request-group';
 import { guard } from '../../../utils/guard';
 import { useRequestGroupPatcher } from '../../hooks/use-request';
-import { ProjectLoaderData } from '../../routes/project';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { CodeEditorHandle } from '../codemirror/code-editor';
 import { AuthStrategyDropdown } from '../dropdowns/auth-dropdown';
 import { AuthStrategiesEditor } from '../editors/auth/auth-wrapper';
-import { HelpTooltip } from '../help-tooltip';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 import { MarkdownEditor } from '../markdown-editor';
+import { MoveCopyToWorkspace, useProjectWorkspaces } from './move-copy-to-workspace';
 
 // OAuth 2 keeps its tokens per request, so a folder can't hold one yet
 const FOLDER_AUTH_TYPES: AuthType[] = ['apikey', 'basic', 'digest', 'oauth1', 'ntlm', 'iam', 'bearer', 'hawk', 'asap', 'gcp-id-token', 'jwt', 'edgegrid', 'netrc'];
@@ -36,15 +35,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
   const modalRef = useRef<ModalHandle>(null);
   const editorRef = useRef<CodeEditorHandle>(null);
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
-  const workspacesFetcher = useFetcher();
-  useEffect(() => {
-    const isIdleAndUninitialized = workspacesFetcher.state === 'idle' && !workspacesFetcher.data;
-    if (isIdleAndUninitialized) {
-      workspacesFetcher.load(`/organization/${organizationId}/project/${projectId}`);
-    }
-  }, [organizationId, projectId, workspacesFetcher]);
-  const projectLoaderData = workspacesFetcher?.data as ProjectLoaderData;
-  const workspacesForActiveProject = projectLoaderData?.workspaces.map(w => w.workspace) || [];
+  const workspacesForActiveProject = useProjectWorkspaces(organizationId, projectId);
   const [state, setState] = useState<State>({
     activeWorkspaceIdToCopyTo: '',
     defaultPreviewMode: !!requestGroup.description,
@@ -160,54 +151,15 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
             />
           </section>
           <hr />
-          <div className="form-row">
-            <div className="form-control form-control--outlined">
-              <label>
-                {t('Move/Copy to Workspace')}
-                <HelpTooltip position="top" className="space-left">
-                  {t("Copy or move the current folder to a new workspace. It will be placed at the root of the new workspace's folder structure.")}
-                </HelpTooltip>
-                <select
-                  value={activeWorkspaceIdToCopyTo}
-                  onChange={event => {
-                    const activeWorkspaceIdToCopyTo = event.currentTarget.value;
-                    setState(state => ({
-                      ...state,
-                      activeWorkspaceIdToCopyTo,
-                    }));
-                  }}
-                >
-                  <option value="">{t('-- Select Workspace --')}</option>
-                  {workspacesForActiveProject
-                    .filter(w => workspaceId !== w._id)
-                    .map(w => (
-                      <option key={w._id} value={w._id}>
-                        {w.name}
-                      </option>
-                    ))
-                  }
-                </select>
-              </label>
-            </div>
-            <div className="form-control form-control--no-label width-auto">
-              <button
-                disabled={!activeWorkspaceIdToCopyTo}
-                className="btn btn--clicky"
-                onClick={handleCopyToWorkspace}
-              >
-                {t('Copy')}
-              </button>
-            </div>
-            <div className="form-control form-control--no-label width-auto">
-              <button
-                disabled={!activeWorkspaceIdToCopyTo}
-                className="btn btn--clicky"
-                onClick={handleMoveToWorkspace}
-              >
-                {t('Move')}
-              </button>
-            </div>
-          </div>
+          <MoveCopyToWorkspace
+            help={t("Copy or move the current folder to a new workspace. It will be placed at the root of the new workspace's folder structure.")}
+            workspaces={workspacesForActiveProject}
+            currentWorkspaceId={workspaceId}
+            selectedWorkspaceId={activeWorkspaceIdToCopyTo}
+            onSelect={activeWorkspaceIdToCopyTo => setState(state => ({ ...state, activeWorkspaceIdToCopyTo }))}
+            onCopy={handleCopyToWorkspace}
+            onMove={handleMoveToWorkspace}
+          />
         </div></ModalBody>
       </Modal>
     </OverlayContainer>

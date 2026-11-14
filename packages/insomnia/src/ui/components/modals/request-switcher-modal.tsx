@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
-import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../../common/constants';
 import { database } from '../../../common/database';
 import { fuzzyMatchAll } from '../../../common/misc';
 import * as models from '../../../models';
@@ -12,6 +11,7 @@ import { isRequest } from '../../../models/request';
 import { isRequestGroup } from '../../../models/request-group';
 import { isWebSocketRequest } from '../../../models/websocket-request';
 import { isDesign, type Workspace } from '../../../models/workspace';
+import { requestPath, workspaceHomePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Modal, type ModalHandle } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -116,11 +116,11 @@ export const RequestSwitcherModal = ({ mode, onHide }: Props) => {
 
   const open = (id: string) => {
     modalRef.current?.hide();
-    navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${id}`);
+    navigate(requestPath({ organizationId, projectId, workspaceId }, id));
   };
   const openCollection = (workspace: Workspace) => {
     modalRef.current?.hide();
-    navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/${isDesign(workspace) ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+    navigate(workspaceHomePath({ organizationId, projectId, workspaceId: workspace._id }, workspace));
   };
   const openSelected = () => {
     if (selected < matches.length) {

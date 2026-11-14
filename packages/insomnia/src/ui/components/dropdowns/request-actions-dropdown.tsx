@@ -21,6 +21,7 @@ import type { RequestAction } from '../../../plugins';
 import { getRequestActions } from '../../../plugins';
 import * as pluginContexts from '../../../plugins/context/index';
 import { useRequestMetaPatcher, useRequestSetter } from '../../hooks/use-request';
+import { debugPath, requestPath } from '../../routes/paths';
 import { RootLoaderData } from '../../routes/root';
 import { type DropdownProps } from '../base/dropdown';
 import { Icon } from '../icon';
@@ -57,7 +58,7 @@ export const RequestActionsDropdown = ({
   const duplicatedId = requestFetcher.data?.duplicatedId;
   useEffect(() => {
     if (duplicatedId) {
-      navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${duplicatedId}`);
+      navigate(requestPath({ organizationId, projectId, workspaceId }, duplicatedId));
     }
   }, [duplicatedId, navigate, organizationId, projectId, workspaceId]);
 
@@ -81,7 +82,7 @@ export const RequestActionsDropdown = ({
       selectText: true,
       onComplete: (name: string) => requestFetcher.submit({ name },
         {
-          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${request?._id}/duplicate`,
+          action: requestPath({ organizationId, projectId, workspaceId }, request?._id, 'duplicate'),
           method: 'post',
           encType: 'application/json',
         }),
@@ -158,7 +159,7 @@ export const RequestActionsDropdown = ({
     incrementDeletedRequests();
     requestFetcher.submit({ id: request._id },
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/delete`,
+        action: debugPath({ organizationId, projectId, workspaceId }, 'request/delete'),
         method: 'post',
       });
   };

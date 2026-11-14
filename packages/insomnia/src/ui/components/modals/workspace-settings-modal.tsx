@@ -12,6 +12,7 @@ import * as models from '../../../models/index';
 import { isRequest } from '../../../models/request';
 import { isDesign, Workspace } from '../../../models/workspace';
 import { WorkspaceMeta } from '../../../models/workspace-meta';
+import { projectPath, workspacePath } from '../../routes/paths';
 import { FileInputButton } from '../base/file-input-button';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -97,7 +98,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
   const workspaceFetcher = useFetcher();
   const workspacePatcher = (workspaceId: string, patch: Partial<Workspace>) => {
     workspaceFetcher.submit({ ...patch, workspaceId }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/update`,
+      action: projectPath({ organizationId, projectId }, 'workspace/update'),
       method: 'post',
       encType: 'application/json',
     });
@@ -146,7 +147,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
   const _handleRemoveWorkspace = async () => {
     const workspaceId = workspace._id;
     workspaceFetcher.submit({ workspaceId }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/delete`,
+      action: projectPath({ organizationId, projectId }, 'workspace/delete'),
       method: 'post',
     });
   };
@@ -203,42 +204,42 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
 
   const newCaCert = (path: string) => {
     workspaceFetcher.submit({ parentId: workspace._id, path }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/cacert/new`,
+      action: workspacePath({ organizationId, projectId, workspaceId: workspace._id }, 'cacert/new'),
       method: 'post',
       encType: 'application/json',
     });
   };
   const deleteCaCert = () => {
     workspaceFetcher.submit({}, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/cacert/delete`,
+      action: workspacePath({ organizationId, projectId, workspaceId: workspace._id }, 'cacert/delete'),
       method: 'post',
       encType: 'application/json',
     });
   };
   const toggleCaCert = (caCert: CaCertificate) => {
     workspaceFetcher.submit({ _id: caCert._id, disabled: !caCert.disabled }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/cacert/update`,
+      action: workspacePath({ organizationId, projectId, workspaceId: workspace._id }, 'cacert/update'),
       method: 'post',
       encType: 'application/json',
     });
   };
   const newClientCert = (certificate: Partial<ClientCertificate>) => {
     workspaceFetcher.submit(certificate, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/clientcert/new`,
+      action: workspacePath({ organizationId, projectId, workspaceId: workspace._id }, 'clientcert/new'),
       method: 'post',
       encType: 'application/json',
     });
   };
   const deleteClientCert = (certificate: ClientCertificate) => {
     workspaceFetcher.submit({ _id: certificate._id }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/clientcert/delete`,
+      action: workspacePath({ organizationId, projectId, workspaceId: workspace._id }, 'clientcert/delete'),
       method: 'post',
       encType: 'application/json',
     });
   };
   const toggleClientCert = (certificate: ClientCertificate) => {
     workspaceFetcher.submit({ _id: certificate._id, disabled: !certificate.disabled }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/clientcert/update`,
+      action: workspacePath({ organizationId, projectId, workspaceId: workspace._id }, 'clientcert/update'),
       method: 'post',
       encType: 'application/json',
     });

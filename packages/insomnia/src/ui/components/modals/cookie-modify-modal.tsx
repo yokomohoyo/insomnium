@@ -8,6 +8,7 @@ import { Cookie as ToughCookie } from 'tough-cookie';
 
 import { cookieToString } from '../../../common/cookies';
 import type { Cookie, CookieJar } from '../../../models/cookie-jar';
+import { workspacePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -32,7 +33,7 @@ export const CookieModifyModal = ((props: ModalProps & CookieModifyModalOptions)
     updateCookieJarFetcher.submit(JSON.stringify({ patch, cookieJarId }), {
       encType: 'application/json',
       method: 'post',
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/cookieJar/update`,
+      action: workspacePath({ organizationId, projectId, workspaceId }, 'cookieJar/update'),
     });
   };
   const handleCookieUpdate = async (nextCookie: any) => {

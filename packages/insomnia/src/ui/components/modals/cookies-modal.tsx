@@ -5,6 +5,7 @@ import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import { fuzzyMatch } from '../../../common/misc';
 import type { Cookie, CookieJar } from '../../../models/cookie-jar';
 import { useNunjucks } from '../../context/nunjucks/use-nunjucks';
+import { workspacePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -28,7 +29,7 @@ export const CookiesModal = ({ onHide }: ModalProps) => {
     updateCookieJarFetcher.submit(JSON.stringify({ patch, cookieJarId }), {
       encType: 'application/json',
       method: 'post',
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/cookieJar/update`,
+      action: workspacePath({ organizationId, projectId, workspaceId }, 'cookieJar/update'),
     });
   };
   const filteredCookies = visibleCookieIndexes ? (activeCookieJar?.cookies || []).filter((_, i) => visibleCookieIndexes.includes(i)) : (activeCookieJar?.cookies || []);

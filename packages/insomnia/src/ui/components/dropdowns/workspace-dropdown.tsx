@@ -1,7 +1,7 @@
 import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
-import { ACTIVITY_DEBUG, ACTIVITY_SPEC, getProductName } from '../../../common/constants';
+import { getProductName } from '../../../common/constants';
 import { database as db } from '../../../common/database';
 import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import { t } from '../../../common/i18n';
@@ -15,6 +15,7 @@ import type { WorkspaceAction } from '../../../plugins';
 import { getWorkspaceActions } from '../../../plugins';
 import * as pluginContexts from '../../../plugins/context';
 import { guard } from '../../../utils/guard';
+import { projectPath, workspaceHomePath, workspacePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 
@@ -61,13 +62,13 @@ export const WorkspaceDropdown: FC = () => {
   const converted = convertFetcher.data as { scope: string } | undefined;
   useEffect(() => {
     if (convertFetcher.state === 'idle' && converted) {
-      navigate(`/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/${activeWorkspace._id}/${converted.scope === 'design' ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`);
+      navigate(workspaceHomePath({ organizationId, projectId: activeWorkspace.parentId, workspaceId: activeWorkspace._id }, converted));
     }
   }, [convertFetcher.state, converted, navigate, organizationId, activeWorkspace.parentId, activeWorkspace._id]);
   const convert = () => {
     const submit = () => convertFetcher.submit(
       { scope: isDocument ? 'collection' : 'design' },
-      { action: `/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/${activeWorkspace._id}/convert`, method: 'post', encType: 'application/json' },
+      { action: workspacePath({ organizationId, projectId: activeWorkspace.parentId, workspaceId: activeWorkspace._id }, 'convert'), method: 'post', encType: 'application/json' },
     );
     if (!isDocument) {
       submit();
@@ -194,7 +195,7 @@ export const WorkspaceDropdown: FC = () => {
                   fetcher.submit(
                     { name, workspaceId: activeWorkspace._id },
                     {
-                      action: `/organization/${organizationId}/project/${activeWorkspace.parentId}/workspace/update`,
+                      action: projectPath({ organizationId, projectId: activeWorkspace.parentId }, 'workspace/update'),
                       method: 'post',
                       encType: 'application/json',
                     }
@@ -287,7 +288,7 @@ export const WorkspaceDropdown: FC = () => {
               <ItemContent
                 icon={isDesign(workspace) ? 'file-code' : 'bars'}
                 label={workspace.name}
-                onClick={() => navigate(`/organization/${organizationId}/project/${workspace.parentId}/workspace/${workspace._id}/${isDesign(workspace) ? ACTIVITY_SPEC : ACTIVITY_DEBUG}`)}
+                onClick={() => navigate(workspaceHomePath({ organizationId, projectId: workspace.parentId, workspaceId: workspace._id }, workspace))}
               />
             </DropdownItem>
           ))}

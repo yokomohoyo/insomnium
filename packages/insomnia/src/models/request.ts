@@ -20,6 +20,7 @@ import type { RequestAssertion } from '../network/assertions';
 import { SIGNATURE_METHOD_HMAC_SHA1 } from '../network/o-auth-1/constants';
 import { GRANT_TYPE_AUTHORIZATION_CODE } from '../network/o-auth-2/constants';
 import { deconstructQueryStringToParams } from '../utils/url/querystring';
+import { duplicateAfter } from './helpers/duplicate-after';
 import type { BaseModel } from './index';
 
 export const name = 'Request';
@@ -380,29 +381,7 @@ export async function duplicate(request: Request, patch: Partial<Request> = {}) 
   if (!patch.name && request.name) {
     patch.name = `${request.name} (Copy)`;
   }
-
-  // Get sort key of next request
-  const q = {
-    metaSortKey: {
-      $gt: request.metaSortKey,
-    },
-  };
-
-  // @ts-expect-error -- TSCONVERSION appears to be a genuine error
-  const [nextRequest] = await db.find<Request>(type, q, {
-    metaSortKey: 1,
-  });
-
-  const nextSortKey = nextRequest ? nextRequest.metaSortKey : request.metaSortKey + 100;
-  // Calculate new sort key
-  const sortKeyIncrement = (nextSortKey - request.metaSortKey) / 2;
-  const metaSortKey = request.metaSortKey + sortKeyIncrement;
-  // Don't seed `name` from the module display-name constant ('Request') - let
-  // db.duplicate inherit the original request's name (incl. '' for unnamed).
-  return db.duplicate<Request>(request, {
-    metaSortKey,
-    ...patch,
-  });
+  return duplicateAfter(type, request, patch);
 }
 
 export function remove(request: Request) {

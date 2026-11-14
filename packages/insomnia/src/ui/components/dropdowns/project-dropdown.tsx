@@ -13,6 +13,7 @@ import { t } from '../../../common/i18n';
 import {
   Project,
 } from '../../../models/project';
+import { projectPath } from '../../routes/paths';
 import { Icon } from '../icon';
 import { showModal } from '../modals';
 import { AskModal } from '../modals/ask-modal';
@@ -56,7 +57,7 @@ export const ProjectDropdown: FC<Props> = ({ project, organizationId }) => {
               {},
               {
                 method: 'post',
-                action: `/organization/${organizationId}/project/${projectId}/delete`,
+                action: projectPath({ organizationId, projectId }, 'delete'),
               }
             );
           }

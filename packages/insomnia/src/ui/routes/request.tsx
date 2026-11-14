@@ -36,6 +36,7 @@ import { guard } from '../../utils/guard';
 
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
 import { CreateRequestType } from '../hooks/use-request';
+import { debugPath, requestPath } from './paths';
 
 export interface McpRequestLoaderData {
   activeRequest: McpRequest;
@@ -77,7 +78,7 @@ export const loader: LoaderFunction = async ({ params }): Promise<RequestLoaderD
   guard(workspaceId, 'Workspace ID is required');
   const activeRequest = await requestOperations.getById(requestId);
   if (!activeRequest) {
-    throw redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug`);
+    throw redirect(debugPath({ organizationId, projectId, workspaceId }));
   }
   const activeWorkspaceMeta = await models.workspaceMeta.getByParentId(workspaceId);
 
@@ -240,7 +241,7 @@ export const createRequestAction: ActionFunction = async ({ request, params }) =
   guard(typeof activeRequestId === 'string', 'Request ID is required');
   models.stats.incrementCreatedRequests();
 
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${activeRequestId}`);
+  return redirect(requestPath({ organizationId, projectId, workspaceId }, activeRequestId));
 };
 
 // ARCHY NOTE: ACTUAL REQUEST UPDATE IS HERE after
@@ -275,7 +276,7 @@ export const deleteRequestAction: ActionFunction = async ({ request, params }) =
   guard(workspaceMeta, 'Workspace meta not found');
   if (workspaceMeta.activeRequestId === id) {
     await models.workspaceMeta.updateByParentId(workspaceId, { activeRequestId: null });
-    return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug`);
+    return redirect(debugPath({ organizationId, projectId, workspaceId }));
   }
   return null;
 };

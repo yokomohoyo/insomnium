@@ -150,12 +150,11 @@ export async function scanResources({
   const { type, data } = results;
 
   // (a type a later version exports is left out)
-  const resources = data.resources
-    .filter(r => r._type && models.MODELS_BY_EXPORT_TYPE[r._type])
-    .map(r => {
-      const { _type, ...model } = r;
-      return { ...model, type: models.MODELS_BY_EXPORT_TYPE[_type].type };
-    });
+  const resources = data.resources.flatMap(r => {
+    const { _type, ...model } = r;
+    const exported = _type ? models.MODELS_BY_EXPORT_TYPE[_type] : undefined;
+    return exported ? [{ ...model, type: exported.type }] : [];
+  });
 
   ResourceCache = {
     resources,

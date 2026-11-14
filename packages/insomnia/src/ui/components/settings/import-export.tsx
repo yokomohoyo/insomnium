@@ -7,6 +7,7 @@ import { docsImportExport } from '../../../common/documentation';
 import { exportAllToFile } from '../../../common/export';
 import { t } from '../../../common/i18n';
 import { isDesign } from '../../../models/workspace';
+import { projectPath } from '../../routes/paths';
 import { ProjectLoaderData } from '../../routes/project';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
@@ -33,7 +34,7 @@ export const ImportExport: FC<Props> = ({ hideSettingsModal }) => {
   useEffect(() => {
     const isIdleAndUninitialized = workspacesFetcher.state === 'idle' && !workspacesFetcher.data;
     if (isIdleAndUninitialized) {
-      workspacesFetcher.load(`/organization/${organizationId}/project/${projectId}`);
+      workspacesFetcher.load(projectPath({ organizationId, projectId }));
     }
   }, [organizationId, projectId, workspacesFetcher]);
   const projectLoaderData = workspacesFetcher?.data as ProjectLoaderData;

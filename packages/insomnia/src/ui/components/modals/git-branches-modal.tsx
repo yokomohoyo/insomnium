@@ -6,6 +6,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import { t } from '../../../common/i18n';
 import { GitRepository } from '../../../models/git-repository';
 import { CreateNewGitBranchResult, GitBranchesLoaderData, MergeGitBranchResult } from '../../routes/git-actions';
+import { gitPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -47,7 +48,7 @@ export const GitBranchesModal: FC<Props> = (({
     setMerging(branch);
     how.current = way;
     mergeBranchFetcher.submit({ branch, ...(choices ? { choices: JSON.stringify(choices) } : {}) }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/${way}`,
+      action: gitPath({ organizationId, projectId, workspaceId }, `branch/${way}`),
       method: 'post',
     });
   };
@@ -71,7 +72,7 @@ export const GitBranchesModal: FC<Props> = (({
 
   useEffect(() => {
     if (branchesFetcher.state === 'idle' && !branchesFetcher.data) {
-      branchesFetcher.load(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branches`);
+      branchesFetcher.load(gitPath({ organizationId, projectId, workspaceId }, 'branches'));
     }
   }, [branchesFetcher, organizationId, projectId, workspaceId]);
 
@@ -91,7 +92,7 @@ export const GitBranchesModal: FC<Props> = (({
         <ModalBody className="pad">
           <newBranchFetcher.Form
             method="post"
-            action={`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/new`}
+            action={gitPath({ organizationId, projectId, workspaceId }, 'branch/new')}
           >
             <div className="form-row">
               <div className="form-control form-control--outlined">
@@ -161,7 +162,7 @@ export const GitBranchesModal: FC<Props> = (({
                               deleteBranchFetcher.submit({
                                 branch,
                               }, {
-                                action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/delete`,
+                                action: gitPath({ organizationId, projectId, workspaceId }, 'branch/delete'),
                                 method: 'post',
                               });
                             }}
@@ -174,7 +175,7 @@ export const GitBranchesModal: FC<Props> = (({
                               checkoutBranchFetcher.submit({
                                 branch,
                               }, {
-                                action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/checkout`,
+                                action: gitPath({ organizationId, projectId, workspaceId }, 'branch/checkout'),
                                 method: 'post',
                               });
                             }}
@@ -217,7 +218,7 @@ export const GitBranchesModal: FC<Props> = (({
                             checkoutBranchFetcher.submit({
                               branch,
                             }, {
-                              action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/checkout`,
+                              action: gitPath({ organizationId, projectId, workspaceId }, 'branch/checkout'),
                               method: 'post',
                             });
                           }}

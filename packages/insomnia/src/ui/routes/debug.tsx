@@ -91,6 +91,7 @@ import {
   useRequestGroupMetaPatcher,
   useRequestMetaPatcher,
 } from '../hooks/use-request';
+import { debugPath, requestPath, workspacePath } from './paths';
 import {
   GrpcRequestLoaderData,
   RequestLoaderData,
@@ -155,7 +156,7 @@ export const loader: LoaderFunction = async ({ params }) => {
     const activeRequestId = activeWorkspaceMeta.activeRequestId;
     const activeRequest = activeRequestId ? await models.request.getById(activeRequestId) : null;
     if (activeRequest) {
-      return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${activeRequestId}`);
+      return redirect(requestPath({ organizationId, projectId, workspaceId }, activeRequestId));
     }
   }
   return null;
@@ -352,7 +353,7 @@ export const Debug: FC = () => {
               requestFetcher.submit(
                 { id: requestId },
                 {
-                  action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/delete`,
+                  action: debugPath({ organizationId, projectId, workspaceId }, 'request/delete'),
                   method: 'post',
                 },
               );
@@ -373,7 +374,7 @@ export const Debug: FC = () => {
             requestFetcher.submit(
               { name },
               {
-                action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/duplicate`,
+                action: requestPath({ organizationId, projectId, workspaceId }, requestId, 'duplicate'),
                 method: 'post',
                 encType: 'application/json',
               },
@@ -389,7 +390,7 @@ export const Debug: FC = () => {
       requestFetcher.submit(
         { requestType: 'HTTP', parentId },
         {
-          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/new`,
+          action: debugPath({ organizationId, projectId, workspaceId }, 'request/new'),
           method: 'post',
           encType: 'application/json',
         },
@@ -407,7 +408,7 @@ export const Debug: FC = () => {
           requestFetcher.submit(
             { parentId, name },
             {
-              action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/new`,
+              action: debugPath({ organizationId, projectId, workspaceId }, 'request-group/new'),
               method: 'post',
             },
           ),
@@ -450,7 +451,7 @@ export const Debug: FC = () => {
     requestFetcher.submit(JSON.stringify({ requestType, parentId, req }),
       {
         encType: 'application/json',
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/new`,
+        action: debugPath({ organizationId, projectId, workspaceId }, 'request/new'),
         method: 'post',
       });
 
@@ -462,7 +463,7 @@ export const Debug: FC = () => {
   const duplicatedId = requestFetcher.data?.duplicatedId;
   useEffect(() => {
     if (duplicatedId) {
-      navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${duplicatedId}`);
+      navigate(requestPath({ organizationId, projectId, workspaceId }, duplicatedId));
     }
   }, [duplicatedId, navigate, organizationId, projectId, workspaceId]);
 
@@ -542,7 +543,7 @@ export const Debug: FC = () => {
             metaSortKey,
           },
           {
-            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/reorder`,
+            action: `${debugPath({ organizationId, projectId, workspaceId })}/reorder`,
             method: 'POST',
             encType: 'application/json',
           }
@@ -678,7 +679,7 @@ export const Debug: FC = () => {
               requestFetcher.submit(
                 { parentId: workspaceId, name },
                 {
-                  action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/new`,
+                  action: debugPath({ organizationId, projectId, workspaceId }, 'request-group/new'),
                   method: 'post',
                 }
               ),
@@ -724,7 +725,7 @@ export const Debug: FC = () => {
                     },
                     {
                       method: 'POST',
-                      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/set-active`,
+                      action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/set-active'),
                     }
                   );
                 }}
@@ -966,7 +967,7 @@ export const Debug: FC = () => {
                   if (keys !== 'all') {
                     const value = keys.values().next().value;
                     navigate(
-                      `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${value}?${searchParams.toString()}`
+                      `${requestPath({ organizationId, projectId, workspaceId }, value)}?${searchParams.toString()}`
                     );
                   }
                 }}
@@ -1044,7 +1045,7 @@ export const Debug: FC = () => {
                       groupMetaPatcher(value, { collapsed: !item.collapsed });
                     } else {
                       navigate(
-                        `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${value}?${searchParams.toString()}`
+                        `${requestPath({ organizationId, projectId, workspaceId }, value)}?${searchParams.toString()}`
                       );
                     }
                   }

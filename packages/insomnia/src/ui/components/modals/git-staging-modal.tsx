@@ -10,6 +10,7 @@ import * as models from '../../../models';
 import { isCollection } from '../../../models/workspace';
 import type { DocDiff } from '../../../sync/git/doc-diff';
 import { CommitToGitRepoResult, GitChangesLoaderData, GitRollbackChangesResult } from '../../routes/git-actions';
+import { gitPath } from '../../routes/paths';
 import type { RootLoaderData } from '../../routes/root';
 import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { IndeterminateCheckbox } from '../base/indeterminate-checkbox';
@@ -54,7 +55,7 @@ export const GitStagingModal: FC<ModalProps> = ({
 
   useEffect(() => {
     if (gitChangesFetcher.state === 'idle' && !gitChangesFetcher.data) {
-      gitChangesFetcher.load(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/changes`);
+      gitChangesFetcher.load(gitPath({ organizationId, projectId, workspaceId }, 'changes'));
     }
   }, [organizationId, projectId, workspaceId, gitChangesFetcher]);
 
@@ -135,7 +136,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                 const data = new FormData(formRef.current);
                 data.append('changeType', 'modified');
                 await gitCommitFetcher.submit(data, {
-                  action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/commit`,
+                  action: gitPath({ organizationId, projectId, workspaceId }, 'commit'),
                   method: 'post',
                 });
                 setHasDone(true)
@@ -182,7 +183,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                           data.append('changeType', 'modified');
 
                           rollbackFetcher.submit(data, {
-                            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/rollback`,
+                            action: gitPath({ organizationId, projectId, workspaceId }, 'rollback'),
                             method: 'post',
                           });
                         }
@@ -253,7 +254,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                                         data.append('paths', item.path);
 
                                         rollbackFetcher.submit(data, {
-                                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/rollback`,
+                                          action: gitPath({ organizationId, projectId, workspaceId }, 'rollback'),
                                           method: 'post',
                                         });
                                       }
@@ -289,7 +290,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                           data.append('changeType', 'unversioned');
 
                           rollbackFetcher.submit(data, {
-                            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/rollback`,
+                            action: gitPath({ organizationId, projectId, workspaceId }, 'rollback'),
                             method: 'post',
                           });
                         }
@@ -364,7 +365,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                                         data.append('paths', item.path);
 
                                         rollbackFetcher.submit(data, {
-                                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/rollback`,
+                                          action: gitPath({ organizationId, projectId, workspaceId }, 'rollback'),
                                           method: 'post',
                                         });
                                       }

@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { HistoryEntry, recentHistory } from '../../../common/history';
 import { fuzzyMatchAll } from '../../../common/misc';
 import * as models from '../../../models';
+import { requestPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
@@ -32,7 +33,7 @@ export const HistoryModal: FC<ModalProps> = ({ onHide }) => {
   const open = async ({ response, request, workspace }: HistoryEntry) => {
     await models.requestMeta.updateOrCreateByParentId(request._id, { activeResponseId: response._id });
     modalRef.current?.hide();
-    navigate(`/organization/${organizationId}/project/${workspace.parentId}/workspace/${workspace._id}/debug/request/${request._id}`);
+    navigate(requestPath({ organizationId, projectId: workspace.parentId, workspaceId: workspace._id }, request._id));
   };
 
   return (
