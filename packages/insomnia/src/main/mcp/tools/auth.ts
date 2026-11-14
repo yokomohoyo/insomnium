@@ -8,7 +8,7 @@ import {
   patchAuthStrategy,
   removeAuthStrategy,
 } from '../../../models/request';
-import { redactSecrets } from './util';
+import { compact, fail, json, notFound, redactSecrets } from './util';
 
 export function registerAuthTools(server: McpServer) {
   server.tool(
@@ -18,15 +18,10 @@ export function registerAuthTools(server: McpServer) {
     async ({ requestId }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       const strategies = getAuthStrategies((req as any).authentication);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(redactSecrets(strategies.map((s, i) => ({ index: i, ...s }))), null, 2),
-        }],
-      };
+      return json(redactSecrets(strategies.map((s, i) => ({ index: i, ...s }))));
     },
   );
 
@@ -40,14 +35,14 @@ export function registerAuthTools(server: McpServer) {
     async ({ requestId, strategy }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       if (typeof strategy.type !== 'string' || !strategy.type) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'strategy must have a string `type` field (e.g. bearer, basic, gcp-id-token)' }) }], isError: true };
+        return fail('strategy must have a string `type` field (e.g. bearer, basic, gcp-id-token)');
       }
       const next = addAuthStrategy((req as any).authentication, strategy as any);
       await requestOperations.update(req as any, { authentication: next });
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, strategies: next.length }) }] };
+      return compact({ ok: true, strategies: next.length });
     },
   );
 
@@ -62,15 +57,15 @@ export function registerAuthTools(server: McpServer) {
     async ({ requestId, index, patch }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       const existing = getAuthStrategies((req as any).authentication);
       if (index >= existing.length) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: `index ${index} out of range (request has ${existing.length} strategies)` }) }], isError: true };
+        return fail(`index ${index} out of range (request has ${existing.length} strategies)`);
       }
       const next = patchAuthStrategy((req as any).authentication, index, patch);
       await requestOperations.update(req as any, { authentication: next });
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, index }) }] };
+      return compact({ ok: true, index });
     },
   );
 
@@ -84,15 +79,15 @@ export function registerAuthTools(server: McpServer) {
     async ({ requestId, index }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       const existing = getAuthStrategies((req as any).authentication);
       if (index >= existing.length) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: `index ${index} out of range (request has ${existing.length} strategies)` }) }], isError: true };
+        return fail(`index ${index} out of range (request has ${existing.length} strategies)`);
       }
       const next = removeAuthStrategy((req as any).authentication, index);
       await requestOperations.update(req as any, { authentication: next });
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, strategies: next.length }) }] };
+      return compact({ ok: true, strategies: next.length });
     },
   );
 }

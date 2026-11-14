@@ -10,7 +10,7 @@ import type { GrpcRequest } from '../../../models/grpc-request';
 import type { McpRequest } from '../../../models/mcp-request';
 import type { Request } from '../../../models/request';
 import type { WebSocketRequest } from '../../../models/websocket-request';
-import { redactSecrets, requestTypeLabel } from './util';
+import { fail, json, notFound, redactSecrets, requestTypeLabel } from './util';
 
 // Byte-capped decode that drops a trailing split multibyte sequence.
 function truncateUtf8(body: string | Buffer | null | undefined, maxBytes: number): string {
@@ -33,23 +33,14 @@ export function registerRequestTools(server: McpServer) {
         models.webSocketRequest.type,
         models.mcpRequest.type,
       ]);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(
-            filtered.map(r => ({
-              id: r._id,
-              name: r.name,
-              type: requestTypeLabel(r),
-              method: 'method' in r ? r.method : undefined,
-              url: r.url,
-              parentId: r.parentId,
-            })),
-            null,
-            2,
-          ),
-        }],
-      };
+      return json(filtered.map(r => ({
+        id: r._id,
+        name: r.name,
+        type: requestTypeLabel(r),
+        method: 'method' in r ? r.method : undefined,
+        url: r.url,
+        parentId: r.parentId,
+      })));
     },
   );
 
@@ -60,9 +51,9 @@ export function registerRequestTools(server: McpServer) {
     async ({ requestId }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
-      return { content: [{ type: 'text', text: JSON.stringify(redactSecrets(req), null, 2) }] };
+      return json(redactSecrets(req));
     },
   );
 
@@ -73,24 +64,15 @@ export function registerRequestTools(server: McpServer) {
     async ({ requestId, limit }) => {
       const responses = await models.response.findByParentId(requestId);
       const sorted = responses.sort((a, b) => b.created - a.created).slice(0, limit);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(
-            sorted.map(r => ({
-              id: r._id,
-              statusCode: r.statusCode,
-              statusMessage: r.statusMessage,
-              elapsedTime: r.elapsedTime,
-              created: r.created,
-              url: r.url,
-              error: r.error,
-            })),
-            null,
-            2,
-          ),
-        }],
-      };
+      return json(sorted.map(r => ({
+        id: r._id,
+        statusCode: r.statusCode,
+        statusMessage: r.statusMessage,
+        elapsedTime: r.elapsedTime,
+        created: r.created,
+        url: r.url,
+        error: r.error,
+      })));
     },
   );
 
@@ -101,27 +83,22 @@ export function registerRequestTools(server: McpServer) {
     async ({ responseId, maxBodyBytes }) => {
       const r = await models.response.getById(responseId);
       if (!r) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       const { buffer, truncated, fullSize } = await models.response.getBoundedBodyBuffer(r, maxBodyBytes);
       const bodyStr = truncateUtf8(buffer, maxBodyBytes);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            id: r._id,
-            statusCode: r.statusCode,
-            statusMessage: r.statusMessage,
-            elapsedTime: r.elapsedTime,
-            url: r.url,
-            headers: redactSecrets(r.headers),
-            error: r.error,
-            body: bodyStr,
-            bodyTruncated: truncated,
-            bodySize: fullSize,
-          }, null, 2),
-        }],
-      };
+      return json({
+        id: r._id,
+        statusCode: r.statusCode,
+        statusMessage: r.statusMessage,
+        elapsedTime: r.elapsedTime,
+        url: r.url,
+        headers: redactSecrets(r.headers),
+        error: r.error,
+        body: bodyStr,
+        bodyTruncated: truncated,
+        bodySize: fullSize,
+      });
     },
   );
 
@@ -132,28 +109,23 @@ export function registerRequestTools(server: McpServer) {
     async ({ requestId, maxBodyBytes }) => {
       const responses = await models.response.findByParentId(requestId);
       if (responses.length === 0) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'no responses' }) }], isError: true };
+        return fail('no responses');
       }
       const latest = responses.sort((a, b) => b.created - a.created)[0];
       const { buffer, truncated, fullSize } = await models.response.getBoundedBodyBuffer(latest, maxBodyBytes);
       const bodyStr = truncateUtf8(buffer, maxBodyBytes);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            id: latest._id,
-            statusCode: latest.statusCode,
-            statusMessage: latest.statusMessage,
-            elapsedTime: latest.elapsedTime,
-            url: latest.url,
-            headers: redactSecrets(latest.headers),
-            error: latest.error,
-            body: bodyStr,
-            bodyTruncated: truncated,
-            bodySize: fullSize,
-          }, null, 2),
-        }],
-      };
+      return json({
+        id: latest._id,
+        statusCode: latest.statusCode,
+        statusMessage: latest.statusMessage,
+        elapsedTime: latest.elapsedTime,
+        url: latest.url,
+        headers: redactSecrets(latest.headers),
+        error: latest.error,
+        body: bodyStr,
+        bodyTruncated: truncated,
+        bodySize: fullSize,
+      });
     },
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { assertSafeHeaders, assertSafeRequestUrl, maskValues, redactSecrets, redactUrl, secretValuesOf } from '../util';
+import { assertSafeHeaders, assertSafeRequestUrl, compact, fail, json, maskValues, notFound, redactSecrets, redactUrl, secretValuesOf, text } from '../util';
 
 describe('what a client sees of a request', () => {
   it('has no credentials in its URL', () => {
@@ -142,5 +142,30 @@ describe('assertSafeHeaders', () => {
 
   it('skips disabled entries', () => {
     expect(() => assertSafeHeaders([{ name: 'X-Evil', value: 'a\r\nb', disabled: true }])).not.toThrow();
+  });
+});
+
+describe("a tool's result", () => {
+  it('is a string as it stands, or indented JSON', () => {
+    expect(text('plain')).toEqual({ content: [{ type: 'text', text: 'plain' }] });
+    expect(text({ a: 1 })).toEqual({ content: [{ type: 'text', text: '{\n  "a": 1\n}' }] });
+    expect(text({ error: 'no' }, true)).toEqual({ content: [{ type: 'text', text: '{\n  "error": "no"\n}' }], isError: true });
+  });
+
+  it('is always JSON when asked for JSON', () => {
+    expect(json('plain')).toEqual({ content: [{ type: 'text', text: '"plain"' }] });
+    expect(json([1], true)).toEqual({ content: [{ type: 'text', text: '[\n  1\n]' }], isError: true });
+    expect(compact({ ok: true, n: [1, 2] })).toEqual({ content: [{ type: 'text', text: '{"ok":true,"n":[1,2]}' }] });
+  });
+
+  it('says what went wrong on one line', () => {
+    expect(fail('cannot')).toEqual({ content: [{ type: 'text', text: '{"error":"cannot"}' }], isError: true });
+    expect(notFound()).toEqual({ content: [{ type: 'text', text: '{"error":"not found"}' }], isError: true });
+    expect(notFound('workspace')).toEqual({ content: [{ type: 'text', text: '{"error":"workspace not found"}' }], isError: true });
+  });
+
+  it('has no isError unless it is one', () => {
+    expect('isError' in text('fine')).toBe(false);
+    expect('isError' in compact({})).toBe(false);
   });
 });

@@ -5,7 +5,7 @@ import { version } from '../../../../package.json';
 import { CONTENT_TYPE_EVENT_STREAM, CONTENT_TYPE_GRAPHQL, CONTENT_TYPE_JSON, METHOD_GET, METHOD_POST } from '../../../common/constants';
 import * as models from '../../../models';
 import * as requestOperations from '../../../models/helpers/request-operations';
-import { findWorkspaceForRequest, requestTypeLabel } from './util';
+import { compact, fail, findWorkspaceForRequest, notFound, requestTypeLabel } from './util';
 
 // the types the app's New menu makes, made as it makes them
 const REQUEST_TYPES = ['HTTP', 'GraphQL', 'Event Stream', 'gRPC', 'WebSocket', 'MCP'] as const;
@@ -22,7 +22,7 @@ export function registerRequestMutationTools(server: McpServer) {
     async ({ requestId, patch }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       // Drop identity/bookkeeping fields rather than corrupt the doc.
       const safePatch = { ...patch };
@@ -30,7 +30,7 @@ export function registerRequestMutationTools(server: McpServer) {
         delete safePatch[k];
       }
       await requestOperations.update(req as any, safePatch);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, requestId }) }] };
+      return compact({ ok: true, requestId });
     },
   );
 
@@ -67,12 +67,7 @@ export function registerRequestMutationTools(server: McpServer) {
         // over HTTP only: a stdio one runs a command on this computer when it connects
         created = await models.mcpRequest.create({ parentId, name: name || 'New MCP Request', transport: 'http', url });
       }
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ id: created._id, type, name: created.name, parentId: created.parentId }),
-        }],
-      };
+      return compact({ id: created._id, type, name: created.name, parentId: created.parentId });
     },
   );
 
@@ -83,13 +78,13 @@ export function registerRequestMutationTools(server: McpServer) {
     async ({ requestId, name, parentId }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       if (parentId && !await findWorkspaceForRequest(parentId)) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'parentId is not a workspace or folder' }) }], isError: true };
+        return fail('parentId is not a workspace or folder');
       }
       const copy = await requestOperations.duplicate(req, { ...(name ? { name } : {}), ...(parentId ? { parentId } : {}) });
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, id: copy._id, type: requestTypeLabel(copy), name: copy.name, parentId: copy.parentId }) }] };
+      return compact({ ok: true, id: copy._id, type: requestTypeLabel(copy), name: copy.name, parentId: copy.parentId });
     },
   );
 
@@ -100,10 +95,10 @@ export function registerRequestMutationTools(server: McpServer) {
     async ({ requestId }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
       await requestOperations.remove(req as any);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, requestId }) }] };
+      return compact({ ok: true, requestId });
     },
   );
 
@@ -114,9 +109,9 @@ export function registerRequestMutationTools(server: McpServer) {
     async ({ requestId }) => {
       const req = await requestOperations.getById(requestId);
       if (!req) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'not found' }) }], isError: true };
+        return notFound();
       }
-      return { content: [{ type: 'text', text: JSON.stringify({ id: requestId, type: requestTypeLabel(req) }) }] };
+      return compact({ id: requestId, type: requestTypeLabel(req) });
     },
   );
 }

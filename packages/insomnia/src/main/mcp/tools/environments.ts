@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import * as models from '../../../models';
-import { foreignEnvironment } from './util';
+import { compact, fail, foreignEnvironment, json } from './util';
 
 export function registerEnvironmentTools(server: McpServer) {
   server.tool(
@@ -13,21 +13,12 @@ export function registerEnvironmentTools(server: McpServer) {
       const baseEnv = await models.environment.getOrCreateForParentId(workspaceId);
       const subs = await models.environment.findByParentId(baseEnv._id);
       const envs = [baseEnv, ...subs];
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(
-            envs.map(e => ({
-              id: e._id,
-              name: e.name,
-              parentId: e.parentId,
-              isBase: e.parentId === workspaceId,
-            })),
-            null,
-            2,
-          ),
-        }],
-      };
+      return json(envs.map(e => ({
+        id: e._id,
+        name: e.name,
+        parentId: e.parentId,
+        isBase: e.parentId === workspaceId,
+      })));
     },
   );
 
@@ -37,12 +28,7 @@ export function registerEnvironmentTools(server: McpServer) {
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ activeEnvironmentId: meta.activeEnvironmentId }),
-        }],
-      };
+      return compact({ activeEnvironmentId: meta.activeEnvironmentId });
     },
   );
 
@@ -55,11 +41,11 @@ export function registerEnvironmentTools(server: McpServer) {
       // sub-envs - not an arbitrary/foreign id.
       const foreign = await foreignEnvironment(workspaceId, environmentId);
       if (foreign) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: foreign }) }], isError: true };
+        return fail(foreign);
       }
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
       await models.workspaceMeta.update(meta, { activeEnvironmentId: environmentId });
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, activeEnvironmentId: environmentId }) }] };
+      return compact({ ok: true, activeEnvironmentId: environmentId });
     },
   );
 }

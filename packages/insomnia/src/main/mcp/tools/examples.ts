@@ -2,8 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import * as models from '../../../models';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { text } from './util';
 
 const headersSchema = z.array(z.object({ name: z.string(), value: z.string() }));
 

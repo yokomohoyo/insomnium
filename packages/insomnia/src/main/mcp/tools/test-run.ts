@@ -6,8 +6,7 @@ import { database } from '../../../common/database';
 import * as models from '../../../models';
 import type { UnitTest } from '../../../models/unit-test';
 import { getSendRequestCallback } from '../../../network/unit-test-feature';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { json } from './util';
 
 // What the user is asked before a run: unit tests are JavaScript with the
 // app's full access, and a client can write them (create_unit_test), so
@@ -37,19 +36,19 @@ export function registerTestRunTools(server: McpServer, confirm: ConfirmTestRun)
     async ({ testSuiteId }, { signal }) => {
       const suite = await models.unitTestSuite.getById(testSuiteId);
       if (!suite) {
-        return text({ error: 'test suite not found' }, true);
+        return json({ error: 'test suite not found' }, true);
       }
       const workspace = await models.workspace.getById(suite.parentId);
       const unitTests = await database.find<UnitTest>(models.unitTest.type, { parentId: testSuiteId });
       if (!unitTests.length) {
-        return text({ error: 'the test suite has no tests' }, true);
+        return json({ error: 'the test suite has no tests' }, true);
       }
       const allowed = await confirm({ suite: suite.name, workspace: workspace?.name || '', tests: unitTests.map(test => test.name) }, signal);
       // a record of each answer, in the app's log
       console.log(`[mcp] run_test_suite ${testSuiteId}: the user ${allowed === true ? 'allowed' : 'declined'} the run`);
       // only a plain yes runs anything
       if (allowed !== true) {
-        return text({ error: 'the user declined to run the tests' }, true);
+        return json({ error: 'the user declined to run the tests' }, true);
       }
       return oneAtATime(async () => {
         const tests: Test[] = unitTests.map(test => ({ name: test.name, code: test.code, defaultRequestId: test.requestId }));
@@ -58,14 +57,14 @@ export function registerTestRunTools(server: McpServer, confirm: ConfirmTestRun)
           results = await runTests(generate([{ name: suite.name, suites: [], tests }]), { sendRequest: getSendRequestCallback() });
         } catch (err) {
           // code that doesn't parse: nothing ran
-          return text({ error: `the tests could not run: ${(err as Error).message}` }, true);
+          return json({ error: `the tests could not run: ${(err as Error).message}` }, true);
         }
         if (workspace) {
           await models.unitTestResult.create({ results, parentId: workspace._id });
         }
         const failures = new Map(results.failures.map(failure => [failure.fullTitle, failure]));
         const failed = results.stats.failures;
-        return text({
+        return json({
           passed: failed === 0,
           stats: { tests: results.stats.tests, passes: results.stats.passes, failures: failed, durationMs: results.stats.duration },
           tests: results.tests.map(test => {

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { database } from '../../../common/database';
 import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
+import { compact, fail, json, notFound } from './util';
 
 export function registerWorkspaceTools(server: McpServer) {
   server.tool(
@@ -12,12 +13,7 @@ export function registerWorkspaceTools(server: McpServer) {
     {},
     async () => {
       const projects = await models.project.all();
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(projects.map(p => ({ id: p._id, name: p.name })), null, 2),
-        }],
-      };
+      return json(projects.map(p => ({ id: p._id, name: p.name })));
     },
   );
 
@@ -27,9 +23,7 @@ export function registerWorkspaceTools(server: McpServer) {
     { name: z.string() },
     async ({ name }) => {
       const p = await models.project.create({ name });
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ id: p._id, name: p.name }) }],
-      };
+      return compact({ id: p._id, name: p.name });
     },
   );
 
@@ -39,21 +33,12 @@ export function registerWorkspaceTools(server: McpServer) {
     {},
     async () => {
       const workspaces = await models.workspace.all();
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(
-            workspaces.map(w => ({
-              id: w._id,
-              name: w.name,
-              scope: w.scope,
-              parentId: w.parentId,
-            })),
-            null,
-            2,
-          ),
-        }],
-      };
+      return json(workspaces.map(w => ({
+        id: w._id,
+        name: w.name,
+        scope: w.scope,
+        parentId: w.parentId,
+      })));
     },
   );
 
@@ -68,7 +53,7 @@ export function registerWorkspaceTools(server: McpServer) {
     async ({ name, scope, parentId }) => {
       const project = await models.project.getById(parentId);
       if (!project) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: `project ${parentId} not found - use list_projects to see valid ids` }) }], isError: true };
+        return fail(`project ${parentId} not found - use list_projects to see valid ids`);
       }
       const ws = await models.workspace.create({ name, scope, parentId });
       // as the app's own create does: a design doc's Spec needs its spec
@@ -78,12 +63,7 @@ export function registerWorkspaceTools(server: McpServer) {
       await models.environment.getOrCreateForParentId(ws._id);
       await models.cookieJar.getOrCreateForParentId(ws._id);
       await models.workspaceMeta.getOrCreateByParentId(ws._id);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ id: ws._id, name: ws.name, scope: ws.scope, parentId: ws.parentId }),
-        }],
-      };
+      return compact({ id: ws._id, name: ws.name, scope: ws.scope, parentId: ws.parentId });
     },
   );
 
@@ -94,15 +74,15 @@ export function registerWorkspaceTools(server: McpServer) {
     async ({ workspaceId, name }) => {
       const workspace = await models.workspace.getById(workspaceId);
       if (!workspace) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: 'workspace not found' }) }], isError: true };
+        return notFound('workspace');
       }
       if (workspace.name !== name) {
-        return { content: [{ type: 'text', text: JSON.stringify({ error: `name does not match: the workspace is named ${JSON.stringify(workspace.name)}` }) }], isError: true };
+        return fail(`name does not match: the workspace is named ${JSON.stringify(workspace.name)}`);
       }
       // as the app's own delete does
       await models.stats.incrementDeletedRequestsForDescendents(workspace);
       await models.workspace.remove(workspace);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, workspaceId, name }) }] };
+      return compact({ ok: true, workspaceId, name });
     },
   );
 
@@ -112,16 +92,7 @@ export function registerWorkspaceTools(server: McpServer) {
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
       const groups = await database.findDescendants(workspaceId, [models.requestGroup.type]);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify(
-            groups.map(g => ({ id: g._id, name: g.name, parentId: g.parentId })),
-            null,
-            2,
-          ),
-        }],
-      };
+      return json(groups.map(g => ({ id: g._id, name: g.name, parentId: g.parentId })));
     },
   );
 }

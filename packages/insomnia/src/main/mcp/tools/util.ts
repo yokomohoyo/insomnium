@@ -185,3 +185,21 @@ export async function findWorkspaceForRequest(parentId: string): Promise<Workspa
   }
   return null;
 }
+
+// A tool's result, as the MCP SDK takes it
+const result = (body: string, isError: boolean) => ({ content: [{ type: 'text' as const, text: body }], ...(isError ? { isError } : {}) });
+
+// A result that is a string as it stands, or anything else as indented JSON
+export const text = (value: unknown, isError = false) => result(typeof value === 'string' ? value : JSON.stringify(value, null, 2), isError);
+
+// A result that is always indented JSON: a string comes out quoted
+export const json = (value: unknown, isError = false) => result(JSON.stringify(value, null, 2), isError);
+
+// A result that is JSON on one line, as the first tools wrote theirs
+export const compact = (value: unknown, isError = false) => result(JSON.stringify(value), isError);
+
+// An error on one line: {"error":"..."}
+export const fail = (message: string) => compact({ error: message }, true);
+
+// The error for an id that names nothing: "not found", or "<what> not found"
+export const notFound = (what?: string) => fail(what ? `${what} not found` : 'not found');

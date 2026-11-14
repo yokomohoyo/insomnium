@@ -4,7 +4,7 @@ import { version } from '../../package.json';
 import { getProductName } from '../common/constants';
 import { database } from '../common/database';
 import { HEADLESS_INSTRUCTIONS, HEADLESS_SERVER_INSTRUCTIONS, registerInstructions } from '../main/mcp/instructions';
-import { registerTools } from '../main/mcp/tools';
+import { filterTools, registerTools } from '../main/mcp/tools';
 import * as models from '../models';
 import { DEFAULT_PROJECT_ID } from '../models/project';
 import { setGcpAudienceApproval } from '../network/gcp-id-token/get-token';
@@ -142,7 +142,7 @@ export async function startServer(config: ServerConfig) {
     buildServer: () => {
       const server = new McpServer({ name: 'insomnium-server', version }, { instructions: HEADLESS_SERVER_INSTRUCTIONS });
       registerInstructions(server, HEADLESS_INSTRUCTIONS);
-      registerTools(server, name => SERVER_TOOLS.has(name));
+      registerTools(filterTools(server, name => SERVER_TOOLS.has(name)));
       return server;
     },
   }).catch(err => {

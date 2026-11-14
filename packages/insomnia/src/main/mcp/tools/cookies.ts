@@ -4,8 +4,7 @@ import { z } from 'zod';
 
 import * as models from '../../../models';
 import type { Cookie } from '../../../models/cookie-jar';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: typeof value === 'string' ? value : JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { text } from './util';
 
 // tough-cookie's latest date, which the cookie editor gives a new cookie
 const MAX_TIME = 2147483647000;

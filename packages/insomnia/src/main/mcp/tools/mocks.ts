@@ -3,8 +3,7 @@ import { z } from 'zod';
 
 import { loadMockRoutes, type MockLogEntry, mockPathOf } from '../../../mock/mock-routes';
 import * as models from '../../../models';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { json } from './util';
 
 // what the app's mock servers (main/mock-servers.ts) offer the tools
 export interface MockControls {
@@ -37,15 +36,15 @@ export function registerMockTools(server: McpServer, mocks: MockControls) {
     async ({ workspaceId, port }) => {
       const routes = await routesOf(workspaceId);
       if (!routes) {
-        return text({ error: 'workspace not found' }, true);
+        return json({ error: 'workspace not found' }, true);
       }
       let status;
       try {
         status = await mocks.start(workspaceId, port);
       } catch (err) {
-        return text({ error: `the mock server could not start: ${(err as Error).message}` }, true);
+        return json({ error: `the mock server could not start: ${(err as Error).message}` }, true);
       }
-      return text({
+      return json({
         ...status,
         routes,
         ...(routes.length ? {} : { note: 'no request in this collection has a response example yet, so every path answers 404; add some with create_response_example' }),
@@ -60,7 +59,7 @@ export function registerMockTools(server: McpServer, mocks: MockControls) {
     async ({ workspaceId }) => {
       const running = mocks.status(workspaceId);
       await mocks.stop(workspaceId);
-      return text({ ok: true, wasRunning: !!running });
+      return json({ ok: true, wasRunning: !!running });
     },
   );
 
@@ -71,10 +70,10 @@ export function registerMockTools(server: McpServer, mocks: MockControls) {
     async ({ workspaceId }) => {
       const routes = await routesOf(workspaceId);
       if (!routes) {
-        return text({ error: 'workspace not found' }, true);
+        return json({ error: 'workspace not found' }, true);
       }
       const status = mocks.status(workspaceId);
-      return text({ running: !!status, ...status, routes, recentRequests: status ? mocks.recent(workspaceId) : [] });
+      return json({ running: !!status, ...status, routes, recentRequests: status ? mocks.recent(workspaceId) : [] });
     },
   );
 }

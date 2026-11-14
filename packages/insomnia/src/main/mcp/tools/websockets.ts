@@ -5,9 +5,7 @@ import { getRenderContext, render, RENDER_PURPOSE_SEND } from '../../../common/r
 import * as models from '../../../models';
 import { type WebSocketConnection, renderWebSocketConnection } from '../../../network/websocket-connect';
 import type { webSockets } from '../../network/websocket';
-import { assertSafeRequestUrl, findWorkspaceForRequest } from './util';
-
-const text = (value: unknown, isError = false) => ({ content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }], ...(isError ? { isError } : {}) });
+import { assertSafeRequestUrl, findWorkspaceForRequest, json } from './util';
 
 // what the app's WebSocket connections (main/network/websocket.ts) offer the
 // tools: a type only, so nothing of Electron's comes with it
@@ -40,24 +38,24 @@ export function registerWebSocketTools(server: McpServer, sockets: WebSocketCont
     async ({ requestId }) => {
       const context = await contextOf(requestId);
       if (!context) {
-        return text({ error: 'WebSocket request not found' }, true);
+        return json({ error: 'WebSocket request not found' }, true);
       }
       if (await sockets.isOpen(requestId)) {
-        return text({ ok: true, open: true, note: 'it was already connected' });
+        return json({ ok: true, open: true, note: 'it was already connected' });
       }
       let connection: WebSocketConnection;
       try {
         connection = await renderWebSocketConnection(context.request, context.environmentId, context.workspace._id);
         assertSafeRequestUrl(connection.url, ['ws:', 'wss:']);
       } catch (err) {
-        return text({ error: (err as Error).message }, true);
+        return json({ error: (err as Error).message }, true);
       }
       await sockets.open({ ...connection, requestId, workspaceId: context.workspace._id });
       for (let waited = 0; waited < waitMs && !await sockets.isOpen(requestId); waited += 100) {
         await sleep(100);
       }
       const open = await sockets.isOpen(requestId);
-      return text({ ok: open, open, ...(open ? {} : { note: 'not open yet, or the server refused: read_websocket_messages shows what happened' }) }, !open);
+      return json({ ok: open, open, ...(open ? {} : { note: 'not open yet, or the server refused: read_websocket_messages shows what happened' }) }, !open);
     },
   );
 
@@ -68,22 +66,22 @@ export function registerWebSocketTools(server: McpServer, sockets: WebSocketCont
     async ({ requestId, message, binary }) => {
       const context = await contextOf(requestId);
       if (!context) {
-        return text({ error: 'WebSocket request not found' }, true);
+        return json({ error: 'WebSocket request not found' }, true);
       }
       if (context.request.socketIo?.enabled || context.request.mqtt?.enabled) {
-        return text({ error: "this request speaks Socket.IO or MQTT: send from the app's message editor, which sets the event or topic" }, true);
+        return json({ error: "this request speaks Socket.IO or MQTT: send from the app's message editor, which sets the event or topic" }, true);
       }
       if (!await sockets.isOpen(requestId)) {
-        return text({ error: 'not connected: connect_websocket first' }, true);
+        return json({ error: 'not connected: connect_websocket first' }, true);
       }
       let payload: string;
       try {
         payload = await render(message, await getRenderContext({ request: context.request, environmentId: context.environmentId, purpose: RENDER_PURPOSE_SEND })) as string;
         await sockets.send({ requestId, payload, ...(binary ? { binary } : {}) });
       } catch (err) {
-        return text({ error: (err as Error).message }, true);
+        return json({ error: (err as Error).message }, true);
       }
-      return text({ ok: true });
+      return json({ ok: true });
     },
   );
 
@@ -93,10 +91,10 @@ export function registerWebSocketTools(server: McpServer, sockets: WebSocketCont
     { requestId: z.string(), limit: z.number().int().min(1).max(500).default(50) },
     async ({ requestId, limit }) => {
       if (!await models.webSocketRequest.getById(requestId)) {
-        return text({ error: 'WebSocket request not found' }, true);
+        return json({ error: 'WebSocket request not found' }, true);
       }
       const events = await sockets.events(requestId);
-      return text({
+      return json({
         open: await sockets.isOpen(requestId),
         total: events.length,
         events: events.slice(0, limit).map(event => {
@@ -121,7 +119,7 @@ export function registerWebSocketTools(server: McpServer, sockets: WebSocketCont
     async ({ requestId }) => {
       const wasOpen = await sockets.isOpen(requestId);
       sockets.close(requestId);
-      return text({ ok: true, wasOpen });
+      return json({ ok: true, wasOpen });
     },
   );
 }
