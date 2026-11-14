@@ -2,7 +2,6 @@ import electron, { BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
 import { IncomingMessage } from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
-import path from 'path';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import { KeyObject, PxfObject } from 'tls';
 import { v4 as uuidV4 } from 'uuid';
@@ -16,7 +15,7 @@ import {
 
 import { AUTH_API_KEY, AUTH_BASIC, AUTH_BEARER } from '../../common/constants';
 import { jarFromCookies } from '../../common/cookies';
-import { generateId, getSetCookieHeaders } from '../../common/misc';
+import { generateId } from '../../common/misc';
 import { webSocketRequest } from '../../models';
 import * as models from '../../models';
 import { CookieJar } from '../../models/cookie-jar';
@@ -27,13 +26,12 @@ import { COOKIE, HEADER, QUERY_PARAMS } from '../../network/api-key/constants';
 import { getBasicAuthHeader } from '../../network/basic-auth/get-header';
 import { getBearerAuthHeader } from '../../network/bearer-auth/get-header';
 import { lookupRefusingMetadata, metadataGuarded } from '../../network/metadata-hosts';
-import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
-import { readEventLog, readEventLogSince } from './event-log';
+import { ConnectionLogs, findEvents, findEventsSince, saveErrorResponse, saveResponse, storeSetCookies } from './connection-log';
 import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
 import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
 import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
@@ -87,8 +85,7 @@ export type WebSocketEventLog = WebSocketEvent[];
 
 const WebSocketConnections = new Map<string, WebSocket>();
 const MqttSessions = new Map<string, MqttSession>();
-const eventLogFileStreams = new Map<string, fs.WriteStream>();
-const timelineFileStreams = new Map<string, fs.WriteStream>();
+const logs = new ConnectionLogs();
 
 // Reconnecting (the request's reconnect setting): a connection that drops after
 // opening is opened again into the same response, its event log and timeline
@@ -192,16 +189,9 @@ const openWebSocketConnection = async (
     return;
   }
 
-  const responsesDir = path.join(process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData'), 'responses');
-  fs.mkdirSync(responsesDir, { recursive: true });
-
-  const flags = resume ? 'a' : 'w';
-  const responseBodyPath = resume?.eventLogPath || path.join(responsesDir, uuidV4() + '.response');
-  eventLogFileStreams.set(options.requestId, fs.createWriteStream(responseBodyPath, { flags }));
-  const timelinePath = resume?.timelinePath || path.join(responsesDir, responseId + '.timeline');
-  timelineFileStreams.set(options.requestId, fs.createWriteStream(timelinePath, { flags }));
+  const { eventLogPath: responseBodyPath, timelinePath } = logs.open(options.requestId, responseId, resume);
   if (resume) {
-    timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Reconnecting, attempt ${Reconnects.get(options.requestId)?.attempt ?? 1}`, name: 'Text', timestamp: Date.now() }) + '\n');
+    logs.text(options.requestId, `Reconnecting, attempt ${Reconnects.get(options.requestId)?.attempt ?? 1}`);
   }
 
   const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(options.workspaceId);
@@ -220,7 +210,9 @@ const openWebSocketConnection = async (
     const initialBytes = options.initialPayload && options.initialPayloadBinary ? payloadBytes(options.initialPayload, options.initialPayloadBinary) : undefined;
     const caCert = await models.caCertificate.findByParentId(options.workspaceId);
     const caCertficatePath = caCert?.disabled === false ? caCert.path : null;
-    const caCertificate = await getCaBundle(caCertficatePath, (await models.settings.getOrCreate()).useSystemCertificates);
+    // read once: what this connection is opened and recorded with
+    const settings = await models.settings.getOrCreate();
+    const caCertificate = await getCaBundle(caCertficatePath, settings.useSystemCertificates);
 
     const reduceArrayToLowerCaseKeyedDictionary = (acc: { [key: string]: string }, { name, value }: BaseWebSocketRequest['headers'][0]) =>
       ({ ...acc, [name.toLowerCase() || '']: value || '' });
@@ -263,7 +255,6 @@ const openWebSocketConnection = async (
     const lowerCasedEnabledHeaders = headers
       .filter(({ name, disabled }) => Boolean(name) && !disabled)
       .reduce(reduceArrayToLowerCaseKeyedDictionary, {});
-    const settings = await models.settings.getOrCreate();
     const start = performance.now();
 
     const clientCertificates = await models.clientCertificate.findByParentId(options.workspaceId);
@@ -276,17 +267,17 @@ const openWebSocketConnection = async (
       const { passphrase, cert, key, pfx } = clientCertificate;
 
       if (cert) {
-        timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Adding SSL PEM certificate: ${cert}`, name: 'Text', timestamp: Date.now() }) + '\n');
+        logs.text(options.requestId, `Adding SSL PEM certificate: ${cert}`);
         pemCertificates.push(fs.readFileSync(cert, 'utf-8'));
       }
 
       if (key) {
-        timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Adding SSL KEY certificate: ${key}`, name: 'Text', timestamp: Date.now() }) + '\n');
+        logs.text(options.requestId, `Adding SSL KEY certificate: ${key}`);
         pemCertificateKeys.push({ pem: fs.readFileSync(key, 'utf-8'), passphrase: passphrase ?? undefined });
       }
 
       if (pfx) {
-        timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Adding SSL P12 certificate: ${pfx}`, name: 'Text', timestamp: Date.now() }) + '\n');
+        logs.text(options.requestId, `Adding SSL P12 certificate: ${pfx}`);
         pfxCertificates.push({ buf: fs.readFileSync(pfx, 'utf-8'), passphrase: passphrase ?? undefined });
       }
     });
@@ -321,7 +312,7 @@ const openWebSocketConnection = async (
     // TLS options above still apply, inside it
     const proxy = await proxyFor(url, settings);
     if (proxy) {
-      timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: `Using proxy ${describeProxy(proxy)}`, name: 'Text', timestamp: Date.now() }) + '\n');
+      logs.text(options.requestId, `Using proxy ${describeProxy(proxy)}`);
     }
     const agent = proxy ? (proxy.startsWith('socks') ? new SocksProxyAgent(proxy) : new HttpsProxyAgent(proxy)) : undefined;
     // for an MCP client, no connection to a cloud metadata address, however
@@ -344,14 +335,16 @@ const openWebSocketConnection = async (
     if (mqtt) {
       MqttSessions.set(options.requestId, new MqttSession(mqtt, data => ws.send(data), (text, direction) => {
         const event: WebSocketMessageEvent = { _id: uuidV4(), requestId: options.requestId, data: text, type: 'message', direction, timestamp: Date.now() };
-        eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(event) + '\n');
+        logs.event(options.requestId, event);
       }));
     }
 
-    ws.on('upgrade', async incomingMessage => {
-      // @ts-expect-error -- private property
-      const internalRequestHeader = ws._req._header;
-      const { timeline, responseHeaders, statusCode, statusMessage, httpVersion } = parseResponseAndBuildTimeline(url, incomingMessage, internalRequestHeader);
+    // The server's HTTP answer as the response; a reconnect carries on in the
+    // one it has
+    const recordResponse = async ({ responseHeaders, statusCode, statusMessage, httpVersion }: ReturnType<typeof parseResponseAndBuildTimeline>) => {
+      if (resume) {
+        return;
+      }
       const responsePatch: Partial<WebSocketResponse> = {
         _id: responseId,
         parentId: request._id,
@@ -367,60 +360,34 @@ const openWebSocketConnection = async (
         settingSendCookies: request.settingSendCookies,
         settingStoreCookies: request.settingStoreCookies,
       };
+      await saveResponse(models.webSocketResponse, request._id, responsePatch, settings.maxHistoryResponses);
+    };
 
-      if (!resume) {
-        const settings = await models.settings.getOrCreate();
-        const res = await models.webSocketResponse.create(responsePatch, settings.maxHistoryResponses);
-        models.requestMeta.updateOrCreateByParentId(request._id, { activeResponseId: res._id });
-      }
+    ws.on('upgrade', async incomingMessage => {
+      // @ts-expect-error -- private property
+      const internalRequestHeader = ws._req._header;
+      const parsed = parseResponseAndBuildTimeline(url, incomingMessage, internalRequestHeader);
+      const { timeline, responseHeaders } = parsed;
+      await recordResponse(parsed);
 
       if (request.settingStoreCookies) {
-        const setCookieStrings: string[] = getSetCookieHeaders(responseHeaders).map(h => h.value);
-        const totalSetCookies = setCookieStrings.length;
-        if (totalSetCookies) {
-          const currentUrl = request.url;
-          const { cookies, rejectedCookies } = await addSetCookiesToToughCookieJar({ setCookieStrings, currentUrl, cookieJar: options.cookieJar });
-          rejectedCookies.forEach(errorMessage => timeline.push({ value: `Rejected cookie: ${errorMessage}`, name: 'Text', timestamp: Date.now() }));
-          const hasCookiesToPersist = totalSetCookies > rejectedCookies.length;
-          if (hasCookiesToPersist) {
-            await models.cookieJar.update(options.cookieJar, { cookies });
-            timeline.push({ value: `Saved ${totalSetCookies} cookies`, name: 'Text', timestamp: Date.now() });
-          }
-        }
+        // the stored URL, not the one connected to
+        await storeSetCookies({ headers: responseHeaders, currentUrl: request.url, cookieJar: options.cookieJar, timeline });
       }
 
-      timeline.map(t => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(t) + '\n'));
+      timeline.forEach(entry => logs.timeline(options.requestId, entry));
     });
     ws.on('unexpected-response', async (clientRequest, incomingMessage) => {
       // the server answered with HTTP, not a WebSocket: trying again won't help
       ClosingOnPurpose.add(options.requestId);
       incomingMessage.on('data', chunk => {
-        timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: chunk.toString(), name: 'DataOut', timestamp: Date.now() }) + '\n');
+        logs.timeline(options.requestId, { value: chunk.toString(), name: 'DataOut', timestamp: Date.now() });
       });
       // @ts-expect-error -- private property
       const internalRequestHeader = clientRequest._header;
-      const { timeline, responseHeaders, statusCode, statusMessage, httpVersion } = parseResponseAndBuildTimeline(url, incomingMessage, internalRequestHeader);
-      timeline.map(t => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(t) + '\n'));
-      const responsePatch: Partial<WebSocketResponse> = {
-        _id: responseId,
-        parentId: request._id,
-        environmentId: responseEnvironmentId,
-        headers: responseHeaders,
-        url: url,
-        statusCode,
-        statusMessage,
-        httpVersion,
-        elapsedTime: performance.now() - start,
-        timelinePath,
-        eventLogPath: responseBodyPath,
-        settingSendCookies: request.settingSendCookies,
-        settingStoreCookies: request.settingStoreCookies,
-      };
-      if (!resume) {
-        const settings = await models.settings.getOrCreate();
-        const res = await models.webSocketResponse.create(responsePatch, settings.maxHistoryResponses);
-        models.requestMeta.updateOrCreateByParentId(request._id, { activeResponseId: res._id });
-      }
+      const parsed = parseResponseAndBuildTimeline(url, incomingMessage, internalRequestHeader);
+      parsed.timeline.forEach(entry => logs.timeline(options.requestId, entry));
+      await recordResponse(parsed);
       deleteRequestMaps(request._id, `Unexpected response ${incomingMessage.statusCode}`);
       afterDrop(request._id);
     });
@@ -433,8 +400,8 @@ const openWebSocketConnection = async (
         timestamp: Date.now(),
       };
 
-      eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(openEvent) + '\n');
-      timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ value: 'WebSocket connection established', name: 'Text', timestamp: Date.now() }) + '\n');
+      logs.event(options.requestId, openEvent);
+      logs.text(options.requestId, 'WebSocket connection established');
       // from here a drop reconnects, if the request says to; a reconnect doesn't
       // send the first message again. The attempts so far still count until
       // the connection has stayed open a while (afterDrop).
@@ -478,7 +445,7 @@ const openWebSocketConnection = async (
         timestamp: Date.now(),
       };
 
-      eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(messageEvent) + '\n');
+      logs.event(options.requestId, messageEvent);
 
       // the protocols below speak text
       if (bytesOf(data)) {
@@ -588,31 +555,13 @@ const afterDrop = async (requestId: string) => {
   broadcastReadyState(requestId);
 };
 
-const createErrorResponse = async (responseId: string, requestId: string, environmentId: string | null, timelinePath: string, message: string) => {
-  const settings = await models.settings.getOrCreate();
-  const responsePatch = {
-    _id: responseId,
-    parentId: requestId,
-    environmentId: environmentId,
-    timelinePath,
-    statusMessage: 'Error',
-    error: message,
-  };
-  const res = await models.webSocketResponse.create(responsePatch, settings.maxHistoryResponses);
-  models.requestMeta.updateOrCreateByParentId(requestId, { activeResponseId: res._id });
-};
+const createErrorResponse = (responseId: string, requestId: string, environmentId: string | null, timelinePath: string, message: string) =>
+  saveErrorResponse(models.webSocketResponse, responseId, requestId, environmentId, timelinePath, message);
 
 const deleteRequestMaps = async (requestId: string, message: string, event?: WebSocketCloseEvent | WebSocketErrorEvent) => {
-  if (event) {
-    eventLogFileStreams.get(requestId)?.write(JSON.stringify(event) + '\n');
-  }
   MqttSessions.get(requestId)?.stop();
   MqttSessions.delete(requestId);
-  eventLogFileStreams.get(requestId)?.end();
-  eventLogFileStreams.delete(requestId);
-  timelineFileStreams.get(requestId)?.write(JSON.stringify({ value: message, name: 'Text', timestamp: Date.now() }) + '\n');
-  timelineFileStreams.get(requestId)?.end();
-  timelineFileStreams.delete(requestId);
+  logs.close(requestId, message, event);
   WebSocketConnections.delete(requestId);
 };
 
@@ -641,7 +590,7 @@ const sendPayload = async (ws: WebSocket, options: { payload: string; requestId:
     timestamp: Date.now(),
   };
 
-  eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(lastMessage) + '\n');
+  logs.event(options.requestId, lastMessage);
   const response = await models.webSocketResponse.getLatestByParentId(options.requestId);
   if (!response) {
     console.error('something went wrong');
@@ -699,10 +648,7 @@ const findMany = async (
   options: { responseId: string }
 ): Promise<WebSocketEvent[]> => {
   const response = await models.webSocketResponse.getById(options.responseId);
-  if (!response || !response.eventLogPath) {
-    return [];
-  }
-  return readEventLog<WebSocketEvent>(response.eventLogPath);
+  return findEvents<WebSocketEvent>(response?.eventLogPath);
 };
 
 // what a window polling the log doesn't have yet
@@ -710,10 +656,7 @@ const findSince = async (
   options: { responseId: string; known: number }
 ): Promise<{ total: number; added: WebSocketEvent[] }> => {
   const response = await models.webSocketResponse.getById(options.responseId);
-  if (!response || !response.eventLogPath) {
-    return { total: 0, added: [] };
-  }
-  return readEventLogSince<WebSocketEvent>(response.eventLogPath, options.known);
+  return findEventsSince<WebSocketEvent>(response?.eventLogPath, options.known);
 };
 
 export interface WebSocketBridgeAPI {

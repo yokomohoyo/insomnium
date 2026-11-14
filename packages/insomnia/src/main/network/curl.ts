@@ -1,19 +1,16 @@
 import { Curl, CurlInfoDebug, HeaderInfo } from '@getinsomnia/node-libcurl';
 import electron, { BrowserWindow, ipcMain } from 'electron';
-import fs from 'fs';
-import path from 'path';
 import { v4 as uuidV4 } from 'uuid';
 
-import { describeByteSize, generateId, getSetCookieHeaders } from '../../common/misc';
+import { describeByteSize, generateId } from '../../common/misc';
 import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { Response } from '../../models/response';
 import { metadataGuarded } from '../../network/metadata-hosts';
-import { addSetCookiesToToughCookieJar } from '../../network/set-cookie-util';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getCaBundle } from './ca-bundle';
-import { readEventLog, readEventLogSince } from './event-log';
+import { ConnectionLogs, findEvents, findEventsSince, saveErrorResponse, saveResponse, storeSetCookies } from './connection-log';
 import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
 import { proxyFor } from './proxy';
@@ -66,8 +63,7 @@ export type CurlEvent =
   | CurlCloseEvent;
 
 const CurlConnections = new Map<string, Curl>();
-const eventLogFileStreams = new Map<string, fs.WriteStream>();
-const timelineFileStreams = new Map<string, fs.WriteStream>();
+const logs = new ConnectionLogs();
 
 const parseHeadersAndBuildTimeline = (url: string, headersWithStatus: HeaderInfo) => {
   const { result, ...headers } = headersWithStatus;
@@ -103,13 +99,7 @@ const openCurlConnection = async (
     return;
   }
 
-  const responsesDir = path.join(process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData'), 'responses');
-  fs.mkdirSync(responsesDir, { recursive: true });
-
-  const responseBodyPath = path.join(responsesDir, uuidV4() + '.response');
-  eventLogFileStreams.set(options.requestId, fs.createWriteStream(responseBodyPath));
-  const timelinePath = path.join(responsesDir, responseId + '.timeline');
-  timelineFileStreams.set(options.requestId, fs.createWriteStream(timelinePath));
+  const { eventLogPath: responseBodyPath, timelinePath } = logs.open(options.requestId, responseId);
 
   const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(options.workspaceId);
   const environmentId: string = workspaceMeta.activeEnvironmentId || 'n/a';
@@ -149,7 +139,7 @@ const openCurlConnection = async (
     if (requestBody !== undefined) {
       curl.setOpt(Curl.option.POSTFIELDS, requestBody);
     }
-    debugTimeline.forEach(entry => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(entry) + '\n'));
+    debugTimeline.forEach(entry => logs.timeline(options.requestId, entry));
     CurlConnections.set(options.requestId, curl);
     CurlConnections.get(options.requestId)?.setOpt(Curl.option.HTTPHEADER, headerStrings);
     CurlConnections.get(options.requestId)?.on('error', async (curlError, errorCode) => {
@@ -184,7 +174,7 @@ const openCurlConnection = async (
       if (infoType === CurlInfoDebug.HeaderOut && !opened) {
         opened = true;
         const openEvent: CurlOpenEvent = { _id: uuidV4(), requestId: options.requestId, type: 'open', timestamp: Date.now() };
-        eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(openEvent) + '\n');
+        logs.event(options.requestId, openEvent);
       }
       const isSSLData = infoType === CurlInfoDebug.SslDataIn || infoType === CurlInfoDebug.SslDataOut;
       const isEmpty = buffer.length === 0;
@@ -209,7 +199,7 @@ const openCurlConnection = async (
         name = 'Text';
       }
       const value = timelineMessage || buffer.toString('utf8');
-      timelineFileStreams.get(options.requestId)?.write(JSON.stringify({ name, value, timestamp: Date.now() }) + '\n');
+      logs.timeline(options.requestId, { name, value, timestamp: Date.now() });
       return 0;
     });
 
@@ -244,26 +234,14 @@ const openCurlConnection = async (
         settingStoreCookies: req.settingStoreCookies,
         bodyCompression: null,
       };
-      const settings = await models.settings.getOrCreate();
-      const res = await models.response.create(responsePatch, settings.maxHistoryResponses);
-      models.requestMeta.updateOrCreateByParentId(request._id, { activeResponseId: res._id });
+      await saveResponse(models.response, request._id, responsePatch, settings.maxHistoryResponses);
 
       if (req.settingStoreCookies) {
-        const setCookieStrings: string[] = getSetCookieHeaders(responseHeaders).map(h => h.value);
-        const totalSetCookies = setCookieStrings.length;
-        if (totalSetCookies) {
-          // the last hop's cookies are that URL's, after any redirects
-          const currentUrl = String(curl.getInfo(Curl.info.EFFECTIVE_URL) || req.url);
-          const { cookies, rejectedCookies } = await addSetCookiesToToughCookieJar({ setCookieStrings, currentUrl, cookieJar: options.cookieJar });
-          rejectedCookies.forEach(errorMessage => timeline.push({ value: `Rejected cookie: ${errorMessage}`, name: 'Text', timestamp: Date.now() }));
-          const hasCookiesToPersist = totalSetCookies > rejectedCookies.length;
-          if (hasCookiesToPersist) {
-            await models.cookieJar.update(options.cookieJar, { cookies });
-            timeline.push({ value: `Saved ${totalSetCookies} cookies`, name: 'Text', timestamp: Date.now() });
-          }
-        }
+        // the last hop's cookies are that URL's, after any redirects
+        const currentUrl = String(curl.getInfo(Curl.info.EFFECTIVE_URL) || req.url);
+        await storeSetCookies({ headers: responseHeaders, currentUrl, cookieJar: options.cookieJar, timeline });
       }
-      timeline.map(t => timelineFileStreams.get(options.requestId)?.write(JSON.stringify(t) + '\n'));
+      timeline.forEach(entry => logs.timeline(options.requestId, entry));
     })();
 
     const decoder = new TextDecoder('utf-8');
@@ -278,7 +256,7 @@ const openCurlConnection = async (
         timestamp: Date.now(),
         direction: 'INCOMING',
       };
-      eventLogFileStreams.get(options.requestId)?.write(JSON.stringify(messageEvent) + '\n');
+      logs.event(options.requestId, messageEvent);
       return chunk.length;
     });
 
@@ -300,29 +278,11 @@ const openCurlConnection = async (
   }
 };
 
-const createErrorResponse = async (responseId: string, requestId: string, environmentId: string | null, timelinePath: string, message: string) => {
-  const settings = await models.settings.getOrCreate();
-  const responsePatch = {
-    _id: responseId,
-    parentId: requestId,
-    environmentId: environmentId,
-    timelinePath,
-    statusMessage: 'Error',
-    error: message,
-  };
-  const res = await models.response.create(responsePatch, settings.maxHistoryResponses);
-  models.requestMeta.updateOrCreateByParentId(requestId, { activeResponseId: res._id });
-};
+const createErrorResponse = (responseId: string, requestId: string, environmentId: string | null, timelinePath: string, message: string) =>
+  saveErrorResponse(models.response, responseId, requestId, environmentId, timelinePath, message);
 
 const deleteRequestMaps = async (requestId: string, message: string, event?: CurlCloseEvent | CurlErrorEvent) => {
-  if (event) {
-    eventLogFileStreams.get(requestId)?.write(JSON.stringify(event) + '\n');
-  }
-  eventLogFileStreams.get(requestId)?.end();
-  eventLogFileStreams.delete(requestId);
-  timelineFileStreams.get(requestId)?.write(JSON.stringify({ value: message, name: 'Text', timestamp: Date.now() }) + '\n');
-  timelineFileStreams.get(requestId)?.end();
-  timelineFileStreams.delete(requestId);
+  logs.close(requestId, message, event);
   CurlConnections.delete(requestId);
 };
 
@@ -364,10 +324,7 @@ const findMany = async (
   options: { responseId: string }
 ): Promise<CurlEvent[]> => {
   const response = await models.response.getById(options.responseId);
-  if (!response || !response.bodyPath) {
-    return [];
-  }
-  return readEventLog<CurlEvent>(response.bodyPath);
+  return findEvents<CurlEvent>(response?.bodyPath);
 };
 
 // what a window polling the log doesn't have yet
@@ -375,10 +332,7 @@ const findSince = async (
   options: { responseId: string; known: number }
 ): Promise<{ total: number; added: CurlEvent[] }> => {
   const response = await models.response.getById(options.responseId);
-  if (!response || !response.bodyPath) {
-    return { total: 0, added: [] };
-  }
-  return readEventLogSince<CurlEvent>(response.bodyPath, options.known);
+  return findEventsSince<CurlEvent>(response?.bodyPath, options.known);
 };
 
 export interface CurlBridgeAPI {
