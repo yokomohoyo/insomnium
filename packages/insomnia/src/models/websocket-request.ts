@@ -1,4 +1,5 @@
 import { database } from '../common/database';
+import { duplicateAfter } from './helpers/duplicate-after';
 import type { BaseModel } from '.';
 import { RequestAuthentication, RequestHeader, RequestParameter, RequestSegment } from './request';
 
@@ -123,7 +124,6 @@ export const update = (
   patch: Partial<WebSocketRequest> = {}
 ) => database.docUpdate(obj, patch);
 
-// This is duplicated (lol) from models/request.js
 export async function duplicate(request: WebSocketRequest, patch: Partial<WebSocketRequest> = {}) {
   // Only set name and "(Copy)" if the patch does
   // not define it and the request itself has a name.
@@ -132,27 +132,7 @@ export async function duplicate(request: WebSocketRequest, patch: Partial<WebSoc
   if (!patch.name && request.name) {
     patch.name = `${request.name} (Copy)`;
   }
-
-  // Get sort key of next request
-  const q = {
-    metaSortKey: {
-      $gt: request.metaSortKey,
-    },
-  };
-  // @ts-expect-error -- Database TSCONVERSION
-  const [nextRequest] = await database.find<WebSocketRequest>(type, q, {
-    metaSortKey: 1,
-  });
-  const nextSortKey = nextRequest ? nextRequest.metaSortKey : request.metaSortKey + 100;
-  // Calculate new sort key
-  const sortKeyIncrement = (nextSortKey - request.metaSortKey) / 2;
-  const metaSortKey = request.metaSortKey + sortKeyIncrement;
-  // Inherit the original name (incl. '' for unnamed) instead of the module
-  // display-name constant ('WebSocketRequest').
-  return database.duplicate<WebSocketRequest>(request, {
-    metaSortKey,
-    ...patch,
-  });
+  return duplicateAfter(type, request, patch);
 }
 
 export const getById = (_id: string) => database.getWhere<WebSocketRequest>(type, { _id });

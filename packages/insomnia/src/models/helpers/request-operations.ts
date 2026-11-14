@@ -4,7 +4,26 @@ import { isMcpRequest, isMcpRequestId, McpRequest } from '../mcp-request';
 import { Request } from '../request';
 import { isWebSocketRequest, isWebSocketRequestId, WebSocketRequest } from '../websocket-request';
 
-export function getById(requestId: string): Promise<Request | GrpcRequest | WebSocketRequest | McpRequest | null> {
+/** Any of the request documents: HTTP, gRPC, WebSocket or MCP. */
+export type AnyRequest = Request | GrpcRequest | WebSocketRequest | McpRequest;
+
+interface RequestModel<T> {
+  update(request: T, patch?: Partial<T>): Promise<T>;
+  duplicate(request: T, patch?: Partial<T>): Promise<T>;
+}
+
+// The model for a document, by its type; anything else is taken as an HTTP
+// request. Built on each call, since the models import this module in turn.
+function modelFor<T>(request: T): RequestModel<T> {
+  const byType: Record<string, RequestModel<any> | undefined> = {
+    [models.grpcRequest.type]: models.grpcRequest,
+    [models.webSocketRequest.type]: models.webSocketRequest,
+    [models.mcpRequest.type]: models.mcpRequest,
+  };
+  return byType[(request as { type?: string }).type ?? ''] ?? models.request;
+}
+
+export function getById(requestId: string): Promise<AnyRequest | null> {
   if (isGrpcRequestId(requestId)) {
     return models.grpcRequest.getById(requestId);
   }
@@ -17,7 +36,7 @@ export function getById(requestId: string): Promise<Request | GrpcRequest | WebS
   return models.request.getById(requestId);
 }
 
-export function remove(request: Request | GrpcRequest | WebSocketRequest | McpRequest) {
+export function remove(request: AnyRequest) {
   if (isGrpcRequest(request)) {
     return models.grpcRequest.remove(request);
   }
@@ -31,42 +50,9 @@ export function remove(request: Request | GrpcRequest | WebSocketRequest | McpRe
 }
 
 export function update<T extends object>(request: T, patch: Partial<T> = {}): Promise<T> {
-
-  // @ts-expect-error -- TSCONVERSION
-  if (isGrpcRequest(request)) {
-    // @ts-expect-error -- TSCONVERSION
-    return models.grpcRequest.update(request, patch);
-  }
-  // @ts-expect-error -- TSCONVERSION
-  if (isWebSocketRequest(request)) {
-    // @ts-expect-error -- TSCONVERSION
-    return models.webSocketRequest.update(request, patch);
-  }
-  // @ts-expect-error -- TSCONVERSION
-  if (isMcpRequest(request)) {
-    // @ts-expect-error -- TSCONVERSION
-    return models.mcpRequest.update(request, patch);
-  }
-  // @ts-expect-error -- TSCONVERSION
-  return models.request.update(request, patch);
+  return modelFor(request).update(request, patch);
 }
 
 export function duplicate<T extends object>(request: T, patch: Partial<T> = {}): Promise<T> {
-  // @ts-expect-error -- TSCONVERSION
-  if (isGrpcRequest(request)) {
-    // @ts-expect-error -- TSCONVERSION
-    return models.grpcRequest.duplicate(request, patch);
-  }
-  // @ts-expect-error -- TSCONVERSION
-  if (isWebSocketRequest(request)) {
-    // @ts-expect-error -- TSCONVERSION
-    return models.webSocketRequest.duplicate(request, patch);
-  }
-  // @ts-expect-error -- TSCONVERSION
-  if (isMcpRequest(request)) {
-    // @ts-expect-error -- TSCONVERSION
-    return models.mcpRequest.duplicate(request, patch);
-  }
-  // @ts-expect-error -- TSCONVERSION
-  return models.request.duplicate(request, patch);
+  return modelFor(request).duplicate(request, patch);
 }
