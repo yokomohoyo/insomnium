@@ -39,7 +39,7 @@ export const Shortcuts: FC = () => {
           </PromptButton>
         </div>
       </div>
-      <table className="table--fancy">
+      <table className="table--fancy table--valign-middle">
         <tbody>
           {Object.entries(hotKeyRegistry).map(([key, platformCombinations]) => {
             const keyboardShortcut = key as KeyboardShortcut;
@@ -47,7 +47,7 @@ export const Shortcuts: FC = () => {
 
             return (
               <tr key={keyboardShortcut}>
-                <td style={{ verticalAlign: 'middle' }}>{t(keyboardShortcutDescriptions[keyboardShortcut])}</td>
+                <td>{t(keyboardShortcutDescriptions[keyboardShortcut])}</td>
                 <td className="text-right">
                   {keyCombosForThisPlatform.map((keyComb: KeyCombination, index: number) => {
                     return (
@@ -57,7 +57,7 @@ export const Shortcuts: FC = () => {
                     );
                   })}
                 </td>
-                <td className="text-right options" style={{ verticalAlign: 'middle' }}>
+                <td className="text-right options">
                   <Dropdown
                     aria-label={t('Select a mode')}
                     closeOnSelect={false}

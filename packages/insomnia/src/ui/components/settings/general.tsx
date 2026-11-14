@@ -74,12 +74,12 @@ const CheckForUpdates: FC = () => {
     }
   };
   return (
-    <div className="form-control" data-testid="check-for-updates">
+    <div className="form-control flex items-center gap-2 [&>button]:mt-0" data-testid="check-for-updates">
       <button type="button" className="btn btn--clicky" disabled={checking} onClick={check}>
         {checking ? <><i className="fa fa-spin fa-refresh" /> {t('Checking…')}</> : t('Check for Updates')}
       </button>
       {result && (
-        <span className={`space-left ${result.status === 'failed' ? 'warning' : result.status === 'newer' ? 'success' : 'faint'}`} role="status">
+        <span className={`${result.status === 'failed' ? 'warning' : result.status === 'newer' ? 'success' : 'faint'}`} role="status">
           {describeUpdateCheck(result)}
           {result.status === 'newer' && <>{' '}<Link href={result.url}>{t('View release')}</Link></>}
         </span>
@@ -325,10 +325,7 @@ export const General: FC = () => {
           help={t('If checked, clears the OAuth session every time Insomnium is relaunched.')}
         />
         <button
-          className="btn btn--clicky pointer"
-          style={{
-            padding: 0,
-          }}
+          className="btn btn--clicky pointer w-auto flex-none self-center"
           onClick={initNewOAuthSession}
         >
           {t('Clear OAuth 2 session')}

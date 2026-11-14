@@ -76,7 +76,7 @@ const Explorer: FC<{ kind: Kind; server: McpServerSummary; environmentId: string
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       <div className="flex items-center gap-2 pad-sm">
-        <select aria-label={`MCP ${kind}`} value={chosen} onChange={event => setChosen(event.currentTarget.value)} className="flex-1 min-w-0">
+        <select aria-label={`MCP ${kind}`} value={chosen} onChange={event => setChosen(event.currentTarget.value)} className="input-box flex-1 min-w-0">
           {items.map(other => <option key={keyOf(other)} value={keyOf(other)}>{other.uri ? `${other.name} (${other.uri})` : other.name}</option>)}
         </select>
         <button type="button" className="btn btn--clicky" disabled={calling || !item} onClick={call}>

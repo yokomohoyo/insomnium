@@ -85,7 +85,7 @@ export const UnitTestItem: FunctionComponent<UnitTestItemProps> = ({
           <SvgIcon icon="file" />
         </Button>
 
-        <h2>{testNameEditable}</h2>
+        <h2 className="m-0 text-md font-normal">{testNameEditable}</h2>
 
         <UnitTestRequestSelector
           selectedRequestId={selectedRequestId}

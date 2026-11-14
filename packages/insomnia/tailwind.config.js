@@ -16,6 +16,10 @@ module.exports = {
       },
     },
     extend: {
+      fontSize: {
+        // the app's own body size, between Tailwind's sm and base
+        md: "var(--font-size-md)",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

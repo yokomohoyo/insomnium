@@ -149,7 +149,7 @@ export const LoadTestPanel: FC<{
           ? <button className="btn btn--clicky" onClick={() => controller.current?.abort()}>Stop</button>
           : <button className="btn btn--clicky" disabled={!requests.length} onClick={start}>Start the Load Test</button>}
         {summary && !running && (Object.keys(REPORTS) as (keyof typeof REPORTS)[]).map(kind => (
-          <button key={kind} className="btn btn--compact" onClick={() => save(kind)}>{REPORTS[kind].button}</button>
+          <button key={kind} className="btn btn--clicky" onClick={() => save(kind)}>{REPORTS[kind].button}</button>
         ))}
       </div>
       {error && <p className="notice error">{error}</p>}
@@ -171,7 +171,7 @@ export const LoadTestPanel: FC<{
           )}
           <LoadTimelineChart points={summary.timeline} />
           <div className="overflow-x-auto">
-            <table className="table--fancy table--striped" aria-label="Load test results">
+            <table className="table--fancy table--striped table--valign-middle" aria-label="Load test results">
               <thead>
                 <tr>
                   <th>Request</th>

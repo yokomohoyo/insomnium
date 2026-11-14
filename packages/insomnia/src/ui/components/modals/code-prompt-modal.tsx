@@ -138,7 +138,7 @@ export const CodePromptModal = forwardRef<CodePromptModalHandle, ModalProps>((_,
           <Dropdown
             aria-label='Select a mode'
             triggerButton={
-              <DropdownButton className="btn btn--clicky margin-left-sm">
+              <DropdownButton className="btn btn--clicky modal__footer-secondary">
                 {MODES[mode]}
                 <i className="fa fa-caret-down space-left" />
               </DropdownButton>

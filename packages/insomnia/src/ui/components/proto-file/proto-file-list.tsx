@@ -162,7 +162,7 @@ export const ProtoFileList: FunctionComponent<Props> = props => {
         <div className="pad-sm">
           <input
             type="search"
-            className="form-control"
+            className="input-box w-full"
             placeholder="Filter proto files..."
             aria-label="Filter proto files"
             value={query}

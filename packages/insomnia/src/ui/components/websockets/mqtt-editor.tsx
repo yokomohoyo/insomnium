@@ -41,7 +41,7 @@ export const MqttEditor: FC<{ request: WebSocketRequest; disabled: boolean }> = 
         <input
           type="text"
           aria-label="MQTT client ID"
-          className="w-full"
+          className="input-box w-full"
           defaultValue={latest.current.clientId}
           placeholder="A new one each connection"
           disabled={disabled}
@@ -51,22 +51,22 @@ export const MqttEditor: FC<{ request: WebSocketRequest; disabled: boolean }> = 
       <div className="flex gap-2">
         <label className="txt-sm flex-1">
           User name
-          <input type="text" aria-label="MQTT user name" className="w-full" defaultValue={latest.current.username} disabled={disabled} onChange={event => update({ username: event.currentTarget.value })} />
+          <input type="text" aria-label="MQTT user name" className="input-box w-full" defaultValue={latest.current.username} disabled={disabled} onChange={event => update({ username: event.currentTarget.value })} />
         </label>
         <label className="txt-sm flex-1">
           Password
-          <input type="password" aria-label="MQTT password" className="w-full" defaultValue={latest.current.password} placeholder="{{ mqtt_password }}" disabled={disabled} onChange={event => update({ password: event.currentTarget.value })} />
+          <input type="password" aria-label="MQTT password" className="input-box w-full" defaultValue={latest.current.password} placeholder="{{ mqtt_password }}" disabled={disabled} onChange={event => update({ password: event.currentTarget.value })} />
         </label>
         <label className="txt-sm">
           Keep alive (s)
-          <input type="number" aria-label="MQTT keep alive" min={0} max={65535} defaultValue={latest.current.keepalive} disabled={disabled} onChange={event => update({ keepalive: Math.max(0, Math.min(65535, Math.round(Number(event.currentTarget.value)) || 0)) })} />
+          <input type="number" aria-label="MQTT keep alive" className="input-box block w-24" min={0} max={65535} defaultValue={latest.current.keepalive} disabled={disabled} onChange={event => update({ keepalive: Math.max(0, Math.min(65535, Math.round(Number(event.currentTarget.value)) || 0)) })} />
         </label>
       </div>
       <label className="txt-sm">
         Subscribe to, a topic a line, with its QoS (0 or 1) after it
         <textarea
           aria-label="MQTT subscriptions"
-          className="w-full monospace"
+          className="input-box w-full monospace"
           rows={4}
           defaultValue={latest.current.subscriptions}
           placeholder={'sensors/+/temperature 1\nalerts/#'}

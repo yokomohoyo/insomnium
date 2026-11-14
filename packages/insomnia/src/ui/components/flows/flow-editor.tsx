@@ -94,15 +94,15 @@ const StepNode: FC<NodeProps<CanvasNode>> = ({ id, type, data, selected }) => {
       data-testid={`flow-node-${type}`}
       aria-label={`${KIND_NAMES[type]()}: ${summary}`}
       className={classnames(
-        'min-w-[11rem] max-w-[18rem] rounded-md border-2 border-solid bg-[--color-bg] text-[--color-font] px-[--padding-sm] py-[--padding-xs] text-[--font-size-sm] shadow-sm',
+        'min-w-[11rem] max-w-[18rem] rounded-md border-2 border-solid bg-[--color-bg] text-[--color-font] px-[--padding-sm] py-[--padding-xs] text-[length:var(--font-size-sm)] shadow-sm',
         step ? STATUS_COLOURS[step.status] : 'border-[--hl-md]',
         { 'outline outline-2 outline-[--color-surprise] outline-offset-2': selected },
       )}
     >
       {type !== 'start' && <Handle type="target" position={Position.Left} />}
-      <div className="font-semibold uppercase text-[--font-size-xs] text-[--hl]">{KIND_NAMES[type]()}</div>
+      <div className="font-semibold uppercase text-[length:var(--font-size-xs)] text-[--hl]">{KIND_NAMES[type]()}</div>
       <div className="truncate" title={summary}>{summary}</div>
-      {step && step.status !== 'running' && step.message && <div className="truncate text-[--font-size-xs] text-[--hl]" title={step.message}>{step.message}</div>}
+      {step && step.status !== 'running' && step.message && <div className="truncate text-[length:var(--font-size-xs)] text-[--hl]" title={step.message}>{step.message}</div>}
       {type === 'condition' ? (
         <>
           <Handle id="true" type="source" position={Position.Right} style={{ top: '30%', background: 'var(--color-success)' }} title={t('Yes')} />
@@ -119,7 +119,7 @@ const NODE_TYPES = { start: StepNode, request: StepNode, condition: StepNode, se
 
 // a setting, named by its label alone (a select's would otherwise take in its options' text)
 const Field: FC<{ label: string; children: React.ReactElement }> = ({ label, children }) => (
-  <label className="flex flex-col gap-[--padding-xxs] text-[--font-size-sm]">
+  <label className="flex flex-col gap-[--padding-xxs] text-[length:var(--font-size-sm)]">
     <span className="text-[--hl]">{label}</span>
     {React.cloneElement(children, { 'aria-label': label })}
   </label>
@@ -133,7 +133,7 @@ const Inspector: FC<{ node: CanvasNode; requests: FlowRequest[]; onChange: (data
   const responseSources = Object.entries(ASSERTION_SOURCES) as [AssertionSource, string][];
   return (
     <section aria-label={t('Step')} className="flex flex-col gap-[--padding-sm]">
-      <h3 className="m-0 text-[--font-size-md]">{KIND_NAMES[type]()}</h3>
+      <h3 className="m-0 text-[length:var(--font-size-md)]">{KIND_NAMES[type]()}</h3>
       {type === 'start' && <p className="m-0 faint">{t('The flow begins here and follows the arrows. Add a step after the one selected with the buttons above, or draw an arrow from a step\'s right edge to another.')}</p>}
       {type === 'request' && (
         <Field label={t('Request')}>
@@ -169,7 +169,7 @@ const Inspector: FC<{ node: CanvasNode; requests: FlowRequest[]; onChange: (data
               <input className={inputClass} value={data.value || ''} placeholder={t('value or {{ variable }}')} onChange={event => onChange({ value: event.currentTarget.value })} />
             </Field>
           )}
-          <p className="m-0 faint text-[--font-size-sm]">{t('It checks the last response: the flow follows its Yes arrow when the check holds, and its No arrow when it doesn\'t.')}</p>
+          <p className="m-0 faint text-[length:var(--font-size-sm)]">{t('It checks the last response: the flow follows its Yes arrow when the check holds, and its No arrow when it doesn\'t.')}</p>
         </>
       )}
       {type === 'setVariable' && (
@@ -193,7 +193,7 @@ const Inspector: FC<{ node: CanvasNode; requests: FlowRequest[]; onChange: (data
               <input className={inputClass} value={data.value || ''} placeholder={t('value or {{ variable }}')} onChange={event => onChange({ value: event.currentTarget.value })} />
             </Field>
           )}
-          <p className="m-0 faint text-[--font-size-sm]">{t('The requests after it can use it as {example}, over the environment\'s variables.', { example: `{{ ${data.name || 'name'} }}` })}</p>
+          <p className="m-0 faint text-[length:var(--font-size-sm)]">{t('The requests after it can use it as {example}, over the environment\'s variables.', { example: `{{ ${data.name || 'name'} }}` })}</p>
         </>
       )}
       {type === 'delay' && (
@@ -372,7 +372,7 @@ const Editor: FC<{ flow: Flow; requests: FlowRequest[] }> = ({ flow, requests })
                 <i className="fa fa-play space-right" />{t('Run Flow')}
               </button>
             )}
-            <span className="text-[--hl] text-[--font-size-sm]">{t('Add after the selected step:')}</span>
+            <span className="text-[--hl] text-[length:var(--font-size-sm)]">{t('Add after the selected step:')}</span>
             {ADDABLE.map(kind => (
               <button key={kind} className="btn btn--clicky btn--compact" disabled={!!running} onClick={() => addStep(kind)}>
                 <i className="fa fa-plus space-right" />{KIND_NAMES[kind]()}
@@ -403,12 +403,12 @@ const Editor: FC<{ flow: Flow; requests: FlowRequest[] }> = ({ flow, requests })
         <aside className="w-[22rem] max-w-[45%] flex-shrink-0 overflow-y-auto border-l border-solid border-[--hl-md] pad flex flex-col gap-[--padding-lg]">
           {selected && <Inspector key={selected.id} node={selected} requests={requests} onChange={changeSelected} onDelete={deleteSelected} />}
           <section aria-label={t('Run')} className="flex flex-col gap-[--padding-xs]">
-            <h3 className="m-0 text-[--font-size-md]">{t('Last Run')}</h3>
-            {!log.length && !running && !result && <p className="m-0 faint text-[--font-size-sm]">{t('Run the flow to see each step here.')}</p>}
+            <h3 className="m-0 text-[length:var(--font-size-md)]">{t('Last Run')}</h3>
+            {!log.length && !running && !result && <p className="m-0 faint text-[length:var(--font-size-sm)]">{t('Run the flow to see each step here.')}</p>}
             <ol className="list-none m-0 p-0 flex flex-col gap-[--padding-xxs]">
               {log.map(step => (
                 <li key={step.seq}>
-                  <button className="w-full text-left whitespace-normal flex items-start gap-[--padding-xs] text-[--font-size-sm] hover:bg-[--hl-xs] rounded-sm px-[--padding-xxs]" onClick={() => setSelectedId(step.nodeId)}>
+                  <button className="w-full text-left whitespace-normal flex items-start gap-[--padding-xs] text-[length:var(--font-size-sm)] hover:bg-[--hl-xs] rounded-sm px-[--padding-xxs]" onClick={() => setSelectedId(step.nodeId)}>
                     <i className={`fa fa-fw mt-[2px] ${STEP_ICONS[step.status]}`} />
                     <span className="min-w-0">
                       <span className="font-semibold">{nameOf(step.nodeId)}</span>
@@ -427,7 +427,7 @@ const Editor: FC<{ flow: Flow; requests: FlowRequest[] }> = ({ flow, requests })
               </p>
             )}
             {result && Object.keys(result.variables).length > 0 && (
-              <table className="table--fancy table--compact text-[--font-size-sm]">
+              <table className="table--fancy table--compact text-[length:var(--font-size-sm)]">
                 <caption className="text-left text-[--hl]">{t('Variables')}</caption>
                 <tbody>
                   {Object.entries(result.variables).map(([name, value]) => (

@@ -132,7 +132,7 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
                   onBlur={event => event.currentTarget.value.trim() && event.currentTarget.value !== selected.name && update(selected, { name: event.currentTarget.value.trim() })}
                 />
               ) : (
-                <h1>{t('Global Base Environment')}</h1>
+                <h1 className="text-[length:var(--font-size-xl)]">{t('Global Base Environment')}</h1>
               )}
               {selected && selected !== base && (
                 <>

@@ -42,7 +42,7 @@ export const SocketIoEditor: FC<{ request: WebSocketRequest; disabled: boolean }
         <input
           type="text"
           aria-label="Socket.IO namespace"
-          className="w-full"
+          className="input-box w-full"
           defaultValue={latest.current.namespace}
           placeholder="/"
           disabled={disabled}

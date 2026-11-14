@@ -257,12 +257,12 @@ const WebSocketRequestForm: FC<FormProps> = ({
     >
       {mqtt && (
         <div className="flex items-center gap-2 pad-sm txt-sm">
-          <label className="flex items-center gap-2 flex-1">
+          <label className="flex items-center gap-2 flex-1 pt-0">
             Topic
             <input
               type="text"
               aria-label="MQTT topic"
-              className="flex-1"
+              className="input-box flex-1"
               defaultValue={mqtt.topic}
               placeholder="sensors/kitchen/temperature"
               onChange={event => patchRequest(request._id, { mqtt: { ...mqtt, ...request.mqtt, topic: event.currentTarget.value } })}
@@ -270,13 +270,14 @@ const WebSocketRequestForm: FC<FormProps> = ({
           </label>
           <select
             aria-label="MQTT QoS"
+            className="input-box"
             defaultValue={String(mqtt.qos)}
             onChange={event => patchRequest(request._id, { mqtt: { ...mqtt, ...request.mqtt, qos: event.currentTarget.value === '1' ? 1 : 0 } })}
           >
             <option value="0">QoS 0</option>
             <option value="1">QoS 1</option>
           </select>
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-1 pt-0">
             <input
               type="checkbox"
               aria-label="MQTT retain"
@@ -293,7 +294,7 @@ const WebSocketRequestForm: FC<FormProps> = ({
           <input
             type="text"
             aria-label="Socket.IO event"
-            className="flex-1"
+            className="input-box flex-1"
             defaultValue={socketIo.event}
             placeholder="message"
             onChange={event => patchRequest(request._id, { socketIo: { ...emptySocketIo(), ...request.socketIo, event: event.currentTarget.value } })}

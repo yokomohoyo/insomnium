@@ -125,7 +125,7 @@ export const ResponseHistoryDropdown = ({
       >
         <ItemContent
           isDisabled={active}
-          icon={active ? 'thumb-track' : 'empty'}
+          icon={active ? 'thumb-tack' : 'empty'}
           onClick={() => handleSetActiveResponse(requestId, response)}
           label={
             <>
@@ -193,21 +193,21 @@ export const ResponseHistoryDropdown = ({
       >
         <DropdownItem aria-label={t('Save as Example')}>
           <ItemContent
-            icon="fa-bookmark-o"
+            icon="bookmark-o"
             label={t('Save as Example')}
             onClick={handleSaveAsExample}
           />
         </DropdownItem>
         <DropdownItem aria-label={t('Delete Current Response')}>
           <ItemContent
-            icon="fa-trash-o"
+            icon="trash-o"
             label={t('Delete Current Response')}
             onClick={handleDeleteResponse}
           />
         </DropdownItem>
         <DropdownItem aria-label={t('Clear History')}>
           <ItemContent
-            icon="fa-trash-o"
+            icon="trash-o"
             label={t('Clear History')}
             onClick={handleDeleteResponses}
           />

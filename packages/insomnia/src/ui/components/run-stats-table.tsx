@@ -54,7 +54,7 @@ export const RunStatsTable: FC<{ stats: RequestRunStats[]; comparison?: RunCompa
   return (
     <div className="margin-top-sm">
       <div className="overflow-x-auto">
-        <table className="table--fancy table--striped" aria-label="Each request over the run">
+        <table className="table--fancy table--striped table--valign-middle" aria-label="Each request over the run">
           <thead>
             <tr>
               <th>Request</th>

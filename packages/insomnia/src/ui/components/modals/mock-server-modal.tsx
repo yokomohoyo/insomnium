@@ -66,9 +66,9 @@ export const MockServerModal: FC<ModalProps & { workspace: Workspace }> = ({ wor
               </>
             ) : (
               <>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 pt-0">
                   Port
-                  <input className="w-24" type="number" min={0} max={65535} aria-label="Port" value={port} onChange={event => setPort(Number(event.currentTarget.value) || 0)} />
+                  <input className="input-box w-24" type="number" min={0} max={65535} aria-label="Port" value={port} onChange={event => setPort(Number(event.currentTarget.value) || 0)} />
                 </label>
                 <button className="btn btn--clicky" onClick={start}>Start</button>
               </>

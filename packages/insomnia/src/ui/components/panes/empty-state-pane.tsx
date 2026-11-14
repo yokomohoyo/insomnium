@@ -42,7 +42,7 @@ const SecondaryAction = styled.div({
 
 const DocumentationLinks = styled.div({
   marginTop: 'calc(var(--padding-lg))',
-  margiBottom: 'var(--padding-md)',
+  marginBottom: 'var(--padding-md)',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',

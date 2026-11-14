@@ -136,7 +136,7 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
           />
           <hr />
           <section aria-label={t('Folder auth')}>
-            <div className="flex flex--center">
+            <div className="flex items-center">
               <strong className="flex-1">{t('Auth')}</strong>
               <AuthStrategyDropdown authentication={authentication} onChange={saveAuthentication} authTypes={FOLDER_AUTH_TYPES} withPlugins />
             </div>

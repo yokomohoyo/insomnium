@@ -105,9 +105,9 @@ export const AiAssistant: FC = () => {
           </div>
         )}
       </div>
-      <div className="form-row">
-        <Button disabled={isChecking || isSaving} onClick={listModels}>{t('List Models')}</Button>
-        <Button disabled={isChecking || isSaving || !model} style={{ marginLeft: '0.3em' }} onClick={tryModel}>
+      <div className="flex gap-2">
+        <Button variant="outlined" disabled={isChecking || isSaving} onClick={listModels}>{t('List Models')}</Button>
+        <Button variant="outlined" disabled={isChecking || isSaving || !model} onClick={tryModel}>
           {isChecking && <i className="fa fa-refresh fa-spin space-right" />}
           {t('Try the Model')}
         </Button>

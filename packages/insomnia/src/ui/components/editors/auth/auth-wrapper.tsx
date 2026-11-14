@@ -149,15 +149,15 @@ export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication
           strategyIndex={index}
           patch={p => onChange(patchAuthStrategy(latest.current, index, p))}
         >
-          <div className="border-bottom pad-bottom">
-            <div className="flex flex--center pad-top pad-left pad-right">
+          <div className="border-b last:border-b-0 border-solid border-[--hl-md] pad-bottom">
+            <div className="flex items-center gap-2 pad-top pad-left pad-right">
               <strong className="txt-sm">
                 <StrategyTitle strategy={strategy} />
               </strong>
               {/* a plugin's auth sets the request as it likes, with no header to rename */}
               {strategy.type === AUTH_NONE || strategy.type === AUTH_PLUGIN ? <span className="flex-1" /> : (
                 <input
-                  className="margin-left form-control form-control--small flex-1"
+                  className="input-box flex-1"
                   placeholder="Header name override (defaults to Authorization)"
                   value={strategy.headerName || ''}
                   onChange={e => onChange(patchAuthStrategy(latest.current, index, { headerName: e.target.value || undefined }))}
@@ -166,7 +166,7 @@ export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication
                 />
               )}
               <button
-                className="btn btn--super-duper-compact btn--clicky margin-left-xs"
+                className="btn btn--clicky"
                 onClick={() => onChange(removeAuthStrategy(latest.current, index))}
                 disabled={disabled}
                 title="Remove this auth strategy"
