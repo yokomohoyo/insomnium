@@ -2,13 +2,12 @@ import fs from 'fs';
 import { pipeline, Readable } from 'stream';
 import zlib from 'zlib';
 
-import { database as db, Query } from '../common/database';
+import { database as db } from '../common/database';
 import type { ResponseTimelineEntry } from '../main/network/libcurl-promise';
-import * as requestOperations from '../models/helpers/request-operations';
 import type { Visualization } from '../common/visualizer';
 import type { AssertionResult } from '../network/assertions';
+import * as responseHistory from './helpers/response-history';
 import type { BaseModel } from './index';
-import * as models from './index';
 
 export const name = 'Response';
 
@@ -118,12 +117,7 @@ export function hookDatabaseInit(consoleLog: typeof console.log = console.log) {
 }
 
 export function hookRemove(doc: Response, consoleLog: typeof console.log = console.log) {
-  fs.unlink(doc.bodyPath, () => {
-    consoleLog(`[response] Delete body ${doc.bodyPath}`);
-  });
-  fs.unlink(doc.timelinePath, () => {
-    consoleLog(`[response] Delete timeline ${doc.timelinePath}`);
-  });
+  responseHistory.removeFiles(doc.bodyPath, doc.timelinePath, consoleLog);
 }
 
 export function getById(id: string) {
@@ -138,52 +132,19 @@ export async function all() {
   return db.all<Response>(type);
 }
 
-export async function removeForRequest(parentId: string, environmentId?: string | null) {
-  const settings = await models.settings.getOrCreate();
-  const query: Record<string, any> = {
-    parentId,
-  };
-
-  // Only add if not undefined. null is not the same as undefined
-  //  null: find responses sent from base environment
-  //  undefined: find all responses
-  if (environmentId !== undefined && settings.filterResponsesByEnv) {
-    query.environmentId = environmentId;
-  }
-
-  // Also delete legacy responses here or else the user will be confused as to
-  // why some responses are still showing in the UI.
-  await db.removeWhere(type, query);
+export function removeForRequest(parentId: string, environmentId?: string | null) {
+  return responseHistory.removeForRequest(type, parentId, environmentId);
 }
 
 export function remove(response: Response) {
   return db.remove(response);
 }
 
-async function _findRecentForRequest(
-  requestId: string,
-  environmentId: string | null,
-  limit: number,
-) {
-  const query: Query = {
-    parentId: requestId,
-  };
-
-  // Filter responses by environment if setting is enabled
-  if ((await models.settings.getOrCreate()).filterResponsesByEnv) {
-    query.environmentId = environmentId;
-  }
-
-  return db.findMostRecentlyModified<Response>(type, query, limit);
-}
-
-export async function getLatestForRequest(
+export function getLatestForRequest(
   requestId: string,
   environmentId: string | null,
 ) {
-  const responses = await _findRecentForRequest(requestId, environmentId, 1);
-  const response = responses[0] as Response | null | undefined;
-  return response || null;
+  return responseHistory.getLatestForRequest<Response>(type, requestId, environmentId);
 }
 
 export async function create(patch: Partial<Response> = {}, maxResponses = 20): Promise<Response> {
@@ -192,32 +153,7 @@ export async function create(patch: Partial<Response> = {}, maxResponses = 20): 
     throw new Error('New Response missing `parentId`');
   }
 
-  const { parentId } = patch;
-  // Create request version snapshot
-  const request = await requestOperations.getById(parentId);
-  const requestVersion = request ? await models.requestVersion.create(request) : null;
-  patch.requestVersionId = requestVersion ? requestVersion._id : null;
-  // Filter responses by environment if setting is enabled
-  const shouldQueryByEnvId = (await models.settings.getOrCreate()).filterResponsesByEnv && patch.hasOwnProperty('environmentId');
-  const query = {
-    parentId,
-    ...(shouldQueryByEnvId ? { environmentId: patch.environmentId } : {}),
-  };
-
-  // Delete all other responses before creating the new one
-  const allResponses = await db.findMostRecentlyModified<Response>(type, query, Math.max(1, maxResponses));
-  const recentIds = allResponses.map(r => r._id);
-  // Remove all that were in the last query, except the first `maxResponses` IDs
-  await db.removeWhere(type, {
-    ...query,
-    _id: {
-      $nin: recentIds,
-    },
-  });
-  // Actually create the new response
-  const response = await db.docCreate(type, patch);
-  await models.requestVersion.removeUnused(parentId, type);
-  return response;
+  return responseHistory.create<Response>(type, patch.parentId, patch, maxResponses);
 }
 
 export function getLatestByParentId(parentId: string) {
