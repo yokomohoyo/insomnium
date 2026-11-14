@@ -73,7 +73,7 @@ export function registerCollectionTools(server: McpServer) {
       if (scanned.errors?.length) {
         return text({ error: scanned.errors.join('; ') }, true);
       }
-      await importResourcesToWorkspace({ workspaceId });
+      await importResourcesToWorkspace({ workspaceId, resources: scanned.resources });
       return text({
         ok: true,
         format: scanned.type?.name,

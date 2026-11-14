@@ -5,7 +5,7 @@ import { ActionFunction, redirect } from 'react-router-dom';
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { database } from '../../common/database';
 import { database as db } from '../../common/database';
-import { ResourceCache, scanResources } from '../../common/import';
+import { scanResources } from '../../common/import';
 import { specSyncSummary, syncSpecToWorkspace } from '../../common/spec-sync';
 import { spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import * as models from '../../models';
@@ -501,14 +501,14 @@ export const generateCollectionFromApiSpecAction: ActionFunction = async ({
   const scanned = await scanResources({
     content: apiSpec.contents,
   });
-  if (scanned.errors.length || !ResourceCache) {
+  if (scanned.errors.length || !scanned.resources) {
     throw new Error(scanned.errors[0] || 'No requests found in the spec');
   }
 
   // updates the requests generated before instead of adding copies. The Spec
   // tab goes to the requests: a redirect from here is dropped when the
   // changes revalidate the routes before the action returns
-  return { summary: specSyncSummary(await syncSpecToWorkspace({ workspaceId, resources: ResourceCache.resources })) };
+  return { summary: specSyncSummary(await syncSpecToWorkspace({ workspaceId, resources: scanned.resources })) };
 };
 
 export const createEnvironmentAction: ActionFunction = async ({
@@ -544,7 +544,6 @@ export const updateEnvironment: ActionFunction = async ({ request, params }) => 
   const environment = await models.environment.getById(environmentId);
 
   guard(environment, 'Environment not found');
-  guard(typeof name === 'string', 'Name is required');
 
   const baseEnvironment = await models.environment.getByParentId(workspaceId);
 

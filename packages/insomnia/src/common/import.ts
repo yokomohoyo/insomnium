@@ -116,6 +116,8 @@ export interface ScanResult {
   unitTests?: UnitTest[];
   unitTestSuites?: UnitTestSuite[];
   type?: InsomniaImporter;
+  // what the scan found, for a caller that imports it straight away
+  resources?: BaseModel[];
   errors: string[];
 }
 
@@ -184,6 +186,7 @@ export async function scanResources({
     environments,
     apiSpecs,
     cookieJars,
+    resources,
     errors: [],
   };
 }
@@ -194,9 +197,11 @@ export const importPure = async (json: { resources: BaseModel[] } & any) => {
   return await importResourcesToProject({ _resources });
 };
 
-export const importResourcesToWorkspace = async ({ workspaceId }: { workspaceId: string }) => {
-  guard(ResourceCache, 'No resources to import');
-  const resources = ResourceCache.resources;
+// resources: what a scan returned; left out, what the last scan found (the
+// import dialog scans in one step and imports in the next)
+export const importResourcesToWorkspace = async ({ workspaceId, resources: scanned }: { workspaceId: string; resources?: BaseModel[] }) => {
+  const resources = scanned || ResourceCache?.resources;
+  guard(resources, 'No resources to import');
   return await importToWorkspace({ workspaceId, resources });
 };
 
