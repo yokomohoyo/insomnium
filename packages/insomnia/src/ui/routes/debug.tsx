@@ -797,7 +797,7 @@ export const Debug: FC = () => {
                             {isSelected && (
                               <Icon
                                 icon="check"
-                                className="text-[--color-success] justify-self-end"
+                                className="text-[--color-success] ml-auto"
                               />
                             )}
                           </Fragment>
@@ -905,7 +905,7 @@ export const Debug: FC = () => {
                             {isSelected && (
                               <Icon
                                 icon="check"
-                                className="text-[--color-success] justify-self-end"
+                                className="text-[--color-success] ml-auto"
                               />
                             )}
                           </Fragment>
@@ -1005,7 +1005,7 @@ export const Debug: FC = () => {
                         <span className="truncate">{getRequestNameOrFallback(item.doc)}</span>
                         <span className="flex-1" />
                         {item.pinned && (
-                          <Icon className='text-[--font-size-sm]' icon="thumb-tack" />
+                          <Icon className='text-[length:var(--font-size-sm)]' icon="thumb-tack" />
                         )}
                         {!isRequestGroup(item.doc) && (
                           <RequestActionsDropdown
@@ -1100,7 +1100,7 @@ export const Debug: FC = () => {
                         {isWebSocketRequest(item.doc) && <WebSocketSpinner requestId={item.doc._id} />}
                         {isEventStreamRequest(item.doc) && <EventStreamSpinner requestId={item.doc._id} />}
                         {item.pinned && (
-                          <Icon className='text-[--font-size-sm]' icon="thumb-tack" />
+                          <Icon className='text-[length:var(--font-size-sm)]' icon="thumb-tack" />
                         )}
                         {isRequestGroup(item.doc) ? (
                           <RequestGroupActionsDropdown

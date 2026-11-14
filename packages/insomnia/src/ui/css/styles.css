@@ -10,6 +10,39 @@
 @import '@xyflow/react/dist/style.css';
 
 @tailwind base;
+
+/* main.css is imported above, so Tailwind's reset comes after it and undoes
+   its headings (font-size and weight inherit, no margins; h5 and h6 are left
+   as they have looked since) and its rule's
+   spacing. Said again here, in the base layer: utilities still outrank them */
+@layer base {
+  h1 {
+    font-size: var(--font-size-xxxl);
+    font-weight: var(--font-weight-regular);
+  }
+  h2 {
+    font-size: var(--font-size-xxl);
+    font-weight: var(--font-weight-regular);
+  }
+  h3 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-medium);
+  }
+  h4 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-medium);
+  }
+  h1,
+  h2,
+  h3 {
+    margin-bottom: var(--padding-sm);
+    margin-top: var(--padding-md);
+  }
+  hr {
+    margin: var(--padding-md) 0;
+    border-top-width: 0;
+  }
+}
 @tailwind components;
 @tailwind utilities;
 

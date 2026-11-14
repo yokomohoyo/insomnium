@@ -53,13 +53,14 @@ export const AssertionsEditor: FC = () => {
             />
             <select
               aria-label="Source"
+              className="input-box"
               value={assertion.source}
               onChange={event => change(assertion.id, { source: event.currentTarget.value as AssertionSource })}
             >
               {Object.entries(ASSERTION_SOURCES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
             {sourceHasProperty(assertion.source) && (
-              <div className="form-control form-control--outlined flex-1 m-0">
+              <div className="form-control form-control--outlined flex-1 m-0 [&_input]:mt-0">
                 <input
                   type="text"
                   aria-label="Property"
@@ -71,13 +72,14 @@ export const AssertionsEditor: FC = () => {
             )}
             <select
               aria-label="Operator"
+              className="input-box"
               value={assertion.operator}
               onChange={event => change(assertion.id, { operator: event.currentTarget.value as AssertionOperator })}
             >
               {Object.entries(ASSERTION_OPERATORS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
             {operatorHasValue(assertion.operator) && (
-              <div className="form-control form-control--outlined flex-1 m-0">
+              <div className="form-control form-control--outlined flex-1 m-0 [&_input]:mt-0">
                 <input
                   type="text"
                   aria-label="Expected"

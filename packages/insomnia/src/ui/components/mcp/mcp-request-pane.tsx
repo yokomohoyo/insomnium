@@ -150,7 +150,7 @@ export const McpRequestPane: FC<{ environmentId: string }> = ({ environmentId })
               <textarea
                 aria-label="Arguments"
                 key={`${uniquenessKey}::args`}
-                className="w-full font-mono"
+                className="input-box w-full font-mono"
                 rows={8}
                 defaultValue={activeRequest.args}
                 disabled={busy}
@@ -168,7 +168,7 @@ export const McpRequestPane: FC<{ environmentId: string }> = ({ environmentId })
             <textarea
               aria-label="Description"
               key={`${uniquenessKey}::description`}
-              className="w-full"
+              className="input-box w-full"
               rows={8}
               placeholder="What this server is for, in Markdown"
               defaultValue={activeRequest.description}

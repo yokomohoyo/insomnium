@@ -701,7 +701,7 @@ const ProjectRoute: FC = () => {
                               {isSelected && (
                                 <Icon
                                   icon="check"
-                                  className="text-[--color-success] justify-self-end"
+                                  className="text-[--color-success] ml-auto"
                                 />
                               )}
                             </Fragment>

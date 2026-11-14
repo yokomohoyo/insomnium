@@ -85,14 +85,14 @@ export const CaptureModal: FC<ModalProps & { workspace: Workspace }> = ({ worksp
             Plain HTTP is recorded in full. HTTPS goes through untouched and is listed by host only: to keep HTTPS requests, save them as a HAR file from a browser&apos;s devtools, and import it.
           </p>
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-2">
+            <label className="flex items-center gap-2 pt-0">
               Port
-              <input type="number" aria-label="Capture port" min={1024} max={65535} value={port} disabled={listening !== null} onChange={event => setPort(Number(event.currentTarget.value) || DEFAULT_PORT)} />
+              <input className="input-box w-24" type="number" aria-label="Capture port" min={1024} max={65535} value={port} disabled={listening !== null} onChange={event => setPort(Number(event.currentTarget.value) || DEFAULT_PORT)} />
             </label>
             {listening === null
               ? <button className="btn btn--clicky" onClick={start}>Start Capturing</button>
               : <button className="btn btn--clicky" onClick={stop}>Stop</button>}
-            <button className="btn btn--compact" disabled={!exchanges.length} onClick={() => window.main.capture.clear().then(refresh)}>Clear</button>
+            <button className="btn btn--clicky" disabled={!exchanges.length} onClick={() => window.main.capture.clear().then(refresh)}>Clear</button>
           </div>
           {listening !== null && (
             <p className="notice info selectable" data-testid="capture-status">
@@ -101,7 +101,7 @@ export const CaptureModal: FC<ModalProps & { workspace: Workspace }> = ({ worksp
           )}
           {error && <p className="notice error">{error}</p>}
           {saved && <p className="notice success">{saved}</p>}
-          <table className="table--fancy table--striped margin-top" aria-label="Captured requests">
+          <table className="table--fancy table--striped table--valign-middle margin-top" aria-label="Captured requests">
             <thead>
               <tr>
                 <th />

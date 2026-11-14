@@ -33,12 +33,13 @@ export const MaskedSetting: FC<{
   const patchSettings = useSettingsPatcher();
 
   return (
-    <div>
+    <div className="form-control form-control--outlined form-control--btn-right">
       <label htmlFor={id}>
         {label}
         {help && <HelpTooltip className="space-left">{help}</HelpTooltip>}
       </label>
-      <div className="form-control form-control--outlined form-control--btn-right">
+      {/* the eye button centres on this box, which is the input's own */}
+      <div className="relative">
         <input
           id={id}
           defaultValue={String(settings[setting])}

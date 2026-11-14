@@ -68,21 +68,21 @@ export const ResponseExamplesEditor: FC = () => {
   return (
     <div className="tall flex flex-col">
       <div className="flex items-center gap-2 pad-sm">
-        <select aria-label="Example" value={selected._id} onChange={event => setSelectedId(event.currentTarget.value)}>
+        <select className="input-box" aria-label="Example" value={selected._id} onChange={event => setSelectedId(event.currentTarget.value)}>
           {examples.map(example => <option key={example._id} value={example._id}>{example.name}</option>)}
         </select>
-        <button className="btn btn--compact" onClick={add}>Add</button>
-        <PromptButton className="btn btn--compact" onClick={() => remove(selected)}>Delete</PromptButton>
+        <button className="btn btn--clicky" onClick={add}>Add</button>
+        <PromptButton className="btn btn--clicky" onClick={() => remove(selected)}>Delete</PromptButton>
       </div>
-      <div key={selected._id} className="flex items-center gap-2 pad-left pad-right">
+      <div key={selected._id} className="flex items-center gap-2 px-[--padding-sm]">
         <input
-          className="flex-1"
+          className="input-box flex-1"
           aria-label="Example name"
           defaultValue={selected.name}
           onBlur={event => event.currentTarget.value.trim() && update(selected._id, { name: event.currentTarget.value.trim() })}
         />
         <input
-          className="w-20"
+          className="input-box w-20"
           aria-label="Status code"
           type="number"
           min={100}
@@ -99,7 +99,7 @@ export const ResponseExamplesEditor: FC = () => {
           }}
         />
         <input
-          className="flex-1"
+          className="input-box flex-1"
           aria-label="Status text"
           defaultValue={selected.statusMessage}
           onBlur={event => update(selected._id, { statusMessage: event.currentTarget.value })}
@@ -108,7 +108,7 @@ export const ResponseExamplesEditor: FC = () => {
       <textarea
         key={`${selected._id}-headers`}
         aria-label="Headers"
-        className="pad-sm margin-left margin-right txt-sm"
+        className="input-box m-[--padding-sm] txt-sm"
         rows={3}
         placeholder="Content-Type: application/json"
         defaultValue={headersAsText(selected.headers)}

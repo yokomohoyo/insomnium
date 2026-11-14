@@ -165,7 +165,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
           <CertificateField title={t('Passphrase')} value={certificate.passphrase} privateText optional />
         </CertificateFields>
 
-        <div className="no-wrap">
+        <div className="flex items-center no-wrap">
           <button
             className="btn btn--super-compact width-auto"
             title={t('Enable or disable certificate')}
@@ -333,7 +333,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                         showFileName
                         showFileIcon
                       />
-                      <div className="no-wrap">
+                      <div className="flex items-center no-wrap">
                         <button
                           disabled={caCertificate === null}
                           className="btn btn--super-compact width-auto"
@@ -418,7 +418,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                         </label>
                       </div>
                       <div className="form-row">
-                        <div className="form-control width-auto">
+                        <div className="form-control flex-none w-auto">
                           <label>
                             PFX <span className="faint">{t('(or PKCS12)')}</span>
                             <FileInputButton
@@ -429,10 +429,9 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                             />
                           </label>
                         </div>
-                        <div className="text-center">
-                          <br />
-                          <br />
-                          &nbsp;&nbsp;{t('Or')}&nbsp;&nbsp;
+                        {/* as tall as the buttons beside it, and on their line */}
+                        <div className="flex-none w-auto flex items-center h-[--line-height-xs] mb-[--padding-sm] px-[--padding-md] faint">
+                          {t('Or')}
                         </div>
                         <div className="row-fill">
                           <div className="form-control">
@@ -471,7 +470,7 @@ export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertifi
                           />
                         </label>
                       </div>
-                      <div className="form-control form-control--slim">
+                      <div className="form-control form-control--thin">
                         <label>
                           {t('Private')}
                           <HelpTooltip className="space-left">

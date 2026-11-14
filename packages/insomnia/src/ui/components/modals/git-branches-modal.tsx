@@ -115,7 +115,7 @@ export const GitBranchesModal: FC<Props> = (({
           </newBranchFetcher.Form>
 
           <div className="pad-top">
-            <table className="table--fancy table--outlined">
+            <table className="table--fancy table--outlined table--valign-middle">
               <thead>
                 <tr>
                   <th className="text-left">{t('Branches')}</th>
@@ -199,7 +199,7 @@ export const GitBranchesModal: FC<Props> = (({
           )}
           {remoteOnlyBranches.length > 0 && (
             <div className="pad-top">
-              <table className="table--fancy table--outlined">
+              <table className="table--fancy table--outlined table--valign-middle">
                 <thead>
                   <tr>
                     <th className="text-left">{t('Remote Branches')} {isFetchingRemoteBranches && <i className="fa fa-spinner fa-spin space-right" />}</th>

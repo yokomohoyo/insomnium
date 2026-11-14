@@ -341,7 +341,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
               </button>
             </div>
             <div className="pad env-modal__sidebar-heading">
-              <h3 className="no-margin">{t('Sub Environments')}</h3>
+              <h3 className="no-margin text-md font-normal">{t('Sub Environments')}</h3>
               <Dropdown
                 aria-label={t('Create Environment Dropdown')}
                 triggerButton={

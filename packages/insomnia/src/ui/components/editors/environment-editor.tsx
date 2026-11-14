@@ -175,7 +175,7 @@ export const EnvironmentEditor = forwardRef<EnvironmentEditorHandle, Props>(({
         />
       ) : (
         <div className="environment-editor__table scrollable">
-          <table className="table--fancy table--compact wide" aria-label="Variables">
+          <table className="table--fancy table--compact table--valign-middle wide" aria-label="Variables">
             <thead>
               <tr>
                 <th>Name</th>

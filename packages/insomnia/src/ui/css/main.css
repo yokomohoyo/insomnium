@@ -258,7 +258,8 @@ table.table--fancy th {
   padding: var(--padding-sm);
   vertical-align: top;
 }
-table.table--fancy.table--compact td {
+table.table--fancy.table--compact td,
+table.table--fancy.table--compact th {
   padding: var(--padding-xs);
 }
 table.table--fancy.table--valign-middle td,
@@ -972,7 +973,9 @@ strong {
 }
 .form-row {
   display: flex;
-  align-items: center;
+  /* the controls sit at the bottom of each field, under its label: lining up
+     the bottoms keeps them level when one label wraps or is missing */
+  align-items: flex-end;
   justify-content: center;
   align-content: center;
   flex-direction: row;
@@ -996,6 +999,28 @@ strong {
 }
 .form-row--start > * {
   width: unset;
+}
+/* A boxed field for a control that sits outside .form-control, in a flex row
+   or a table cell: the reset below leaves a bare input with no border at all.
+   Looks like .form-control--outlined, without its block layout and margins */
+input.input-box,
+select.input-box,
+textarea.input-box {
+  height: var(--line-height-xs);
+  padding: 0 var(--padding-sm);
+  border: 1px solid var(--hl-md);
+  border-radius: var(--radius-md);
+  background-color: var(--hl-xxs);
+}
+textarea.input-box {
+  height: auto;
+  padding: var(--padding-sm);
+}
+input.input-box:focus,
+select.input-box:focus,
+textarea.input-box:focus {
+  background-color: transparent;
+  border-color: var(--hl-lg);
 }
 .icon {
   text-align: center;
@@ -1289,7 +1314,7 @@ html {
   --scrollbar-width: calc(var(--font-size) * 0.6);
   /* Modals */
   --modal-width: calc(var(--font-size) * 60);
-  --modal-width-wide: calc(var(--font-size) * 70);
+  --modal-width-wide: calc(var(--font-size) * 90);
   --modal-width-skinny: calc(var(--font-size) * 30);
   /* Other */
   --drag-width: calc(var(--font-size) * 0.5);
@@ -2465,7 +2490,7 @@ input.editable {
   height: 100%;
 }
 .modal.modal--wide .modal__content__wrapper {
-  width: var(--modal-width) wide;
+  width: var(--modal-width-wide);
 }
 .modal.modal--skinny .modal__content__wrapper {
   width: var(--modal-width-skinny);
@@ -2559,6 +2584,11 @@ input.editable {
 }
 .modal .modal__footer button.modal__footer-secondary:hover {
   background-color: var(--hl-xs);
+}
+/* the footer's gap only reaches its own children: buttons grouped in a
+   wrapper would touch */
+.modal .modal__footer > div > button + button {
+  margin-left: var(--padding-xs);
 }
 .modal .modal__footer button.studio-action-btn {
   color: #0084d5;
@@ -3394,7 +3424,8 @@ input.editable {
 .urlbar > .dropdown > button > i.fa {
   line-height: var(--height-nav);
 }
-.urlbar .urlbar__send-btn {
+.urlbar .urlbar__send-btn,
+.pane__header .urlbar__send-btn {
   padding-right: var(--padding-md);
   padding-left: var(--padding-md);
   margin-left: 0.75em;
