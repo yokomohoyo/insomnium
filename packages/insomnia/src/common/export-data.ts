@@ -14,7 +14,6 @@ import * as models from '../models/index';
 import { isProtoDirectory } from '../models/proto-directory';
 import { isProtoFile } from '../models/proto-file';
 import { isRequest } from '../models/request';
-import { isRequestGroup } from '../models/request-group';
 import { isResponseExample } from '../models/response-example';
 import { isUnitTest } from '../models/unit-test';
 import { isUnitTestSuite } from '../models/unit-test-suite';
@@ -24,25 +23,7 @@ import { isWebSocketRequest } from '../models/websocket-request';
 import { isWorkspace, Workspace } from '../models/workspace';
 import { resetKeys } from '../sync/ignore-keys';
 import { Insomnia4Data } from '../utils/importers/importers';
-import {
-  EXPORT_TYPE_API_SPEC,
-  EXPORT_TYPE_COOKIE_JAR,
-  EXPORT_TYPE_ENVIRONMENT,
-  EXPORT_TYPE_FLOW,
-  EXPORT_TYPE_GRPC_REQUEST,
-  EXPORT_TYPE_MCP_REQUEST,
-  EXPORT_TYPE_PROTO_DIRECTORY,
-  EXPORT_TYPE_PROTO_FILE,
-  EXPORT_TYPE_REQUEST,
-  EXPORT_TYPE_REQUEST_GROUP,
-  EXPORT_TYPE_UNIT_TEST,
-  EXPORT_TYPE_UNIT_TEST_SUITE,
-  EXPORT_TYPE_WEBSOCKET_PAYLOAD,
-  EXPORT_TYPE_RESPONSE_EXAMPLE,
-  EXPORT_TYPE_WEBSOCKET_REQUEST,
-  EXPORT_TYPE_WORKSPACE,
-  getAppVersion,
-} from './constants';
+import { getAppVersion } from './constants';
 import { database as db } from './database';
 import * as har from './har';
 
@@ -198,90 +179,18 @@ export async function exportRequestsData(
   }
 
   data.resources = docs
-    .filter(d => {
-      // Only export these model types.
-      if (
-        !(
-          isUnitTestSuite(d) ||
-          isUnitTest(d) ||
-          isFlow(d) ||
-          isRequest(d) ||
-          isWebSocketPayload(d) ||
-          isResponseExample(d) ||
-          isWebSocketRequest(d) ||
-          isMcpRequest(d) ||
-          isGrpcRequest(d) ||
-          isRequestGroup(d) ||
-          isProtoFile(d) ||
-          isProtoDirectory(d) ||
-          isWorkspace(d) ||
-          isCookieJar(d) ||
-          isEnvironment(d) ||
-          isApiSpec(d)
-        )
-      ) {
-        return false;
-      }
-
-      // BaseModel doesn't have isPrivate, so cast it first.
-      return !d.isPrivate || includePrivateDocs;
-    })
+    // Only the exported model types, and nothing private unless asked for.
+    .filter(d => models.getExportType(d.type) !== undefined && (!d.isPrivate || includePrivateDocs))
     .map(d => {
+      const resource: Omit<BaseModel, 'type'> & { type?: string; _type?: models.ExportType } = d;
+      resource._type = models.getExportType(d.type);
       if (isWorkspace(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_WORKSPACE;
         // reset the parentId of a workspace
         resetKeys(d);
-      } else if (isCookieJar(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_COOKIE_JAR;
-      } else if (isEnvironment(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_ENVIRONMENT;
-      } else if (isUnitTestSuite(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_UNIT_TEST_SUITE;
-      } else if (isUnitTest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_UNIT_TEST;
-      } else if (isFlow(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_FLOW;
-      } else if (isRequestGroup(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_REQUEST_GROUP;
-      } else if (isRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_REQUEST;
-      } else if (isGrpcRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_GRPC_REQUEST;
-      } else if (isWebSocketPayload(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_WEBSOCKET_PAYLOAD;
-      } else if (isResponseExample(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_RESPONSE_EXAMPLE;
-      } else if (isWebSocketRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_WEBSOCKET_REQUEST;
-      } else if (isMcpRequest(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_MCP_REQUEST;
-      } else if (isProtoFile(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_PROTO_FILE;
-      } else if (isProtoDirectory(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_PROTO_DIRECTORY;
-      } else if (isApiSpec(d)) {
-        // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
-        d._type = EXPORT_TYPE_API_SPEC;
       }
 
-      // @ts-expect-error -- TSCONVERSION maybe this needs to be added to the upstream type?
       // Delete the things we don't want to export
-      delete d.type;
+      delete resource.type;
       return d;
     });
 

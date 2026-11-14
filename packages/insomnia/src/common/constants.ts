@@ -477,20 +477,3 @@ export const RESPONSE_CODE_REASONS: Record<number, string> = {
   598: 'Network read timeout error',
   599: 'Network Connect Timeout Error',
 };
-
-export const EXPORT_TYPE_REQUEST = 'request';
-export const EXPORT_TYPE_GRPC_REQUEST = 'grpc_request';
-export const EXPORT_TYPE_WEBSOCKET_REQUEST = 'websocket_request';
-export const EXPORT_TYPE_MCP_REQUEST = 'mcp_request';
-export const EXPORT_TYPE_WEBSOCKET_PAYLOAD = 'websocket_payload';
-export const EXPORT_TYPE_RESPONSE_EXAMPLE = 'response_example';
-export const EXPORT_TYPE_REQUEST_GROUP = 'request_group';
-export const EXPORT_TYPE_UNIT_TEST_SUITE = 'unit_test_suite';
-export const EXPORT_TYPE_UNIT_TEST = 'unit_test';
-export const EXPORT_TYPE_FLOW = 'flow';
-export const EXPORT_TYPE_WORKSPACE = 'workspace';
-export const EXPORT_TYPE_COOKIE_JAR = 'cookie_jar';
-export const EXPORT_TYPE_ENVIRONMENT = 'environment';
-export const EXPORT_TYPE_API_SPEC = 'api_spec';
-export const EXPORT_TYPE_PROTO_FILE = 'proto_file';
-export const EXPORT_TYPE_PROTO_DIRECTORY = 'proto_directory';
