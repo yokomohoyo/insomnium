@@ -10,31 +10,33 @@ interface Options {
   mode?: 'development' | 'production';
 }
 
+// What the main process's bundles have in place of these process.env reads
+export const defines = (mode: Options['mode']): Record<string, string> => mode !== 'production'
+  ? {
+    'process.env.APP_RENDER_URL': JSON.stringify(
+      `http://localhost:${pkg.dev['dev-server-port']}/index.html`
+    ),
+    'process.env.NODE_ENV': JSON.stringify('development'),
+    'process.env.INSOMNIA_ENV': JSON.stringify('development'),
+    'process.env.BUILD_DATE': JSON.stringify(new Date()),
+  }
+  : {
+    // a production build loads only its own page, whatever the environment says
+    'process.env.APP_RENDER_URL': JSON.stringify(''),
+    'process.env.NODE_ENV': JSON.stringify('production'),
+    'process.env.INSOMNIA_ENV': JSON.stringify('production'),
+    'process.env.BUILD_DATE': JSON.stringify(new Date()),
+  };
+
 export default async function build(options: Options) {
   const mode = options.mode || 'production';
   const __DEV__ = mode !== 'production';
-  const PORT = pkg.dev['dev-server-port'];
 
   const outdir = __DEV__
     ? path.join(__dirname, 'src')
     : path.join(__dirname, 'build');
 
-  const env: Record<string, string> = __DEV__
-    ? {
-      'process.env.APP_RENDER_URL': JSON.stringify(
-        `http://localhost:${PORT}/index.html`
-      ),
-      'process.env.NODE_ENV': JSON.stringify('development'),
-      'process.env.INSOMNIA_ENV': JSON.stringify('development'),
-      'process.env.BUILD_DATE': JSON.stringify(new Date()),
-    }
-    : {
-      // a production build loads only its own page, whatever the environment says
-      'process.env.APP_RENDER_URL': JSON.stringify(''),
-      'process.env.NODE_ENV': JSON.stringify('production'),
-      'process.env.INSOMNIA_ENV': JSON.stringify('production'),
-      'process.env.BUILD_DATE': JSON.stringify(new Date()),
-    };
+  const env = defines(mode);
   const preload = esbuild.build({
     entryPoints: ['./src/preload.ts'],
     outfile: path.join(outdir, 'preload.js'),
