@@ -14,6 +14,7 @@ import type { RequestGroupAction } from '../../../plugins';
 import { getRequestGroupActions } from '../../../plugins';
 import * as pluginContexts from '../../../plugins/context/index';
 import { CreateRequestType, useRequestGroupPatcher } from '../../hooks/use-request';
+import { debugPath } from '../../routes/paths';
 import { RootLoaderData } from '../../routes/root';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { type DropdownHandle, type DropdownProps } from '../base/dropdown';
@@ -48,7 +49,7 @@ export const RequestGroupActionsDropdown = ({
     requestFetcher.submit(JSON.stringify({ requestType, parentId, req }),
       {
         encType: 'application/json',
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/new`,
+        action: debugPath({ organizationId, projectId, workspaceId }, 'request/new'),
         method: 'post',
       });
 
@@ -67,7 +68,7 @@ export const RequestGroupActionsDropdown = ({
       onComplete: async (name: string) => {
         requestFetcher.submit({ _id: requestGroup._id, name },
           {
-            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/duplicate`,
+            action: debugPath({ organizationId, projectId, workspaceId }, 'request-group/duplicate'),
             method: 'post',
             encType: 'application/json',
           });
@@ -91,7 +92,7 @@ export const RequestGroupActionsDropdown = ({
     models.stats.incrementDeletedRequestsForDescendents(requestGroup);
     requestFetcher.submit({ id: requestGroup._id },
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/delete`,
+        action: debugPath({ organizationId, projectId, workspaceId }, 'request-group/delete'),
         method: 'post',
       });
   };
@@ -223,7 +224,7 @@ export const RequestGroupActionsDropdown = ({
             selectText: true,
             onComplete: name => requestFetcher.submit({ parentId: requestGroup._id, name },
               {
-                action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/new`,
+                action: debugPath({ organizationId, projectId, workspaceId }, 'request-group/new'),
                 method: 'post',
               }),
           }),

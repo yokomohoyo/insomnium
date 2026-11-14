@@ -5,6 +5,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 import { t } from '../../../common/i18n';
 import type { MergeChoice } from '../../../sync/git/merge-docs';
 import { GitStashesLoaderData, GitStashResult } from '../../routes/git-actions';
+import { gitPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -22,7 +23,7 @@ const fileName = (file: string, names: Record<string, string>) => names[file] ||
 export const GitStashesModal: FC<ModalProps> = ({ onHide }) => {
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
   const modalRef = useRef<ModalHandle>(null);
-  const action = `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/stashes`;
+  const action = gitPath({ organizationId, projectId, workspaceId }, 'stashes');
   const stashesFetcher = useFetcher<GitStashesLoaderData>();
   const stashFetcher = useFetcher<GitStashResult>();
   // the stash being applied, and how, for its conflicts

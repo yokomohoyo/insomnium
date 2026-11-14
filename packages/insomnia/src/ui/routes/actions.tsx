@@ -19,6 +19,7 @@ import { WorkspaceMeta } from '../../models/workspace-meta';
 import { getSendRequestCallback } from '../../network/unit-test-feature';
 import { guard } from '../../utils/guard';
 import { mayRunTests, trustTestCode } from '../test-code-trust';
+import { projectPath, testPath, testResultPath, testSuitePath, workspacePath } from './paths';
 
 // Project
 export const createNewProjectAction: ActionFunction = async ({ request, params }) => {
@@ -29,7 +30,7 @@ export const createNewProjectAction: ActionFunction = async ({ request, params }
   guard(typeof name === 'string', 'Name is required');
   const project = await models.project.create({ name });
 
-  return redirect(`/organization/${organizationId}/project/${project._id}`);
+  return redirect(projectPath({ organizationId, projectId: project._id }));
 };
 
 export const renameProjectAction: ActionFunction = async ({
@@ -63,7 +64,7 @@ export const deleteProjectAction: ActionFunction = async ({ params }) => {
   await models.stats.incrementDeletedRequestsForDescendents(project);
   await models.project.remove(project);
 
-  return redirect(`/organization/${DEFAULT_ORGANIZATION_ID}/project/${DEFAULT_PROJECT_ID}`);
+  return redirect(projectPath({ organizationId: DEFAULT_ORGANIZATION_ID, projectId: DEFAULT_PROJECT_ID }));
 };
 
 // Workspace
@@ -109,8 +110,7 @@ export const createNewWorkspaceAction: ActionFunction = async ({
   await database.flushChanges(flushId);
 
   return redirect(
-    `/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}/${workspace.scope === 'collection' ? ACTIVITY_DEBUG : ACTIVITY_SPEC
-    }`
+    workspacePath({ organizationId, projectId, workspaceId: workspace._id }, workspace.scope === 'collection' ? ACTIVITY_DEBUG : ACTIVITY_SPEC)
   );
 };
 
@@ -135,7 +135,7 @@ export const deleteWorkspaceAction: ActionFunction = async ({
   await models.stats.incrementDeletedRequestsForDescendents(workspace);
   await models.workspace.remove(workspace);
 
-  return redirect(`/organization/${organizationId}/project/${projectId}`);
+  return redirect(projectPath({ organizationId, projectId }));
 };
 
 export const duplicateWorkspaceAction: ActionFunction = async ({ request, params }) => {
@@ -181,8 +181,7 @@ export const duplicateWorkspaceAction: ActionFunction = async ({ request, params
   await models.workspaceMeta.getOrCreateByParentId(newWorkspace._id);
 
   return redirect(
-    `/organization/${organizationId}/project/${projectId}/workspace/${newWorkspace._id}/${newWorkspace.scope === 'collection' ? ACTIVITY_DEBUG : ACTIVITY_SPEC
-    }`
+    workspacePath({ organizationId, projectId, workspaceId: newWorkspace._id }, newWorkspace.scope === 'collection' ? ACTIVITY_DEBUG : ACTIVITY_SPEC)
   );
 };
 
@@ -252,7 +251,7 @@ export const createNewTestSuiteAction: ActionFunction = async ({
     name,
   });
 
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${unitTestSuite._id}`);
+  return redirect(testSuitePath({ organizationId, projectId, workspaceId }, unitTestSuite._id));
 };
 
 export const deleteTestSuiteAction: ActionFunction = async ({ params }) => {
@@ -267,7 +266,7 @@ export const deleteTestSuiteAction: ActionFunction = async ({ params }) => {
 
   await models.unitTestSuite.remove(unitTestSuite);
 
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test`);
+  return redirect(testPath({ organizationId, projectId, workspaceId }));
 };
 
 const notRun = (unitTests: UnitTest[], err: Error) => {
@@ -327,7 +326,7 @@ export const runAllTestsAction: ActionFunction = async ({
     parentId: workspaceId,
   });
 
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${testSuiteId}/test-result/${testResult._id}`);
+  return redirect(testResultPath({ organizationId, projectId, workspaceId }, testSuiteId, testResult._id));
 };
 
 export const renameTestSuiteAction: ActionFunction = async ({ request, params }) => {
@@ -443,7 +442,7 @@ export const runTestAction: ActionFunction = async ({ params }) => {
     parentId: unitTest.parentId,
   });
 
-  return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${testSuiteId}/test-result/${testResult._id}`);
+  return redirect(testResultPath({ organizationId, projectId, workspaceId }, testSuiteId, testResult._id));
 };
 
 // Api Spec

@@ -7,6 +7,7 @@ import { DraggableCollectionState, DroppableCollectionState, Item, ListState, us
 import { docsTemplateTags } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
 import type { Environment } from '../../../models/environment';
+import { workspacePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../base/dropdown';
 import { Editable } from '../base/editable';
@@ -266,7 +267,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
       },
         {
           method: 'post',
-          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/set-active`,
+          action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/set-active'),
         });
     }
   }
@@ -277,7 +278,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
     },
       {
         method: 'post',
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/delete`,
+        action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/delete'),
       });
   }
 
@@ -289,7 +290,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
       {
         encType: 'application/json',
         method: 'post',
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/update`,
+        action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/update'),
       });
   };
 
@@ -329,7 +330,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
                     },
                       {
                         method: 'post',
-                        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/set-active`,
+                        action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/set-active'),
                       });
                   }
                 }}
@@ -365,7 +366,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
                         {
                           encType: 'application/json',
                           method: 'post',
-                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/create`,
+                          action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/create'),
                         });
                     }}
                   />
@@ -381,7 +382,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
                         {
                           encType: 'application/json',
                           method: 'post',
-                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/create`,
+                          action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/create'),
                         });
                     }}
                   />
@@ -486,7 +487,7 @@ export const WorkspaceEnvironmentsEditModal = (props: ModalProps) => {
                           environmentId: activeEnvironment._id,
                         }, {
                           method: 'post',
-                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/environment/duplicate`,
+                          action: workspacePath({ organizationId, projectId, workspaceId }, 'environment/duplicate'),
                         });
                       }
                     }}

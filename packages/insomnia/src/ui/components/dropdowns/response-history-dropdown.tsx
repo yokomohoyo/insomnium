@@ -4,6 +4,7 @@ import { useFetcher, useRevalidator, useRouteLoaderData } from 'react-router-dom
 import { useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
+import { requestPath } from '../../routes/paths';
 import { tx } from '../../tx';
 import { decompressObject } from '../../../common/misc';
 import * as models from '../../../models/index';
@@ -81,7 +82,7 @@ export const ResponseHistoryDropdown = ({
       window.main.webSocket.closeAll();
     }
     fetcher.submit({}, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/response/delete-all`,
+      action: requestPath({ organizationId, projectId, workspaceId }, requestId, 'response/delete-all'),
       method: 'post',
       encType: 'application/json',
     });
@@ -94,7 +95,7 @@ export const ResponseHistoryDropdown = ({
       }
     }
     fetcher.submit({ responseId: activeResponse._id }, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/response/delete`,
+      action: requestPath({ organizationId, projectId, workspaceId }, requestId, 'response/delete'),
       method: 'post',
       encType: 'application/json',
     });

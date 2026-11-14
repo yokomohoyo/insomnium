@@ -4,6 +4,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { GitTagResult, GitTagsLoaderData } from '../../routes/git-actions';
+import { gitPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -16,7 +17,7 @@ import { showAlert } from '.';
 export const GitTagsModal: FC<ModalProps> = ({ onHide }) => {
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
   const modalRef = useRef<ModalHandle>(null);
-  const action = `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/tags`;
+  const action = gitPath({ organizationId, projectId, workspaceId }, 'tags');
   const tagsFetcher = useFetcher<GitTagsLoaderData>();
   const tagFetcher = useFetcher<GitTagResult>();
 

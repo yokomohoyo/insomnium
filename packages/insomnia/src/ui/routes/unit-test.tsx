@@ -21,6 +21,7 @@ import { ErrorBoundary } from '../components/error-boundary';
 import { showPrompt } from '../components/modals';
 import { SidebarFooter, SidebarLayout } from '../components/sidebar-layout';
 import { Button } from '../components/themed-button';
+import { testPath, testSuitePath } from './paths';
 import { TestRunStatus } from './test-results';
 import TestSuiteRoute from './test-suite';
 
@@ -79,7 +80,7 @@ const TestRoute: FC = () => {
         },
         {
           method: 'post',
-          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/new`,
+          action: testPath({ organizationId, projectId, workspaceId }, 'test-suite/new'),
         }
       );
     },
@@ -108,7 +109,7 @@ const TestRoute: FC = () => {
                     onClick={e => {
                       e.preventDefault();
                       navigate(
-                        `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${suite._id}`
+                        testSuitePath({ organizationId, projectId, workspaceId }, suite._id)
                       );
                     }}
                   >
@@ -135,7 +136,7 @@ const TestRoute: FC = () => {
                             {},
                             {
                               method: 'post',
-                              action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${suite._id}/run-all-tests`,
+                              action: testSuitePath({ organizationId, projectId, workspaceId }, suite._id, 'run-all-tests'),
                             }
                           );
                         }}
@@ -149,7 +150,7 @@ const TestRoute: FC = () => {
                           deleteUnitTestSuiteFetcher.submit(
                             {},
                             {
-                              action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${suite._id}/delete`,
+                              action: testSuitePath({ organizationId, projectId, workspaceId }, suite._id, 'delete'),
                               method: 'post',
                             }
                           )

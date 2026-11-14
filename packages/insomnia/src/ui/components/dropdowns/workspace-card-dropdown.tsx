@@ -16,6 +16,7 @@ import type { DocumentAction } from '../../../plugins';
 import { getDocumentActions } from '../../../plugins';
 import * as pluginContexts from '../../../plugins/context';
 import { useLoadingRecord } from '../../hooks/use-loading-record';
+import { projectPath } from '../../routes/paths';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { showError, showModal, showPrompt } from '../modals';
 import { AskModal } from '../modals/ask-modal';
@@ -132,7 +133,7 @@ export const WorkspaceCardDropdown: FC<Props> = props => {
                   fetcher.submit(
                     { name, workspaceId: workspace._id },
                     {
-                      action: `/organization/${organizationId}/project/${workspace.parentId}/workspace/update`,
+                      action: projectPath({ organizationId, projectId: workspace.parentId }, 'workspace/update'),
                       method: 'post',
                       encType: 'application/json',
                     }
@@ -186,7 +187,7 @@ export const WorkspaceCardDropdown: FC<Props> = props => {
                     fetcher.submit(
                       { workspaceId: workspace._id },
                       {
-                        action: `/organization/${organizationId}/project/${workspace.parentId}/workspace/delete`,
+                        action: projectPath({ organizationId, projectId: workspace.parentId }, 'workspace/delete'),
                         method: 'post',
                       }
                     );

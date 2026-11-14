@@ -3,6 +3,7 @@ import { useRouteLoaderData } from 'react-router-dom';
 import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
+import { debugPath } from '../../routes/paths';
 import { RootLoaderData } from '../../routes/root';
 import { Hotkey } from '../hotkey';
 import { Pane, PaneBody, PaneHeader } from './pane';
@@ -17,7 +18,7 @@ export const PlaceholderRequestPane: FC = () => {
   const createHttpRequest = useCallback(() =>
     requestFetcher.submit({ requestType: 'HTTP', parentId: workspaceId },
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/new`,
+        action: debugPath({ organizationId, projectId, workspaceId }, 'request/new'),
         method: 'post',
         encType: 'application/json',
       }), [requestFetcher, organizationId, projectId, workspaceId]);

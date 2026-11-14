@@ -58,6 +58,7 @@ import { ImportModal } from '../components/modals/import-modal';
 import { EmptyStatePane } from '../components/panes/project-empty-state-pane';
 import { SidebarLayout } from '../components/sidebar-layout';
 import { TimeFromNow } from '../components/time-from-now';
+import { debugPath, newProjectPath, projectPath } from './paths';
 
 // a sort order's name, in the app's language
 const sortOrderName = (order: DashboardSortOrder) => ({
@@ -162,13 +163,13 @@ export const indexLoader: LoaderFunction = async ({ params }) => {
 
     if (match && match.params.organizationId && match.params.projectId) {
       return redirect(
-        `/organization/${match?.params.organizationId}/project/${match?.params.projectId}`
+        projectPath({ organizationId: match?.params.organizationId, projectId: match?.params.projectId })
       );
     }
   }
 
   const [first] = sortProjects(await models.project.all());
-  return redirect(`/organization/${DEFAULT_ORGANIZATION_ID}/project/${first?._id || DEFAULT_PROJECT_ID}`);
+  return redirect(projectPath({ organizationId: DEFAULT_ORGANIZATION_ID, projectId: first?._id || DEFAULT_PROJECT_ID }));
 };
 
 export interface ProjectLoaderData {
@@ -375,7 +376,7 @@ const ProjectRoute: FC = () => {
             scope: 'collection',
           },
           {
-            action: `/organization/${organizationId}/project/${activeProject._id}/workspace/new`,
+            action: projectPath({ organizationId, projectId: activeProject._id }, 'workspace/new'),
             method: 'post',
           }
         );
@@ -397,7 +398,7 @@ const ProjectRoute: FC = () => {
             scope: 'design',
           },
           {
-            action: `/organization/${organizationId}/project/${activeProject._id}/workspace/new`,
+            action: projectPath({ organizationId, projectId: activeProject._id }, 'workspace/new'),
             method: 'post',
           }
         );
@@ -535,7 +536,7 @@ const ProjectRoute: FC = () => {
                                 name,
                               },
                               {
-                                action: `/organization/${organizationId}/project/new`,
+                                action: newProjectPath(organizationId),
                                 method: 'post',
                               }
                             ),
@@ -559,7 +560,7 @@ const ProjectRoute: FC = () => {
                     if (keys !== 'all') {
                       const value = keys.values().next().value;
                       navigate({
-                        pathname: `/organization/${organizationId}/project/${value}`,
+                        pathname: projectPath({ organizationId, projectId: value }),
                         search: searchParams.toString(),
                       });
                     }
@@ -756,7 +757,7 @@ const ProjectRoute: FC = () => {
                 items={workspaces}
                 onAction={key => {
                   navigate(
-                    `/organization/${organizationId}/project/${projectId}/workspace/${key}/debug`
+                    debugPath({ organizationId, projectId, workspaceId: String(key) })
                   );
                 }}
                 className="flex-1 overflow-y-auto data-[empty]:flex data-[empty]:justify-center grid [grid-template-columns:repeat(auto-fit,200px)] [grid-template-rows:repeat(auto-fit,200px)] gap-4 p-[--padding-md]"

@@ -6,6 +6,7 @@ import * as models from '../../models';
 import { UnitTestResult } from '../../models/unit-test-result';
 import { guard } from '../../utils/guard';
 import { ListGroup, UnitTestResultItem } from '../components/list-group';
+import { testResultPath } from './paths';
 
 interface TestResultsData {
   testResult: UnitTestResult;
@@ -20,7 +21,7 @@ export const indexLoader: LoaderFunction = async ({ params }) => {
 
   const testResult = await models.unitTestResult.getLatestByParentId(workspaceId);
   if (testResult) {
-    return redirect(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/test/test-suite/${testSuiteId}/test-result/${testResult._id}`);
+    return redirect(testResultPath({ organizationId, projectId, workspaceId }, testSuiteId, testResult._id));
   }
 
   return null;

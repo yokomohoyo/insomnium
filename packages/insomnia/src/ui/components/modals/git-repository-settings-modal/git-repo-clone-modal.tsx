@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import { docsGitSync } from '../../../../common/documentation';
 import { t } from '../../../../common/i18n';
 import type { GitRepository } from '../../../../models/git-repository';
+import { projectPath } from '../../../routes/paths';
 import { Link } from '../../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../../base/modal';
 import { ModalBody } from '../../base/modal-body';
@@ -55,7 +56,7 @@ export const GitRepositoryCloneModal = (props: ModalProps) => {
         ...credentials,
       },
       {
-        action: `/organization/${organizationId}/project/${projectId}/git/clone`,
+        action: projectPath({ organizationId, projectId }, 'git/clone'),
         method: 'post',
       }
     );

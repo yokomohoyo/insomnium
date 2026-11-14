@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import { WebSocketRequest } from '../../../models/websocket-request';
 import { renderWebSocketConnection, WebSocketSettingsError } from '../../../network/websocket-connect';
+import { requestPath } from '../../routes/paths';
 import { ConnectActionParams } from '../../routes/request';
 import { OneLineEditor, OneLineEditorHandle } from '../codemirror/one-line-editor';
 import { showAlert, showModal } from '../modals';
@@ -77,7 +78,7 @@ export const WebSocketActionBar: FC<ActionBarProps> = ({ request, environmentId,
   const connect = (connectParams: ConnectActionParams) => {
     fetcher.submit(JSON.stringify(connectParams),
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/connect`,
+        action: requestPath({ organizationId, projectId, workspaceId }, requestId, 'connect'),
         method: 'post',
         encType: 'application/json',
       });

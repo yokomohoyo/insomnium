@@ -15,6 +15,7 @@ import {
   PullFromGitRemoteResult,
   PushToGitRemoteResult,
 } from '../../routes/git-actions';
+import { gitPath } from '../../routes/paths';
 import {
   Dropdown,
   DropdownButton,
@@ -82,7 +83,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     ) {
       console.log('[git:fetcher] Fetching git repo data');
       gitRepoDataFetcher.submit({}, {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/repo`,
+        action: gitPath({ organizationId, projectId, workspaceId }, 'repo'),
         method: 'post',
       });
     }
@@ -97,7 +98,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
   // the branch, and the branches, again after something that changes them:
   // a submitted fetcher's data isn't loaded again by itself
   const refreshRepoData = () => gitRepoDataFetcher.submit({}, {
-    action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/repo`,
+    action: gitPath({ organizationId, projectId, workspaceId }, 'repo'),
     method: 'post',
   });
   useEffect(() => {
@@ -114,7 +115,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     if (shouldFetchGitRepoStatus) {
       console.log('[git:fetcher] Fetching git repo status');
       gitStatusFetcher.submit({}, {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/status`,
+        action: gitPath({ organizationId, projectId, workspaceId }, 'status'),
         method: 'post',
       });
     }
@@ -192,7 +193,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
         force: `${force}`,
       },
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/push`,
+        action: gitPath({ organizationId, projectId, workspaceId }, 'push'),
         method: 'post',
       }
     );
@@ -242,7 +243,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
         gitPullFetcher.submit(
           {},
           {
-            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
+            action: gitPath({ organizationId, projectId, workspaceId }, 'pull'),
             method: 'post',
           }
         );
@@ -259,7 +260,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
         gitPullFetcher.submit(
           { rebase: 'true' },
           {
-            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
+            action: gitPath({ organizationId, projectId, workspaceId }, 'pull'),
             method: 'post',
           }
         );
@@ -290,7 +291,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
         gitFetchFetcher.submit(
           {},
           {
-            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/fetch`,
+            action: gitPath({ organizationId, projectId, workspaceId }, 'fetch'),
             method: 'post',
           }
         );
@@ -317,7 +318,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     gitFetchFetcher.submit(
       {},
       {
-        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/fetch`,
+        action: gitPath({ organizationId, projectId, workspaceId }, 'fetch'),
         method: 'post',
       }
     );
@@ -463,7 +464,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
                           branch,
                         },
                         {
-                          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/branch/checkout`,
+                          action: gitPath({ organizationId, projectId, workspaceId }, 'branch/checkout'),
                           method: 'post',
                         }
                       );
@@ -608,7 +609,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
           actionLabel={pullRebases ? t('Rebase') : t('Merge')}
           conflicts={gitPullFetcher.data.conflicts}
           onResolve={choices => gitPullFetcher.submit({ choices: JSON.stringify(choices), ...(pullRebases ? { rebase: 'true' } : {}) }, {
-            action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/pull`,
+            action: gitPath({ organizationId, projectId, workspaceId }, 'pull'),
             method: 'post',
           })}
           onHide={() => setPullConflictsOpen(false)}
