@@ -2,7 +2,7 @@ import { Curl, CurlInfoDebug, HeaderInfo } from '@getinsomnia/node-libcurl';
 import electron, { BrowserWindow, ipcMain } from 'electron';
 import { v4 as uuidV4 } from 'uuid';
 
-import { describeByteSize, generateId } from '../../common/misc';
+import { describeByteSize, generateId, getSetCookieHeaders } from '../../common/misc';
 import * as models from '../../models';
 import { Environment } from '../../models/environment';
 import { Response } from '../../models/response';
@@ -236,7 +236,7 @@ const openCurlConnection = async (
       };
       await saveResponse(models.response, request._id, responsePatch, settings.maxHistoryResponses);
 
-      if (req.settingStoreCookies) {
+      if (req.settingStoreCookies && getSetCookieHeaders(responseHeaders).length) {
         // the last hop's cookies are that URL's, after any redirects
         const currentUrl = String(curl.getInfo(Curl.info.EFFECTIVE_URL) || req.url);
         await storeSetCookies({ headers: responseHeaders, currentUrl, cookieJar: options.cookieJar, timeline });
