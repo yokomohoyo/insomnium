@@ -1,12 +1,12 @@
 import electron, { type IpcMain, type IpcMainEvent, type IpcMainInvokeEvent } from 'electron';
-import { env } from 'node:process';
 import path from 'path';
 import { pathToFileURL } from 'url';
 
 // The page the app's windows load: the dev server's, in development; a release
-// build loads only its own page, since those windows have Node
+// build loads only its own page, since those windows have Node. Spelled
+// process.env.APP_RENDER_URL so that esbuild.main.ts's define replaces it
 export function appPageUrl() {
-  return (!electron.app.isPackaged && env.APP_RENDER_URL) || pathToFileURL(path.resolve(__dirname, './index.html')).href;
+  return (!electron.app.isPackaged && process.env.APP_RENDER_URL) || pathToFileURL(path.resolve(__dirname, './index.html')).href;
 }
 
 export function isAppPage(url: string, appUrl = appPageUrl()) {

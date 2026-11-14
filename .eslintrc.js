@@ -74,6 +74,7 @@ module.exports = {
         'packages/insomnia/src/main/backup.ts',
         'packages/insomnia/src/main/credential-keys.ts',
         'packages/insomnia/src/main/install-plugin.ts',
+        'packages/insomnia/src/main/ipc/app-senders.ts',
         'packages/insomnia/src/main/mcp/discovery.ts',
         'packages/insomnia/src/main/network/curl.ts',
         'packages/insomnia/src/main/network/websocket.ts',
