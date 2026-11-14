@@ -10,6 +10,7 @@ import styled from 'styled-components';
 
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { Button } from '../components/themed-button';
+import { organizationPath } from './paths';
 
 const Container = styled.div({
   display: 'flex',
@@ -54,7 +55,7 @@ export const ErrorRoute: FC = () => {
       <span style={{ color: 'var(--color-font)' }}>
         <code className="selectable" style={{ wordBreak: 'break-word', margin: 'var(--padding-sm)' }}>{errorMessage}</code>
       </span>
-      <Button onClick={() => navigate(`/organization/${DEFAULT_ORGANIZATION_ID}`)}>
+      <Button onClick={() => navigate(organizationPath(DEFAULT_ORGANIZATION_ID))}>
         Try to reload the app{' '}
         <span>{navigation.state === 'loading' ? <Spinner /> : null}</span>
       </Button>

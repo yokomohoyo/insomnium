@@ -4,6 +4,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { GitLogLoaderData } from '../../routes/git-actions';
+import { gitPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
@@ -27,7 +28,7 @@ export const GitLogModal: FC<Props> = ({ branch, onHide }) => {
   const isLoading = gitLogFetcher.state !== 'idle';
   useEffect(() => {
     if (gitLogFetcher.state === 'idle' && !gitLogFetcher.data) {
-      gitLogFetcher.load(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/git/log`);
+      gitLogFetcher.load(gitPath({ organizationId, projectId, workspaceId }, 'log'));
     }
   }, [organizationId, projectId, workspaceId, gitLogFetcher]);
   useEffect(() => {

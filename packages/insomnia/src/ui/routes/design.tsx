@@ -15,7 +15,6 @@ import { SwaggerUIBundle } from 'swagger-ui-dist';
 
 import { parseApiSpec } from '../../common/api-specs';
 import { AsyncApiPreview } from '../components/spec-editor/asyncapi-preview';
-import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { debounce } from '../../common/misc';
 import { selectFileOrFolder } from '../../common/select-file-or-folder';
 import { RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
@@ -39,6 +38,7 @@ import {
   useGitVCSVersion,
 } from '../hooks/use-vcs-version';
 import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
+import { debugPath, designPath, workspacePath } from './paths';
 const EmptySpaceHelper = styled.div({
   display: 'flex',
   alignItems: 'flex-start',
@@ -175,7 +175,7 @@ const Design: FC = () => {
   const rulesetFetcher = useFetcher();
   const setRulesetPath = (spectralRulesetPath: string) => rulesetFetcher.submit(
     { spectralRulesetPath },
-    { action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/update-meta`, method: 'post', encType: 'application/json' },
+    { action: workspacePath({ organizationId, projectId, workspaceId }, 'update-meta'), method: 'post', encType: 'application/json' },
   );
   const chooseRuleset = async () => {
     const { canceled, filePath } = await selectFileOrFolder({ itemTypes: ['file'], extensions: ['yaml', 'yml', 'json'] });
@@ -193,7 +193,7 @@ const Design: FC = () => {
     if (generated.summary) {
       showAlert({ title: 'Request Collection Updated', message: generated.summary });
     }
-    navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_DEBUG}`);
+    navigate(debugPath({ organizationId, projectId, workspaceId }));
   }, [generateRequestCollectionFetcher.state, generated, navigate, organizationId, projectId, workspaceId]);
   const [showRightPane, toggleRightPane] = useToggle(true);
   const isAsyncApi = useMemo(() => {
@@ -234,7 +234,7 @@ const Design: FC = () => {
           contents: contents,
         },
         {
-          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_SPEC}/update`,
+          action: designPath({ organizationId, projectId, workspaceId }, 'update'),
           method: 'post',
         }
       );
@@ -345,7 +345,7 @@ const Design: FC = () => {
                         fromSync: 'true',
                       },
                       {
-                        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_SPEC}/update`,
+                        action: designPath({ organizationId, projectId, workspaceId }, 'update'),
                         method: 'post',
                       }
                     );
@@ -393,7 +393,7 @@ const Design: FC = () => {
                     generateRequestCollectionFetcher.submit(
                       {},
                       {
-                        action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${ACTIVITY_SPEC}/generate-request-collection`,
+                        action: designPath({ organizationId, projectId, workspaceId }, 'generate-request-collection'),
                         method: 'post',
                       }
                     );

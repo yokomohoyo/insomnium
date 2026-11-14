@@ -8,6 +8,7 @@ import { type Baseline, compareRuns, parseBaseline, type RunComparison } from '.
 import { csvReport, htmlReport, jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
 import { requestRunStats } from '../../../network/run-stats';
 import { listRunnableRequests, notRunnable, RunnableRequest, RunResult, runRequests, RunSummary } from '../../../network/runner';
+import { requestPath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { LoadTestPanel } from '../load-test-panel';
 import { RunStatsTable } from '../run-stats-table';
@@ -201,7 +202,7 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
 
   const openRequest = useCallback((requestId: string) => {
     modalRef.current?.hide();
-    navigate(`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}`);
+    navigate(requestPath({ organizationId, projectId, workspaceId }, requestId));
   }, [navigate, organizationId, projectId, workspaceId]);
 
   const passed = results.filter(result => result.passed).length;

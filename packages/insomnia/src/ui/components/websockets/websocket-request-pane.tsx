@@ -13,6 +13,7 @@ import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../../util
 import { useReadyState, useShowConnectionWhenOpened } from '../../hooks/use-ready-state';
 import { useRequestSetter } from '../../hooks/use-request';
 import { useActiveRequestSyncVCSVersion, useGitVCSVersion } from '../../hooks/use-vcs-version';
+import { requestPath } from '../../routes/paths';
 import { ConnectActionParams, WebSocketRequestLoaderData } from '../../routes/request';
 import { RootLoaderData } from '../../routes/root';
 import { TabItem, Tabs } from '../base/tabs';
@@ -173,7 +174,7 @@ const WebSocketRequestForm: FC<FormProps> = ({
           initialPayloadBinary: binary,
         };
         connectFetcher.submit(JSON.stringify(connectParams), {
-          action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${request._id}/connect`,
+          action: requestPath({ organizationId, projectId, workspaceId }, request._id, 'connect'),
           method: 'post',
           encType: 'application/json',
         });

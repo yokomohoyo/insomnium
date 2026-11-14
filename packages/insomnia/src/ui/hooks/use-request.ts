@@ -12,13 +12,14 @@ import { Settings } from '../../models/settings';
 import { WebSocketRequest } from '../../models/websocket-request';
 import { WorkspaceMeta } from '../../models/workspace-meta';
 import { trackSave } from '../pending-edits';
+import { requestGroupPath, requestPath, workspacePath } from '../routes/paths';
 
 export const useRequestSetter = () => {
   const { organizationId, projectId, workspaceId } = useParams<{ organizationId: string; projectId: string; workspaceId: string }>();
   const fetcher = useFetcher();
   return (requestId: string, patch: Partial<GrpcRequest> | Partial<Request> | Partial<WebSocketRequest> | Partial<McpRequest>) => {
     trackSave(fetcher.submit(JSON.stringify(patch), {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/update`,
+      action: requestPath({ organizationId, projectId, workspaceId }, requestId, 'update'),
       method: 'post',
       encType: 'application/json',
     }));
@@ -30,7 +31,7 @@ export const useRequestMetaPatcher = () => {
   const fetcher = useFetcher();
   return (requestId: string, patch: Partial<GrpcRequestMeta> | Partial<RequestMeta>) => {
     fetcher.submit(patch, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request/${requestId}/update-meta`,
+      action: requestPath({ organizationId, projectId, workspaceId }, requestId, 'update-meta'),
       method: 'post',
       encType: 'application/json',
     });
@@ -42,7 +43,7 @@ export const useRequestGroupPatcher = () => {
   const fetcher = useFetcher();
   return (requestGroupId: string, patch: Partial<RequestGroup>) => {
     fetcher.submit(JSON.stringify(patch), {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/${requestGroupId}/update`,
+      action: requestGroupPath({ organizationId, projectId, workspaceId }, requestGroupId, 'update'),
       method: 'post',
       encType: 'application/json',
     });
@@ -54,7 +55,7 @@ export const useRequestGroupMetaPatcher = () => {
   const fetcher = useFetcher();
   return (requestGroupId: string, patch: Partial<RequestGroupMeta>) => {
     fetcher.submit(patch, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/debug/request-group/${requestGroupId}/update-meta`,
+      action: requestGroupPath({ organizationId, projectId, workspaceId }, requestGroupId, 'update-meta'),
       method: 'post',
       encType: 'application/json',
     });
@@ -77,7 +78,7 @@ export const useWorkspaceMetaPatcher = () => {
   const fetcher = useFetcher();
   return (workspaceId: string, patch: Partial<WorkspaceMeta>) => {
     fetcher.submit(patch, {
-      action: `/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/update-meta`,
+      action: workspacePath({ organizationId, projectId, workspaceId }, 'update-meta'),
       method: 'post',
       encType: 'application/json',
     });

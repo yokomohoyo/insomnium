@@ -18,6 +18,7 @@ import { DEFAULT_PROJECT_ID } from '../models/project';
 import { rememberLocation } from './remember-location';
 import { revalidateOnDatabaseChanges } from './revalidate-on-changes';
 import { ErrorRoute } from './routes/error';
+import { projectPath } from './routes/paths';
 import Root from './routes/root';
 
 const Project = lazy(() => import('./routes/project'));
@@ -32,7 +33,7 @@ initializeLogging();
 document.body.setAttribute('data-platform', process.platform);
 document.title = getProductName();
 
-let locationHistoryEntry = `/organization/${DEFAULT_ORGANIZATION_ID}/project/${DEFAULT_PROJECT_ID}`;
+let locationHistoryEntry = projectPath({ organizationId: DEFAULT_ORGANIZATION_ID, projectId: DEFAULT_PROJECT_ID });
 const prevLocationHistoryEntry = localStorage.getItem('locationHistoryEntry');
 
 if (prevLocationHistoryEntry && matchPath({ path: '/organization/:organizationId', end: false }, prevLocationHistoryEntry)) {

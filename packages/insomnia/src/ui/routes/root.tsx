@@ -61,6 +61,7 @@ import { NunjucksEnabledProvider } from '../context/nunjucks/nunjucks-enabled-co
 /**** ><> ↑ --------- Settings and Themes */
 import { useSettingsPatcher } from '../hooks/use-request';
 import Modals from './modals';
+import { organizationPath, projectPath, workspacePath } from './paths';
 
 import { WorkspaceLoaderData } from './workspace';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
@@ -253,7 +254,7 @@ const Root = () => {
           node: (
             <Link data-testid="project">
               <NavLink
-                to={`/organization/${organizationId}/project/${workspaceData.activeProject._id}`}
+                to={projectPath({ organizationId, projectId: workspaceData.activeProject._id })}
                 title={t('All collections in {name}', { name: workspaceData.activeProject.name })}
                 className="flex items-center gap-1.5 px-1.5 py-0.5 -mx-1.5 rounded-sm no-underline text-[--hl] hover:text-[--color-font] hover:bg-[--hl-xs] transition-colors"
               >
@@ -317,7 +318,7 @@ const Root = () => {
                 <RailLink
                   label={t('Projects')}
                   icon="folder-open"
-                  to={localStorage.getItem('requester_locationHistoryEntry') || `/organization/${DEFAULT_ORGANIZATION_ID}`}
+                  to={localStorage.getItem('requester_locationHistoryEntry') || organizationPath(DEFAULT_ORGANIZATION_ID)}
                 />
               )}
               {workspaceData?.activeWorkspace && (
@@ -327,7 +328,7 @@ const Root = () => {
                       key={view.path}
                       label={view.label()}
                       icon={view.icon}
-                      to={`/organization/${organizationId}/project/${projectId}/workspace/${workspaceId}/${view.path}`}
+                      to={workspacePath({ organizationId, projectId, workspaceId }, view.path)}
                     />
                   ))}
                 </Fragment>

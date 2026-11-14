@@ -11,6 +11,7 @@ import { isRequest, Request } from '../../../models/request';
 import { RequestGroup } from '../../../models/request-group';
 import { isWebSocketRequest, WebSocketRequest } from '../../../models/websocket-request';
 import { Workspace } from '../../../models/workspace';
+import { workspacePath } from '../../routes/paths';
 import { Child, WorkspaceLoaderData } from '../../routes/workspace';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -39,7 +40,7 @@ export const ExportRequestsModal = ({ workspace, onHide }: { workspace: Workspac
   useEffect(() => {
     const isIdleAndUninitialized = workspaceFetcher.state === 'idle' && !workspaceFetcher.data;
     if (isIdleAndUninitialized) {
-      workspaceFetcher.load(`/organization/${organizationId}/project/${projectId}/workspace/${workspace._id}`);
+      workspaceFetcher.load(workspacePath({ organizationId, projectId, workspaceId: workspace._id }));
     }
   }, [organizationId, projectId, workspaceFetcher, workspace._id]);
   const workspaceLoaderData = workspaceFetcher?.data as WorkspaceLoaderData;
