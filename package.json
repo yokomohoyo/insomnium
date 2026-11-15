@@ -24,7 +24,8 @@
   "scripts": {
     "dev": "npm start --workspace=packages/insomnia",
     "prepare": "husky || true",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint": "npm run lint:root && npm run lint --workspaces --if-present",
+    "lint:root": "eslint scripts packages/insomnium-server eslint.config.mjs jest-preset.js --cache --max-warnings 0",
     "type-check": "npm run type-check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "lint:markdown": "npx markdownlint-cli2 \"**/*.md\" \"#**/node_modules\"",
@@ -61,7 +62,7 @@
     "typescript-eslint": "^8.72.2"
   },
   "lint-staged": {
-    "scripts/**/*.{js,ts,tsx}": "eslint --fix"
+    "*.{js,mjs,cjs,ts,tsx}": "eslint --fix --max-warnings 0 --no-warn-ignored"
   },
   "scarfSettings": {
     "enabled": false

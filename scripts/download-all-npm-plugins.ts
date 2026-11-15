@@ -1,6 +1,6 @@
-import https from 'https';
-import { statSync, mkdirSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
+import { mkdirSync, statSync, writeFileSync } from 'fs';
+import https from 'https';
 
 /*
 

@@ -134,8 +134,12 @@ const command = (file, commandArgs, commandEnv) => new Promise(resolve => {
   const child = spawn(file, commandArgs, { env: commandEnv, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '';
   let stderr = '';
-  child.stdout.on('data', data => { stdout += data; });
-  child.stderr.on('data', data => { stderr += data; });
+  child.stdout.on('data', data => {
+    stdout += data;
+  });
+  child.stderr.on('data', data => {
+    stderr += data;
+  });
   child.on('close', status => resolve({ status, stdout, stderr }));
 });
 const check = (ok, what) => {
