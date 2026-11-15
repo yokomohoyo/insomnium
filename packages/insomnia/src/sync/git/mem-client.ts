@@ -151,7 +151,7 @@ export class MemClient {
     }
 
     const dataBuff: Buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, encoding);
-    let newContents: Buffer = Buffer.alloc(0);
+    let newContents: Buffer;
 
     if (flag[0] === 'w') {
       newContents = dataBuff;
