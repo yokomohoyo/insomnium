@@ -36,7 +36,7 @@ export class SandboxBuffer extends Uint8Array {
   static from(value: string | ArrayLike<number> | ArrayBuffer | Uint8Array, encoding?: Encoding | number): SandboxBuffer {
     if (typeof value === 'string') {
       const bytes = encode(value, typeof encoding === 'string' ? encoding : 'utf8');
-      return new SandboxBuffer(bytes.buffer, bytes.byteOffset, bytes.length);
+      return new SandboxBuffer(bytes.buffer as ArrayBuffer, bytes.byteOffset, bytes.length);
     }
     if (value instanceof ArrayBuffer) {
       return new SandboxBuffer(value.slice(0));

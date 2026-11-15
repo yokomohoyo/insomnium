@@ -1,9 +1,10 @@
-// for `npm run type-check` only: not named tsconfig.json, so the bundlers and
-// ts-jest that compile these files don't pick it up
+// for `npm run type-check` and ts-jest: not named tsconfig.json, so the bundlers
+// that compile these files do not pick it up
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
+    "rootDir": ".",
     "skipLibCheck": true,
     "types": ["node", "jest"],
   },

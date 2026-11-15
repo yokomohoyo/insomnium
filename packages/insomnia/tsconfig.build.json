@@ -9,7 +9,11 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "strictNullChecks": true,
-    "types": ["node", "vite/client"]
+    "types": ["node", "vite/client"],
+    // tinykeys 1.x lists its types outside "exports", where this resolution does not look
+    "paths": {
+      "tinykeys": ["../../node_modules/tinykeys/dist/tinykeys.d.ts"]
+    }
   },
   "include": [
     "**/*.d.ts",

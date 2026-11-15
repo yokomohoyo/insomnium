@@ -150,8 +150,8 @@ export class MemClient {
       dirEntry.children.push(file);
     }
 
-    const dataBuff: Buffer = data instanceof Buffer ? data : Buffer.from(data, encoding);
-    let newContents = Buffer.alloc(0);
+    const dataBuff: Buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, encoding);
+    let newContents: Buffer = Buffer.alloc(0);
 
     if (flag[0] === 'w') {
       newContents = dataBuff;

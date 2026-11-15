@@ -182,7 +182,7 @@ export function parseSubscriptions(text: string): MqttSubscription[] {
 // A connection's MQTT side: what it sends, and what the event log shows
 export class MqttSession {
   private nextPacketId = 1;
-  private pending = Buffer.alloc(0);
+  private pending: Buffer = Buffer.alloc(0);
   private ping?: NodeJS.Timeout;
 
   constructor(

@@ -557,7 +557,8 @@ const ProjectRoute: FC = () => {
                   selectionMode="single"
                   onSelectionChange={keys => {
                     if (keys !== 'all') {
-                      const value = keys.values().next().value;
+                      // the keys are ids
+                      const [value] = keys as Iterable<string>;
                       navigate({
                         pathname: projectPath({ organizationId, projectId: value }),
                         search: searchParams.toString(),
@@ -594,7 +595,8 @@ const ProjectRoute: FC = () => {
                 selectionMode="single"
                 onSelectionChange={keys => {
                   if (keys !== 'all') {
-                    const value = keys.values().next().value;
+                    // the keys are ids
+                    const [value] = keys as Iterable<string>;
                     setSearchParams({
                       ...Object.fromEntries(searchParams.entries()),
                       scope: value,
