@@ -1,12 +1,15 @@
-
-// asks before a Google ID token goes to another audience's host
-import './gcp-audience';
+// import order matters here: the side-effect import has to run after the modules above it
+/* eslint-disable simple-import-sort/imports */
 
 import {
+
   isDevelopment,
 } from '../common/constants';
 import { database } from '../common/database';
 import * as models from '../models';
+
+// asks before a Google ID token goes to another audience's host
+import './gcp-audience';
 import { trackKeyboardModality } from './keyboard-modality';
 import { renderApp } from './renderApp';
 

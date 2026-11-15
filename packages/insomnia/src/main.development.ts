@@ -1,8 +1,7 @@
+// import order matters here: the side-effect import has to run after the modules above it
+/* eslint-disable simple-import-sort/imports */
 
-// asks before a Google ID token goes to another audience's host, and refuses MCP clients
-import './main/gcp-audience';
-
-import electron, { app, BrowserWindow, ipcMain, nativeTheme, session  } from 'electron';
+import electron, { app, ipcMain, nativeTheme, session, BrowserWindow } from 'electron';
 import contextMenu from 'electron-context-menu';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import path from 'path';
@@ -15,17 +14,19 @@ import log, { initializeLogging } from './common/log';
 import { backupDataIfVersionChanged } from './main/backup';
 import { announceCredentialStorage, safeStorageKeyWrapper } from './main/credential-keys';
 import { deepLinks, linksFromArgv } from './main/deep-link-buffer';
-import { registerFolderSyncHandlers } from './main/folder-sync';
-import { registerGitSshHandlers } from './main/git-ssh';
+// asks before a Google ID token goes to another audience's host, and refuses MCP clients
+import './main/gcp-audience';
 import { onlyAppSenders } from './main/ipc/app-senders';
 import { registerElectronHandlers } from './main/ipc/electron';
 import { registergRPCHandlers } from './main/ipc/grpc';
 import { registerMainHandlers } from './main/ipc/main';
-import { mcpServerAction } from './main/mcp/server-state';
 import { registerCurlHandlers } from './main/network/curl';
+import { registerFolderSyncHandlers } from './main/folder-sync';
+import { registerPluginSandboxHandlers } from './main/plugin-sandbox';
+import { registerGitSshHandlers } from './main/git-ssh';
+import { mcpServerAction } from './main/mcp/server-state';
 import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
-import { registerPluginSandboxHandlers } from './main/plugin-sandbox';
 import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
 import { checkIfRestartNeeded } from './main/squirrel-startup';
 import { hardenWebContents, lockDownSession } from './main/web-hardening';
