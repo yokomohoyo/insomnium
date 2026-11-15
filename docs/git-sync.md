@@ -62,7 +62,7 @@ When both sides changed the same field differently, **Changed on Both Sides** li
 
 The collection is stored as YAML, one file per item, in a `.insomnium/` folder at the repository's root:
 
-```
+```text
 .insomnium/
   Workspace/wrk_….yml
   Environment/env_….yml

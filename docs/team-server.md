@@ -117,7 +117,7 @@ volumes:
 
 `Caddyfile`:
 
-```
+```text
 insomnium.example.com {
   reverse_proxy team:8080
 }
@@ -295,7 +295,7 @@ The one-time code works once, within two minutes, and only with the app's PKCE v
 
 Register the team server as a confidential client: an OpenID Connect web application with a client secret, using the authorization code flow. Its redirect URL is your server's address plus `/auth/oidc/callback`:
 
-```
+```text
 https://insomnium.example.com/auth/oidc/callback
 ```
 

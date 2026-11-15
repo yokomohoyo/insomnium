@@ -95,6 +95,9 @@ const config = {
     notarize: process.env.APPLE_API_KEY ? true : false,
     asarUnpack: ['node_modules/@getinsomnia/node-libcurl'],
   },
+  // The window background is src/icons/background.png: scripts/build.ts copies
+  // that folder into build/, the default build resources directory, where
+  // dmg-builder looks for background.png (and the app icon, icon.png).
   dmg: {
     window: {
       width: 540,
