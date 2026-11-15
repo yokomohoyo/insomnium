@@ -101,9 +101,8 @@ jobs:
           BUNDLE: build
 
   E2E:
-    # Playwright UI tests against the built app. Not a required check yet: most
-    # specs predate the current UI (the app opens in My Collection now) and are
-    # brought back one at a time: those that run here have @ci in their title.
+    # Playwright UI tests against the built app: the specs with @ci in their
+    # title. A required check, as are the Windows and Linux jobs below.
     runs-on: macos-latest
     steps:
       - name: Checkout branch
