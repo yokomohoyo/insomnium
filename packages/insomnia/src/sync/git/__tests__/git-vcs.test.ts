@@ -279,8 +279,7 @@ First commit!
       await Promise.all(files.map(f => fsClient.promises.writeFile(f, originalContent)));
       // Commit all files
       await GitVCS.setAuthor('Karen Brown', 'karen@example.com');
-      // @ts-expect-error -- add() takes the path alone; kept as the test was written
-      await Promise.all(files.map(f => GitVCS.add(f, originalContent)));
+      await Promise.all(files.map(f => GitVCS.add(f)));
       await GitVCS.commit('First commit!');
       // Change all files
       await Promise.all(files.map(f => fsClient.promises.writeFile(f, changedContent)));
