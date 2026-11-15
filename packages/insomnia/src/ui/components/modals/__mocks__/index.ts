@@ -2,7 +2,6 @@ import { jest } from '@jest/globals';
 
 import * as modalsOriginal from '../index';
 
-// eslint-disable-next-line filenames/match-exported
 const modals = jest.requireActual('../index') as typeof modalsOriginal;
 
 modals.showError = jest.fn();
