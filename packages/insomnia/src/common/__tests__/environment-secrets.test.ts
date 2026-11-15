@@ -47,8 +47,8 @@ describe('an environment with secret variables', () => {
   it("gives requests the secret's value", async () => {
     const { base, request } = await setup();
     expect((await withSecretValues(base))!.data).toEqual({ host: 'shop.example.com', token: 'hunter2' });
-    // @ts-expect-error -- 'environment' is not an option here; kept as the test was written
-    const context = await getRenderContext({ request, environment: base._id });
+    // base is the workspace's root environment, which every render takes in
+    const context = await getRenderContext({ request });
     expect(await render('Bearer {{ token }}', context)).toBe('Bearer hunter2');
   });
 

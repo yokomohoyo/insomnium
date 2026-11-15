@@ -37,11 +37,11 @@ describe('<GrpcSendButton />', () => {
   });
 
   it('should render send button if unary RPC', () => {
-    const handleSend = jest.fn();
+    const handleSend = jest.fn<() => Promise<void>>();
     const { getByRole } = render(
       <GrpcSendButton
         running={false}
-        handleStart={handleSend() as () => Promise<void>}
+        handleStart={handleSend}
         handleCancel={jest.fn()}
         methodType={'unary'}
       />,
@@ -49,18 +49,19 @@ describe('<GrpcSendButton />', () => {
     const button = getByRole('button');
     expect(button).not.toBeDisabled();
     expect(button).toHaveTextContent('Send');
+    expect(handleSend).not.toHaveBeenCalled();
     fireEvent.click(button);
-    expect(handleSend).toHaveBeenCalled();
+    expect(handleSend).toHaveBeenCalledTimes(1);
   });
 
   it.each(['bidi', 'server', 'client'])(
     'should render start button if streaming RPC: %s',
     type => {
-      const handleSend = jest.fn();
+      const handleSend = jest.fn<() => Promise<void>>();
       const { getByRole } = render(
         <GrpcSendButton
           running={false}
-          handleStart={handleSend() as () => Promise<void>}
+          handleStart={handleSend}
           handleCancel={jest.fn()}
           methodType={type as 'bidi' | 'server' | 'client'}
         />,
@@ -68,8 +69,9 @@ describe('<GrpcSendButton />', () => {
       const button = getByRole('button');
       expect(button).not.toBeDisabled();
       expect(button).toHaveTextContent('Start');
+      expect(handleSend).not.toHaveBeenCalled();
       fireEvent.click(button);
-      expect(handleSend).toHaveBeenCalled();
+      expect(handleSend).toHaveBeenCalledTimes(1);
     },
   );
 });
