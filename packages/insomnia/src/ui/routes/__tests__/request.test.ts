@@ -165,7 +165,7 @@ describe('sendAction with Send and Download', () => {
     const body = getBodyStream.mock.results[0].value as fs.ReadStream;
     expect(body.destroyed).toBe(true);
     // The body file must be closed again, not left open
-    await new Promise(resolve => body.closed ? resolve(null) : body.once('close', resolve));
+    await new Promise(resolve => body.closed ? resolve(null) : body.once('close', () => resolve(null)));
   });
 
   it('does not raise an unhandled error when the discarded body fails to open', async () => {
@@ -181,7 +181,7 @@ describe('sendAction with Send and Download', () => {
 
     const response = await sendAndDownloadTo(tmpDir);
     // An unhandled 'error' from the body stream fails the test while waiting
-    await new Promise(resolve => body?.closed ? resolve(null) : body?.once('close', resolve));
+    await new Promise(resolve => body?.closed ? resolve(null) : body?.once('close', () => resolve(null)));
 
     // The body is read before the file is created, so its failure is the one reported
     expect(response?.error).toContain(`Failed to save to ${path.join(tmpDir, 'a\u0000b.bin')}: ENOENT`);
