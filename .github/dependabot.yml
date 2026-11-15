@@ -1,6 +1,7 @@
 # Repo-level "Automated security fixes" opens security PRs automatically.
 # This file: sets cadence, disables routine version bumps, and silences
-# advisories we've triaged as unfixable in this dependency graph.
+# advisories on packages whose version is set by `overrides` in package.json
+# (their parents ask for older ranges, so a PR could not move them).
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -9,15 +10,15 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 0  # security PRs only — no routine bumps
     ignore:
-      # react-use@17.x pins ^2; v3 broke the CJS default export.
+      # react-use's dependency; overridden to ^3.0.8.
       - dependency-name: "js-cookie"
-      # mocha pins ^6; test-scope only.
+      # mocha@10 asks for ^6; overridden to ^7.
       - dependency-name: "serialize-javascript"
-      # apiconnect-wsdl@1.8.31 pin; @xmldom/xmldom alias didn't apply cleanly.
+      # apiconnect-wsdl@1.8.31 asks for xmldom ^0.1; overridden to an alias of @xmldom/xmldom.
       - dependency-name: "xmldom"
-      # `overrides` patches 15/16 instances; remaining one is jshint dev tooling (ReDoS).
+      # the ^3, ^9 and ^10 ranges are overridden; mocha's and filelist's ^5 resolve to a patched 5.1.x.
       - dependency-name: "minimatch"
-      # `overrides` blocked by apiconnect-wsdl@1.8.31 pin.
+      # apiconnect-wsdl@1.8.31 asks for ^0.4; overridden to ^0.5.0.
       - dependency-name: "xml2js"
 
   - package-ecosystem: "github-actions"

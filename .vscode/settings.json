@@ -6,10 +6,11 @@
     "*.njson": "ndjson"
   },
   "files.insertFinalNewline": true,
-  "editor.formatOnSave": true,
-  "editor.formatOnSaveMode": "file",
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
   "cSpell.words": [
     "insomnium"
   ]
-  // use prettier
 }
