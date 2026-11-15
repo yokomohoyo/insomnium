@@ -12,6 +12,8 @@
 #    Installed apps entry, nothing left in %LOCALAPPDATA%\insomnium, the data
 #    untouched, and the new app works.
 # 3. the same upgrade, installing for everyone on the computer (NSIS only).
+# 4. an install into a folder inside the old Squirrel install leaves it alone
+#    (NSIS only).
 param(
   [Parameter(Mandatory)] [string] $Installer,
   [ValidateSet('nsis', 'msi')] [string] $Kind = 'nsis',
@@ -202,6 +204,24 @@ if ($SquirrelInstaller) {
     Check (-not (Get-InstalledExe) -and @(Get-UninstallEntries).Count -eq 0) 'the upgraded install uninstalls'
     Test-Upgrade 'upgrade from the Squirrel install, for everyone on the computer' @('/allusers') $perMachine
     Check ((Get-UninstallEntries | Select-Object -First 1).PSPath -like '*HKEY_LOCAL_MACHINE*') 'the install for everyone is registered for the computer'
+
+    # 4. an install pointed inside the old Squirrel folder leaves the old
+    #    install alone: removing it would take the new files too
+    Uninstall-New
+    Write-Host "`n=== install into a folder inside the Squirrel install"
+    Start-Process $SquirrelInstaller -ArgumentList '--silent' -Wait
+    Check (Wait-Until { Test-Path (Join-Path $squirrelDir 'Update.exe') } 240) 'the Squirrel installer installed the old version again'
+    [void](Wait-Until { @(Get-DesktopShortcuts).Count -ge 1 } 30)
+    $nested = Join-Path $squirrelDir 'nested'
+    # /D has to come last and takes no quotes
+    $p = Start-Process $Installer -ArgumentList @('/S', "/D=$nested") -Wait -PassThru
+    Check ($p.ExitCode -eq 0) 'the silent install into the nested folder exits 0'
+    $findNested = { Get-ChildItem $nested -Recurse -Filter 'Insomnium.exe' -ErrorAction SilentlyContinue | Select-Object -First 1 }
+    [void](Wait-Until { [bool](& $findNested) } 60)
+    Start-Sleep -Seconds 5
+    Show-State 'after the nested install'
+    Check ([bool](& $findNested)) 'the nested install is still there'
+    Check (Test-Path (Join-Path $squirrelDir 'Update.exe')) 'the Squirrel install it sits in was left alone'
   } else {
     # an MSI is built for one or the other
     Test-Upgrade "upgrade from the Squirrel install: $SquirrelInstaller" @() ''

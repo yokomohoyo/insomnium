@@ -10,13 +10,18 @@
 !macro removeSquirrelInstall
   Push $0
   Push $1
+  Push $2
   ; the old install is always this user's, also when this one is for everyone
   SetShellVarContext current
   StrCpy $1 "$LOCALAPPDATA\insomnium"
+  ; the start of this install's folder, as long as the old one's
+  StrLen $0 "$1\"
+  StrCpy $2 "$INSTDIR\" $0
   ; Update.exe is what makes the folder a Squirrel install. Never when this
-  ; install was pointed at that same folder.
+  ; install was pointed at that same folder or one inside it: the old
+  ; uninstaller and the cleanup below would take the new files with them.
   ${if} ${FileExists} "$1\Update.exe"
-  ${andIf} $INSTDIR != $1
+  ${andIf} $2 != "$1\"
     DetailPrint "Removing the earlier install in $1"
     ; the old app, if it is open: its files are about to go
     nsExec::Exec `"$SYSDIR\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -NonInteractive -C "Get-CimInstance -ClassName Win32_Process | ? {$$_.Path -and $$_.Path.StartsWith('$1\', 'CurrentCultureIgnoreCase') -and $$_.Name -ne 'Update.exe'} | % { Stop-Process -Id $$_.ProcessId -Force }"`
@@ -58,6 +63,7 @@
   ${if} $installMode == "all"
     SetShellVarContext all
   ${endIf}
+  Pop $2
   Pop $1
   Pop $0
 !macroend
