@@ -40,6 +40,7 @@ import {
 } from '../../sync/git/utils';
 import { getGitChanges, type GitChange } from '../../sync/git/workspace-git';
 import { guard } from '../../utils/guard';
+import { workspaceHomePath } from './paths';
 
 const requireWorkspace = async (workspaceId: string) => {
   const workspace = await models.workspace.getById(workspaceId);
@@ -279,7 +280,7 @@ export const gitFetchAction: ActionFunction = async ({
   } catch (e) {
     console.error(e);
     return {
-      errors: ['Failed to fetch from remote'],
+      errors: [remoteMessageOf(e, 'Failed to fetch from remote')],
     };
   }
 
@@ -314,9 +315,9 @@ export const gitLogLoader: LoaderFunction = async ({
       log,
     };
   } catch (e) {
-    console.log(e);
+    console.error(e);
     return {
-      log: [],
+      errors: [messageOf(e, 'Failed to read the git log')],
     };
   }
 };
@@ -325,6 +326,8 @@ export interface GitChangesLoaderData {
   changes: GitChange[];
   branch: string;
   statusNames: Record<string, string>;
+  // why the changes couldn't be read: there are none to show, not none made
+  errors?: string[];
 }
 
 export const gitChangesLoader: LoaderFunction = async ({
@@ -345,11 +348,12 @@ export const gitChangesLoader: LoaderFunction = async ({
       statusNames,
     };
   } catch (e) {
-    console.log(e);
+    console.error(e);
     return {
       branch,
       changes: [],
       statusNames: {},
+      errors: [messageOf(e, 'Failed to read the changes')],
     };
   }
 };
@@ -499,7 +503,7 @@ export const cloneGitRepoAction: ActionFunction = async ({
       name: repoSettingsPatch.uri.split('/').pop(),
       scope: scope,
       parentId: project._id,
-      description: `Insomnium Workspace for ${repoSettingsPatch.uri}}`,
+      description: `Insomnium Workspace for ${repoSettingsPatch.uri}`,
     });
     await models.apiSpec.getOrCreateForParentId(workspace._id);
 
@@ -520,7 +524,11 @@ export const cloneGitRepoAction: ActionFunction = async ({
     }
     if ('existingWorkspace' in imported) {
       const { existingWorkspace } = imported;
-      return redirect(`/organization/${existingWorkspace.parentId || DEFAULT_ORGANIZATION_ID}/project/${existingWorkspace.parentId || DEFAULT_PROJECT_ID}/workspace/${existingWorkspace._id}/debug`);
+      return redirect(workspaceHomePath({
+        organizationId: organizationId || DEFAULT_ORGANIZATION_ID,
+        projectId: existingWorkspace.parentId || DEFAULT_PROJECT_ID,
+        workspaceId: existingWorkspace._id,
+      }, existingWorkspace));
     }
     workspaceId = imported.workspace._id;
     scope = imported.workspace.scope;

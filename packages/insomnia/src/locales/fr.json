@@ -881,5 +881,6 @@
   "Copy details": "Copier les détails",
   "All collections in {name}": "Toutes les collections de {name}",
   "Switch to": "Basculer vers",
-  "Saved: type a new one to replace it": "Enregistré : saisissez-en un nouveau pour le remplacer"
+  "Saved: type a new one to replace it": "Enregistré : saisissez-en un nouveau pour le remplacer",
+  "Fetch Failed": "Échec de la récupération"
 }

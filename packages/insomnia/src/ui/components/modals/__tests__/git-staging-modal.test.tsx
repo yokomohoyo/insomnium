@@ -7,6 +7,8 @@ const changes = [
   { path: 'b.yml', type: 'Request', status: 'modified', staged: true, added: false, editable: true },
   { path: 'c.yml', type: 'Request', status: 'added', staged: false, added: true, editable: true },
 ];
+// what the changes loader returned
+const mockLoaded: { data: object } = { data: { changes, branch: 'main', statusNames: {} } };
 
 jest.mock('react-router-dom', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -16,7 +18,7 @@ jest.mock('react-router-dom', () => {
     ...(jest.requireActual('react-router-dom') as object),
     useParams: () => ({ organizationId: 'org_1', projectId: 'proj_1', workspaceId: 'wrk_1' }),
     useRouteLoaderData: () => ({ settings: {}, activeWorkspace: { scope: 'collection' } }),
-    useFetcher: () => ({ state: 'idle', data: { changes, branch: 'main', statusNames: {} }, load: () => {}, submit: () => {}, Form }),
+    useFetcher: () => ({ state: 'idle', data: mockLoaded.data, load: () => {}, submit: () => {}, Form }),
   };
 });
 jest.mock('react-aria', () => ({
@@ -31,6 +33,8 @@ jest.mock('../../base/modal', () => {
     return <div>{children}</div>;
   }) };
 });
+// the one fetcher here answers for the commit too, whose errors go to an alert
+jest.mock('../index', () => ({ showAlert: () => {} }));
 jest.mock('../../tooltip', () => ({ Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -59,5 +63,17 @@ describe('<GitStagingModal />', () => {
     expect(rows().map(row => row.checked)).toEqual([false, true, true]);
 
     expect(error.mock.calls.filter(call => /uncontrolled|defaultChecked/.test(String(call[0])))).toEqual([]);
+  });
+
+  it("says why the changes couldn't be read, in place of there being none", () => {
+    const loaded = mockLoaded.data;
+    mockLoaded.data = { changes: [], branch: 'main', statusNames: {}, errors: ['The index is corrupt'] };
+    try {
+      const { getByTestId, queryByText } = render(<GitStagingModal />);
+      expect(getByTestId('git-changes-error').textContent).toBe('The index is corrupt');
+      expect(queryByText('No new changes to commit.')).toBeNull();
+    } finally {
+      mockLoaded.data = loaded;
+    }
   });
 });

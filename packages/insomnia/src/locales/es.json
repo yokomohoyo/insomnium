@@ -881,5 +881,6 @@
   "Copy details": "Copiar detalles",
   "All collections in {name}": "Todas las colecciones de {name}",
   "Switch to": "Cambiar a",
-  "Saved: type a new one to replace it": "Guardado: escribe uno nuevo para reemplazarlo"
+  "Saved: type a new one to replace it": "Guardado: escribe uno nuevo para reemplazarlo",
+  "Fetch Failed": "Error en el fetch"
 }

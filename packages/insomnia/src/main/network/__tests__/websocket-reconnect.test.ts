@@ -60,7 +60,7 @@ jest.mock('electron', () => {
   return { __esModule: true, default: electron, ...electron };
 });
 
-const mockCreated: { timelinePath: string }[] = [];
+const mockCreated: { timelinePath: string; environmentId?: string | null }[] = [];
 jest.mock('../../../models', () => {
   const request = {
     _id: 'req_1',
@@ -130,6 +130,9 @@ describe('a WebSocket that reconnects', () => {
     expect(sockets).toHaveLength(1);
     sockets[0].accept();
     await until(() => mockCreated.length === 1, 'the response');
+    // with no sub-environment active, saved as HTTP responses are: with none,
+    // not the base environment's id, which the history's filter doesn't match
+    expect(mockCreated[0].environmentId).toBeNull();
 
     // the connection drops, and is opened again into the same response
     sockets[0].drop(1006);

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { ActionFunction, ActionFunctionArgs } from 'react-router-dom';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
@@ -10,7 +10,7 @@ import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR } from '../..
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
 import { routableFSClient } from '../../../sync/git/routable-fs-client';
-import { gitStashAction, mergeGitBranchAction, rebaseGitBranchAction, updateGitRepoAction } from '../git-actions';
+import { gitChangesLoader, gitFetchAction, gitLogLoader, gitStashAction, mergeGitBranchAction, rebaseGitBranchAction, updateGitRepoAction } from '../git-actions';
 
 const WORKSPACE = '.insomnium/Workspace/wrk_1.yml';
 const REQUEST = '.insomnium/Request/req_1.yml';
@@ -94,6 +94,39 @@ describe('a doc git rewrites', () => {
     expect(await submit(gitStashAction, { intent: 'pop', id: stash.id })).toEqual({});
     expect((await models.request.getById('req_1'))?.url).toBe(URL);
     expect(told()).toBe(true);
+  });
+});
+
+// what went wrong reaches the window, in place of an empty history or no changes
+describe('a git read that fails', () => {
+  const args = { params: { organizationId: 'org_1', projectId: DEFAULT_PROJECT_ID, workspaceId: 'wrk_1' } } as unknown as ActionFunctionArgs;
+
+  beforeEach(async () => {
+    await globalBeforeEach();
+    await models.workspace.create({ _id: 'wrk_1', parentId: DEFAULT_PROJECT_ID });
+    const repo = await models.gitRepository.create({ uri: 'https://example.com/repo.git' });
+    await models.workspaceMeta.update(await models.workspaceMeta.getOrCreateByParentId('wrk_1'), { gitRepositoryId: repo._id });
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('says why the fetch failed', async () => {
+    jest.spyOn(GitVCS, 'fetch').mockRejectedValue(new Error('getaddrinfo ENOTFOUND example.com'));
+    expect(await gitFetchAction(args)).toEqual({ errors: ['getaddrinfo ENOTFOUND example.com'] });
+  });
+
+  it('says why the history could not be read', async () => {
+    jest.spyOn(GitVCS, 'log').mockRejectedValue(new Error('Could not find refs/heads/main'));
+    expect(await gitLogLoader(args)).toEqual({ errors: ['Could not find refs/heads/main'] });
+  });
+
+  it('says why the changes could not be read', async () => {
+    jest.spyOn(GitVCS, 'getBranch').mockResolvedValue('main');
+    jest.spyOn(GitVCS, 'listFiles').mockRejectedValue(new Error('The index is corrupt'));
+    expect(await gitChangesLoader(args)).toEqual({ branch: 'main', changes: [], statusNames: {}, errors: ['The index is corrupt'] });
   });
 });
 

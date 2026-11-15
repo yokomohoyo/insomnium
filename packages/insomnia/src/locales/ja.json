@@ -881,5 +881,6 @@
   "Copy details": "詳細をコピー",
   "All collections in {name}": "{name} のすべてのコレクション",
   "Switch to": "切り替え先",
-  "Saved: type a new one to replace it": "保存済み：置き換えるには新しい値を入力"
+  "Saved: type a new one to replace it": "保存済み：置き換えるには新しい値を入力",
+  "Fetch Failed": "フェッチに失敗しました"
 }

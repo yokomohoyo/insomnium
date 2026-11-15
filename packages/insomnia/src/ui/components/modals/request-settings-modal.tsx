@@ -248,6 +248,8 @@ export const RequestSettingsModal = ({ request, onHide }: ModalProps & RequestSe
   async function handleCopyToWorkspace() {
     guard(state.activeWorkspaceIdToCopyTo, 'Workspace ID is required');
     duplicateRequest({ parentId: state.activeWorkspaceIdToCopyTo });
+    // closed as after a move, staying here: a second click would copy it again
+    modalRef.current?.hide();
   }
   const { defaultPreviewMode, activeWorkspaceIdToCopyTo } = state;
   const toggleCheckBox = async (event: any) => {
