@@ -28,7 +28,7 @@ describe('util', () => {
     });
 
     it('escapes something with quotes', () => {
-      // eslint-disable-next-line @typescript-eslint/quotes -- want to test both quote styles
+      // eslint-disable-next-line @stylistic/quotes -- want to test both quote styles
       expect(escapeJsStr(`"Hello" 'World'`)).toBe(`"Hello" \\'World\\'`);
     });
   });
