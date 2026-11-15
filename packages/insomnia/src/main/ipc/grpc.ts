@@ -1,6 +1,6 @@
-import { Call, ClientDuplexStream, ClientReadableStream, makeGenericClientConstructor, Metadata, ServiceError, status, StatusObject } from '@grpc/grpc-js';
+import { type Call, type ClientDuplexStream, type ClientReadableStream, makeGenericClientConstructor, Metadata, type ServiceError, status, type StatusObject } from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
-import electron, { ipcMain, IpcMainEvent } from 'electron';
+import electron, { ipcMain, type IpcMainEvent } from 'electron';
 import * as grpcReflection from 'grpc-reflection-js';
 
 import type { RenderedGrpcRequest, RenderedGrpcRequestBody } from '../../common/render';
@@ -8,7 +8,7 @@ import * as models from '../../models';
 import type { GrpcRequest, GrpcRequestHeader } from '../../models/grpc-request';
 import { getAuthHeaders } from '../../network/authentication';
 import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
-import { FetchedProto, fetchProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
+import { type FetchedProto, fetchProto, type ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
 import { checkRequestPolicy } from '../../network/request-policy';
 import { guard } from '../../utils/guard';

@@ -1,6 +1,6 @@
 import clone from 'clone';
 import { lookup } from 'mime-types';
-import React, { FC, useCallback } from 'react';
+import React, { type FC, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 
 import {
@@ -12,9 +12,9 @@ import {
 } from '../../../../common/constants';
 import { t } from '../../../../common/i18n';
 import { getContentTypeHeader } from '../../../../common/misc';
-import {
-  type Request,
-  type RequestBodyParameter,
+import type {
+  Request,
+  RequestBodyParameter,
 } from '../../../../models/request';
 import { NunjucksEnabledProvider } from '../../../context/nunjucks/nunjucks-enabled-context';
 import { useRequestSetter } from '../../../hooks/use-request';

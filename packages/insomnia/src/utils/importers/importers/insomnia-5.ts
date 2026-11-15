@@ -1,7 +1,7 @@
 import YAML from 'yaml';
 
-import { Converter, ImportRequest, UNKNOWN, UNKNOWN_OBJ } from '../entities';
-import { InheritedScript, scriptAsText, withInheritedScripts } from '../scripts';
+import type { Converter, ImportRequest, UNKNOWN, UNKNOWN_OBJ } from '../entities';
+import { type InheritedScript, scriptAsText, withInheritedScripts } from '../scripts';
 
 export const id = 'insomnia-5';
 export const name = 'Insomnia v5';

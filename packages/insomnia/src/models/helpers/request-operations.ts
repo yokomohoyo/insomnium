@@ -1,8 +1,8 @@
-import { GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../grpc-request';
+import { type GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../grpc-request';
 import * as models from '../index';
-import { isMcpRequest, isMcpRequestId, McpRequest } from '../mcp-request';
-import { Request } from '../request';
-import { isWebSocketRequest, isWebSocketRequestId, WebSocketRequest } from '../websocket-request';
+import { isMcpRequest, isMcpRequestId, type McpRequest } from '../mcp-request';
+import type { Request } from '../request';
+import { isWebSocketRequest, isWebSocketRequestId, type WebSocketRequest } from '../websocket-request';
 
 /** Any of the request documents: HTTP, gRPC, WebSocket or MCP. */
 type AnyRequest = Request | GrpcRequest | WebSocketRequest | McpRequest;

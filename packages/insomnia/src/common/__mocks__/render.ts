@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import * as renderOriginal from '../render';
+import type * as renderOriginal from '../render';
 
 const _render = jest.requireActual('../render') as typeof renderOriginal;
 _render.getRenderedGrpcRequest = jest.fn<typeof renderOriginal.getRenderedGrpcRequest>();

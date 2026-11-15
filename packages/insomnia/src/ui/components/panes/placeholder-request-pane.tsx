@@ -1,9 +1,9 @@
-import React, { FC, useCallback } from 'react';
+import React, { type FC, useCallback } from 'react';
 import { useFetcher, useParams, useRouteLoaderData  } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { debugPath } from '../../routes/paths';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { Hotkey } from '../hotkey';
 import { Pane, PaneBody, PaneHeader } from './pane';
 

@@ -1,10 +1,10 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react';
-import React, { FC, PropsWithChildren } from 'react';
+import React, { type FC, type PropsWithChildren } from 'react';
 
 import { NunjucksEnabledProvider } from '../nunjucks-enabled-context';
 import { useGatedNunjucks } from '../use-gated-nunjucks';
-import { useNunjucks } from '../use-nunjucks';
+import type { useNunjucks } from '../use-nunjucks';
 
 jest.mock('../use-nunjucks', () => {
   const funcs: ReturnType<typeof useNunjucks> = {

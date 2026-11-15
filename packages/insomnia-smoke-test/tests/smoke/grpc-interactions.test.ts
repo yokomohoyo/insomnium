@@ -1,4 +1,4 @@
-import { expect, Locator } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 
 import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';

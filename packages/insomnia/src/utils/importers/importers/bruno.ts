@@ -1,6 +1,6 @@
 import type { AssertionOperator, RequestAssertion } from '../../../network/assertions';
 import { translateDynamicVariables } from '../../../templating/faker-functions';
-import { Converter, Header, ImportRequest, Parameter, UNKNOWN, UNKNOWN_OBJ } from '../entities';
+import type { Converter, Header, ImportRequest, Parameter, UNKNOWN, UNKNOWN_OBJ } from '../entities';
 
 export const id = 'bruno';
 export const name = 'Bruno';

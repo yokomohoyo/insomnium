@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import type { TimelinePoint } from '../../network/load-stats';
 import { describeSecond, describeTimeline, timelineGeometry } from '../../network/timeline-chart';

@@ -1,12 +1,12 @@
-import React, { FC, useLayoutEffect, useRef } from 'react';
+import React, { type FC, useLayoutEffect, useRef } from 'react';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
-import { WebSocketRequest } from '../../../models/websocket-request';
+import type { WebSocketRequest } from '../../../models/websocket-request';
 import { renderWebSocketConnection, WebSocketSettingsError } from '../../../network/websocket-connect';
 import { requestPath } from '../../routes/paths';
-import { ConnectActionParams } from '../../routes/request';
-import { OneLineEditor, OneLineEditorHandle } from '../codemirror/one-line-editor';
+import type { ConnectActionParams } from '../../routes/request';
+import { OneLineEditor, type OneLineEditorHandle } from '../codemirror/one-line-editor';
 import { createKeybindingsHandler, useDocBodyKeyboardShortcuts } from '../keydown-binder';
 import { showAlert, showModal } from '../modals';
 import { RequestRenderErrorModal } from '../modals/request-render-error-modal';

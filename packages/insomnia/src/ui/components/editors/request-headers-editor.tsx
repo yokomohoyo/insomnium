@@ -1,11 +1,11 @@
-import React, { FC, useCallback } from 'react';
+import React, { type FC, useCallback } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { getCommonHeaderNames, getCommonHeaderValues } from '../../../common/common-headers';
 import type { RequestHeader } from '../../../models/request';
 import { isWebSocketRequest } from '../../../models/websocket-request';
 import { useRequestSetter } from '../../hooks/use-request';
-import { RequestLoaderData, WebSocketRequestLoaderData } from '../../routes/request';
+import type { RequestLoaderData, WebSocketRequestLoaderData } from '../../routes/request';
 import { CodeEditor } from '../codemirror/code-editor';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 

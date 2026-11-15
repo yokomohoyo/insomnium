@@ -1,17 +1,17 @@
-import { Curl, CurlInfoDebug, HeaderInfo } from '@getinsomnia/node-libcurl';
+import { Curl, CurlInfoDebug, type HeaderInfo } from '@getinsomnia/node-libcurl';
 import electron, { BrowserWindow, ipcMain } from 'electron';
 import { v4 as uuidV4 } from 'uuid';
 
 import { describeByteSize, generateId, getSetCookieHeaders } from '../../common/misc';
 import * as models from '../../models';
-import { Environment } from '../../models/environment';
-import { Response } from '../../models/response';
+import type { Environment } from '../../models/environment';
+import type { Response } from '../../models/response';
 import { metadataGuarded } from '../../network/metadata-hosts';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getCaBundle } from './ca-bundle';
 import { ConnectionLogs, findEvents, findEventsSince, saveErrorResponse, saveResponse, storeSetCookies } from './connection-log';
-import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stream-request';
+import { buildEventStreamCurlRequest, type EventStreamConnection } from './event-stream-request';
 import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
 import { proxyFor } from './proxy';
 

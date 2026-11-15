@@ -6,7 +6,7 @@ import React from 'react';
 import * as requestOperations from '../models/helpers/request-operations';
 import type { BaseModel } from '../models/index';
 import * as models from '../models/index';
-import { isWorkspace, Workspace } from '../models/workspace';
+import { isWorkspace, type Workspace } from '../models/workspace';
 import { showAlert, showError, showModal } from '../ui/components/modals';
 import { AskModal } from '../ui/components/modals/ask-modal';
 import { SelectModal } from '../ui/components/modals/select-modal';

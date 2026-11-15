@@ -1,4 +1,4 @@
-import React, { FC, Fragment, useState } from 'react';
+import React, { type FC, Fragment, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import {
@@ -11,11 +11,11 @@ import {
 } from '../../../common/constants';
 import { docsKeyMaps } from '../../../common/documentation';
 import { LANGUAGES, resolveLanguage, t } from '../../../common/i18n';
-import { HttpVersion, HttpVersions } from '../../../common/settings';
+import { type HttpVersion, HttpVersions } from '../../../common/settings';
 import { describeUpdateCheck, type UpdateCheckResult } from '../../../common/update-check';
 import * as models from '../../../models';
 import { initNewOAuthSession } from '../../../network/o-auth-2/get-token';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { Link } from '../base/link';
 import { Tooltip } from '../tooltip';
 import { BooleanSetting } from './boolean-setting';

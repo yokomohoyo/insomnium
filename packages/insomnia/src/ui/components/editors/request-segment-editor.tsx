@@ -1,10 +1,10 @@
-import React, { FC, useCallback, useEffect, useMemo } from 'react';
+import React, { type FC, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { generateId } from '../../../common/misc';
-import { RequestSegment } from '../../../models/request';
+import type { RequestSegment } from '../../../models/request';
 import { useRequestSetter } from '../../hooks/use-request';
-import { RequestLoaderData, WebSocketRequestLoaderData } from '../../routes/request';
+import type { RequestLoaderData, WebSocketRequestLoaderData } from '../../routes/request';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';
 
 interface Props {

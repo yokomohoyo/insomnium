@@ -1,7 +1,7 @@
 import type { LoadSummary, LoadThresholds } from '../network/load-stats';
 import { MAX_DURATION_MS, MAX_VIRTUAL_USERS } from '../network/load-test';
 import { sendingEnvironment } from './run';
-import { emptySources, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
+import { emptySources, requireSources, type Sources, SOURCES_USAGE, takeSourceOption } from './sources';
 
 // `insomnium-server load`: a load test for CI. Virtual users send the
 // requests over and over for a while; it exits 1 when a threshold is broken.

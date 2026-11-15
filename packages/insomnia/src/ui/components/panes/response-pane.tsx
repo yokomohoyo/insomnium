@@ -1,7 +1,7 @@
 import { text } from 'node:stream/consumers';
 
 import { extension as mimeExtension } from 'mime-types';
-import React, { FC, useCallback } from 'react';
+import React, { type FC, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { PREVIEW_MODE_SOURCE } from '../../../common/constants';
@@ -12,8 +12,8 @@ import * as models from '../../../models';
 import { cancelRequestById } from '../../../network/cancellation';
 import { jsonPrettify } from '../../../utils/prettify/json';
 import { useRequestMetaPatcher } from '../../hooks/use-request';
-import { RequestLoaderData } from '../../routes/request';
-import { RootLoaderData } from '../../routes/root';
+import type { RequestLoaderData } from '../../routes/request';
+import type { RootLoaderData } from '../../routes/root';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { PreviewModeDropdown } from '../dropdowns/preview-mode-dropdown';
 import { ResponseHistoryDropdown } from '../dropdowns/response-history-dropdown';

@@ -1,4 +1,4 @@
-import React, { PropsWithChildren, ReactNode, useCallback, useState } from 'react';
+import React, { type PropsWithChildren, type ReactNode, useCallback, useState } from 'react';
 import styled from 'styled-components';
 
 import { IconEnum, SvgIcon } from './svg-icon';

@@ -3,8 +3,8 @@ import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState }
 
 import { JSON_ORDER_PREFIX, JSON_ORDER_SEPARATOR } from '../../../common/constants';
 import { splitSecrets } from '../../../common/environment-secrets';
-import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
-import { checkNestedKeys, environmentFromRows, EnvironmentInfo, newRowId, rowsFromEnvironment, VariableRow } from './environment-variables';
+import { CodeEditor, type CodeEditorHandle } from '../codemirror/code-editor';
+import { checkNestedKeys, environmentFromRows, type EnvironmentInfo, newRowId, rowsFromEnvironment, type VariableRow } from './environment-variables';
 
 export type { EnvironmentInfo } from './environment-variables';
 export { checkNestedKeys, ensureKeyIsValid } from './environment-variables';

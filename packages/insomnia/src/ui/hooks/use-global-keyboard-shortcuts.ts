@@ -4,8 +4,8 @@ import * as plugins from '../../plugins';
 import { useDocBodyKeyboardShortcuts } from '../components/keydown-binder';
 import { showModal } from '../components/modals';
 import { SettingsModal, TAB_INDEX_SHORTCUTS } from '../components/modals/settings-modal';
-import { RootLoaderData } from '../routes/root';
-import { WorkspaceLoaderData } from '../routes/workspace';
+import type { RootLoaderData } from '../routes/root';
+import type { WorkspaceLoaderData } from '../routes/workspace';
 import { useSettingsPatcher, useWorkspaceMetaPatcher } from './use-request';
 export const useGlobalKeyboardShortcuts = () => {
   const workspaceData = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData | undefined;

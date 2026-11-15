@@ -1,12 +1,12 @@
 import 'codemirror';
 
-import { GraphQLInfoOptions } from 'codemirror-graphql/info';
-import { ModifiedGraphQLJumpOptions } from 'codemirror-graphql/jump';
-import { GraphQLSchema } from 'graphql';
+import type { GraphQLInfoOptions } from 'codemirror-graphql/info';
+import type { ModifiedGraphQLJumpOptions } from 'codemirror-graphql/jump';
+import type { GraphQLSchema } from 'graphql';
 
-import { HandleGetRenderContext, HandleRender } from './common/render';
-import { Settings } from './models/settings';
-import { NunjucksParsedTag } from './templating/utils';
+import type { HandleGetRenderContext, HandleRender } from './common/render';
+import type { Settings } from './models/settings';
+import type { NunjucksParsedTag } from './templating/utils';
 
 type LinkClickCallback = (url: string) => void;
 

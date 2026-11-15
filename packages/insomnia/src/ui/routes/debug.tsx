@@ -1,7 +1,7 @@
-import { IconName } from '@fortawesome/fontawesome-svg-core';
-import { ServiceError } from '@grpc/grpc-js';
+import type { IconName } from '@fortawesome/fontawesome-svg-core';
+import type { ServiceError } from '@grpc/grpc-js';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { FC, Fragment, useEffect, useRef, useState } from 'react';
+import React, { type FC, Fragment, useEffect, useRef, useState } from 'react';
 import {
   Button,
   DropIndicator,
@@ -18,7 +18,7 @@ import {
   useDragAndDrop,
 } from 'react-aria-components';
 import {
-  LoaderFunction,
+  type LoaderFunction,
   redirect,
   useFetcher,
   useNavigate,
@@ -28,30 +28,30 @@ import {
 } from 'react-router-dom';
 
 import { variableNames } from '../../common/ai-prompts';
-import { SORT_ORDERS, SortOrder } from '../../common/constants';
-import { ChangeBufferEvent, database as db } from '../../common/database';
+import { SORT_ORDERS, type SortOrder } from '../../common/constants';
+import { type ChangeBufferEvent, database as db } from '../../common/database';
 import { t } from '../../common/i18n';
 import { generateId } from '../../common/misc';
-import { PlatformKeyCombinations } from '../../common/settings';
+import type { PlatformKeyCombinations } from '../../common/settings';
 import type { GrpcMethodInfo } from '../../main/ipc/grpc';
 import type { GrpcMetadata, GrpcStatus } from '../../main/network/grpc-metadata';
 import * as models from '../../models';
-import { Environment } from '../../models/environment';
-import { GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
+import type { Environment } from '../../models/environment';
+import { type GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { getByParentId as getGrpcRequestMetaByParentId } from '../../models/grpc-request-meta';
-import { isMcpRequest, isMcpRequestId, McpRequest } from '../../models/mcp-request';
+import { isMcpRequest, isMcpRequestId, type McpRequest } from '../../models/mcp-request';
 import {
   isEventStreamRequest,
   isRequest,
   isRequestId,
-  Request,
+  type Request,
 } from '../../models/request';
-import { isRequestGroup, RequestGroup } from '../../models/request-group';
+import { isRequestGroup, type RequestGroup } from '../../models/request-group';
 import { getByParentId as getRequestMetaByParentId } from '../../models/request-meta';
 import {
   isWebSocketRequest,
   isWebSocketRequestId,
-  WebSocketRequest,
+  type WebSocketRequest,
 } from '../../models/websocket-request';
 import { guard } from '../../utils/guard';
 import { RequestActionsDropdown } from '../components/dropdowns/request-actions-dropdown';
@@ -87,19 +87,19 @@ import { RealtimeResponsePane } from '../components/websockets/realtime-response
 import { WebSocketRequestPane } from '../components/websockets/websocket-request-pane';
 import { useReadyState } from '../hooks/use-ready-state';
 import {
-  CreateRequestType,
+  type CreateRequestType,
   useRequestGroupMetaPatcher,
   useRequestMetaPatcher,
 } from '../hooks/use-request';
 import { requestDisplayName } from '../utils/request-name';
 import { debugPath, requestPath, workspacePath } from './paths';
-import {
+import type {
   GrpcRequestLoaderData,
   RequestLoaderData,
   WebSocketRequestLoaderData,
 } from './request';
-import { QUICK_SWITCH_EVENT, RootLoaderData } from './root';
-import { Child, WorkspaceLoaderData } from './workspace';
+import { QUICK_SWITCH_EVENT, type RootLoaderData } from './root';
+import type { Child, WorkspaceLoaderData } from './workspace';
 
 export interface GrpcMessage {
   id: string;

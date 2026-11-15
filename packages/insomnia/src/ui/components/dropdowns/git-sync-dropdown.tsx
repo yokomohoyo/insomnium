@@ -1,14 +1,14 @@
 import classnames from 'classnames';
-import React, { FC, Fragment, useEffect, useRef, useState } from 'react';
+import React, { type FC, Fragment, useEffect, useRef, useState } from 'react';
 import { useFetcher, useParams } from 'react-router-dom';
 import { useInterval } from 'react-use';
 
 import { docsGitSync } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
-import { GitRepository } from '../../../models/git-repository';
+import type { GitRepository } from '../../../models/git-repository';
 import { pullRequestUrl } from '../../../sync/git/pull-request-url';
 import { getOauth2FormatName } from '../../../sync/git/utils';
-import {
+import type {
   GitFetchLoaderData,
   GitRepoLoaderData,
   GitStatusResult,

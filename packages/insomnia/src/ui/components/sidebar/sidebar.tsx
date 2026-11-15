@@ -1,5 +1,5 @@
 import classnames from 'classnames';
-import React, { forwardRef, memo, ReactNode } from 'react';
+import React, { forwardRef, memo, type ReactNode } from 'react';
 
 import {
   COLLAPSE_SIDEBAR_REMS,

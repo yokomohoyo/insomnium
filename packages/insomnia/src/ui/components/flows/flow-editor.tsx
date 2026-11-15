@@ -14,7 +14,7 @@ import {
   useNodesState,
 } from '@xyflow/react';
 import classnames from 'classnames';
-import React, { createContext, FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, type FC, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';

@@ -9,7 +9,7 @@ import { isProject } from '../models/project';
 import type { Request, RequestBodyParameter, RequestHeader, RequestParameter } from '../models/request';
 import { isWorkspace } from '../models/workspace';
 import type { AssertionResult } from '../network/assertions';
-import { runInSandbox, ScriptLog } from './sandbox';
+import { runInSandbox, type ScriptLog } from './sandbox';
 
 // A request's scripts: the pre-request one before it's rendered (it can change
 // the request and set variables the render then uses), the after-response one

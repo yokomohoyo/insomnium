@@ -1,4 +1,4 @@
-import React, { FC, Fragment, useEffect, useState } from 'react';
+import React, { type FC, Fragment, useEffect, useState } from 'react';
 import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { getProductName } from '../../../common/constants';
@@ -7,8 +7,8 @@ import { exportAllToFile } from '../../../common/export';
 import { t } from '../../../common/i18n';
 import { isDesign } from '../../../models/workspace';
 import { projectPath } from '../../routes/paths';
-import { ProjectLoaderData } from '../../routes/project';
-import { WorkspaceLoaderData } from '../../routes/workspace';
+import type { ProjectLoaderData } from '../../routes/project';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { Link } from '../base/link';
 import { ExportRequestsModal } from '../modals/export-requests-modal';

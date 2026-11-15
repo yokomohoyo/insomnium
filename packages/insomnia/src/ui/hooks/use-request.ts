@@ -1,16 +1,16 @@
 
 import { useFetcher, useParams } from 'react-router-dom';
 
-import { GrpcRequest } from '../../models/grpc-request';
-import { GrpcRequestMeta } from '../../models/grpc-request-meta';
+import type { GrpcRequest } from '../../models/grpc-request';
+import type { GrpcRequestMeta } from '../../models/grpc-request-meta';
 import type { McpRequest } from '../../models/mcp-request';
-import { Request } from '../../models/request';
-import { RequestGroup } from '../../models/request-group';
-import { RequestGroupMeta } from '../../models/request-group-meta';
-import { RequestMeta } from '../../models/request-meta';
-import { Settings } from '../../models/settings';
-import { WebSocketRequest } from '../../models/websocket-request';
-import { WorkspaceMeta } from '../../models/workspace-meta';
+import type { Request } from '../../models/request';
+import type { RequestGroup } from '../../models/request-group';
+import type { RequestGroupMeta } from '../../models/request-group-meta';
+import type { RequestMeta } from '../../models/request-meta';
+import type { Settings } from '../../models/settings';
+import type { WebSocketRequest } from '../../models/websocket-request';
+import type { WorkspaceMeta } from '../../models/workspace-meta';
 import { trackSave } from '../pending-edits';
 import { requestGroupPath, requestPath, workspacePath } from '../routes/paths';
 

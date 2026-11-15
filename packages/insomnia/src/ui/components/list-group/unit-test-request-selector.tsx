@@ -1,7 +1,7 @@
-import React, { FunctionComponent } from 'react';
+import React, { type FunctionComponent } from 'react';
 import styled from 'styled-components';
 
-import { Request } from '../../../models/request';
+import type { Request } from '../../../models/request';
 import { requestDisplayName } from '../../utils/request-name';
 
 interface UnitTestRequestSelectorProps {

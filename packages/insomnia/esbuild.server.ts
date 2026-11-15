@@ -1,7 +1,7 @@
 // Bundles the headless MCP server (src/server) into packages/insomnium-server/dist:
 // everything in one file, with libcurl's native binding copied next to it and
 // the proto worker the gRPC code loads from beside the bundle.
-import { build, BuildOptions } from 'esbuild';
+import { build, type BuildOptions } from 'esbuild';
 import alias from 'esbuild-plugin-alias';
 import path from 'path';
 

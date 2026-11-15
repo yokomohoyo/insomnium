@@ -1,10 +1,10 @@
 import { OverlayContainer } from '@react-aria/overlays';
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { type FC, useEffect, useRef, useState } from 'react';
 
 import type { MockServerStatus } from '../../../main/mock-servers';
 import { loadMockRoutes, type MockLogEntry, mockPathOf, type MockRoute } from '../../../mock/mock-routes';
 import type { Workspace } from '../../../models/workspace';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';

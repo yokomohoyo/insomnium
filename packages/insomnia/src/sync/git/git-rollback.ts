@@ -1,4 +1,4 @@
-import { GitVCS } from './git-vcs';
+import type { GitVCS } from './git-vcs';
 
 export interface FileWithStatus {
   filePath: string;

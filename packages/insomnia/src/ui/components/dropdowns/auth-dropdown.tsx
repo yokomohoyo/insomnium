@@ -1,23 +1,23 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import {
   AUTH_NONE,
-  AuthType,
+  type AuthType,
   getAuthTypeName,
   HAWK_ALGORITHM_SHA256,
 } from '../../../common/constants';
 import { t } from '../../../common/i18n';
 import {
   addAuthStrategy,
-  RequestAuthentication,
-  RequestAuthenticationStrategy,
+  type RequestAuthentication,
+  type RequestAuthenticationStrategy,
 } from '../../../models/request';
 import { SIGNATURE_METHOD_HMAC_SHA1 } from '../../../network/o-auth-1/constants';
 import { GRANT_TYPE_AUTHORIZATION_CODE } from '../../../network/o-auth-2/constants';
 import { newPluginStrategy } from '../../../plugins/auth-providers';
 import { useRequestSetter } from '../../hooks/use-request';
-import { RequestLoaderData } from '../../routes/request';
+import type { RequestLoaderData } from '../../routes/request';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { useAuthProviders } from '../editors/auth/plugin-auth';
 

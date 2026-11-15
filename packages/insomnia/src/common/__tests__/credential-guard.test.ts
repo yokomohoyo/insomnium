@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 
 import { describe, expect, it, jest } from '@jest/globals';
 
-import { CredentialGuard, isEnvelope, KeyWrapper, WrappedKey } from '../credential-guard';
+import { CredentialGuard, isEnvelope, type KeyWrapper, type WrappedKey } from '../credential-guard';
 
 // A stand-in for the OS keychain. `secret` is the machine's own keychain key: a
 // keychain with another secret can't unwrap what this one wrapped. Weak wraps

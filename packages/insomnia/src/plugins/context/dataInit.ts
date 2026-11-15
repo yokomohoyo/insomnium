@@ -1,7 +1,7 @@
 import { exportWorkspacesData, exportWorkspacesHAR } from '../../common/export';
 import { fetchImportContentFromURI, scanResources } from '../../common/import';
 import { importResourcesToProject } from '../../common/importResourcesToProject';
-import { getWorkspaces, HarExport, InsomniaExport } from './data';
+import { getWorkspaces, type HarExport, type InsomniaExport } from './data';
 
 // Only in the case of running unit tests from Inso via send-request can activeProjectId be undefined. This is because the concept of a project doesn't exist in git/insomnia sync or an export file
 

@@ -1,9 +1,9 @@
-import React, { FC } from 'react';
-import { LoaderFunction, redirect, useRouteLoaderData } from 'react-router-dom';
+import React, { type FC } from 'react';
+import { type LoaderFunction, redirect, useRouteLoaderData } from 'react-router-dom';
 
 import { database } from '../../common/database';
 import * as models from '../../models';
-import { UnitTestResult } from '../../models/unit-test-result';
+import type { UnitTestResult } from '../../models/unit-test-result';
 import { guard } from '../../utils/guard';
 import { ListGroup, UnitTestResultItem } from '../components/list-group';
 import { testResultPath } from './paths';

@@ -1,8 +1,8 @@
-import React, { FunctionComponent, ReactNode } from 'react';
+import React, { type FunctionComponent, type ReactNode } from 'react';
 import useToggle from 'react-use/lib/useToggle';
 import styled from 'styled-components';
 
-import { Request } from '../../../models/request';
+import type { Request } from '../../../models/request';
 import { SvgIcon } from '../svg-icon';
 import { Button } from '../themed-button';
 import { ListGroupItem } from './list-group-item';

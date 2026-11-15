@@ -9,10 +9,10 @@ import { getAuthStrategies, type RequestAuthenticationStrategy, type RequestHead
 import type { RequestGroup } from '../../../models/request-group';
 import { guard } from '../../../utils/guard';
 import { useRequestGroupPatcher } from '../../hooks/use-request';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
-import { CodeEditorHandle } from '../codemirror/code-editor';
+import type { CodeEditorHandle } from '../codemirror/code-editor';
 import { AuthStrategyDropdown } from '../dropdowns/auth-dropdown';
 import { AuthStrategiesEditor } from '../editors/auth/auth-wrapper';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';

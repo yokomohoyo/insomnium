@@ -1,4 +1,4 @@
-import React, { DOMAttributes, FunctionComponent, useEffect, useState } from 'react';
+import React, { type DOMAttributes, type FunctionComponent, useEffect, useState } from 'react';
 
 import { REQUEST_SETUP_TEARDOWN_COMPENSATION, REQUEST_TIME_TO_SHOW_COUNTER } from '../../common/constants';
 

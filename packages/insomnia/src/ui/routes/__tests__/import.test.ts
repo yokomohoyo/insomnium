@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { scanForResourcesAction, ScanForResourcesActionResult } from '../import';
+import { scanForResourcesAction, type ScanForResourcesActionResult } from '../import';
 
 const scan = (fields: Record<string, string>) => {
   const formData = new FormData();

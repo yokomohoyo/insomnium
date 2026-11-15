@@ -1,7 +1,7 @@
 import { translateDynamicVariables } from '../../../templating/faker-functions';
-import { Converter, ImportRequest, Parameter } from '../entities';
-import { InheritedScript, scriptAsText, withInheritedScripts } from '../scripts';
-import {
+import type { Converter, ImportRequest, Parameter } from '../entities';
+import { type InheritedScript, scriptAsText, withInheritedScripts } from '../scripts';
+import type {
   Auth as V200Auth,
   Folder as V200Folder,
   FormParameter as V200FormParameter,
@@ -13,7 +13,7 @@ import {
   UrlEncodedParameter as V200UrlEncodedParameter,
   Variable2 as V200Variable2,
 } from './postman-2.0.types';
-import {
+import type {
   Auth as V210Auth,
   Auth1 as V210Auth1,
   Folder as V210Folder,

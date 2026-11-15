@@ -1,6 +1,6 @@
 // `insomnium-server mock`: a collection's local mock server without the app,
 // answering with its requests' examples (mock/mock-server.ts).
-import { emptySources, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
+import { emptySources, requireSources, type Sources, SOURCES_USAGE, takeSourceOption } from './sources';
 
 export const MOCK_USAGE = `Usage: insomnium-server mock (--collection <file> | --repo <url or directory>) [--port <n>] [--host <address>]
 

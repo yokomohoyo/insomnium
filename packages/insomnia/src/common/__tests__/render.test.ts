@@ -4,8 +4,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
 import { environmentModelSchema, requestGroupModelSchema } from '../../models/__schemas__/model-schemas';
-import { Environment } from '../../models/environment';
-import { Workspace } from '../../models/workspace';
+import type { Environment } from '../../models/environment';
+import type { Workspace } from '../../models/workspace';
 import * as renderUtils from '../render';
 
 jest.mock('electron');

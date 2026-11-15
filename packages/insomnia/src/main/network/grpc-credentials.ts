@@ -1,10 +1,10 @@
-import { ChannelCredentials, credentials } from '@grpc/grpc-js';
+import { type ChannelCredentials, credentials } from '@grpc/grpc-js';
 import fs from 'fs';
 import tls from 'tls';
 
 import { AUTH_AWS_IAM, AUTH_DIGEST, AUTH_NETRC, AUTH_NTLM } from '../../common/constants';
 import * as models from '../../models';
-import { getAuthStrategies, RequestAuthentication } from '../../models/request';
+import { getAuthStrategies, type RequestAuthentication } from '../../models/request';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
 import { findWorkspaceForRequest } from '../mcp/tools/util';
 import { getCaBundle } from './ca-bundle';

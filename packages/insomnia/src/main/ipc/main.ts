@@ -1,12 +1,12 @@
 import type { ISpectralDiagnostic } from '@stoplight/spectral-core';
-import { app, ipcMain, IpcRendererEvent, shell } from 'electron';
+import { app, ipcMain, type IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { credentialStorageStatus } from '../../common/database';
 import type { UpdateCheckResult } from '../../common/update-check';
 import * as models from '../../models';
 import type { NativeThemeSource } from '../../plugins/native-theme';
-import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
+import { runInSandbox, type SandboxResult } from '../../scripting/sandbox';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
 import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
@@ -18,14 +18,14 @@ import type { GitSshRequest, GitSshResponse } from '../git-ssh/transport';
 import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
 import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopCollectionMock } from '../mock-servers';
 import { axiosRequest } from '../network/axios-request';
-import { CurlBridgeAPI } from '../network/curl';
+import type { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
 import type { McpClientBridgeAPI } from '../network/mcp-client';
-import { WebSocketBridgeAPI } from '../network/websocket';
+import type { WebSocketBridgeAPI } from '../network/websocket';
 import { checkForNewRelease, checkForUpdatesNow } from '../release-check';
-import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
+import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, type Snapshot, takeSnapshot } from '../snapshots';
 import { type TeamBridgeAPI, teamCollections, teamConnect, teamConnectSso, teamCreateCollection, teamDisconnect } from '../team-client';
-import { gRPCBridgeAPI } from './grpc';
+import type { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {
   openInBrowser: (url: string) => void;

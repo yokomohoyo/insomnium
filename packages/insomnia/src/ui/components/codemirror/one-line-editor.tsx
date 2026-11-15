@@ -2,18 +2,18 @@ import './base-imports';
 
 import classnames from 'classnames';
 import clone from 'clone';
-import CodeMirror, { EditorConfiguration } from 'codemirror';
+import CodeMirror, { type EditorConfiguration } from 'codemirror';
 import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import { useMount, useUnmount } from 'react-use';
 
 import * as misc from '../../../common/misc';
-import { KeyCombination } from '../../../common/settings';
+import type { KeyCombination } from '../../../common/settings';
 import { getTagDefinitions } from '../../../templating/index';
-import { NunjucksParsedTag } from '../../../templating/utils';
+import type { NunjucksParsedTag } from '../../../templating/utils';
 import { useNunjucks } from '../../context/nunjucks/use-nunjucks';
 import { debounceEdit } from '../../pending-edits';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { isKeyCombinationInRegistry } from '../settings/shortcuts';
 import { closeEditor } from './close-editor';
 interface OneLineEditorProps {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { describeAssertion, evaluateAssertions, RequestAssertion } from '../assertions';
+import { describeAssertion, evaluateAssertions, type RequestAssertion } from '../assertions';
 
 const response = {
   statusCode: 201,

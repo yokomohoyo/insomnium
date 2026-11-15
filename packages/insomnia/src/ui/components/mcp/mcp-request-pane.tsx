@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import type { McpTransport } from '../../../models/mcp-request';
@@ -6,7 +6,7 @@ import type { RequestHeader } from '../../../models/request';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { useRequestSetter } from '../../hooks/use-request';
 import { useActiveRequestSyncVCSVersion, useGitVCSVersion } from '../../hooks/use-vcs-version';
-import { McpRequestLoaderData } from '../../routes/request';
+import type { McpRequestLoaderData } from '../../routes/request';
 import { TabItem, Tabs } from '../base/tabs';
 import { OneLineEditor } from '../codemirror/one-line-editor';
 import { RequestHeadersEditor } from '../editors/request-headers-editor';

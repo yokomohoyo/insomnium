@@ -1,5 +1,5 @@
 import classnames from 'classnames';
-import React, { FC, ReactNode, useRef } from 'react';
+import React, { type FC, type ReactNode, useRef } from 'react';
 
 import type { RequestGroup } from '../../../models/request-group';
 

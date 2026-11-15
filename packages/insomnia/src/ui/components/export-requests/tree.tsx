@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import { isGrpcRequest } from '../../../models/grpc-request';
 import { isMcpRequest } from '../../../models/mcp-request';

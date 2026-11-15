@@ -1,5 +1,5 @@
-import { BaseModel } from '../models';
-import { isWorkspace, Workspace } from '../models/workspace';
+import type { BaseModel } from '../models';
+import { isWorkspace, type Workspace } from '../models/workspace';
 
 type ResetModelKeys<T extends BaseModel> = {
   [K in keyof T]?: T[K] | null;

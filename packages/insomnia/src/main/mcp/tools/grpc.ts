@@ -1,5 +1,5 @@
 import { makeGenericClientConstructor, Metadata, type StatusObject } from '@grpc/grpc-js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { getRenderedGrpcRequest, RENDER_PURPOSE_SEND } from '../../../common/render';

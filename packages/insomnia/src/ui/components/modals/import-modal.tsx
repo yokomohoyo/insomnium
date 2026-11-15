@@ -1,7 +1,7 @@
 import React, {
-  FC,
+  type FC,
   Fragment,
-  ReactNode,
+  type ReactNode,
   useEffect,
   useId,
   useRef,
@@ -12,11 +12,11 @@ import { useFetcher } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { t } from '../../../common/i18n';
-import {
+import type {
   ImportResourcesActionResult,
   ScanForResourcesActionResult,
 } from '../../routes/import';
-import { Modal, ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalHeader } from '../base/modal-header';
 import { Button } from '../themed-button';
 

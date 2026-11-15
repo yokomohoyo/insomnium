@@ -2,7 +2,7 @@ import { describe, expect, it } from '@jest/globals';
 import orderedJSON from 'json-order';
 
 import { JSON_ORDER_PREFIX, JSON_ORDER_SEPARATOR } from '../../../../common/constants';
-import { environmentFromRows, rowsFromEnvironment, VariableRow } from '../environment-variables';
+import { environmentFromRows, rowsFromEnvironment, type VariableRow } from '../environment-variables';
 
 const row = (name: string, value: string, type: VariableRow['type'] = 'text') => ({ id: name, name, value, type });
 const withoutIds = (rows: VariableRow[]) => rows.map(({ id, ...rest }) => rest);

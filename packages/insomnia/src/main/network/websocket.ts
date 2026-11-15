@@ -1,15 +1,15 @@
 import electron, { BrowserWindow, ipcMain } from 'electron';
 import fs from 'fs';
-import { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { KeyObject, PxfObject } from 'tls';
+import type { KeyObject, PxfObject } from 'tls';
 import { v4 as uuidV4 } from 'uuid';
 import {
-  CloseEvent,
-  ErrorEvent,
-  Event,
-  MessageEvent,
+  type CloseEvent,
+  type ErrorEvent,
+  type Event,
+  type MessageEvent,
   WebSocket,
 } from 'ws';
 
@@ -18,9 +18,9 @@ import { jarFromCookies } from '../../common/cookies';
 import { generateId, getSetCookieHeaders } from '../../common/misc';
 import { webSocketRequest } from '../../models';
 import * as models from '../../models';
-import { CookieJar } from '../../models/cookie-jar';
-import { getAuthStrategies, RequestAuthentication, RequestHeader } from '../../models/request';
-import { BaseWebSocketRequest } from '../../models/websocket-request';
+import type { CookieJar } from '../../models/cookie-jar';
+import { getAuthStrategies, type RequestAuthentication, type RequestHeader } from '../../models/request';
+import type { BaseWebSocketRequest } from '../../models/websocket-request';
 import type { WebSocketResponse } from '../../models/websocket-response';
 import { COOKIE, HEADER, QUERY_PARAMS } from '../../network/api-key/constants';
 import { getBasicAuthHeader } from '../../network/basic-auth/get-header';
@@ -31,11 +31,11 @@ import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
 import { ConnectionLogs, findEvents, findEventsSince, saveErrorResponse, saveResponse, storeSetCookies } from './connection-log';
-import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
+import { connectionInit, type GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
 import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
 import { describeProxy, proxyFor } from './proxy';
-import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
-import { BinaryEncoding, bytesOf, loggedData, payloadBytes, reconnectLimits } from './websocket-frames';
+import { type SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
+import { type BinaryEncoding, bytesOf, loggedData, payloadBytes, reconnectLimits } from './websocket-frames';
 import { onWebSocketRedirect } from './websocket-redirect';
 
 export interface WebSocketConnection extends WebSocket {

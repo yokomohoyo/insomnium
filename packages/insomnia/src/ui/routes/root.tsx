@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from 'react-aria-components';
 import {
-  LoaderFunction,
+  type LoaderFunction,
   NavLink,
   Outlet,
   useLoaderData,
@@ -28,7 +28,7 @@ import { t } from '../../common/i18n';
 import { assertValidThemeName } from '../../main/validate-package-spec';
 import * as models from '../../models';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
-import { Settings } from '../../models/settings';
+import type { Settings } from '../../models/settings';
 import { isDesign } from '../../models/workspace';
 import { reloadPlugins } from '../../plugins';
 import { createPlugin } from '../../plugins/create';
@@ -56,7 +56,7 @@ import { useSettingsPatcher } from '../hooks/use-request';
 import { tx } from '../tx';
 import Modals from './modals';
 import { organizationPath, projectPath, workspacePath } from './paths';
-import { WorkspaceLoaderData } from './workspace';
+import type { WorkspaceLoaderData } from './workspace';
 
 /**** ><> ↑ --------- Hooks and Containers */
 

@@ -1,12 +1,12 @@
-import React, { FC, forwardRef, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import React, { type FC, forwardRef, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { COLLAPSE_SIDEBAR_REMS, DEFAULT_PANE_HEIGHT, DEFAULT_PANE_WIDTH, DEFAULT_SIDEBAR_WIDTH, MAX_PANE_HEIGHT, MAX_PANE_WIDTH, MAX_SIDEBAR_REMS, MIN_PANE_HEIGHT, MIN_PANE_WIDTH, MIN_SIDEBAR_REMS } from '../../common/constants';
 import { debounce } from '../../common/misc';
 import * as models from '../../models';
-import { RootLoaderData } from '../routes/root';
-import { WorkspaceLoaderData } from '../routes/workspace';
+import type { RootLoaderData } from '../routes/root';
+import type { WorkspaceLoaderData } from '../routes/workspace';
 import { ErrorBoundary } from './error-boundary';
 import { Sidebar } from './sidebar/sidebar';
 const verticalStyles = {

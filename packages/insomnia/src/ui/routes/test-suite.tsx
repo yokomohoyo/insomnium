@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import {
-  LoaderFunction,
+  type LoaderFunction,
   redirect,
   useFetcher,
   useParams,
@@ -11,12 +11,12 @@ import styled from 'styled-components';
 import { database } from '../../common/database';
 import { documentationLinks } from '../../common/documentation';
 import * as models from '../../models';
-import { isRequest, Request } from '../../models/request';
-import { isUnitTest, UnitTest } from '../../models/unit-test';
-import { UnitTestSuite } from '../../models/unit-test-suite';
+import { isRequest, type Request } from '../../models/request';
+import { isUnitTest, type UnitTest } from '../../models/unit-test';
+import type { UnitTestSuite } from '../../models/unit-test-suite';
 import { guard } from '../../utils/guard';
 import { Editable } from '../components/base/editable';
-import { CodeEditor, CodeEditorHandle } from '../components/codemirror/code-editor';
+import { CodeEditor, type CodeEditorHandle } from '../components/codemirror/code-editor';
 import { ListGroup, UnitTestItem } from '../components/list-group';
 import { showPrompt } from '../components/modals';
 import { EmptyStatePane } from '../components/panes/empty-state-pane';

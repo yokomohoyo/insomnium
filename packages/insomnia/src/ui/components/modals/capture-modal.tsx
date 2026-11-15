@@ -1,10 +1,10 @@
-import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
+import React, { type FC, useCallback, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 
 import type { CapturedExchange } from '../../../main/capture-proxy';
 import * as models from '../../../models';
 import type { Workspace } from '../../../models/workspace';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';

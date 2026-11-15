@@ -1,10 +1,10 @@
-import React, { FC, useState } from 'react';
+import React, { type FC, useState } from 'react';
 import { useFetchers, useRouteLoaderData } from 'react-router-dom';
 
 import { docsAiAssistant } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
 import { useSettingsPatcher } from '../../hooks/use-request';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { tx } from '../../tx';
 import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';

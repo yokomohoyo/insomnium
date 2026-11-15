@@ -1,6 +1,6 @@
-import { IncomingMessage, Server } from 'http';
-import { Socket } from 'net';
-import { WebSocket, WebSocketServer } from 'ws';
+import type { IncomingMessage, Server } from 'http';
+import type { Socket } from 'net';
+import { type WebSocket, WebSocketServer } from 'ws';
 
 /**
  * Starts an echo WebSocket server that receives messages from a client and echoes them back.

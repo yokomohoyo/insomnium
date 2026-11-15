@@ -1,10 +1,10 @@
 import classnames from 'classnames';
-import React, { FC, Fragment } from 'react';
+import React, { type FC, Fragment } from 'react';
 import styled from 'styled-components';
 
 import { generateId } from '../../../common/misc';
 import { PromptButton } from '../base/prompt-button';
-import { AutocompleteHandler, Pair, Row, Spacer } from './row';
+import { type AutocompleteHandler, type Pair, Row, Spacer } from './row';
 
 export const Toolbar = styled.div({
   boxSizing: 'content-box',

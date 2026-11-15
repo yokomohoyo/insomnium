@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FunctionComponent, ReactNode, useCallback, useLayoutEffect, useState } from 'react';
+import React, { type ChangeEvent, type FunctionComponent, type ReactNode, useCallback, useLayoutEffect, useState } from 'react';
 import useToggle from 'react-use/lib/useToggle';
 import styled from 'styled-components';
 

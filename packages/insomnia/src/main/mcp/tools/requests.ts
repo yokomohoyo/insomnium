@@ -1,6 +1,6 @@
 import { StringDecoder } from 'node:string_decoder';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
 import { database } from '../../../common/database';

@@ -1,5 +1,5 @@
 import fs from 'fs';
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { type FC, useEffect, useRef, useState } from 'react';
 
 import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../../network/load-report';
 import { checkThresholds, type LoadSummary, type LoadThresholds } from '../../network/load-stats';

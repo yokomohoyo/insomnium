@@ -1,11 +1,11 @@
-import { ApiSpec, isApiSpec } from '../models/api-spec';
+import { type ApiSpec, isApiSpec } from '../models/api-spec';
 import { isEnvironment } from '../models/environment';
 import { isFlow, remapRequests } from '../models/flow';
 import { isGrpcRequest } from '../models/grpc-request';
-import { BaseModel, getModel } from '../models/index';
+import { type BaseModel, getModel } from '../models/index';
 import * as models from '../models/index';
 import { isUnitTest } from '../models/unit-test';
-import { isWorkspace, Workspace } from '../models/workspace';
+import { isWorkspace, type Workspace } from '../models/workspace';
 import { guard } from '../utils/guard';
 import { database as db } from './database';
 import { isApiSpecImport, isSubEnvironmentResource, remapTemplateIds, ResourceCache, sortKeyer } from './import';

@@ -1,9 +1,9 @@
-import React, { FC, SyntheticEvent, useCallback } from 'react';
+import React, { type FC, type SyntheticEvent, useCallback } from 'react';
 
-import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
-import { isMcpRequest, McpRequest } from '../../../models/mcp-request';
-import { isRequest, Request } from '../../../models/request';
-import { isWebSocketRequest, WebSocketRequest } from '../../../models/websocket-request';
+import { type GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
+import { isMcpRequest, type McpRequest } from '../../../models/mcp-request';
+import { isRequest, type Request } from '../../../models/request';
+import { isWebSocketRequest, type WebSocketRequest } from '../../../models/websocket-request';
 import { requestDisplayName } from '../../utils/request-name';
 import { getMethodShortHand } from '../tags/method-tag';
 

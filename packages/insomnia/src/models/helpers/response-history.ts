@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import { database as db, Query } from '../../common/database';
+import { database as db, type Query } from '../../common/database';
 import type { BaseModel } from '../index';
 import * as models from '../index';
 import * as requestOperations from './request-operations';

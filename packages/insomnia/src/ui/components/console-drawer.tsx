@@ -1,6 +1,6 @@
-import React, { FC, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import React, { type FC, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
-import { clearConsole, consoleEntries, ConsoleEntry, subscribeToConsole } from '../../common/console-log';
+import { clearConsole, consoleEntries, type ConsoleEntry, subscribeToConsole } from '../../common/console-log';
 
 const time = (at: number) => new Date(at).toLocaleTimeString(undefined, { hour12: false });
 const size = (bytes?: number) => bytes === undefined ? '' : bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;

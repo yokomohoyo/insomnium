@@ -3,7 +3,7 @@
 // brings its own @types/node, which clashes with the app's.
 declare module 'ssh2' {
   import { EventEmitter } from 'events';
-  import { Duplex, Readable } from 'stream';
+  import type { Duplex, Readable } from 'stream';
 
   export interface ParsedKey {
     type: string;

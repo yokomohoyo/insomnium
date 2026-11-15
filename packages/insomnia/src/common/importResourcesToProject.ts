@@ -1,4 +1,4 @@
-import { BaseModel } from '../models/index';
+import type { BaseModel } from '../models/index';
 import { DEFAULT_PROJECT_ID } from '../models/project';
 import { isWorkspace } from '../models/workspace';
 import { guard } from '../utils/guard';

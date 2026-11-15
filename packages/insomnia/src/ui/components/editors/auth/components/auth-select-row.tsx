@@ -1,4 +1,4 @@
-import React, { ChangeEvent, FC, ReactNode, useCallback } from 'react';
+import React, { type ChangeEvent, type FC, type ReactNode, useCallback } from 'react';
 
 import { toKebabCase } from '../../../../../common/misc';
 import { useAuthStrategy } from '../auth-strategy-context';

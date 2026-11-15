@@ -1,6 +1,6 @@
 // inspiration: https://github.com/grpc/grpc/blob/master/examples/node/dynamic_codegen/route_guide/route_guide_server.js
 import * as grpc from '@grpc/grpc-js';
-import { HandleCall } from '@grpc/grpc-js/build/src/server-call';
+import type { HandleCall } from '@grpc/grpc-js/build/src/server-call';
 import * as protoLoader from '@grpc/proto-loader';
 import { addReflection } from '@ravanallc/grpc-server-reflection';
 import fs from 'fs';

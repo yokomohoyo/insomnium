@@ -1,4 +1,4 @@
-import React, { forwardRef, ForwardRefRenderFunction } from 'react';
+import React, { forwardRef, type ForwardRefRenderFunction } from 'react';
 
 export const mockRenderWithProps = jest.fn();
 

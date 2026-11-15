@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { AUTH_DIGEST, CONTENT_TYPE_FORM_DATA, CONTENT_TYPE_FORM_URLENCODED } from '../../../common/constants';
-import { buildEventStreamCurlRequest, EventStreamConnection } from '../event-stream-request';
+import { buildEventStreamCurlRequest, type EventStreamConnection } from '../event-stream-request';
 
 const connection = (patch: Partial<EventStreamConnection> = {}): EventStreamConnection => ({
   url: 'http://localhost:4000/events/news?since=42',

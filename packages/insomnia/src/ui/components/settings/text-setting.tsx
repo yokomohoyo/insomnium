@@ -1,9 +1,9 @@
-import React, { ChangeEventHandler, FC, InputHTMLAttributes, useCallback } from 'react';
+import React, { type ChangeEventHandler, type FC, type InputHTMLAttributes, useCallback } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
-import { SettingsOfType } from '../../../common/settings';
+import type { SettingsOfType } from '../../../common/settings';
 import { useSettingsPatcher } from '../../hooks/use-request';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { HelpTooltip } from '../help-tooltip';
 
 export const TextSetting: FC<{

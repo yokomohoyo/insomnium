@@ -1,4 +1,4 @@
-import grpcJSOriginal from '@grpc/grpc-js';
+import type grpcJSOriginal from '@grpc/grpc-js';
 import { jest } from '@jest/globals';
 import { EventEmitter } from 'events';
 

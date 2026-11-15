@@ -1,10 +1,10 @@
-import React, { FC, PropsWithChildren } from 'react';
+import React, { type FC, type PropsWithChildren } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { t } from '../../../common/i18n';
-import { KeyboardShortcut } from '../../../common/settings';
-import { RootLoaderData } from '../../routes/root';
+import type { KeyboardShortcut } from '../../../common/settings';
+import type { RootLoaderData } from '../../routes/root';
 import { Hotkey } from '../hotkey';
 import { Pane, PaneBody, PaneHeader } from './pane';
 

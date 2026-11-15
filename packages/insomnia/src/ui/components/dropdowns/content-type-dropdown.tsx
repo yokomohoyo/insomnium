@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import {
@@ -16,10 +16,10 @@ import {
   METHOD_POST,
 } from '../../../common/constants';
 import { t } from '../../../common/i18n';
-import { Request, RequestBody, RequestHeader, RequestParameter } from '../../../models/request';
+import type { Request, RequestBody, RequestHeader, RequestParameter } from '../../../models/request';
 import { deconstructQueryStringToParams } from '../../../utils/url/querystring';
 import { useRequestSetter } from '../../hooks/use-request';
-import { RequestLoaderData } from '../../routes/request';
+import type { RequestLoaderData } from '../../routes/request';
 import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { AlertModal } from '../modals/alert-modal';
 import { showModal } from '../modals/index';

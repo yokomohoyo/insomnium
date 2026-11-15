@@ -1,4 +1,4 @@
-import React, { createRef, FunctionComponent, useLayoutEffect } from 'react';
+import React, { createRef, type FunctionComponent, useLayoutEffect } from 'react';
 import styled from 'styled-components';
 
 interface SidebarFilterProps {

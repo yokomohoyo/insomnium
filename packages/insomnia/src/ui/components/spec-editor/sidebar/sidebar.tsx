@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { type FunctionComponent } from 'react';
 import useToggle from 'react-use/lib/useToggle';
 import styled from 'styled-components';
 
@@ -6,14 +6,14 @@ import { Dropdown, DropdownButton, DropdownItem, DropdownSection, ItemContent } 
 import { IconEnum, SvgIcon } from '../../svg-icon';
 import { SidebarHeader } from './sidebar-header';
 import { SidebarHeaders } from './sidebar-headers';
-import { SidebarInfo, SidebarInfoType } from './sidebar-info';
+import { SidebarInfo, type SidebarInfoType } from './sidebar-info';
 import { SidebarParameters } from './sidebar-parameters';
-import { SidebarPaths, SidebarPathsType } from './sidebar-paths';
+import { SidebarPaths, type SidebarPathsType } from './sidebar-paths';
 import { SidebarRequests } from './sidebar-requests';
 import { SidebarResponses } from './sidebar-responses';
 import { SidebarSchemas } from './sidebar-schemas';
 import { SidebarSecurity } from './sidebar-security';
-import { SidebarServer, SidebarServers } from './sidebar-servers';
+import { type SidebarServer, SidebarServers } from './sidebar-servers';
 
 interface SidebarProps {
   className?: string;

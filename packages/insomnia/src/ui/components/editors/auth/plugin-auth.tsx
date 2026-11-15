@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from 'react';
+import React, { type FC, useEffect, useState } from 'react';
 
 import { t } from '../../../../common/i18n';
 import type { AuthProviderManifest } from '../../../../plugins/auth-providers';

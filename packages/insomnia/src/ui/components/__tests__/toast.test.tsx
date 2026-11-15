@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 
-import { Toast, ToastNotification } from '../toast';
+import { Toast, type ToastNotification } from '../toast';
 
 const SEEN = 'insomnia::notifications::seen';
 const notice: ToastNotification = {

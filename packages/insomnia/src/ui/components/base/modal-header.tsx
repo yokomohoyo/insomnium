@@ -1,5 +1,5 @@
 import classnames from 'classnames';
-import React, { FC, memo, ReactNode, useContext } from 'react';
+import React, { type FC, memo, type ReactNode, useContext } from 'react';
 
 import { t } from '../../../common/i18n';
 import { ModalTitleId } from './modal';

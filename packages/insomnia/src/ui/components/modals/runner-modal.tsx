@@ -1,17 +1,17 @@
 import fs from 'fs';
 import path from 'path';
-import React, { FC, memo, useCallback, useEffect, useRef, useState } from 'react';
+import React, { type FC, memo, useCallback, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { type Baseline, compareRuns, parseBaseline, type RunComparison } from '../../../network/run-compare';
 import { csvReport, htmlReport, jsonReport, junitReport, parseDataFile, resultName } from '../../../network/run-files';
 import { requestRunStats } from '../../../network/run-stats';
-import { listRunnableRequests, notRunnable, RunnableRequest, runRequests, RunResult, RunSummary } from '../../../network/runner';
+import { listRunnableRequests, notRunnable, type RunnableRequest, runRequests, type RunResult, type RunSummary } from '../../../network/runner';
 import { requestPath } from '../../routes/paths';
-import { WorkspaceLoaderData } from '../../routes/workspace';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { requestDisplayName } from '../../utils/request-name';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';

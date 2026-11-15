@@ -1,8 +1,8 @@
 import { getRenderContext, render, RENDER_PURPOSE_SEND } from '../common/render';
-import { GrpcRequest } from '../models/grpc-request';
+import type { GrpcRequest } from '../models/grpc-request';
 import type { McpRequest } from '../models/mcp-request';
-import { Request } from '../models/request';
-import { WebSocketRequest } from '../models/websocket-request';
+import type { Request } from '../models/request';
+import type { WebSocketRequest } from '../models/websocket-request';
 import { showModal } from '../ui/components/modals';
 import { RequestRenderErrorModal } from '../ui/components/modals/request-render-error-modal';
 

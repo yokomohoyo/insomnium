@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { ChannelCredentials, makeGenericClientConstructor, Metadata, Server, ServerCredentials, ServiceError, status } from '@grpc/grpc-js';
+import { type ChannelCredentials, makeGenericClientConstructor, Metadata, Server, ServerCredentials, type ServiceError, status } from '@grpc/grpc-js';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';

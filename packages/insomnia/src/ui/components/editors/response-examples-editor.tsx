@@ -1,9 +1,9 @@
-import React, { FC, useState } from 'react';
+import React, { type FC, useState } from 'react';
 import { useParams, useRevalidator, useRouteLoaderData } from 'react-router-dom';
 
 import * as models from '../../../models';
 import { contentTypeOf, type ResponseExample, type ResponseExampleHeader } from '../../../models/response-example';
-import { RequestLoaderData } from '../../routes/request';
+import type { RequestLoaderData } from '../../routes/request';
 import { PromptButton } from '../base/prompt-button';
 import { CodeEditor } from '../codemirror/code-editor';
 

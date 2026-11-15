@@ -1,5 +1,5 @@
 import { translateDynamicVariables } from '../../../templating/faker-functions';
-import { Converter, GLOBAL_ENVIRONMENT_IMPORT_ID } from '../entities';
+import { type Converter, GLOBAL_ENVIRONMENT_IMPORT_ID } from '../entities';
 
 export const id = 'postman-environment';
 export const name = 'Postman Environment';

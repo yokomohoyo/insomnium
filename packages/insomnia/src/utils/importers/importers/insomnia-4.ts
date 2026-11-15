@@ -1,8 +1,8 @@
 import YAML from 'yaml';
 
-import { Converter, ImportRequest } from '../entities';
+import type { Converter, ImportRequest } from '../entities';
 import { scriptAsText, withInheritedScripts } from '../scripts';
-import { Insomnia3Data } from './insomnia-3';
+import type { Insomnia3Data } from './insomnia-3';
 
 export const id = 'insomnia-4';
 export const name = 'Insomnium v4';

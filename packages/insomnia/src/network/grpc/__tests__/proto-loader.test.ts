@@ -8,7 +8,7 @@ import { globalBeforeEach } from '../../../__jest__/before-each';
 import { largeProtoText, longestStallDuring } from '../../../__jest__/proto-worker';
 import { validateProto } from '../../../main/proto-worker';
 import * as models from '../../../models';
-import { addFileFromPath, ProtoLoadResult, setProtoValidator } from '../proto-loader';
+import { addFileFromPath, type ProtoLoadResult, setProtoValidator } from '../proto-loader';
 
 jest.mock('worker_threads', () => (jest.requireActual('../../../__jest__/proto-worker') as { workerThreads: unknown }).workerThreads);
 
