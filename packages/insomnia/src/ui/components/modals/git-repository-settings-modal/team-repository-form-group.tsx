@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useEffect, useState } from 'react';
+import React, { type FunctionComponent, useCallback, useEffect, useState } from 'react';
 
 import { docsGitSync } from '../../../../common/documentation';
 import { t } from '../../../../common/i18n';

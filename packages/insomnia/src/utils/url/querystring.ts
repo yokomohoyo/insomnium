@@ -1,6 +1,6 @@
 import { format as urlFormat, parse as urlParse } from 'url';
 
-import { RequestSegment } from '../../models/request';
+import type { RequestSegment } from '../../models/request';
 import { setDefaultProtocol } from './protocol';
 
 const ESCAPE_REGEX_MATCH = /[-[\]/{}()*+?.\\^$|]/g;

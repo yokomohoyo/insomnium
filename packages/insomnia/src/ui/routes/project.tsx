@@ -1,5 +1,5 @@
-import { IconName } from '@fortawesome/fontawesome-svg-core';
-import React, { FC, Fragment, useState } from 'react';
+import type { IconName } from '@fortawesome/fontawesome-svg-core';
+import React, { type FC, Fragment, useState } from 'react';
 import {
   Button,
   GridList,
@@ -14,7 +14,7 @@ import {
   Select,
 } from 'react-aria-components';
 import {
-  LoaderFunction,
+  type LoaderFunction,
   matchPath,
   redirect,
   useFetcher,
@@ -24,10 +24,10 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 
-import { parseApiSpec, ParsedApiSpec } from '../../common/api-specs';
+import { parseApiSpec, type ParsedApiSpec } from '../../common/api-specs';
 import {
   DASHBOARD_SORT_ORDERS,
-  DashboardSortOrder,
+  type DashboardSortOrder,
   getProductName,
 } from '../../common/constants';
 import { database } from '../../common/database';
@@ -35,17 +35,17 @@ import { t } from '../../common/i18n';
 import { fuzzyMatchAll, isNotNullOrUndefined } from '../../common/misc';
 import { descendingNumberSort, sortMethodMap } from '../../common/sorting';
 import * as models from '../../models';
-import { ApiSpec } from '../../models/api-spec';
-import { CaCertificate } from '../../models/ca-certificate';
-import { ClientCertificate } from '../../models/client-certificate';
+import type { ApiSpec } from '../../models/api-spec';
+import type { CaCertificate } from '../../models/ca-certificate';
+import type { ClientCertificate } from '../../models/client-certificate';
 import { sortProjects } from '../../models/helpers/project';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import {
   DEFAULT_PROJECT_ID,
-  Project,
+  type Project,
 } from '../../models/project';
-import { isDesign, Workspace } from '../../models/workspace';
-import { WorkspaceMeta } from '../../models/workspace-meta';
+import { isDesign, type Workspace } from '../../models/workspace';
+import type { WorkspaceMeta } from '../../models/workspace-meta';
 import { guard } from '../../utils/guard';
 import { ProjectDropdown } from '../components/dropdowns/project-dropdown';
 import { WorkspaceCardDropdown } from '../components/dropdowns/workspace-card-dropdown';

@@ -1,7 +1,7 @@
 import { database } from '../common/database';
 import type { BaseModel } from '.';
 import { duplicateAfter } from './helpers/duplicate-after';
-import { RequestAuthentication, RequestHeader, RequestParameter, RequestSegment } from './request';
+import type { RequestAuthentication, RequestHeader, RequestParameter, RequestSegment } from './request';
 
 export const name = 'WebSocket Request';
 

@@ -1,5 +1,5 @@
+import type { AnyDefinition, EnumTypeDefinition, MessageTypeDefinition, PackageDefinition, ServiceDefinition } from '@grpc/proto-loader';
 import * as protoLoader from '@grpc/proto-loader';
-import { AnyDefinition, EnumTypeDefinition, MessageTypeDefinition, PackageDefinition, ServiceDefinition } from '@grpc/proto-loader';
 import { loadProtosWithOptionsSync } from '@grpc/proto-loader/build/src/util';
 import fs from 'fs';
 import { createRequire } from 'module';

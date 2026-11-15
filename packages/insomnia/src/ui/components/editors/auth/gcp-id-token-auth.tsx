@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import { useAuthStrategy } from './auth-strategy-context';
 import { AuthInputRow } from './components/auth-input-row';

@@ -1,9 +1,9 @@
-import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
+import React, { type FunctionComponent, useEffect, useRef, useState } from 'react';
 
 import { docsGitAccessToken } from '../../../../common/documentation';
 import { t } from '../../../../common/i18n';
 import * as models from '../../../../models';
-import { GitRepository } from '../../../../models/git-repository';
+import type { GitRepository } from '../../../../models/git-repository';
 import { gitHostOf, type SavedGitSignIn, savedGitSignIns } from '../../../../sync/git/saved-sign-ins';
 import { isSshUrl } from '../../../../sync/git/ssh-url';
 import { Link } from '../../base/link';

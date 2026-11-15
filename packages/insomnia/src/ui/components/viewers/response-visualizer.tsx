@@ -1,5 +1,5 @@
 import handlebarsRuntime from 'handlebars/dist/handlebars.min.js?raw';
-import React, { FC, useEffect, useRef } from 'react';
+import React, { type FC, useEffect, useRef } from 'react';
 
 import { type Visualization, visualizationDocument, VISUALIZER_PARTITION } from '../../../common/visualizer';
 

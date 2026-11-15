@@ -1,4 +1,4 @@
-import React, { FC, useEffect } from 'react';
+import React, { type FC, useEffect } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { setDeviceCodeUi } from '../../network/o-auth-2/device-code';
@@ -22,7 +22,7 @@ import { ResponseDebugModal } from '../components/modals/response-debug-modal';
 import { SelectModal } from '../components/modals/select-modal';
 import { SettingsModal } from '../components/modals/settings-modal';
 import { WrapperModal } from '../components/modals/wrapper-modal';
-import { WorkspaceLoaderData } from './workspace';
+import type { WorkspaceLoaderData } from './workspace';
 
 const Modals: FC = () => {
   const workspaceData = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData | undefined;

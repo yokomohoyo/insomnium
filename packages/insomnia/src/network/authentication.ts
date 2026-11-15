@@ -14,17 +14,17 @@ import {
 } from '../common/constants';
 import type { RenderedRequest } from '../common/render';
 import {
-  AuthTypeOAuth2,
+  type AuthTypeOAuth2,
   getAuthStrategies,
-  RequestAuthenticationStrategy,
-  RequestParameter,
+  type RequestAuthenticationStrategy,
+  type RequestParameter,
 } from '../models/request';
 import { COOKIE, HEADER, QUERY_PARAMS } from './api-key/constants';
 import { getBasicAuthHeader } from './basic-auth/get-header';
 import { getBearerAuthHeader } from './bearer-auth/get-header';
-import { EdgeGridAuth, edgeGridHeader } from './edgegrid';
-import { checkGcpAudience, CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
-import { generateJwt, JwtAuth } from './jwt-auth';
+import { type EdgeGridAuth, edgeGridHeader } from './edgegrid';
+import { checkGcpAudience, type CredentialSource, defaultAudienceForUrl, getGcpIdToken } from './gcp-id-token/get-token';
+import { generateJwt, type JwtAuth } from './jwt-auth';
 import getOAuth1Token from './o-auth-1/get-token';
 import { getOAuth2Token } from './o-auth-2/get-token';
 

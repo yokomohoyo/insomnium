@@ -1,24 +1,24 @@
 import classnames from 'classnames';
-import React, { FC, Fragment, useEffect, useRef } from 'react';
+import React, { type FC, Fragment, useEffect, useRef } from 'react';
 import { ListDropTargetDelegate, ListKeyboardDelegate, mergeProps, OverlayContainer, useDraggableCollection, useDraggableItem, useDropIndicator, useDroppableCollection, useDroppableItem, useFocusRing, useListBox, useOption } from 'react-aria';
 import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
-import { DraggableCollectionState, DroppableCollectionState, Item, ListState, useDraggableCollectionState, useDroppableCollectionState, useListState } from 'react-stately';
+import { type DraggableCollectionState, type DroppableCollectionState, Item, type ListState, useDraggableCollectionState, useDroppableCollectionState, useListState } from 'react-stately';
 
 import { docsTemplateTags } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
 import type { Environment } from '../../../models/environment';
 import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { workspacePath } from '../../routes/paths';
-import { WorkspaceLoaderData } from '../../routes/workspace';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../base/dropdown';
 import { Editable } from '../base/editable';
 import { Link } from '../base/link';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
-import { EnvironmentEditor, EnvironmentEditorHandle } from '../editors/environment-editor';
+import { EnvironmentEditor, type EnvironmentEditorHandle } from '../editors/environment-editor';
 import { HelpTooltip } from '../help-tooltip';
 import { Tooltip } from '../tooltip';
 

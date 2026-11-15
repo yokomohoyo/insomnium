@@ -9,7 +9,7 @@ import { Curl, CurlAuth, CurlCode, CurlFeature, CurlHttpVersion, CurlInfoDebug, 
 import electron from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { Readable, Writable } from 'stream';
+import type { Readable, Writable } from 'stream';
 import { parse as urlParse } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -17,9 +17,9 @@ import { version } from '../../../package.json';
 import { AUTH_AWS_IAM, AUTH_DIGEST, AUTH_NETRC, AUTH_NTLM, CONTENT_TYPE_FORM_DATA } from '../../common/constants';
 import { describeByteSize, hasAuthHeader } from '../../common/misc';
 import type { Visualization } from '../../common/visualizer';
-import { ClientCertificate } from '../../models/client-certificate';
-import { getAuthStrategies, RequestHeader } from '../../models/request';
-import { ResponseHeader, ResponseTimings } from '../../models/response';
+import type { ClientCertificate } from '../../models/client-certificate';
+import { getAuthStrategies, type RequestHeader } from '../../models/request';
+import type { ResponseHeader, ResponseTimings } from '../../models/response';
 import type { AssertionResult } from '../../network/assertions';
 import { isMetadataAddress } from '../../network/metadata-hosts';
 import { getCaBundle } from './ca-bundle';

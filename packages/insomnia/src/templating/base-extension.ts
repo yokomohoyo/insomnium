@@ -1,7 +1,7 @@
 import { database as db } from '../common/database';
 import * as models from '../models/index';
 import * as pluginContexts from '../plugins/context';
-import { PluginTemplateTag } from './extensions';
+import type { PluginTemplateTag } from './extensions';
 import * as templating from './index';
 import { decodeEncoding } from './utils';
 

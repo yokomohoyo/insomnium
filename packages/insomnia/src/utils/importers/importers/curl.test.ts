@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 import { quote } from 'shell-quote';
 
-import { ImportRequest, Parameter } from '../entities';
+import type { ImportRequest, Parameter } from '../entities';
 import { convert } from './curl';
 
 describe('curl', () => {

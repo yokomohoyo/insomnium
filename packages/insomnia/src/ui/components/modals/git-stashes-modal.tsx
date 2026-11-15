@@ -1,12 +1,12 @@
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { type FC, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import type { MergeChoice } from '../../../sync/git/merge-docs';
-import { GitStashesLoaderData, GitStashResult } from '../../routes/git-actions';
+import type { GitStashesLoaderData, GitStashResult } from '../../routes/git-actions';
 import { gitPath } from '../../routes/paths';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';

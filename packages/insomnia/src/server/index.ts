@@ -13,11 +13,11 @@ import { compareRuns, parseBaseline } from '../network/run-compare';
 import { csvReport, htmlReport, jsonReport, junitReport, resultName } from '../network/run-files';
 import { requestRunStats } from '../network/run-stats';
 import { runRequests } from '../network/runner';
-import { parseConfig, ServerConfig, USAGE } from './config';
-import { formatLoadSummary, LOAD_USAGE, LoadConfig, parseLoadConfig } from './load-test';
-import { MOCK_USAGE, MockConfig, parseMockConfig } from './mock';
+import { parseConfig, type ServerConfig, USAGE } from './config';
+import { formatLoadSummary, LOAD_USAGE, type LoadConfig, parseLoadConfig } from './load-test';
+import { MOCK_USAGE, type MockConfig, parseMockConfig } from './mock';
 import { formatComparison, formatResult, formatSummary } from './report';
-import { parseRunConfig, readDataFile, RUN_USAGE, RunConfig, selectRequests } from './run';
+import { parseRunConfig, readDataFile, RUN_USAGE, type RunConfig, selectRequests } from './run';
 import { loadWorkspaces, startServer } from './server';
 import { team } from './team';
 

@@ -1,11 +1,11 @@
-import React, { FC, useEffect, useRef } from 'react';
+import React, { type FC, useEffect, useRef } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
-import { Project } from '../../../models/project';
+import type { Project } from '../../../models/project';
 import { projectPath } from '../../routes/paths';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';

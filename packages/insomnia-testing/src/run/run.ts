@@ -4,8 +4,8 @@ import Mocha, { type Reporter, type ReporterConstructor } from 'mocha';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
-import { TestResults } from './entities';
-import { InsomniaOptions, Insomnium } from './insomnia';
+import type { TestResults } from './entities';
+import { type InsomniaOptions, Insomnium } from './insomnia';
 import { JavaScriptReporter } from './javascript-reporter';
 
 // declare var insomnia: Insomnium;

@@ -1,4 +1,4 @@
-import { type Environment } from 'nunjucks';
+import type { Environment } from 'nunjucks';
 import nunjucks from 'nunjucks/browser/nunjucks';
 
 import * as plugins from '../plugins/index';

@@ -2,7 +2,7 @@
 // API at /api, behind sign-in; and single sign-on at /auth (oidc.ts). Basic
 // sign-in sends the password with each call, so serve HTTPS: from a reverse proxy
 // (such as a NAS's), or itself with a certificate (tls.ts).
-import http from 'node:http';
+import type http from 'node:http';
 
 import { createListener, type TlsFiles } from '../tls';
 import { ApiError, handleApi, readJson } from './api';

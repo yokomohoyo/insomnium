@@ -4,8 +4,8 @@ import * as models from '../models';
 import type { RequestGroup } from '../models/request-group';
 import type { Workspace } from '../models/workspace';
 import { parseDataFile } from '../network/run-files';
-import { listRunnableRequests, RunnableRequest } from '../network/runner';
-import { emptySources, GIT_USAGE, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
+import { listRunnableRequests, type RunnableRequest } from '../network/runner';
+import { emptySources, GIT_USAGE, requireSources, type Sources, SOURCES_USAGE, takeSourceOption } from './sources';
 
 // `insomnium-server run`: the collection runner for CI. It sends the requests
 // in order, checks their assertions, and exits 1 when any fails.

@@ -1,11 +1,11 @@
-import { ActionFunction } from 'react-router-dom';
+import type { ActionFunction } from 'react-router-dom';
 
 import { importResourcesToWorkspace } from '../../common/import';
 import { importResourcesToProject } from '../../common/importResourcesToProject';
 import * as models from '../../models';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
 import { guard } from '../../utils/guard';
-import { ImportResourcesActionResult } from './import';
+import type { ImportResourcesActionResult } from './import';
 
 export const importResourcesAction: ActionFunction = async ({ request }): Promise<ImportResourcesActionResult> => {
   const formData = await request.formData();

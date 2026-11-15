@@ -1,9 +1,9 @@
-import React, { FC, useCallback, useEffect, useState } from 'react';
+import React, { type FC, useCallback, useEffect, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { useSettingsPatcher } from '../../hooks/use-request';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { BooleanSetting } from './boolean-setting';
 import { NumberSetting } from './number-setting';
 

@@ -1,12 +1,12 @@
 import { OverlayContainer } from '@react-aria/overlays';
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, { type FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { HistoryEntry, recentHistory } from '../../../common/history';
+import { type HistoryEntry, recentHistory } from '../../../common/history';
 import { fuzzyMatchAll } from '../../../common/misc';
 import * as models from '../../../models';
 import { requestPath } from '../../routes/paths';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { StatusTag } from '../tags/status-tag';

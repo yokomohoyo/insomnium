@@ -1,4 +1,4 @@
-import { isDefaultProject, isNotDefaultProject, Project } from '../project';
+import { isDefaultProject, isNotDefaultProject, type Project } from '../project';
 export const sortProjects = (projects: Project[]) => [
   ...projects.filter(isDefaultProject),
   ...projects.filter(isNotDefaultProject)

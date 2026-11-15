@@ -1,7 +1,7 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import {
-  OAuth1SignatureMethod,
+  type OAuth1SignatureMethod,
   SIGNATURE_METHOD_HMAC_SHA1,
   SIGNATURE_METHOD_HMAC_SHA256,
   SIGNATURE_METHOD_PLAINTEXT,

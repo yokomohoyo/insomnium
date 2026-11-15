@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import { JWS_KEY_ALGORITHMS, JWS_SECRET_ALGORITHMS } from '../../../../network/jws';
 import { useAuthStrategy } from './auth-strategy-context';

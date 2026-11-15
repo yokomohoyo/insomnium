@@ -1,5 +1,5 @@
 import classnames from 'classnames';
-import React, { FC, PropsWithChildren, ReactNode } from 'react';
+import React, { type FC, type PropsWithChildren, type ReactNode } from 'react';
 
 import { HelpTooltip } from '../../../help-tooltip';
 import { useAuthStrategy } from '../auth-strategy-context';

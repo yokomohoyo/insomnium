@@ -7,7 +7,7 @@ import { globalBeforeEach } from '../../../__jest__/before-each';
 import { database as db } from '../../../common/database';
 import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
-import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR_NAME, GIT_INSOMNIA_LEGACY_DIR_NAME, GIT_INTERNAL_DIR, GitDataDirName } from '../git-vcs';
+import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR_NAME, GIT_INSOMNIA_LEGACY_DIR_NAME, GIT_INTERNAL_DIR, type GitDataDirName } from '../git-vcs';
 import { MemClient } from '../mem-client';
 import { clonedDataDir, importClonedDocs, NeDBClient } from '../ne-db-client';
 import { routableFSClient } from '../routable-fs-client';

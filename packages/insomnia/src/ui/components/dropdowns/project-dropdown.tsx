@@ -1,5 +1,5 @@
-import { IconName } from '@fortawesome/fontawesome-svg-core';
-import React, { FC, Fragment, useState } from 'react';
+import type { IconName } from '@fortawesome/fontawesome-svg-core';
+import React, { type FC, Fragment, useState } from 'react';
 import {
   Button,
   Item,
@@ -10,7 +10,7 @@ import {
 import { useFetcher } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
-import {
+import type {
   Project,
 } from '../../../models/project';
 import { projectPath } from '../../routes/paths';

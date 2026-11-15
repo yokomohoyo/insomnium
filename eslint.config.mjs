@@ -140,6 +140,9 @@ export default defineConfig([
 
       '@typescript-eslint/array-type': ['error', { default: 'array', readonly: 'array' }],
       '@typescript-eslint/consistent-type-definitions': ['error', 'interface'],
+      // a type used with values from the same module is marked inline; alone, it is an import type
+      '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports', disallowTypeAnnotations: false }],
+      '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/no-empty-interface': ['error', { allowSingleExtends: true }],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-namespace': ['error', { allowDeclarations: true }],

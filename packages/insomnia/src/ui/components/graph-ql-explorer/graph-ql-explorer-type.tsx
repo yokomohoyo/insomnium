@@ -1,11 +1,11 @@
-import { GraphQLInterfaceType, GraphQLObjectType, GraphQLSchema, GraphQLType, GraphQLUnionType } from 'graphql';
-import React, { FC, Fragment } from 'react';
+import { GraphQLInterfaceType, GraphQLObjectType, type GraphQLSchema, type GraphQLType, GraphQLUnionType } from 'graphql';
+import React, { type FC, Fragment } from 'react';
 
 import { ascendingNameSort } from '../../../common/sorting';
 import { MarkdownPreview } from '../markdown-preview';
 import { GraphQLExplorerFieldsList } from './graph-ql-explorer-fields-list';
 import { GraphQLExplorerTypeLink } from './graph-ql-explorer-type-link';
-import { type GraphQLFieldWithParentName } from './graph-ql-types';
+import type { GraphQLFieldWithParentName } from './graph-ql-types';
 
 interface Props {
   onNavigateType: (type: GraphQLType) => void;

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import path from 'path';
-import { LoaderFunctionArgs } from 'react-router-dom';
+import type { LoaderFunctionArgs } from 'react-router-dom';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
@@ -9,7 +9,7 @@ import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR } from '../..
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
 import { routableFSClient } from '../../../sync/git/routable-fs-client';
-import { gitStashesLoader, GitStashesLoaderData } from '../git-actions';
+import { gitStashesLoader, type GitStashesLoaderData } from '../git-actions';
 
 jest.mock('path');
 

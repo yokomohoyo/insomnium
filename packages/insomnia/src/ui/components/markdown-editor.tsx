@@ -1,8 +1,8 @@
-import React, { forwardRef, ReactElement, useCallback, useState } from 'react';
+import React, { forwardRef, type ReactElement, useCallback, useState } from 'react';
 import styled from 'styled-components';
 
 import { PanelContainer, TabItem, Tabs } from './base/tabs';
-import { CodeEditor, CodeEditorHandle } from './codemirror/code-editor';
+import { CodeEditor, type CodeEditorHandle } from './codemirror/code-editor';
 import { MarkdownPreview } from './markdown-preview';
 
 interface Props {

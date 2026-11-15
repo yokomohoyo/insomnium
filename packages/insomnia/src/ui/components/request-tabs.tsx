@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, { type FC, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { neighborOf, withoutTab, withTab } from '../../common/open-tabs';
@@ -9,7 +9,7 @@ import { isRequest } from '../../models/request';
 import { isRequestGroup } from '../../models/request-group';
 import { isWebSocketRequest } from '../../models/websocket-request';
 import { debugPath } from '../routes/paths';
-import { WorkspaceLoaderData } from '../routes/workspace';
+import type { WorkspaceLoaderData } from '../routes/workspace';
 import { getMethodShortHand } from './tags/method-tag';
 
 // The requests open in this workspace, as tabs over the request and response:

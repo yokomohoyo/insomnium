@@ -1,7 +1,7 @@
 import classnames from 'classnames';
-import React, { FC, Suspense } from 'react';
+import React, { type FC, Suspense } from 'react';
 import {
-  LoaderFunction,
+  type LoaderFunction,
   Route,
   Routes,
   useFetcher,

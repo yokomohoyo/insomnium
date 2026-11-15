@@ -1,4 +1,4 @@
-import { AuthCallback, AuthFailureCallback, AuthSuccessCallback, GitAuth, MessageCallback } from 'isomorphic-git';
+import type { AuthCallback, AuthFailureCallback, AuthSuccessCallback, GitAuth, MessageCallback } from 'isomorphic-git';
 
 import type { GitCredentials } from './git-vcs';
 import { SSH_KEY_HEADER, SSH_PASSPHRASE_HEADER } from './ssh-url';

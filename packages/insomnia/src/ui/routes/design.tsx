@@ -1,9 +1,9 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
 import CodeMirror from 'codemirror';
 import path from 'path';
-import React, { createRef, FC, Fragment, useCallback, useEffect, useMemo } from 'react';
+import React, { createRef, type FC, Fragment, useCallback, useEffect, useMemo } from 'react';
 import {
-  LoaderFunction,
+  type LoaderFunction,
   useFetcher,
   useLoaderData,
   useNavigate,
@@ -16,20 +16,20 @@ import { SwaggerUIBundle } from 'swagger-ui-dist';
 import { parseApiSpec } from '../../common/api-specs';
 import { debounce } from '../../common/misc';
 import { selectFileOrFolder } from '../../common/select-file-or-folder';
-import { RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
-import { ApiSpec } from '../../models/api-spec';
+import { type RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
+import type { ApiSpec } from '../../models/api-spec';
 import * as models from '../../models/index';
 import { guard } from '../../utils/guard';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../components/base/dropdown';
 import {
   CodeEditor,
-  CodeEditorHandle,
+  type CodeEditorHandle,
 } from '../components/codemirror/code-editor';
 import { DesignEmptyState } from '../components/design-empty-state';
 import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
 import { showAlert } from '../components/modals';
-import { Notice, NoticeTable } from '../components/notice-table';
+import { type Notice, NoticeTable } from '../components/notice-table';
 import { SidebarLayout } from '../components/sidebar-layout';
 import { AsyncApiPreview } from '../components/spec-editor/asyncapi-preview';
 import { SpecEditorSidebar } from '../components/spec-editor/spec-editor-sidebar';

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { ActionFunction, ActionFunctionArgs } from 'react-router-dom';
+import type { ActionFunction, ActionFunctionArgs } from 'react-router-dom';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
-import { ChangeBufferEvent, database } from '../../../common/database';
+import { type ChangeBufferEvent, database } from '../../../common/database';
 import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
 import type { Request } from '../../../models/request';

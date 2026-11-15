@@ -6,7 +6,7 @@ import { globalBeforeEach } from '../../../__jest__/before-each';
 import { getAppVersion } from '../../../common/constants';
 import { database as db } from '../../../common/database';
 import * as models from '../../../models/index';
-import { DEFAULT_PROJECT_ID, Project } from '../../../models/project';
+import { DEFAULT_PROJECT_ID, type Project } from '../../../models/project';
 import { WorkspaceScopeKeys } from '../../../models/workspace';
 import * as init from '../dataInit';
 

@@ -1,4 +1,4 @@
-import React, { FC, Fragment, useCallback, useState } from 'react';
+import React, { type FC, Fragment, useCallback, useState } from 'react';
 import { useFetcher, useParams } from 'react-router-dom';
 
 import { parseApiSpec } from '../../../common/api-specs';
@@ -6,12 +6,12 @@ import { getProductName } from '../../../common/constants';
 import { t } from '../../../common/i18n';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
 import * as models from '../../../models';
-import { CaCertificate } from '../../../models/ca-certificate';
-import { ClientCertificate } from '../../../models/client-certificate';
-import { Project } from '../../../models/project';
+import type { CaCertificate } from '../../../models/ca-certificate';
+import type { ClientCertificate } from '../../../models/client-certificate';
+import type { Project } from '../../../models/project';
 import type { Workspace } from '../../../models/workspace';
 import { isDesign, WorkspaceScopeKeys } from '../../../models/workspace';
-import { WorkspaceMeta } from '../../../models/workspace-meta';
+import type { WorkspaceMeta } from '../../../models/workspace-meta';
 import type { DocumentAction } from '../../../plugins';
 import { getDocumentActions } from '../../../plugins';
 import * as pluginContexts from '../../../plugins/context';

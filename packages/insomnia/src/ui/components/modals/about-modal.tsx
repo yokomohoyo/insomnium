@@ -2,7 +2,7 @@ import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 
 import { t } from '../../../common/i18n';
 import imgSrcCore from '../../../icons/256x256.png';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { Icon } from '../icon';

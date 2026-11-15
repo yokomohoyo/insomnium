@@ -1,10 +1,10 @@
-import React, { FC, ReactNode } from 'react';
+import React, { type FC, type ReactNode } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
-import { SettingsOfType } from '../../../common/settings';
+import type { SettingsOfType } from '../../../common/settings';
 import { useSettingsPatcher } from '../../hooks/use-request';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { HelpTooltip } from '../help-tooltip';
 const Descriptions = styled.div({
   fontSize: 'var(--font-size-sm)',

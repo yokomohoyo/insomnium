@@ -8,8 +8,8 @@ import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
 import type { ResponseExample } from '../../models/response-example';
-import { chooseExample, MockLogEntry, mockPathOf, pathScore } from '../mock-routes';
-import { MockServer, startMockServer } from '../mock-server';
+import { chooseExample, type MockLogEntry, mockPathOf, pathScore } from '../mock-routes';
+import { type MockServer, startMockServer } from '../mock-server';
 
 describe('mock routes', () => {
   it.each([

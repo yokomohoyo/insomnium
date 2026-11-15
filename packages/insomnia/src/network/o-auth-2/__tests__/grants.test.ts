@@ -8,7 +8,7 @@ import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
 import * as networkModule from '../../network';
 import { GRANT_TYPE_DEVICE_CODE, GRANT_TYPE_JWT_BEARER, GRANT_TYPE_TOKEN_EXCHANGE } from '../constants';
-import { DeviceAuthorization, pollForToken, readDeviceAuthorization, setDeviceCodeUi } from '../device-code';
+import { type DeviceAuthorization, pollForToken, readDeviceAuthorization, setDeviceCodeUi } from '../device-code';
 import { getOAuth2Token } from '../get-token';
 
 // token requests go nowhere: a fake provider answers them

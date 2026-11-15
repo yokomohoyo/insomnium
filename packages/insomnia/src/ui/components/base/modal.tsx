@@ -1,5 +1,5 @@
 import classnames from 'classnames';
-import React, { createContext, forwardRef, ReactNode, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
+import React, { createContext, forwardRef, type ReactNode, useCallback, useEffect, useId, useImperativeHandle, useRef, useState } from 'react';
 
 import { createKeybindingsHandler } from '../keydown-binder';
 // Keep global z-index reference so that every modal will

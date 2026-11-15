@@ -3,9 +3,9 @@ import path from 'path';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
-import { Cookie } from '../../models/cookie-jar';
-import { Request } from '../../models/request';
-import { Response } from '../../models/response';
+import type { Cookie } from '../../models/cookie-jar';
+import type { Request } from '../../models/request';
+import type { Response } from '../../models/response';
 import { AUTH_BASIC } from '../constants';
 import { exportHar, exportHarResponse, exportHarWithRequest } from '../har';
 import { getRenderedRequestAndContext } from '../render';

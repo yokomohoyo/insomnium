@@ -1,6 +1,6 @@
 import type { IRuleResult } from '@stoplight/spectral-core';
 import { generate, runTests, type Test } from 'insomnia-testing';
-import { ActionFunction, redirect } from 'react-router-dom';
+import { type ActionFunction, redirect } from 'react-router-dom';
 
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
 import { database, database as db } from '../../common/database';
@@ -12,9 +12,9 @@ import { getById, update } from '../../models/helpers/request-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
 import { isRequestGroup, isRequestGroupId } from '../../models/request-group';
-import { UnitTest } from '../../models/unit-test';
-import { Workspace } from '../../models/workspace';
-import { WorkspaceMeta } from '../../models/workspace-meta';
+import type { UnitTest } from '../../models/unit-test';
+import type { Workspace } from '../../models/workspace';
+import type { WorkspaceMeta } from '../../models/workspace-meta';
 import { getSendRequestCallback } from '../../network/unit-test-feature';
 import { guard } from '../../utils/guard';
 import { mayRunTests, trustTestCode } from '../test-code-trust';

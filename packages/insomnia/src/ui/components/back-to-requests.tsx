@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import { t } from '../../common/i18n';

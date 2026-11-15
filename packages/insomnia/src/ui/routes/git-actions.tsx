@@ -3,12 +3,12 @@ import { env as processEnv } from 'node:process';
 import { fromUrl } from 'hosted-git-info';
 import { Errors } from 'isomorphic-git';
 import path from 'path';
-import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';
+import { type ActionFunction, type LoaderFunction, redirect } from 'react-router-dom';
 
 import { ACTIVITY_SPEC } from '../../common/constants';
 import { database } from '../../common/database';
 import * as models from '../../models';
-import { GitRepository } from '../../models/git-repository';
+import type { GitRepository } from '../../models/git-repository';
 import { createGitRepository } from '../../models/helpers/git-repository-operations';
 import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { DEFAULT_PROJECT_ID } from '../../models/project';
@@ -23,7 +23,7 @@ import GitVCS, {
   GIT_INSOMNIA_DIR_NAME,
   GIT_INTERNAL_DIR,
   GitConflictsError,
-  GitLogEntry,
+  type GitLogEntry,
   type GitStash,
   type GitTag,
 } from '../../sync/git/git-vcs';

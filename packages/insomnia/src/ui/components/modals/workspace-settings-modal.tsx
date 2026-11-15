@@ -1,19 +1,19 @@
-import React, { FC, ReactNode, useEffect, useRef, useState } from 'react';
+import React, { type FC, type ReactNode, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { database as db } from '../../../common/database';
 import { t } from '../../../common/i18n';
-import { CaCertificate } from '../../../models/ca-certificate';
+import type { CaCertificate } from '../../../models/ca-certificate';
 import type { ClientCertificate } from '../../../models/client-certificate';
 import * as models from '../../../models/index';
 import { isRequest } from '../../../models/request';
-import { isDesign, Workspace } from '../../../models/workspace';
-import { WorkspaceMeta } from '../../../models/workspace-meta';
+import { isDesign, type Workspace } from '../../../models/workspace';
+import type { WorkspaceMeta } from '../../../models/workspace-meta';
 import { projectPath, workspacePath } from '../../routes/paths';
 import { FileInputButton } from '../base/file-input-button';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';

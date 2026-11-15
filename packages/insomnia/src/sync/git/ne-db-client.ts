@@ -1,13 +1,13 @@
-import { PromiseFsClient } from 'isomorphic-git';
+import type { PromiseFsClient } from 'isomorphic-git';
 import path from 'path';
 import YAML from 'yaml';
 
 import { database as db } from '../../common/database';
+import type { BaseModel } from '../../models';
 import * as models from '../../models';
-import { BaseModel } from '../../models';
-import { isWorkspace, Workspace, WorkspaceScopeKeys } from '../../models/workspace';
+import { isWorkspace, type Workspace, WorkspaceScopeKeys } from '../../models/workspace';
 import { resetKeys } from '../ignore-keys';
-import { GIT_CLONE_DIR, GIT_DATA_DIR_NAMES, GIT_INSOMNIA_DIR_NAME, GitDataDirName } from './git-vcs';
+import { GIT_CLONE_DIR, GIT_DATA_DIR_NAMES, GIT_INSOMNIA_DIR_NAME, type GitDataDirName } from './git-vcs';
 import parseGitPath from './parse-git-path';
 import Stat from './stat';
 import { SystemError } from './system-error';

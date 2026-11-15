@@ -1,8 +1,8 @@
-import { ActionFunction } from 'react-router-dom';
+import type { ActionFunction } from 'react-router-dom';
 
 import * as models from '../../models';
-import { RequestGroup } from '../../models/request-group';
-import { RequestGroupMeta } from '../../models/request-group-meta';
+import type { RequestGroup } from '../../models/request-group';
+import type { RequestGroupMeta } from '../../models/request-group-meta';
 import { guard } from '../../utils/guard';
 
 export const createRequestGroupAction: ActionFunction = async ({ request, params }) => {

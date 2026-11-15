@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 import styled, { css } from 'styled-components';
 
 interface ListGroupItemProps extends React.LiHTMLAttributes<HTMLLIElement> {

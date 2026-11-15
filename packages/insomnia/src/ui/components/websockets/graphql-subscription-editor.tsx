@@ -1,6 +1,6 @@
-import React, { FC, useRef } from 'react';
+import React, { type FC, useRef } from 'react';
 
-import { WebSocketRequest } from '../../../models/websocket-request';
+import type { WebSocketRequest } from '../../../models/websocket-request';
 import { useRequestSetter } from '../../hooks/use-request';
 import { CodeEditor } from '../codemirror/code-editor';
 import { HelpTooltip } from '../help-tooltip';

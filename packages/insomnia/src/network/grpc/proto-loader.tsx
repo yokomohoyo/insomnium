@@ -5,9 +5,9 @@ import path from 'path';
 import { database as db } from '../../common/database';
 import type { ProtoLoadError } from '../../main/proto-worker';
 import * as models from '../../models';
-import { ProtoDirectory } from '../../models/proto-directory';
-import { ProtoFile } from '../../models/proto-file';
-import { Workspace } from '../../models/workspace';
+import type { ProtoDirectory } from '../../models/proto-directory';
+import type { ProtoFile } from '../../models/proto-file';
+import type { Workspace } from '../../models/workspace';
 import type { FetchedProto } from './proto-fetcher';
 import { writeProtoFile } from './write-proto-file';
 

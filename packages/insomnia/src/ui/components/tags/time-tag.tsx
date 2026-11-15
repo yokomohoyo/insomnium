@@ -1,5 +1,5 @@
 import classnames from 'classnames';
-import React, { FC, memo } from 'react';
+import React, { type FC, memo } from 'react';
 
 import { timingPhases } from '../../../common/timings';
 import type { ResponseTimings } from '../../../models/response';

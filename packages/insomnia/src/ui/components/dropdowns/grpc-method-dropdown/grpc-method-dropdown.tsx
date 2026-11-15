@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { type FunctionComponent } from 'react';
 import styled from 'styled-components';
 
 import type { GrpcMethodInfo } from '../../../../main/ipc/grpc';

@@ -3,7 +3,7 @@ import { env } from 'node:process';
 import appConfig from '../../config/config.json';
 import { version } from '../../package.json';
 import { t, translateLater } from './i18n';
-import { KeyCombination } from './settings';
+import type { KeyCombination } from './settings';
 
 // App Stuff
 export const getAppVersion = () => version;

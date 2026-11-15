@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactNode } from 'react';
+import React, { type FunctionComponent, type ReactNode } from 'react';
 import styled from 'styled-components';
 
 // what makes an element that's clicked a button for the keyboard too: in the

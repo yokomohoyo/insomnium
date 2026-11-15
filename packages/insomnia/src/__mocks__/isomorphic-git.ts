@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import isomorphicGitOriginal from 'isomorphic-git';
+import type isomorphicGitOriginal from 'isomorphic-git';
 
 const git = jest.requireActual('isomorphic-git') as typeof isomorphicGitOriginal;
 const mock = jest.createMockFromModule('isomorphic-git') as typeof isomorphicGitOriginal;

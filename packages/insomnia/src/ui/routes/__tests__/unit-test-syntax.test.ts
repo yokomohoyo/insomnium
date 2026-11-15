@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { ActionFunctionArgs } from 'react-router-dom';
+import type { ActionFunctionArgs } from 'react-router-dom';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { PassThrough, Readable } from 'node:stream';
+import { PassThrough, type Readable } from 'node:stream';
 
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 

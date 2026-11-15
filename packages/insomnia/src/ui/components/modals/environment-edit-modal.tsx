@@ -2,12 +2,12 @@ import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 
 import { t } from '../../../common/i18n';
 import * as models from '../../../models/index';
-import { RequestGroup } from '../../../models/request-group';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import type { RequestGroup } from '../../../models/request-group';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
-import { EnvironmentEditor, EnvironmentEditorHandle } from '../editors/environment-editor';
+import { EnvironmentEditor, type EnvironmentEditorHandle } from '../editors/environment-editor';
 
 interface State {
   requestGroup: RequestGroup | null;

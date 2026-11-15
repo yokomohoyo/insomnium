@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { pipeline, Readable } from 'stream';
+import { pipeline, type Readable } from 'stream';
 import zlib from 'zlib';
 
 import { database as db } from '../common/database';

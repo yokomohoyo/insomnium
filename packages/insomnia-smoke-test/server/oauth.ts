@@ -1,5 +1,5 @@
 import express, { urlencoded } from 'express';
-import { Configuration, Provider } from 'oidc-provider';
+import { type Configuration, Provider } from 'oidc-provider';
 // @ts-expect-error no typings available for this module
 import { InvalidGrant } from 'oidc-provider/lib/helpers/errors';
 

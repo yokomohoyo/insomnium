@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import { PHASE_LABELS, type PhaseDurations } from '../../common/timings';
 import type { RequestComparison, RunComparison } from '../../network/run-compare';

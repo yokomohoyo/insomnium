@@ -9,11 +9,11 @@ import * as uuid from 'uuid';
 import type { SelectedValue } from 'xpath';
 
 import * as models from '../../../models';
-import { Request, RequestParameter } from '../../../models/request';
-import { Response } from '../../../models/response';
+import type { Request, RequestParameter } from '../../../models/request';
+import type { Response } from '../../../models/response';
 import { checkGcpAudience, defaultAudienceForUrl, getGcpIdToken } from '../../../network/gcp-id-token/get-token';
-import { TemplateTag } from '../../../plugins';
-import { PluginTemplateTag } from '../../../templating/extensions';
+import type { TemplateTag } from '../../../plugins';
+import type { PluginTemplateTag } from '../../../templating/extensions';
 import { fakerFunctions, isFakerFunction } from '../../../templating/faker-functions';
 import { readEnvironmentVariable } from '../../../templating/os-environment';
 import { guard } from '../../../utils/guard';

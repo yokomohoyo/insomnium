@@ -2,8 +2,8 @@ import { useEffect, useLayoutEffect } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import { usePrevious } from 'react-use';
 
-import { Settings } from '../../models/settings';
-import { RootLoaderData } from '../routes/root';
+import type { Settings } from '../../models/settings';
+import type { RootLoaderData } from '../routes/root';
 
 const useRestartSetting = (setting: keyof Settings) => {
   const {

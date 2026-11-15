@@ -1,7 +1,7 @@
 import { displayModifierKey, isMac } from './constants';
 import { translateLater } from './i18n';
 import { keyboardKeys } from './keyboard-keys';
-import { HotKeyRegistry, KeyboardShortcut, KeyCombination, PlatformKeyCombinations } from './settings';
+import type { HotKeyRegistry, KeyboardShortcut, KeyCombination, PlatformKeyCombinations } from './settings';
 
 /**
  * The collection of available hotkeys' and their descriptions.

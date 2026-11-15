@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import * as modalsOriginal from '../index';
+import type * as modalsOriginal from '../index';
 
 const modals = jest.requireActual('../index') as typeof modalsOriginal;
 

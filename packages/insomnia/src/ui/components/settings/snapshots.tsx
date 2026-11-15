@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useState } from 'react';
+import React, { type FC, useCallback, useEffect, useState } from 'react';
 
 import { t } from '../../../common/i18n';
 import { describeByteSize } from '../../../common/misc';

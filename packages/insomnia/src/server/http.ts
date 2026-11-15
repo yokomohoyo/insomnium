@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
-import http from 'node:http';
+import type http from 'node:http';
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 import { createListener, type TlsFiles } from './tls';

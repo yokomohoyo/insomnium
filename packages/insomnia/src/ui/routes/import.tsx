@@ -1,8 +1,8 @@
 // Import
 import fs from 'fs';
-import { ActionFunction } from 'react-router-dom';
+import type { ActionFunction } from 'react-router-dom';
 
-import { fetchImportContentFromURI, scanResources, ScanResult } from '../../common/import';
+import { fetchImportContentFromURI, scanResources, type ScanResult } from '../../common/import';
 import { guard } from '../../utils/guard';
 
 export interface ScanForResourcesActionResult extends ScanResult { }

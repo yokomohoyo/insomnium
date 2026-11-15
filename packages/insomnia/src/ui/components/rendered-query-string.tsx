@@ -1,9 +1,9 @@
-import React, { FC, useState } from 'react';
+import React, { type FC, useState } from 'react';
 import { useAsync } from 'react-use';
 import styled from 'styled-components';
 
-import { Request } from '../../models/request';
-import { WebSocketRequest } from '../../models/websocket-request';
+import type { Request } from '../../models/request';
+import type { WebSocketRequest } from '../../models/websocket-request';
 import { addSegValuesToUrl, buildQueryStringFromParams, joinUrlAndQueryString, smartEncodeUrl } from '../../utils/url/querystring';
 import { useNunjucks } from '../context/nunjucks/use-nunjucks';
 import { CopyButton as _CopyButton } from './base/copy-button';

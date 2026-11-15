@@ -13,7 +13,7 @@ import { getBasicAuthHeader } from '../basic-auth/get-header';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../network';
 import { CLIENT_ASSERTION_TYPE, clientAssertion, grantAssertion } from './client-assertion';
 import {
-  AuthKeys,
+  type AuthKeys,
   GRANT_TYPE_AUTHORIZATION_CODE,
   GRANT_TYPE_DEVICE_CODE,
   GRANT_TYPE_JWT_BEARER,

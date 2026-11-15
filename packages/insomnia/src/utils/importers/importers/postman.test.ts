@@ -1,7 +1,7 @@
 import { describe, expect, it } from '@jest/globals';
 
 import { convert, ImportPostman } from './postman';
-import { HttpsSchemaGetpostmanComJsonCollectionV210, Request1 } from './postman-2.1.types';
+import type { HttpsSchemaGetpostmanComJsonCollectionV210, Request1 } from './postman-2.1.types';
 import { convert as convertEnvironment } from './postman-env';
 
 describe('postman', () => {

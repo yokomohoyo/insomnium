@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import pathOriginal from 'path';
+import type pathOriginal from 'path';
 
 const path = jest.requireActual('path') as typeof pathOriginal;
 

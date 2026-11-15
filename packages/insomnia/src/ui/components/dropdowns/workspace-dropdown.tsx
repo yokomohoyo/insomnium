@@ -1,4 +1,4 @@
-import React, { FC, useCallback, useEffect, useRef, useState } from 'react';
+import React, { type FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { getProductName } from '../../../common/constants';
@@ -10,13 +10,13 @@ import { ascendingNameSort } from '../../../common/sorting';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
 import { isRequestGroup } from '../../../models/request-group';
-import { isDesign, Workspace } from '../../../models/workspace';
+import { isDesign, type Workspace } from '../../../models/workspace';
 import type { WorkspaceAction } from '../../../plugins';
 import { getWorkspaceActions } from '../../../plugins';
 import * as pluginContexts from '../../../plugins/context';
 import { guard } from '../../../utils/guard';
 import { projectPath, workspaceHomePath, workspacePath } from '../../routes/paths';
-import { WorkspaceLoaderData } from '../../routes/workspace';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { showAlert, showError, showModal, showPrompt } from '../modals';
 import { AskModal } from '../modals/ask-modal';

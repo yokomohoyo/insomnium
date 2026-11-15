@@ -1,7 +1,7 @@
 import { database as db } from '../common/database';
 import * as responseHistory from './helpers/response-history';
 import type { BaseModel } from './index';
-import { ResponseHeader } from './response';
+import type { ResponseHeader } from './response';
 
 export const name = 'WebSocket Response';
 

@@ -1,7 +1,7 @@
-import React, { FunctionComponent, useMemo, useState } from 'react';
+import React, { type FunctionComponent, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
-import { ProtoDirectory } from '../../../models/proto-directory';
+import type { ProtoDirectory } from '../../../models/proto-directory';
 import type { ProtoFile } from '../../../models/proto-file';
 import { ListGroup, ListGroupItem } from '../list-group';
 import { Button } from '../themed-button';

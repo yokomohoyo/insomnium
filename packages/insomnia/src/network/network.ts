@@ -23,8 +23,8 @@ import type { EventStreamConnection } from '../main/network/event-stream-request
 import type { HeaderResult, ResponsePatch, ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import type { BaseModel } from '../models';
 import * as models from '../models';
-import { CaCertificate } from '../models/ca-certificate';
-import { ClientCertificate } from '../models/client-certificate';
+import type { CaCertificate } from '../models/ca-certificate';
+import type { ClientCertificate } from '../models/client-certificate';
 import type { Request, RequestAuthentication, RequestParameter, RequestSegment } from '../models/request';
 import { getAuthStrategies } from '../models/request';
 import type { Settings } from '../models/settings';

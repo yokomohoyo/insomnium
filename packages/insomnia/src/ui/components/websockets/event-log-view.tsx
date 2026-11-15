@@ -1,12 +1,12 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import React, { FC, useRef } from 'react';
+import React, { type FC, useRef } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
 
-import { CurlEvent } from '../../../main/network/curl';
-import { WebSocketEvent, WebSocketMessageEvent } from '../../../main/network/websocket';
+import type { CurlEvent } from '../../../main/network/curl';
+import type { WebSocketEvent, WebSocketMessageEvent } from '../../../main/network/websocket';
 import { loggedBytes } from '../../../main/network/websocket-frames';
-import { SvgIcon, SvgIconProps } from '../svg-icon';
+import { SvgIcon, type SvgIconProps } from '../svg-icon';
 import { Timestamp } from '../timestamp';
 
 interface Props {

@@ -2,15 +2,15 @@ import type { AvailableTarget, ClientInfo, TargetId } from 'httpsnippet';
 import React, { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
 
 import { exportHarRequest } from '../../../common/har';
-import { Request } from '../../../models/request';
+import type { Request } from '../../../models/request';
 import { CopyButton } from '../base/copy-button';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../base/dropdown';
 import { Link } from '../base/link';
-import { Modal, type ModalHandle, ModalProps } from '../base/modal';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
-import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
+import { CodeEditor, type CodeEditorHandle } from '../codemirror/code-editor';
 
 const defaultTarget = '{"key":"shell","title":"Shell","extname":".sh","default":"curl","clients":[{"key":"curl","title":"cURL","link":"http://curl.haxx.se/","description":"cURL is a command line tool and library for transferring data with URL syntax"},{"key":"httpie","title":"HTTPie","link":"http://httpie.org/","description":"a CLI, cURL-like tool for humans"},{"key":"wget","title":"Wget","link":"https://www.gnu.org/software/wget/","description":"a free software package for retrieving files using HTTP, HTTPS"}]}';
 

@@ -1,4 +1,4 @@
-import React, { Component, Fragment, ReactNode } from 'react';
+import React, { Component, Fragment, type ReactNode } from 'react';
 import styled from 'styled-components';
 
 import { IconEnum, SvgIcon } from '../../svg-icon';

@@ -1,4 +1,4 @@
-import React, { FC, useMemo } from 'react';
+import React, { type FC, useMemo } from 'react';
 import styled from 'styled-components';
 import YAML from 'yaml';
 import YAMLSourceMap from 'yaml-source-map';

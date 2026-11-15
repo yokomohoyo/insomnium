@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, useCallback, useRef } from 'react';
+import React, { type FC, type ReactNode, useCallback, useRef } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import {
@@ -24,14 +24,14 @@ import {
   isRequest,
   patchAuthStrategy,
   removeAuthStrategy,
-  RequestAuthentication,
-  RequestAuthenticationStrategy,
+  type RequestAuthentication,
+  type RequestAuthenticationStrategy,
 } from '../../../../models/request';
 import type { RequestGroup } from '../../../../models/request-group';
 import { AUTH_PLUGIN } from '../../../../plugins/auth-providers';
 import { useFolderInheritance } from '../../../hooks/use-folder-inheritance';
 import { useRequestSetter } from '../../../hooks/use-request';
-import { RequestLoaderData } from '../../../routes/request';
+import type { RequestLoaderData } from '../../../routes/request';
 import { ApiKeyAuth } from './api-key-auth';
 import { AsapAuth } from './asap-auth';
 import { AuthStrategyProvider } from './auth-strategy-context';

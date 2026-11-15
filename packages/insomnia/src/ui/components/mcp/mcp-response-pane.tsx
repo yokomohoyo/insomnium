@@ -1,12 +1,12 @@
-import React, { FC, useEffect, useRef, useState } from 'react';
+import React, { type FC, useEffect, useRef, useState } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import type { McpServerSummary } from '../../../main/network/mcp-client';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { useRequestSetter } from '../../hooks/use-request';
-import { McpRequestLoaderData } from '../../routes/request';
+import type { McpRequestLoaderData } from '../../routes/request';
 import { TabItem, Tabs } from '../base/tabs';
-import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
+import { CodeEditor, type CodeEditorHandle } from '../codemirror/code-editor';
 import { Pane, PaneHeader } from '../panes/pane';
 import { argumentsSkeleton } from './arguments';
 import { mcpErrorMessage, useMcpConnection } from './mcp-connection';

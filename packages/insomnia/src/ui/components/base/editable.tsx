@@ -1,4 +1,4 @@
-import React, { FC, ReactElement, useCallback, useRef, useState } from 'react';
+import React, { type FC, type ReactElement, useCallback, useRef, useState } from 'react';
 
 import { createKeybindingsHandler } from '../keydown-binder';
 

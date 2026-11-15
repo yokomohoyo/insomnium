@@ -1,9 +1,9 @@
-import React, { FunctionComponent, useEffect, useRef } from 'react';
+import React, { type FunctionComponent, useEffect, useRef } from 'react';
 
 import { t } from '../../../common/i18n';
-import { type GrpcMethodInfo } from '../../../main/ipc/grpc';
+import type { GrpcMethodInfo } from '../../../main/ipc/grpc';
 import type { GrpcMetadata } from '../../../main/network/grpc-metadata';
-import { GrpcMessage, GrpcRequestState } from '../../routes/debug';
+import type { GrpcMessage, GrpcRequestState } from '../../routes/debug';
 import { TabItem, Tabs } from '../base/tabs';
 import { CodeEditor } from '../codemirror/code-editor';
 import { GrpcStatusTag } from '../tags/grpc-status-tag';

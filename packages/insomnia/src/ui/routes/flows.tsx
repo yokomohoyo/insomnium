@@ -1,6 +1,6 @@
 import classnames from 'classnames';
-import React, { FC, Suspense } from 'react';
-import { ActionFunction, LoaderFunction, redirect, Route, Routes, useFetcher, useLoaderData, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
+import React, { type FC, Suspense } from 'react';
+import { type ActionFunction, type LoaderFunction, redirect, Route, Routes, useFetcher, useLoaderData, useNavigate, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { database as db } from '../../common/database';
 import { t } from '../../common/i18n';

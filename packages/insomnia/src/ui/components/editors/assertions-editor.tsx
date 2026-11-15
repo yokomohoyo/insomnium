@@ -1,4 +1,4 @@
-import React, { FC, useRef, useState } from 'react';
+import React, { type FC, useRef, useState } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { generateId } from '../../../common/misc';
@@ -6,14 +6,14 @@ import type { Request } from '../../../models/request';
 import {
   ASSERTION_OPERATORS,
   ASSERTION_SOURCES,
-  AssertionOperator,
-  AssertionSource,
+  type AssertionOperator,
+  type AssertionSource,
   operatorHasValue,
-  RequestAssertion,
+  type RequestAssertion,
   sourceHasProperty,
 } from '../../../network/assertions';
 import { useRequestSetter } from '../../hooks/use-request';
-import { RequestLoaderData } from '../../routes/request';
+import type { RequestLoaderData } from '../../routes/request';
 
 const PROPERTY_PLACEHOLDERS: Partial<Record<AssertionSource, string>> = {
   header: 'Content-Type',

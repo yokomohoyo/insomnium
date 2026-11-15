@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { evaluateAssertions, RequestAssertion } from '../assertions';
+import { evaluateAssertions, type RequestAssertion } from '../assertions';
 import { findSpecOperation, schemaErrors } from '../schema-check';
 
 const pet = { id: 7, name: 'Tom', tag: null };

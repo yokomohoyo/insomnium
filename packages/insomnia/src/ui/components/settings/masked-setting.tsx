@@ -1,10 +1,10 @@
-import React, { FC, useId } from 'react';
+import React, { type FC, useId } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 import { useToggle } from 'react-use';
 
-import { SettingsOfType } from '../../../common/settings';
+import type { SettingsOfType } from '../../../common/settings';
 import { useSettingsPatcher } from '../../hooks/use-request';
-import { RootLoaderData } from '../../routes/root';
+import type { RootLoaderData } from '../../routes/root';
 import { HelpTooltip } from '../help-tooltip';
 
 export const MaskedSetting: FC<{

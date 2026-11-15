@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { type FC } from 'react';
 
 import { CONTENT_TYPE_JSON, CONTENT_TYPE_PLAINTEXT } from '../../../common/constants';
 import { PAYLOAD_BASE64, PAYLOAD_HEX } from '../../../main/network/websocket-frames';

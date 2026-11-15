@@ -1,10 +1,10 @@
 import classnames from 'classnames';
-import React, { forwardRef, KeyboardEvent, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, type KeyboardEvent, useImperativeHandle, useRef, useState } from 'react';
 
 import { constructKeyCombinationDisplay, isModifierKeyCode } from '../../../common/hotkeys';
 import { keyboardKeys } from '../../../common/keyboard-keys';
-import { KeyboardShortcut, KeyCombination  } from '../../../common/settings';
-import { Modal, ModalHandle, ModalProps } from '../base/modal';
+import type { KeyboardShortcut, KeyCombination  } from '../../../common/settings';
+import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 

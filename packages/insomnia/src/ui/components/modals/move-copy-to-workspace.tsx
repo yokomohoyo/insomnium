@@ -3,7 +3,7 @@ import { useFetcher } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import type { Workspace } from '../../../models/workspace';
-import { ProjectLoaderData } from '../../routes/project';
+import type { ProjectLoaderData } from '../../routes/project';
 import { HelpTooltip } from '../help-tooltip';
 
 // the workspaces of a project, loaded once through the project route

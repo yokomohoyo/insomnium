@@ -12,7 +12,7 @@ import { isRequestGroup } from '../../../models/request-group';
 import { isWebSocketRequest } from '../../../models/websocket-request';
 import { isDesign, type Workspace } from '../../../models/workspace';
 import { requestPath, workspaceHomePath } from '../../routes/paths';
-import { WorkspaceLoaderData } from '../../routes/workspace';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { Modal, type ModalHandle } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';

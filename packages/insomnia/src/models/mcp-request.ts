@@ -1,7 +1,7 @@
 import { database } from '../common/database';
 import type { BaseModel } from '.';
 import { duplicateAfter } from './helpers/duplicate-after';
-import { RequestHeader } from './request';
+import type { RequestHeader } from './request';
 
 // A connection to an MCP server, to try its tools, prompts and resources
 // (main/network/mcp-client.ts): over streamable HTTP (with SSE as the older

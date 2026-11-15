@@ -1,6 +1,6 @@
 import { describe, expect, it } from '@jest/globals';
 
-import { containsNunjucks, PluginTheme, validateTheme, validateThemeName } from './misc';
+import { containsNunjucks, type PluginTheme, validateTheme, validateThemeName } from './misc';
 
 describe('containsNunjucks', () => {
   it('will return true if the value contains nunjucks without', () => {
