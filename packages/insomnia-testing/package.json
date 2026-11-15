@@ -22,5 +22,9 @@
     "watch": "npm run build -- --watch"
   },
   "homepage": "https://github.com/yokomohoyo/insomnium#readme",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "chai": "^4.3.4",
+    "mocha": "^10.2.0"
+  }
 }
