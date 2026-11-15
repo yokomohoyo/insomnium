@@ -27,9 +27,9 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 
+import { variableNames } from '../../common/ai-prompts';
 import { SORT_ORDERS, SortOrder } from '../../common/constants';
 import { ChangeBufferEvent, database as db } from '../../common/database';
-import { variableNames } from '../../common/ai-prompts';
 import { t } from '../../common/i18n';
 import { generateId } from '../../common/misc';
 import { PlatformKeyCombinations } from '../../common/settings';
@@ -55,43 +55,43 @@ import {
 } from '../../models/websocket-request';
 import { guard } from '../../utils/guard';
 import { RequestActionsDropdown } from '../components/dropdowns/request-actions-dropdown';
-import { McpRequestPane } from '../components/mcp/mcp-request-pane';
-import { McpResponsePane } from '../components/mcp/mcp-response-pane';
 import { RequestGroupActionsDropdown } from '../components/dropdowns/request-group-actions-dropdown';
-
+import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
 import { Icon } from '../components/icon';
 import { useDocBodyKeyboardShortcuts } from '../components/keydown-binder';
+import { McpRequestPane } from '../components/mcp/mcp-request-pane';
+import { McpResponsePane } from '../components/mcp/mcp-response-pane';
 import { showModal, showPrompt } from '../components/modals';
 import { AskModal } from '../components/modals/ask-modal';
 import { CookiesModal } from '../components/modals/cookies-modal';
 import { DescribeRequestModal } from '../components/modals/describe-request-modal';
 import { GenerateCodeModal } from '../components/modals/generate-code-modal';
+import { GlobalEnvironmentsModal } from '../components/modals/global-environments-modal';
+import { HistoryModal } from '../components/modals/history-modal';
 import { PasteCurlModal } from '../components/modals/paste-curl-modal';
 import { PromptModal } from '../components/modals/prompt-modal';
 import { RequestSettingsModal } from '../components/modals/request-settings-modal';
 import { RequestSwitcherModal } from '../components/modals/request-switcher-modal';
-import { GlobalEnvironmentsModal } from '../components/modals/global-environments-modal';
-import { HistoryModal } from '../components/modals/history-modal';
 import { WorkspaceEnvironmentsEditModal } from '../components/modals/workspace-environments-edit-modal';
 import { GrpcRequestPane } from '../components/panes/grpc-request-pane';
 import { GrpcResponsePane } from '../components/panes/grpc-response-pane';
 import { PlaceholderRequestPane } from '../components/panes/placeholder-request-pane';
-import { RequestTabs } from '../components/request-tabs';
 import { RequestPane } from '../components/panes/request-pane';
 import { ResponsePane } from '../components/panes/response-pane';
+import { RequestTabs } from '../components/request-tabs';
 import { SidebarLayout } from '../components/sidebar-layout';
 import { getMethodShortHand } from '../components/tags/method-tag';
 import { ConnectionCircle } from '../components/websockets/action-bar';
 import { RealtimeResponsePane } from '../components/websockets/realtime-response-pane';
 import { WebSocketRequestPane } from '../components/websockets/websocket-request-pane';
 import { useReadyState } from '../hooks/use-ready-state';
-import { requestDisplayName } from '../utils/request-name';
 import {
   CreateRequestType,
   useRequestGroupMetaPatcher,
   useRequestMetaPatcher,
 } from '../hooks/use-request';
+import { requestDisplayName } from '../utils/request-name';
 import { debugPath, requestPath, workspacePath } from './paths';
 import {
   GrpcRequestLoaderData,
@@ -100,7 +100,6 @@ import {
 } from './request';
 import { QUICK_SWITCH_EVENT, RootLoaderData } from './root';
 import { Child, WorkspaceLoaderData } from './workspace';
-import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 
 export interface GrpcMessage {
   id: string;
@@ -136,7 +135,7 @@ export interface GrpcRequestState {
   method?: GrpcMethodInfo;
 }
 
-const INITIAL_GRPC_REQUEST_STATE: Omit<GrpcRequestState, "requestId"> = {
+const INITIAL_GRPC_REQUEST_STATE: Omit<GrpcRequestState, 'requestId'> = {
   running: false,
   requestMessages: [],
   responseMessages: [],

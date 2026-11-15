@@ -11,17 +11,16 @@
 // the sync last wrote or read there. A document goes when its file is
 // deleted, never because a file couldn't be read: that file is left as it is
 // until it reads again (a half-saved edit, a merge conflict).
+import { ipcMain } from 'electron';
 import fs from 'fs';
 import path from 'path';
 
-import { ipcMain } from 'electron';
-
 import { type ChangeBufferEvent, database as db } from '../common/database';
 import { generateId } from '../common/misc';
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import type { WorkspaceMeta } from '../models/workspace-meta';
-import { COLLECTION_FILE, collectionFiles, comparable, FOLDER_FILE, folderDocs, type FolderDocs, REQUEST_TYPES, type SyncDoc } from '../sync/folder/layout';
+import { COLLECTION_FILE, collectionFiles, comparable, FOLDER_FILE, type FolderDocs, folderDocs, REQUEST_TYPES, type SyncDoc } from '../sync/folder/layout';
 import { folderSchema, SCHEMA_DIR, SCHEMA_FILE } from '../sync/folder/schema';
 
 const SCHEMA_TEXT = JSON.stringify(folderSchema, null, 2) + '\n';

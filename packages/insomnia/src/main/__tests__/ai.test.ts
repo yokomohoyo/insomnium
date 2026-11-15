@@ -51,7 +51,7 @@ describe('the AI assistant client', () => {
     }]);
   });
 
-  it("says what the endpoint said went wrong", async () => {
+  it('says what the endpoint said went wrong', async () => {
     reply = { status: 401, body: { error: { message: 'Incorrect API key provided' } } };
     await expect(aiChat({ messages: [] })).rejects.toThrow("The model's endpoint answered 401: Incorrect API key provided");
 

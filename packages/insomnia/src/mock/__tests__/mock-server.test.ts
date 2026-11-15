@@ -1,8 +1,9 @@
 /**
  * @jest-environment node
  */
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import http from 'node:http';
+
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
@@ -29,7 +30,7 @@ describe('mock routes', () => {
     expect(pathScore('/pets/mine', '/pets/7')).toBeNull();
   });
 
-  it("choose the example a request asks for, or else the first success", () => {
+  it('choose the example a request asks for, or else the first success', () => {
     const examples = [
       { name: 'Missing', statusCode: 404 },
       { name: 'Found', statusCode: 200 },

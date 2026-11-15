@@ -7,6 +7,7 @@ import { DraggableCollectionState, DroppableCollectionState, Item, ListState, us
 import { docsTemplateTags } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
 import type { Environment } from '../../../models/environment';
+import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { workspacePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../base/dropdown';
@@ -17,7 +18,6 @@ import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
-import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { EnvironmentEditor, EnvironmentEditorHandle } from '../editors/environment-editor';
 import { HelpTooltip } from '../help-tooltip';
 import { Tooltip } from '../tooltip';

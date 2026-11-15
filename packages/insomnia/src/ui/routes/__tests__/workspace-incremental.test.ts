@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import { database } from '../../../common/database';
-import * as models from '../../../models';
 import type { BaseModel } from '../../../models';
+import * as models from '../../../models';
 import { forgetCollectionRead, workspaceLoader, type WorkspaceLoaderData } from '../workspace';
 
 // more ids than the mocked list has

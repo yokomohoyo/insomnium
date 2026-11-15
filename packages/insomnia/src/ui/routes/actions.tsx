@@ -3,8 +3,7 @@ import { generate, runTests, type Test } from 'insomnia-testing';
 import { ActionFunction, redirect } from 'react-router-dom';
 
 import { ACTIVITY_DEBUG, ACTIVITY_SPEC } from '../../common/constants';
-import { database } from '../../common/database';
-import { database as db } from '../../common/database';
+import { database, database as db } from '../../common/database';
 import { scanResources } from '../../common/import';
 import { specSyncSummary, syncSpecToWorkspace } from '../../common/spec-sync';
 import { spectralRulesetFor } from '../../common/spectral-ruleset-path';

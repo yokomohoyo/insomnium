@@ -7,16 +7,16 @@ module.exports = {
     extend: {
       fontSize: {
         // the app's own body size, between Tailwind's sm and base
-        md: "var(--font-size-md)",
+        md: 'var(--font-size-md)',
       },
       colors: {
-        border: "hsl(var(--border))",
-        foreground: "hsl(var(--foreground))",
+        border: 'hsl(var(--border))',
+        foreground: 'hsl(var(--foreground))',
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
     },
   },

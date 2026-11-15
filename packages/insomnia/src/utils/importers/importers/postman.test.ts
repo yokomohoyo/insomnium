@@ -24,7 +24,7 @@ describe('postman', () => {
       expect(request).toMatchObject({
         url: "https://api.example.com/users?trace={% faker 'guid' %}",
         headers: [{ name: 'X-Request-Id', value: "{% faker 'randomUUID' %}" }],
-        body: { text: `{"name":"{% faker 'randomFullName' %}","age":{% faker 'randomInt' %},"team":"{{team}}"}` },
+        body: { text: '{"name":"{% faker \'randomFullName\' %}","age":{% faker \'randomInt\' %},"team":"{{team}}"}' },
       });
       expect(request?.preRequestScript).toBe("pm.variables.replaceIn('{{$guid}}')");
 

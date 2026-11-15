@@ -3,10 +3,10 @@ import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { AuthType, CONTENT_TYPE_JSON } from '../../../common/constants';
-import * as models from '../../../models';
-import { Environment } from '../../../models/environment';
 import { socketIoArgs, socketIoEvent } from '../../../main/network/socket-io';
 import { binaryEncodingOf } from '../../../main/network/websocket-frames';
+import * as models from '../../../models';
+import { Environment } from '../../../models/environment';
 import { WebSocketRequest } from '../../../models/websocket-request';
 import { tryToInterpolateRequestOrShowRenderErrorModal } from '../../../utils/try-interpolate';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../../utils/url/querystring';

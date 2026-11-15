@@ -1,11 +1,11 @@
 import { BaseModel } from '../models/index';
+import { DEFAULT_PROJECT_ID } from '../models/project';
 import { isWorkspace } from '../models/workspace';
 import { guard } from '../utils/guard';
 import { database as db } from './database';
-import { DEFAULT_PROJECT_ID } from '../models/project';
 import { importGlobalEnvironments } from './global-environments';
-import { importResourcesToNewWorkspace } from './importResourcesToNewWorkspace';
 import { ResourceCache } from './import';
+import { importResourcesToNewWorkspace } from './importResourcesToNewWorkspace';
 
 export async function importResourcesToProject({ projectId = DEFAULT_PROJECT_ID, _resources }: { projectId?: string; _resources?: BaseModel[] }) {
 

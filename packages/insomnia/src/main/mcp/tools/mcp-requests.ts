@@ -128,7 +128,7 @@ export function registerMcpRequestTools(server: McpServer, mcp: McpRequestContro
 
   server.tool(
     'disconnect_mcp_server',
-    "Disconnect an MCP request from its server (and stop the command a stdio one ran).",
+    'Disconnect an MCP request from its server (and stop the command a stdio one ran).',
     { requestId: z.string() },
     async ({ requestId }) => {
       const wasConnected = mcp.isConnected({ requestId });

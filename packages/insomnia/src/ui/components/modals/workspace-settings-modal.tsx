@@ -1,7 +1,6 @@
 import React, { FC, ReactNode, useEffect, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
-import { useFetcher } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
+import { useFetcher, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { database as db } from '../../../common/database';
@@ -74,7 +73,7 @@ interface Props extends ModalProps {
   clientCertificates: ClientCertificate[];
   caCertificate: CaCertificate | null;
 }
-export const WorkspaceSettingsModal = ({ workspace, workspaceMeta, clientCertificates, caCertificate, onHide }: Props) => {
+export const WorkspaceSettingsModal = ({ workspace, clientCertificates, caCertificate, onHide }: Props) => {
   const hasDescription = !!workspace.description;
 
   const modalRef = useRef<ModalHandle>(null);

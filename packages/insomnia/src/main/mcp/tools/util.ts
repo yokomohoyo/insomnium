@@ -1,5 +1,5 @@
-import * as models from '../../../models';
 import type { BaseModel } from '../../../models';
+import * as models from '../../../models';
 import { isGrpcRequest } from '../../../models/grpc-request';
 import { isMcpRequest } from '../../../models/mcp-request';
 import { isEventStreamRequest, isRequest } from '../../../models/request';

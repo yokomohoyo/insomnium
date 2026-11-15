@@ -10,7 +10,7 @@ import electron from 'electron';
 
 import { database } from '../../common/database';
 import * as models from '../../models';
-import { listSnapshots, restorePendingSnapshot, restoreSnapshotOnRestart, SNAPSHOTS_TO_KEEP, snapshotIfDue, takeSnapshot } from '../snapshots';
+import { listSnapshots, restorePendingSnapshot, restoreSnapshotOnRestart, snapshotIfDue, SNAPSHOTS_TO_KEEP, takeSnapshot } from '../snapshots';
 
 jest.mock('electron');
 

@@ -3,9 +3,8 @@ import type { TestResults } from './run';
 export {
   generate,
 } from './generate';
-
 export {
   runTests,
 } from './run';
 
-export { Test, TestSuite, TestResults };
+export { Test, TestResults, TestSuite };

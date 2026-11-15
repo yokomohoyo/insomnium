@@ -12,8 +12,8 @@ import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
 import { TimeFromNow } from '../time-from-now';
-import { GitConflictsModal } from './git-conflicts-modal';
 import { showAlert } from '.';
+import { GitConflictsModal } from './git-conflicts-modal';
 
 const fileName = (file: string, names: Record<string, string>) => names[file] || file.split('/').pop() || file;
 

@@ -10,10 +10,8 @@ import * as models from '../../models';
 import { isEventStreamRequest } from '../../models/request';
 import { fetchRequestData, renderEventStreamConnection, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../../network/network';
 import { runPreRequestScript } from '../../scripting/request-scripts';
-
 import { useReadyState, useShowConnectionWhenOpened } from '../hooks/use-ready-state';
-import { useRequestSetter } from '../hooks/use-request';
-import { useRequestMetaPatcher } from '../hooks/use-request';
+import { useRequestMetaPatcher, useRequestSetter  } from '../hooks/use-request';
 import { useTimeoutWhen } from '../hooks/useTimeoutWhen';
 import { settleEdits } from '../pending-edits';
 import { requestPath } from '../routes/paths';

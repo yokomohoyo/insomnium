@@ -1,15 +1,15 @@
-import fs from "fs";
-import os from "os";
-import path from "path";
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-import * as models from "../../models";
-import { database as db } from "../../common/database";
-import { ProtoDirectory } from "../../models/proto-directory";
-import { ProtoFile } from "../../models/proto-file";
-import { writeProtoFile } from "./write-proto-file";
-import { Workspace } from "../../models/workspace";
-import type { FetchedProto } from "./proto-fetcher";
-import type { ProtoLoadError } from "../../main/proto-worker";
+import { database as db } from '../../common/database';
+import type { ProtoLoadError } from '../../main/proto-worker';
+import * as models from '../../models';
+import { ProtoDirectory } from '../../models/proto-directory';
+import { ProtoFile } from '../../models/proto-file';
+import { Workspace } from '../../models/workspace';
+import type { FetchedProto } from './proto-fetcher';
+import { writeProtoFile } from './write-proto-file';
 
 export type ProtoLoadResult = { success: true; loaded: ProtoFile[]; errors: string[] } | { success: false; errors: string[] };
 
@@ -19,7 +19,7 @@ export async function addFileFromPath(filePath: string, parent: ProtoDirectory |
 
   if (validationResult.success) {
     // If proto file is valid, add it
-    const contents = await fs.promises.readFile(filePath, "utf-8");
+    const contents = await fs.promises.readFile(filePath, 'utf-8');
     const newFile = await models.protoFile.create({
       name: path.basename(filePath),
       parentId: parent._id,
@@ -39,7 +39,7 @@ export async function updateFileFromPath(protoFile: ProtoFile, filePath: string)
 
   if (validationResult.success) {
     // If file is valid, update it
-    const contents = await fs.promises.readFile(filePath, "utf-8");
+    const contents = await fs.promises.readFile(filePath, 'utf-8');
     const contentsChanged = contents !== protoFile.protoText;
     const updatedFile = await models.protoFile.update(protoFile, {
       name: path.basename(filePath),
@@ -76,7 +76,7 @@ export async function addDirectoryFromPath(directoryPath: string, parent: ProtoD
       if (nestedResult.success) loaded.push(...nestedResult.loaded);
       errors.push(...nestedResult.errors);
     } else {
-      if (!e.name.endsWith(".proto")) {
+      if (!e.name.endsWith('.proto')) {
         continue; // Not a protobuf file, skip
       }
 
@@ -310,8 +310,8 @@ function formatProtoLoadError(filePath: string, err: any): string {
   // relative to the file importing it, which fails with ENOENT on that path.
   if (isImport && err.code === 'ENOENT') {
     return `${filePath}: missing or unreadable proto import (${msg}). ` +
-      `If this is a buf project, run \`buf export . -o /tmp/flat\` and import /tmp/flat, ` +
-      `or use the "Import from URL" button with your BSR module URL.`;
+      'If this is a buf project, run `buf export . -o /tmp/flat` and import /tmp/flat, ' +
+      'or use the "Import from URL" button with your BSR module URL.';
   }
   return `${filePath}: ${msg}`;
 }

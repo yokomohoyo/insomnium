@@ -1,7 +1,6 @@
+import { beforeEach, describe, expect, it } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
-
-import { beforeEach, describe, expect, it } from '@jest/globals';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
@@ -32,7 +31,7 @@ describe('a Git project of Insomnia', () => {
     expect(isInsomniaV5File('openapi: 3.0.3\n# type: collection.insomnia.rest/5.0')).toBe(false);
   });
 
-  it("has its files found anywhere but in dot folders and node_modules, and not past the limits", async () => {
+  it('has its files found anywhere but in dot folders and node_modules, and not past the limits', async () => {
     const fsClient = await repository({
       'store.yaml': collection,
       'apis/petstore/spec.yml': spec,

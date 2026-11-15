@@ -41,7 +41,7 @@ describe('the collection tools', () => {
     expect(await call('create_request_group', { parentId: 'nope', name: 'x' })).toEqual({ body: { error: 'parentId is not a workspace or folder' }, isError: true });
   });
 
-  it("list cookies, without their values unless asked", async () => {
+  it('list cookies, without their values unless asked', async () => {
     const jar = await models.cookieJar.getOrCreateForParentId(workspaceId);
     await models.cookieJar.update(jar, { cookies: [{ id: '1', key: 'session', value: 'secret', domain: 'shop.example.com', path: '/', secure: true, httpOnly: true, expires: null } as any] });
     expect((await call('list_cookies', { workspaceId, showValues: false })).body).toEqual([expect.objectContaining({ name: 'session', domain: 'shop.example.com' })]);

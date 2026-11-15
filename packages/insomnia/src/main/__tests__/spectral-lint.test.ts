@@ -7,8 +7,8 @@ import path from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import { largeOpenApi } from '../../__perf__/fixtures';
 import { longestStallDuring } from '../../__jest__/proto-worker';
+import { largeOpenApi } from '../../__perf__/fixtures';
 import { petstoreExample } from '../../common/petstore-example';
 import { lintSpec } from '../spectral-lint';
 
@@ -90,7 +90,7 @@ describe('lintSpec()', () => {
     ['one that extends a file', 'extends: ./other.yaml\n', 'can only extend built-in rulesets'],
     ['one with custom functions merged in', '<<: {functionsDir: fns, functions: [pwn]}\nrules: {r: {given: "$", then: {function: pwn}}}\n', 'merge keys'],
     ['a file that is gone', undefined, 'ENOENT'],
-  ])("says so, and lints with the built-in rules, when the ruleset is %s", async (_, source, problem) => {
+  ])('says so, and lints with the built-in rules, when the ruleset is %s', async (_, source, problem) => {
     const rulesetPath = source === undefined ? path.join(dir, 'gone.yaml') : ruleset('rules.yaml', source);
 
     const [first, ...rest] = await lintSpec({ contents: spec, rulesetPath });

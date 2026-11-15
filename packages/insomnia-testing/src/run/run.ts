@@ -5,7 +5,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 
 import { TestResults } from './entities';
-import { Insomnium, InsomniaOptions } from './insomnia';
+import { InsomniaOptions, Insomnium } from './insomnia';
 import { JavaScriptReporter } from './javascript-reporter';
 
 // declare var insomnia: Insomnium;

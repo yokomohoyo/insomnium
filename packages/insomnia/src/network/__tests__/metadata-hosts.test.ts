@@ -1,7 +1,8 @@
-import { Curl } from '@getinsomnia/node-libcurl';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import dns from 'node:dns';
 import { EventEmitter } from 'node:events';
+
+import { Curl } from '@getinsomnia/node-libcurl';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import { getRenderedRequestAndContext } from '../../common/render';

@@ -328,7 +328,7 @@ const OpenAPIIcon = (props: React.SVGProps<SVGSVGElement>) => {
 
 const HoppscotchIcon = (props: React.SVGProps<SVGSVGElement>) => {
   return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" transform="matrix(0.8,0,0,0.8,0,0)">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" transform="matrix(0.8,0,0,0.8,0,0)" {...props}>
       <path
         fill="currentColor"
         d="M12.945 14.086c-.24.54-.98.734-1.651.436-.671-.3-1.02-.98-.78-1.519.24-.54.979-.734 1.65-.435.671.299 1.021.978.78 1.518Z"

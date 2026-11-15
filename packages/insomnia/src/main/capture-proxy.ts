@@ -265,6 +265,8 @@ export class CaptureProxy {
 
 let proxy: CaptureProxy | undefined;
 // at most a few times a second, however busy the traffic
+// read by ??= below, which the rule does not count as a use
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let broadcastTimer: NodeJS.Timeout | undefined;
 const broadcast = () => {
   broadcastTimer ??= setTimeout(() => {

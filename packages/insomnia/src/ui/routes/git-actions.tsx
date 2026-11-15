@@ -1,6 +1,7 @@
+import { env as processEnv } from 'node:process';
+
 import { fromUrl } from 'hosted-git-info';
 import { Errors } from 'isomorphic-git';
-import { env as processEnv } from 'node:process';
 import path from 'path';
 import { ActionFunction, LoaderFunction, redirect } from 'react-router-dom';
 
@@ -26,9 +27,9 @@ import GitVCS, {
   type GitStash,
   type GitTag,
 } from '../../sync/git/git-vcs';
-import type { DocConflict, MergeChoice } from '../../sync/git/merge-docs';
-import { MemClient } from '../../sync/git/mem-client';
 import { findInsomniaProjectFiles, importInsomniaProjectFiles } from '../../sync/git/insomnia-git-project';
+import { MemClient } from '../../sync/git/mem-client';
+import type { DocConflict, MergeChoice } from '../../sync/git/merge-docs';
 import { clonedDataDir, importClonedDocs, NeDBClient } from '../../sync/git/ne-db-client';
 import { convertToPosixSep } from '../../sync/git/path-sep';
 import { routableFSClient } from '../../sync/git/routable-fs-client';
@@ -37,7 +38,7 @@ import { isSshUrl } from '../../sync/git/ssh-url';
 import {
   addDotGit,
 } from '../../sync/git/utils';
-import { type GitChange, getGitChanges } from '../../sync/git/workspace-git';
+import { getGitChanges, type GitChange } from '../../sync/git/workspace-git';
 import { guard } from '../../utils/guard';
 
 const requireWorkspace = async (workspaceId: string) => {
@@ -930,7 +931,7 @@ export const pushToGitRemoteAction: ActionFunction = async ({
     }
 
     return {
-      errors: [`Error Pushing Repository, ${errorMessage}` + `\n recommendation: use git inside terminal to resolve this.`],
+      errors: [`Error Pushing Repository, ${errorMessage}` + '\n recommendation: use git inside terminal to resolve this.'],
     };
   }
 

@@ -14,30 +14,29 @@ import styled from 'styled-components';
 import { SwaggerUIBundle } from 'swagger-ui-dist';
 
 import { parseApiSpec } from '../../common/api-specs';
-import { AsyncApiPreview } from '../components/spec-editor/asyncapi-preview';
 import { debounce } from '../../common/misc';
 import { selectFileOrFolder } from '../../common/select-file-or-folder';
 import { RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import { ApiSpec } from '../../models/api-spec';
 import * as models from '../../models/index';
 import { guard } from '../../utils/guard';
+import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../components/base/dropdown';
 import {
   CodeEditor,
   CodeEditorHandle,
 } from '../components/codemirror/code-editor';
-import { Dropdown, DropdownButton, DropdownItem, ItemContent } from '../components/base/dropdown';
 import { DesignEmptyState } from '../components/design-empty-state';
-import { showAlert } from '../components/modals';
-
+import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
+import { showAlert } from '../components/modals';
 import { Notice, NoticeTable } from '../components/notice-table';
 import { SidebarLayout } from '../components/sidebar-layout';
+import { AsyncApiPreview } from '../components/spec-editor/asyncapi-preview';
 import { SpecEditorSidebar } from '../components/spec-editor/spec-editor-sidebar';
 import {
   useActiveApiSpecSyncVCSVersion,
   useGitVCSVersion,
 } from '../hooks/use-vcs-version';
-import { WorkspaceSyncDropdown } from '../components/dropdowns/workspace-sync-dropdown';
 import { debugPath, designPath, workspacePath } from './paths';
 const EmptySpaceHelper = styled.div({
   display: 'flex',

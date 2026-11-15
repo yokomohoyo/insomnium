@@ -6,7 +6,6 @@ import { env } from 'node:process';
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-
 import { app } from 'electron';
 
 import { getAppVersion } from '../../common/constants';

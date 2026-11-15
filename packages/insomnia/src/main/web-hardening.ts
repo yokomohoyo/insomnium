@@ -1,4 +1,4 @@
-import { app, session, type Session, type WebContents } from 'electron';
+import { app, type Session, session, type WebContents } from 'electron';
 
 import { isDevelopment } from '../common/constants';
 import { VISUALIZER_PARTITION } from '../common/visualizer';

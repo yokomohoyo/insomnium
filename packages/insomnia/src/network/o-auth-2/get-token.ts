@@ -5,16 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { escapeRegex, withoutSecrets } from '../../common/misc';
 import * as models from '../../models';
 import type { OAuth2Token } from '../../models/o-auth-2-token';
-import type { AuthTypeOAuth2, OAuth2ResponseType, RequestHeader, RequestParameter } from '../../models/request';
-import type { Request } from '../../models/request';
+import type { AuthTypeOAuth2, OAuth2ResponseType, Request, RequestHeader, RequestParameter  } from '../../models/request';
 import type { Response } from '../../models/response';
 import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { getBasicAuthHeader } from '../basic-auth/get-header';
-import { CLIENT_ASSERTION_TYPE, clientAssertion, grantAssertion } from './client-assertion';
-import { pollForToken, readDeviceAuthorization } from './device-code';
-import { redactTokenResponse } from './redact';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest, tryToTransformRequestWithPlugins } from '../network';
+import { CLIENT_ASSERTION_TYPE, clientAssertion, grantAssertion } from './client-assertion';
 import {
   AuthKeys,
   GRANT_TYPE_AUTHORIZATION_CODE,
@@ -24,6 +21,8 @@ import {
   PKCE_CHALLENGE_S256,
   TOKEN_TYPE_ACCESS_TOKEN,
 } from './constants';
+import { pollForToken, readDeviceAuthorization } from './device-code';
+import { redactTokenResponse } from './redact';
 
 const LOCALSTORAGE_KEY_SESSION_ID = 'insomnia::current-oauth-session-id';
 

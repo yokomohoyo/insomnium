@@ -1,6 +1,7 @@
 import React, { FC, useEffect } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
 
+import { setDeviceCodeUi } from '../../network/o-auth-2/device-code';
 import { showDeviceCodePrompt } from '../components/editors/auth/device-code-prompt';
 import { ErrorBoundary } from '../components/error-boundary';
 import { registerModal } from '../components/modals';
@@ -14,16 +15,13 @@ import { ErrorModal } from '../components/modals/error-modal';
 import { FilterHelpModal } from '../components/modals/filter-help-modal';
 import { GenerateCodeModal } from '../components/modals/generate-code-modal';
 import { GenerateConfigModal } from '../components/modals/generate-config-modal';
-
 import { NunjucksModal } from '../components/modals/nunjucks-modal';
 import { PromptModal } from '../components/modals/prompt-modal';
 import { RequestRenderErrorModal } from '../components/modals/request-render-error-modal';
 import { ResponseDebugModal } from '../components/modals/response-debug-modal';
 import { SelectModal } from '../components/modals/select-modal';
 import { SettingsModal } from '../components/modals/settings-modal';
-
 import { WrapperModal } from '../components/modals/wrapper-modal';
-import { setDeviceCodeUi } from '../../network/o-auth-2/device-code';
 import { WorkspaceLoaderData } from './workspace';
 
 const Modals: FC = () => {

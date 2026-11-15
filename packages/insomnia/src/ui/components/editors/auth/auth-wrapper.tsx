@@ -28,26 +28,26 @@ import {
   RequestAuthenticationStrategy,
 } from '../../../../models/request';
 import type { RequestGroup } from '../../../../models/request-group';
+import { AUTH_PLUGIN } from '../../../../plugins/auth-providers';
 import { useFolderInheritance } from '../../../hooks/use-folder-inheritance';
 import { useRequestSetter } from '../../../hooks/use-request';
 import { RequestLoaderData } from '../../../routes/request';
 import { ApiKeyAuth } from './api-key-auth';
 import { AsapAuth } from './asap-auth';
-import { EdgeGridAuth } from './edgegrid-auth';
-import { JwtAuth } from './jwt-auth';
 import { AuthStrategyProvider } from './auth-strategy-context';
 import { AWSAuth } from './aws-auth';
 import { BasicAuth } from './basic-auth';
 import { BearerAuth } from './bearer-auth';
 import { DigestAuth } from './digest-auth';
+import { EdgeGridAuth } from './edgegrid-auth';
 import { GcpIdTokenAuth } from './gcp-id-token-auth';
 import { HawkAuth } from './hawk-auth';
+import { JwtAuth } from './jwt-auth';
 import { NetrcAuth } from './netrc-auth';
 import { NTLMAuth } from './ntlm-auth';
 import { OAuth1Auth } from './o-auth-1-auth';
 import { OAuth2Auth } from './o-auth-2-auth';
 import { PluginAuth, useAuthProviders } from './plugin-auth';
-import { AUTH_PLUGIN } from '../../../../plugins/auth-providers';
 
 function renderEditor(type: string, disabled: boolean): ReactNode {
   switch (type) {

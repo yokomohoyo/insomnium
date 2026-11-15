@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import { getAppVersion } from '../../common/constants';
 import { setLanguage } from '../../common/i18n';
-import * as models from '../../models';
 import { describeUpdateCheck } from '../../common/update-check';
+import * as models from '../../models';
 import { checkForNewRelease, checkForUpdatesNow, isNewerVersion } from '../release-check';
 
 describe('isNewerVersion()', () => {

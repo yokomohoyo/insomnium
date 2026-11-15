@@ -8,9 +8,8 @@ import { isNotDefaultProject } from '../models/project';
 import * as plugins from '../plugins';
 import * as themes from '../plugins/misc';
 import * as templating from '../templating';
-
 import { showAlert, showModal } from './components/modals';
-import { AboutModal, type AboutDetails } from './components/modals/about-modal';
+import { type AboutDetails, AboutModal } from './components/modals/about-modal';
 import { AskModal } from './components/modals/ask-modal';
 import { SelectModal } from './components/modals/select-modal';
 import { SettingsModal, TAB_INDEX_SHORTCUTS } from './components/modals/settings-modal';

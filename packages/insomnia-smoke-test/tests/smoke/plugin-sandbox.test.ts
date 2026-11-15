@@ -1,7 +1,6 @@
+import { expect } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-
-import { expect } from '@playwright/test';
 
 import { openRequest } from '../../playwright/requests';
 import { test } from '../../playwright/test';

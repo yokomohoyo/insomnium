@@ -1,6 +1,7 @@
+import { env } from 'node:process';
+
 import electron from 'electron';
 import fs from 'fs';
-import { env } from 'node:process';
 import path from 'path';
 import { v4 as uuidV4 } from 'uuid';
 

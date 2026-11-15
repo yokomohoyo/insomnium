@@ -1,7 +1,6 @@
+import { afterEach, describe, expect, it } from '@jest/globals';
 import fs from 'fs';
 import path from 'path';
-
-import { afterEach, describe, expect, it } from '@jest/globals';
 
 import { sourceStrings } from '../../../scripts/i18n-strings';
 import { LANGUAGES, menuLabel, resolveLanguage, setLanguage, t } from '../i18n';

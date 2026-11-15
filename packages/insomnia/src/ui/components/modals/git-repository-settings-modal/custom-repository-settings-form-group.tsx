@@ -4,7 +4,7 @@ import { docsGitAccessToken } from '../../../../common/documentation';
 import { t } from '../../../../common/i18n';
 import * as models from '../../../../models';
 import { GitRepository } from '../../../../models/git-repository';
-import { gitHostOf, savedGitSignIns, type SavedGitSignIn } from '../../../../sync/git/saved-sign-ins';
+import { gitHostOf, type SavedGitSignIn, savedGitSignIns } from '../../../../sync/git/saved-sign-ins';
 import { isSshUrl } from '../../../../sync/git/ssh-url';
 import { Link } from '../../base/link';
 import { HelpTooltip } from '../../help-tooltip';

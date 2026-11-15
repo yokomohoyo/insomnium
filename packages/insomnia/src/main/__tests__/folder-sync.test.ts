@@ -124,7 +124,7 @@ describe('FolderSync', () => {
     expect(fs.existsSync(path.join(root, 'Orders/Orders, all.yaml'))).toBe(true);
   });
 
-  it("keeps an edit made in the app when the folder has other YAML", async () => {
+  it('keeps an edit made in the app when the folder has other YAML', async () => {
     write('docker-compose.yaml', 'services: {}\n');
     await sync.reconcile();
     const request = await models.request.getById(requestId);
@@ -157,7 +157,7 @@ describe('FolderSync', () => {
     expect((await models.request.getById(requestId))?.url).toBe('https://shop.example.com/fixed');
   });
 
-  it("leaves a file broken while the app was closed, and writes no copy of it", async () => {
+  it('leaves a file broken while the app was closed, and writes no copy of it', async () => {
     const broken = 'type: Request\nname: [broken\n';
     write('Orders/List orders.yaml', broken);
 

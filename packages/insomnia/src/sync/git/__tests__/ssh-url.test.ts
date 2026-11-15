@@ -35,7 +35,7 @@ describe('remoteUrlFor', () => {
     expect(remoteUrlFor('https://github.com/acme/api.git')).toBe('https://github.com/acme/api.git');
   });
 
-  it("gives isomorphic-git an SSH address as https://, and reads its requests back", () => {
+  it('gives isomorphic-git an SSH address as https://, and reads its requests back', () => {
     const url = remoteUrlFor('git@github.com:acme/api.git');
     expect(isSshTransportUrl(url)).toBe(true);
     // as isomorphic-git asks for refs, then fetches and pushes

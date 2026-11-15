@@ -6,18 +6,17 @@ import fs from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { env } from 'node:process';
 
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as git from 'isomorphic-git';
 import gitHttp from 'isomorphic-git/http/node';
 
-import { env } from 'node:process';
-
 import { hasGitHttpBackend, runGit } from '../../__jest__/git-server';
+import { onServer } from '../../common/team-server';
 import { ensureAdmin, parseTeamConfig, runAdminCommand } from '../team';
 import { gitRoute, refChanges, serviceOf } from '../team/git-http';
-import { onServer } from '../../common/team-server';
-import { clientAddress, SignInLimiter, signedIn, startTeamServer } from '../team/server';
+import { clientAddress, signedIn, SignInLimiter, startTeamServer } from '../team/server';
 import { checkPassword, hashPassword, slugOf, TeamStore, TOKEN_IDLE_MS } from '../team/store';
 
 jest.unmock('isomorphic-git');

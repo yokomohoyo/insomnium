@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 
+import { setEnvironmentData } from '../common/environment-secrets';
 import { scanResources } from '../common/import';
 import { importResourcesToProject } from '../common/importResourcesToProject';
-import { setEnvironmentData } from '../common/environment-secrets';
 import * as models from '../models';
 import { DEFAULT_PROJECT_ID } from '../models/project';
 import type { Workspace } from '../models/workspace';

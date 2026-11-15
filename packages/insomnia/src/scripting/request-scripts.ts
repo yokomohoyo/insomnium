@@ -1,12 +1,12 @@
 import { database as db } from '../common/database';
+import { setEnvironmentData, withSecretValues } from '../common/environment-secrets';
 import { getGlobalEnvironments } from '../common/global-environments';
 import { MAX_VISUALIZATION_LENGTH, type Visualization } from '../common/visualizer';
 import type { ResponsePatch } from '../main/network/libcurl-promise';
 import * as models from '../models';
 import type { Environment } from '../models/environment';
-import type { Request, RequestBodyParameter, RequestHeader, RequestParameter } from '../models/request';
-import { setEnvironmentData, withSecretValues } from '../common/environment-secrets';
 import { isProject } from '../models/project';
+import type { Request, RequestBodyParameter, RequestHeader, RequestParameter } from '../models/request';
 import { isWorkspace } from '../models/workspace';
 import type { AssertionResult } from '../network/assertions';
 import { runInSandbox, ScriptLog } from './sandbox';

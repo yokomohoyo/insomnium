@@ -78,7 +78,6 @@ export const EmptyStatePane: FC<{
     url: string;
   }[];
 }> = ({
-  icon,
   title,
   secondaryAction,
   documentationLinks,

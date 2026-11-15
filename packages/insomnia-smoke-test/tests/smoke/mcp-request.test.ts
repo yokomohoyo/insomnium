@@ -10,7 +10,7 @@ resources:
   - { _id: mcp-req_1, _type: mcp_request, parentId: wrk_1, name: smoke mcp, transport: http, url: 'http://127.0.0.1:4010/mcp', headers: [], command: '', args: '' }
 `;
 
-test("an MCP request connects to a server, lists its tools, and calls one @ci", async ({ app, page }) => {
+test('an MCP request connects to a server, lists its tools, and calls one @ci', async ({ app, page }) => {
   await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), collection);
   await page.getByRole('button', { name: 'My Collection' }).click();
   await page.getByRole('menuitem', { name: 'Import' }).click();

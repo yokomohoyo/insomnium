@@ -1,6 +1,5 @@
 import childProcess from 'child_process';
-import { readFileSync, writeFileSync } from 'fs';
-import fs from 'fs';
+import fs, { readFileSync, writeFileSync } from 'fs';
 import { rm } from 'fs/promises';
 import licenseChecker from 'license-checker';
 import { ncp } from 'ncp';

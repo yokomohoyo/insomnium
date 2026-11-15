@@ -3,9 +3,9 @@ import { useFetchers, useRouteLoaderData } from 'react-router-dom';
 
 import { docsAiAssistant } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
-import { tx } from '../../tx';
 import { useSettingsPatcher } from '../../hooks/use-request';
 import { RootLoaderData } from '../../routes/root';
+import { tx } from '../../tx';
 import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';
 import { Button } from '../themed-button';

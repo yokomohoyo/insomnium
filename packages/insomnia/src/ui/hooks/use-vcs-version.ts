@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
-import { useParams } from 'react-router-dom';
+import { useParams, useRouteLoaderData  } from 'react-router-dom';
 
 import { ChangeBufferEvent, database } from '../../common/database';
 import { BaseModel } from '../../models';
@@ -45,6 +44,6 @@ export function useGitVCSVersion() {
   const {
     activeWorkspaceMeta,
   } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
-  return activeWorkspaceMeta?.cachedGitLastCommitTime
+  return activeWorkspaceMeta?.cachedGitLastCommitTime;
 
 }

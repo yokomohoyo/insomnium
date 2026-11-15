@@ -34,10 +34,10 @@ import { getCaBundle } from './ca-bundle';
 import { ConnectionLogs, findEvents, findEventsSince, saveErrorResponse, saveResponse, storeSetCookies } from './connection-log';
 import { connectionInit, GraphqlSubscription, graphqlWsReplies, withGraphqlProtocol } from './graphql-ws';
 import { MQTT_PROTOCOL, type MqttOptions, type MqttPublish, MqttSession } from './mqtt';
+import { describeProxy, proxyFor } from './proxy';
 import { SocketIoOptions, socketIoReplies, socketIoUrl } from './socket-io';
 import { BinaryEncoding, bytesOf, loggedData, payloadBytes, reconnectLimits } from './websocket-frames';
 import { onWebSocketRedirect } from './websocket-redirect';
-import { describeProxy, proxyFor } from './proxy';
 
 export interface WebSocketConnection extends WebSocket {
   _id: string;

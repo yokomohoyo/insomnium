@@ -48,7 +48,6 @@ import { isDesign, Workspace } from '../../models/workspace';
 import { WorkspaceMeta } from '../../models/workspace-meta';
 import { guard } from '../../utils/guard';
 import { ProjectDropdown } from '../components/dropdowns/project-dropdown';
-
 import { WorkspaceCardDropdown } from '../components/dropdowns/workspace-card-dropdown';
 import { ErrorBoundary } from '../components/error-boundary';
 import { Icon } from '../components/icon';

@@ -12,28 +12,27 @@ import { RENDER_PURPOSE_SEND, RenderedRequest } from '../../common/render';
 import { writeToFile } from '../../common/write-to-file';
 import type { EventStreamConnection } from '../../main/network/event-stream-request';
 import type { GraphqlSubscription } from '../../main/network/graphql-ws';
+import { ResponsePatch } from '../../main/network/libcurl-promise';
 import type { MqttOptions } from '../../main/network/mqtt';
 import type { SocketIoOptions } from '../../main/network/socket-io';
 import type { BinaryEncoding } from '../../main/network/websocket-frames';
-import { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import { BaseModel } from '../../models';
 import { CookieJar } from '../../models/cookie-jar';
 import { GrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { GrpcRequestMeta } from '../../models/grpc-request-meta';
 import * as requestOperations from '../../models/helpers/request-operations';
+import { isMcpRequestId, McpRequest } from '../../models/mcp-request';
 import { isEventStreamRequest, isRequest, Request, RequestAuthentication, RequestBody, RequestHeader, RequestParameter } from '../../models/request';
 import { isRequestMeta, RequestMeta } from '../../models/request-meta';
 import { RequestVersion } from '../../models/request-version';
 import { Response } from '../../models/response';
 import type { ResponseExample } from '../../models/response-example';
-import { isMcpRequestId, McpRequest } from '../../models/mcp-request';
 import { isWebSocketRequestId, WebSocketRequest } from '../../models/websocket-request';
 import { WebSocketResponse } from '../../models/websocket-response';
 import { fetchRequestData, responseTransform, sendCurlAndWriteTimeline, tryToInterpolateRequest } from '../../network/network';
 import type { ScriptLog } from '../../scripting/sandbox';
 import { guard } from '../../utils/guard';
-
 import { updateMimeType } from '../components/dropdowns/content-type-dropdown';
 import { CreateRequestType } from '../hooks/use-request';
 import { debugPath, requestPath } from './paths';
@@ -442,7 +441,7 @@ export const sendAction: ActionFunction = async ({ request, params }) => {
   if (requestMeta.downloadPath) {
     return writeToDownloadPath(path.join(requestMeta.downloadPath, name), responsePatch, requestMeta, settings.maxHistoryResponses);
   } else {
-    const defaultPath = window.localStorage.getItem('insomnia.sendAndDownloadLocation') + "/" + name;
+    const defaultPath = window.localStorage.getItem('insomnia.sendAndDownloadLocation') + '/' + name;
     const { filePath } = await window.dialog.showSaveDialog({
       title: 'Select Download Location',
       buttonLabel: 'Save',

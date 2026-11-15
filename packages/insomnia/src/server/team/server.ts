@@ -5,10 +5,9 @@
 import http from 'node:http';
 
 import { createListener, type TlsFiles } from '../tls';
-
 import { ApiError, handleApi, readJson } from './api';
 import { gitHandler, gitRoute, reposDir } from './git-http';
-import { escapeHtml, OidcError, type OidcConfig, OidcLogin } from './oidc';
+import { escapeHtml, type OidcConfig, OidcError, OidcLogin } from './oidc';
 import { TeamStore, TOKEN_PREFIX, type User } from './store';
 
 export interface TeamConfig {
@@ -173,7 +172,7 @@ export function startTeamServer(config: TeamConfig) {
       return reply(200, { password: true, sso: oidc ? { name: oidc.config.name || 'single sign-on' } : null });
     }
     if (!oidc) {
-      return reply(404, { error: "This server has no single sign-on set up" });
+      return reply(404, { error: 'This server has no single sign-on set up' });
     }
     try {
       if (url.pathname === '/auth/oidc/start' && req.method === 'GET') {

@@ -14,8 +14,8 @@ import { database } from './database';
 import { exportRequestsData, exportRequestsHAR, exportWorkspacesData, exportWorkspacesHAR } from './export-data';
 import { docsFromExport } from './export-docs';
 import { toOpenApiYaml } from './export-openapi';
-import { clientFromExport } from './openapi-client';
 import { toPostmanCollection } from './export-postman';
+import { clientFromExport } from './openapi-client';
 import { strings } from './strings';
 
 // the data itself is in export-data.ts, which the main process can import

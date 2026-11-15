@@ -6,8 +6,8 @@ import { splitSecrets } from '../../../common/environment-secrets';
 import { CodeEditor, CodeEditorHandle } from '../codemirror/code-editor';
 import { checkNestedKeys, environmentFromRows, EnvironmentInfo, newRowId, rowsFromEnvironment, VariableRow } from './environment-variables';
 
-export { checkNestedKeys, ensureKeyIsValid } from './environment-variables';
 export type { EnvironmentInfo } from './environment-variables';
+export { checkNestedKeys, ensureKeyIsValid } from './environment-variables';
 
 interface Props {
   environmentInfo: EnvironmentInfo;

@@ -1,6 +1,7 @@
+import { env as processEnv } from 'node:process';
+
 import type { ChannelOptions } from '@grpc/grpc-js';
 import electron from 'electron';
-import { env as processEnv } from 'node:process';
 
 import type { Settings } from '../../models/settings';
 import { assertNotMetadataHost, metadataGuarded } from '../../network/metadata-hosts';

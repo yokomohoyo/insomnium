@@ -12,7 +12,7 @@ export default function certificateUrlParse(url: string, debug: boolean = false)
   } else {
     const parsed = urlParse(url.replace(/\*/g, WILDCARD_SUBSTITUTION));
     if (debug) {
-      console.log("parsed", parsed);
+      console.log('parsed', parsed);
     };
 
     parsed.hostname = _reinstateWildcards(parsed.hostname);

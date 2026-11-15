@@ -2,9 +2,10 @@
 // in the Spec tab (kept on this computer, in its WorkspaceMeta), else a
 // .spectral.yaml at the root of its git repository, else the built-in OpenAPI
 // rules. The main process loads it as plain data only (main/spectral-lint.ts).
+import { env as processEnv } from 'node:process';
+
 import electron from 'electron';
 import { stat } from 'fs/promises';
-import { env as processEnv } from 'node:process';
 import path from 'path';
 
 import * as models from '../models';

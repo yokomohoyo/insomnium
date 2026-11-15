@@ -1,21 +1,21 @@
+import { env as processEnv } from 'node:process';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
-import { database } from '../common/database';
-import { env as processEnv } from 'node:process';
 
+import { getProductName } from '../common/constants';
+import { database } from '../common/database';
 import { setLanguage } from '../common/i18n';
+import { dummyStartingWorkspace, importPure } from '../common/import';
 import * as models from '../models';
+import { BaseModel } from '../models';
 import { initNewOAuthSession } from '../network/o-auth-2/get-token';
-import { moveSignInsFromLocalStorage } from '../sync/git/oauth-sign-ins';
 import { init as initPlugins } from '../plugins';
 import { applyColorScheme } from '../plugins/misc';
+import { moveSignInsFromLocalStorage } from '../sync/git/oauth-sign-ins';
 import { guard } from '../utils/guard';
 import { setupRouterStuff } from './router';
-import { dummyStartingWorkspace, importPure } from '../common/import';
-import { Workspace } from '../models/workspace';
-import { BaseModel } from '../models';
-import { getProductName } from '../common/constants';
 
 export async function renderApp() {
 
@@ -25,8 +25,8 @@ export async function renderApp() {
 
   // initalize a new req manually on user's first run
   if (!prevLocationHistoryEntry) {
-  const workspaceNumber = await database.count<Workspace>(models.workspace.type);
-  console.log("workspaces detected ~>", workspaceNumber);
+  const workspaceNumber = await database.count(models.workspace.type);
+  console.log('workspaces detected ~>', workspaceNumber);
 
   if (workspaceNumber === 0) {
     const [d] = dummyStartingWorkspace();
@@ -34,9 +34,9 @@ export async function renderApp() {
       resources: { resources: models.BaseModel[] }[];
     };
 
-    const r = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === "Request");
-    const w = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === "Workspace");
-    const e = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === "Environment");
+    const r = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === 'Request');
+    const w = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === 'Workspace');
+    const e = (newObj.resources?.[0]?.resources as BaseModel[]).find(a => a.type === 'Environment');
     if (w && r && e) {
       beginningPathForFirstTimeUser = `/organization/org_default-project/project/proj_default-project/workspace/${w._id}/debug/request/${r._id}`;
 
@@ -50,7 +50,7 @@ export async function renderApp() {
 }
 
       eId = e._id;
-      console.log("META DESU->", w._id, beginningPathForFirstTimeUser);
+      console.log('META DESU->', w._id, beginningPathForFirstTimeUser);
       const id = await models.workspaceMeta.getByParentId(w._id);
       if (!id) {
         await models.workspaceMeta.getOrCreateByParentId(w._id, {

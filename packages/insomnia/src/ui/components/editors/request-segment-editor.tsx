@@ -1,22 +1,18 @@
 import React, { FC, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useRouteLoaderData } from 'react-router-dom';
 
+import { generateId } from '../../../common/misc';
 import { RequestSegment } from '../../../models/request';
 import { useRequestSetter } from '../../hooks/use-request';
 import { RequestLoaderData, WebSocketRequestLoaderData } from '../../routes/request';
 import { KeyValueEditor } from '../key-value-editor/key-value-editor';
-import _ from "lodash";
-import { generateId } from '../../../common/misc';
 
 interface Props {
   bulk: boolean;
   disabled?: boolean;
 }
 
-export const RequestSegmentEditor: FC<Props> = ({
-  bulk,
-  disabled = false,
-}) => {
+export const RequestSegmentEditor: FC<Props> = () => {
   const { requestId } = useParams() as { requestId: string };
   const { activeRequest } = useRouteLoaderData('request/:requestId') as RequestLoaderData | WebSocketRequestLoaderData;
 
@@ -27,23 +23,19 @@ export const RequestSegmentEditor: FC<Props> = ({
   // a list of all :(.*?)/ regex matches
   const matches = [...url.matchAll(/\:([\w_-]*?)(?=($|[^[\w_-]))/g)].filter(a => {
     // filter if it is a number as we assume it to be the port like :3000
-    return Number.isNaN(parseInt(a[1])) && a[1] !== "";
+    return Number.isNaN(parseInt(a[1])) && a[1] !== '';
   });
-
-  if (matches.length === 0) {
-    return <></>;
-  }
 
   // pairs : empty with strings
   const segmentedCreatedViaUI = useMemo(() => {
     return matches.map((a, i) => {
-      const seg = activeRequest?.segmentParams?.find?.(b => b.id?.endsWith("ending" + i));
+      const seg = activeRequest?.segmentParams?.find?.(b => b.id?.endsWith('ending' + i));
       return {
         name: a[1],
-        value: seg?.value || "",
+        value: seg?.value || '',
         disabled: seg?.disabled || false,
-        id: seg?.id || generateId('pair') + "ending" + i,
-        fileName: seg?.fileName || "",
+        id: seg?.id || generateId('pair') + 'ending' + i,
+        fileName: seg?.fileName || '',
       };
     });
   }, [url, activeRequest]);
@@ -98,8 +90,10 @@ export const RequestSegmentEditor: FC<Props> = ({
 
   useEffect(() => {
     // console.log("Changing names", segmentedCreatedViaUI.map((a) => a.name).join(","));
-    onChangeParameter(segmentedCreatedViaUI);
-  }, [segmentedCreatedViaUI.map(a => a.name).join(",")]);
+    if (segmentedCreatedViaUI.length > 0) {
+      onChangeParameter(segmentedCreatedViaUI);
+    }
+  }, [segmentedCreatedViaUI.map(a => a.name).join(',')]);
 
   // if (bulk) {
   //   return (
@@ -113,11 +107,16 @@ export const RequestSegmentEditor: FC<Props> = ({
   //   );
   // }
 
+  // after the hooks: they have to run in the same order on every render
+  if (matches.length === 0) {
+    return <></>;
+  }
+
   return (
     <>
 
       <KeyValueEditor
-        title={"segment parameters (found in URL)"}
+        title={'segment parameters (found in URL)'}
         hideToolbar={true}
         allowMultiline
         namePlaceholder="name"

@@ -1,5 +1,5 @@
 import { emptySources, GIT_USAGE, requireSources, Sources, SOURCES_USAGE, takeSourceOption } from './sources';
-import { parseTls, type TlsFiles, TLS_USAGE } from './tls';
+import { parseTls, TLS_USAGE, type TlsFiles } from './tls';
 
 export interface ServerConfig extends Sources {
   environment?: string;

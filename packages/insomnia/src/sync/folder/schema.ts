@@ -42,7 +42,7 @@ const commonRequest = {
 
 export const folderSchema = {
   $schema: 'http://json-schema.org/draft-07/schema#',
-  $id: `https://github.com/yokomohoyo/insomnium/blob/main/docs/folder-sync.md`,
+  $id: 'https://github.com/yokomohoyo/insomnium/blob/main/docs/folder-sync.md',
   title: 'A file of an Insomnium collection kept in a folder',
   description: 'See Folder Sync in Insomnium\'s docs. A file is read only when it says its type; it gets an _id when Insomnium takes it in.',
   type: 'object',

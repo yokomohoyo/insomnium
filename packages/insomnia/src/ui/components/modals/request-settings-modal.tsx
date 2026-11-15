@@ -3,15 +3,15 @@ import { OverlayContainer } from 'react-aria';
 import { useFetcher, useNavigate, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
-import { DEFAULT_RECONNECT } from '../../../main/network/websocket-frames';
-import { tx } from '../../tx';
 import { HttpVersions } from '../../../common/settings';
+import { DEFAULT_RECONNECT } from '../../../main/network/websocket-frames';
 import * as models from '../../../models';
 import { GrpcRequest, isGrpcRequest } from '../../../models/grpc-request';
 import { isRequest, Request } from '../../../models/request';
 import { isWebSocketRequest, WebSocketRequest } from '../../../models/websocket-request';
 import { guard } from '../../../utils/guard';
 import { useRequestSetter } from '../../hooks/use-request';
+import { tx } from '../../tx';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';

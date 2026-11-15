@@ -1,6 +1,7 @@
+import { env as processEnv } from 'node:process';
+
 import electron from 'electron';
 import fs from 'fs';
-import { env as processEnv } from 'node:process';
 import os from 'os';
 import path from 'path';
 

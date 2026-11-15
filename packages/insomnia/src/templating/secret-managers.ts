@@ -1,4 +1,3 @@
-import aws4 from 'aws4';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
@@ -6,6 +5,8 @@ import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
 import { env as processEnv } from 'node:process';
+
+import aws4 from 'aws4';
 
 import { getGcpAccessToken } from '../network/gcp-id-token/get-token';
 import { guard } from '../utils/guard';
