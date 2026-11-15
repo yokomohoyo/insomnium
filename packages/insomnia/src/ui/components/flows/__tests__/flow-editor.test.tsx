@@ -13,7 +13,6 @@ jest.mock('react-router-dom', () => ({
   useRouteLoaderData: jest.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useParams, useRouteLoaderData } = require('react-router-dom');
 
 const start = { id: 'start', kind: 'start' as const, position: { x: 0, y: 0 }, data: {} };

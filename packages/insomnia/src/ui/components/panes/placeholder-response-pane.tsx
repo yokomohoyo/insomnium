@@ -28,7 +28,7 @@ const Description = styled.div({
   marginRight: '2em',
 });
 
-export const PlaceholderResponsePane: FC<PropsWithChildren<{}>> = ({ children }) => {
+export const PlaceholderResponsePane: FC<PropsWithChildren> = ({ children }) => {
   const {
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;

@@ -216,7 +216,9 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
   ResourceIdMap.set(workspaceId, existingWorkspace._id);
   ResourceIdMap.set('__WORKSPACE_ID__', existingWorkspace._id);
   const toImport = resources.find(isWorkspace);
-  toImport && ResourceIdMap.set(toImport._id, existingWorkspace._id);
+  if (toImport) {
+    ResourceIdMap.set(toImport._id, existingWorkspace._id);
+  }
 
   const optionalResources = resources.filter(
     resource =>
@@ -230,11 +232,15 @@ export const importToWorkspace = async ({ workspaceId, resources: imported }: { 
   // environments, first: their strings' tags are pointed at them
   for (const resource of optionalResources) {
     const model = getModel(resource.type);
-    model && ResourceIdMap.set(resource._id, generateId(model.prefix));
+    if (model) {
+      ResourceIdMap.set(resource._id, generateId(model.prefix));
+    }
   }
   for (const environment of resources.filter(isEnvironment).filter(isSubEnvironmentResource)) {
     const model = getModel(environment.type);
-    model && ResourceIdMap.set(environment._id, generateId(model.prefix));
+    if (model) {
+      ResourceIdMap.set(environment._id, generateId(model.prefix));
+    }
   }
 
   const baseEnvironment = await models.environment.getOrCreateForParentId(workspaceId);

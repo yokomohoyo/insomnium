@@ -121,12 +121,14 @@ export const RequestUrlBar = forwardRef<RequestUrlBarHandle, Props>(({
       const renderResult = await tryToInterpolateRequest(scripted.request, environment._id, RENDER_PURPOSE_SEND, undefined, scripted.variables);
       // ARCHY NOTE: HERE IS SEND
       const renderedRequest = await tryToTransformRequestWithPlugins(renderResult);
-      renderedRequest && send({
-        renderedRequest,
-        shouldPromptForPathAfterResponse,
-        preRequestLogs: scripted.logs,
-        scriptVariables: scripted.variables,
-      });
+      if (renderedRequest) {
+        send({
+          renderedRequest,
+          shouldPromptForPathAfterResponse,
+          preRequestLogs: scripted.logs,
+          scriptVariables: scripted.variables,
+        });
+      }
     } catch (err) {
       // which field and variable, as gRPC and WebSocket requests say
       if (err?.type === 'render') {

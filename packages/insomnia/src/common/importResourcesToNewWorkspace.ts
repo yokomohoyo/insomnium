@@ -54,7 +54,9 @@ export const importResourcesToNewWorkspace = async (projectId: string, _resource
   // If we're importing into a new workspace
   // Map new IDs
   ResourceIdMap.set('__WORKSPACE_ID__', newWorkspace._id);
-  workspaceToImport && ResourceIdMap.set(workspaceToImport._id, newWorkspace._id);
+  if (workspaceToImport) {
+    ResourceIdMap.set(workspaceToImport._id, newWorkspace._id);
+  }
 
   const resourcesWithoutWorkspaceAndApiSpec = resources.filter(
     resource => !isWorkspace(resource) && !isApiSpec(resource)
@@ -62,7 +64,9 @@ export const importResourcesToNewWorkspace = async (projectId: string, _resource
 
   for (const resource of resourcesWithoutWorkspaceAndApiSpec) {
     const model = getModel(resource.type);
-    model && ResourceIdMap.set(resource._id, generateId(model.prefix));
+    if (model) {
+      ResourceIdMap.set(resource._id, generateId(model.prefix));
+    }
   }
 
   // environments an importer gave the base environment as their parent (Bruno's,

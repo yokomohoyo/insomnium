@@ -7,7 +7,6 @@ import { forgetCollectionRead, workspaceLoader } from '../ui/routes/workspace';
 import { median, report, seedCollection } from './seed';
 
 // more ids than the mocked list has
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock('uuid', () => ({ v4: () => require('crypto').randomUUID() }));
 
 describe('workspace loader (the sidebar, on every revalidation)', () => {

@@ -150,7 +150,6 @@ export function createRequire(source: FileSource, root: string) {
       module.exports = JSON.parse(text);
     } else {
       const dir = dirname(file);
-      // eslint-disable-next-line no-new-func -- the plugin's own code, in its sandbox
       const run = new Function('exports', 'require', 'module', '__filename', '__dirname', 'Buffer', 'global', `${text}\n//# sourceURL=${file}`);
       run.call(module.exports, module.exports, (request: string) => load(resolve(dir, request)), module, file, dir, SandboxBuffer, globalThis);
     }

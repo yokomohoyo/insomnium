@@ -10,7 +10,6 @@ import { largeOpenApi } from './fixtures';
 import { report } from './seed';
 
 // more ids than the mocked list has
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock('uuid', () => ({ v4: () => require('crypto').randomUUID() }));
 
 describe('generating requests from a spec (the Spec tab, and over MCP)', () => {

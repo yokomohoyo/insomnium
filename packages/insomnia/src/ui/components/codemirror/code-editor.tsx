@@ -112,7 +112,7 @@ interface CodeEditorProps {
   pinToBottom?: boolean;
   placeholder?: string;
   readOnly?: boolean;
-  style?: Object;
+  style?: object;
   // NOTE: for caching scroll and marks
   uniquenessKey?: string;
   updateFilter?: (filter: string) => void;

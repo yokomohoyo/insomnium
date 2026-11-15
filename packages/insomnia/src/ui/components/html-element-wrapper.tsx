@@ -17,7 +17,9 @@ export const HtmlElementWrapper: FC<Props> = ({ el, onUnmount }) => {
       ref.current.appendChild(el);
     }
     return () => {
-      onUnmount && onUnmount();
+      if (onUnmount) {
+        onUnmount();
+      }
     };
   });
   return <div ref={ref} />;

@@ -7,7 +7,6 @@ import * as models from '../../../models';
 import { forgetCollectionRead, workspaceLoader, type WorkspaceLoaderData } from '../workspace';
 
 // more ids than the mocked list has
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock('uuid', () => ({ v4: () => require('crypto').randomUUID() }));
 
 // The loader reads what was written since its last load. What it gives must be

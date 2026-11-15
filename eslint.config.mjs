@@ -59,8 +59,7 @@ export default defineConfig([
       },
     },
     linterOptions: {
-      // eslint 9 warns about these by default; there are stale ones to clear first
-      reportUnusedDisableDirectives: 'off',
+      reportUnusedDisableDirectives: 'error',
     },
     settings: {
       react: {
@@ -147,18 +146,8 @@ export default defineConfig([
       '@typescript-eslint/no-redeclare': 'error',
       // caughtErrors: typescript-eslint 8 would report an unused `catch (err)`
       '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true, argsIgnorePattern: '^_', caughtErrors: 'none' }],
-      '@typescript-eslint/no-var-requires': 'error',
-
-      // New in typescript-eslint 8's recommended set, off to keep the rules as
-      // they were. The first is the successor of no-var-requires, which the
-      // disable comments in the code name; the next three replace ban-types,
-      // which was off; no-unused-expressions fires on existing code.
-      '@typescript-eslint/no-require-imports': 'off',
-      '@typescript-eslint/no-empty-object-type': 'off',
-      '@typescript-eslint/no-unsafe-function-type': 'off',
-      '@typescript-eslint/no-wrapper-object-types': 'off',
-      '@typescript-eslint/no-unused-expressions': 'off',
-      '@typescript-eslint/prefer-namespace-keyword': 'off',
+      // an interface that only extends another is how a declaration is merged or renamed
+      '@typescript-eslint/no-empty-object-type': ['error', { allowInterfaces: 'with-single-extends' }],
 
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
@@ -176,7 +165,15 @@ export default defineConfig([
   {
     files: ['**/*.{js,mjs,cjs}'],
     rules: {
-      '@typescript-eslint/no-var-requires': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
+    // a test loads a module with require() where the load has to come after a
+    // jest.mock or a change of state, and inside a jest.mock factory
+    files: ['**/__tests__/**', '**/__perf__/**', '**/__mocks__/**'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   {

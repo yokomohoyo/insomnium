@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- this is a temporary hold-me-over while we get the types into better condition
 export type UNKNOWN = any;
 
 // an imported environment for the project's global base environment, such as
@@ -80,7 +79,7 @@ type ImportRequestType =
   | 'request_group'
   | 'workspace';
 
-export interface ImportRequest<T extends {} = {}> extends Comment {
+export interface ImportRequest<T extends object = object> extends Comment {
   _id?: string;
   _type?: ImportRequestType;
   authentication?: Authentication;
@@ -104,7 +103,7 @@ export interface ImportRequest<T extends {} = {}> extends Comment {
   afterResponseScript?: string;
 }
 
-export type Converter<T extends {} = {}> = (
+export type Converter<T extends object = object> = (
   rawData: string
 ) => ImportRequest<T>[] | Promise<ImportRequest<T>[] | null> | null;
 

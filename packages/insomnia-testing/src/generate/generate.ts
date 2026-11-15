@@ -87,7 +87,9 @@ const generateTestLines = (num: number, test?: Test | null) => {
   }
 
   // Add user-defined test source
-  test.code && lines.push(indent(num + 1, test.code));
+  if (test.code) {
+    lines.push(indent(num + 1, test.code));
+  }
 
   // Close the it() block
   lines.push(indent(num, '});'));

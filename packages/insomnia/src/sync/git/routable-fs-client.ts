@@ -38,7 +38,6 @@ export function routableFSClient(
     // Uncomment this to debug operations
     // console.log('[routablefs] Executing', method, routedPath, { args });
     // TODO: remove non-null assertion
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return client.promises[method]!(routedPath, ...args);
   };
 

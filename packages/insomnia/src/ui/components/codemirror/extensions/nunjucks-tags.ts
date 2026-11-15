@@ -168,7 +168,6 @@ async function _highlightNunjucksTags(this: CodeMirror.Editor, render: any, rend
             if (pos) {
               const { from, to } = pos;
               // TODO: unsound non-null assertion
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               this.replaceRange(template!, from, to);
             } else {
               console.warn('Tried to replace mark that did not exist', mark);
@@ -211,7 +210,6 @@ async function _highlightNunjucksTags(this: CodeMirror.Editor, render: any, rend
         // changing it doesn't seem to take affect in Chromium 56 (maybe bug?)
         if (droppedInSameEditor) {
           // TODO: unsound non-null assertion
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           const { from, to } = mark.find()!;
           this.replaceRange('', from, to, '+dnd');
         }

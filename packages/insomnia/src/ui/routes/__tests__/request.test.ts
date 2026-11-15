@@ -17,7 +17,6 @@ jest.mock('../../../network/network', () => ({
   responseTransform: jest.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const network = require('../../../network/network');
 
 describe('sendAction with Send and Download', () => {

@@ -6,7 +6,7 @@ import { CodeEditor, CodeEditorHandle } from './codemirror/code-editor';
 import { MarkdownPreview } from './markdown-preview';
 
 interface Props {
-  onChange: Function;
+  onChange: (value: string) => void;
   defaultValue: string;
   placeholder?: string;
   defaultPreviewMode?: boolean;

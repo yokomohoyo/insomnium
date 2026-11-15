@@ -701,9 +701,11 @@ export const commitToGitRepoAction: ActionFunction = async ({
     }
 
     for (const item of changesToCommit) {
-      item.status.includes('deleted')
-        ? await GitVCS.remove(item.path)
-        : await GitVCS.add(item.path);
+      if (item.status.includes('deleted')) {
+        await GitVCS.remove(item.path);
+      } else {
+        await GitVCS.add(item.path);
+      }
     }
 
     await GitVCS.commit(message);

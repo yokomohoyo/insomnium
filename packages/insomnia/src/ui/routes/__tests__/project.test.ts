@@ -8,7 +8,6 @@ import { DEFAULT_ORGANIZATION_ID } from '../../../models/organization';
 import { loader, type ProjectLoaderData } from '../project';
 
 // more ids than the mocked list has
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock('uuid', () => ({ v4: () => require('crypto').randomUUID() }));
 
 describe('the projects page loader', () => {

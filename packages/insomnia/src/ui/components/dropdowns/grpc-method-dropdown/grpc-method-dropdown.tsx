@@ -22,7 +22,7 @@ const PROTO_PATH_REGEX = /^\/(?:(?<package>[\w.]+)\.)?(?<service>\w+)\/(?<method
 
 const NO_PACKAGE_KEY = 'no-package';
 
-function groupBy(list: {}[], keyGetter: (item: any) => string): Record<string, any[]> {
+function groupBy(list: object[], keyGetter: (item: any) => string): Record<string, any[]> {
   const map = new Map();
   list.forEach(item => {
     const key = keyGetter(item);

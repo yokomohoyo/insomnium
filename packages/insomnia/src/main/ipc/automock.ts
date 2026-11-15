@@ -22,7 +22,7 @@ const enum MethodType {
  */
 export function mockRequestMethods(
   service: Service,
-  mocks?: void | {},
+  mocks?: void | object,
 ) {
   return mockMethodReturnType(
     service,
@@ -34,7 +34,7 @@ export function mockRequestMethods(
 function mockMethodReturnType(
   service: Service,
   type: MethodType,
-  mocks?: void | {},
+  mocks?: void | object,
 ): ServiceMethodsPayload {
   const root = service.root;
   const serviceMethods = service.methods;

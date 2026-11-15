@@ -120,7 +120,11 @@ export function registerGitTools(server: McpServer, git: GitControls) {
         return json({ error: 'the changes moved while the user was asked: call git_commit again' }, true);
       }
       for (const change of chosen) {
-        change.status.includes('deleted') ? await opened.vcs.remove(change.path) : await opened.vcs.add(change.path);
+        if (change.status.includes('deleted')) {
+          await opened.vcs.remove(change.path);
+        } else {
+          await opened.vcs.add(change.path);
+        }
       }
       const oid = await opened.vcs.commit(message);
       return json({ ok: true, oid, committed: chosen.length });

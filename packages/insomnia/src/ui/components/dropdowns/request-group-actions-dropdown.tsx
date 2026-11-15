@@ -294,7 +294,9 @@ export const RequestGroupActionsDropdown = ({
           selectionMode="single"
           onAction={key => {
             const item = requestGroupActionItems.find(a => a.id === key);
-            item && item.action();
+            if (item) {
+              item.action();
+            }
           }}
           items={requestGroupActionItems}
           className="border select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] py-2 rounded-md overflow-y-auto max-h-[inherit] focus:outline-none"

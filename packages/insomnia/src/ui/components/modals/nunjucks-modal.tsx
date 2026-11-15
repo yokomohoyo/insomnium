@@ -15,12 +15,12 @@ interface Props {
 interface State {
   isTag: boolean;
   template: string;
-  onDone: Function;
+  onDone: (template: string) => void;
 }
 
 interface NunjucksModalOptions {
   template: string;
-  onDone: Function;
+  onDone: (template: string) => void;
 }
 
 interface NunjucksModalHandle {
