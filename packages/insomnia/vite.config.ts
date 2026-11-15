@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
     root: path.join(__dirname, 'src'),
     base: __DEV__ ? '/' : './',
     // Vite replaces the rest of process.env with {} in the build, so runtime
-    // reads in the renderer go through node:process (see .eslintrc.js).
+    // reads in the renderer go through node:process (see eslint.config.mjs).
     define: {
       __DEV__: JSON.stringify(__DEV__),
       'process.env.NODE_ENV': JSON.stringify(mode),

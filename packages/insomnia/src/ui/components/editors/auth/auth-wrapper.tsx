@@ -144,6 +144,7 @@ export const AuthStrategiesEditor: FC<StrategiesEditorProps> = ({ authentication
     <div>
       {strategies.map((strategy, index) => (
         <AuthStrategyProvider
+          // eslint-disable-next-line react/no-array-index-key -- a strategy has no id: its position is what patches address
           key={`${strategy.type || 'none'}-${index}`}
           strategy={strategy}
           strategyIndex={index}

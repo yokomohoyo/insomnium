@@ -64,7 +64,7 @@ export const RenderedQueryString: FC<Props> = ({ request }) => {
       console.error(error);
       setPreviewString(defaultPreview);
     }
-  }, [request.url, request.parameters, request.settingEncodeUrl, handleRender]);
+  }, [request.url, request.parameters, request.segmentParams, request.settingEncodeUrl, handleRender]);
 
   const className = previewString === defaultPreview ? 'super-duper-faint' : 'selectable force-wrap';
 

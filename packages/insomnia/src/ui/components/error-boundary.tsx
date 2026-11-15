@@ -101,6 +101,7 @@ export class ErrorBoundary extends PureComponent<Props> {
     // Unwrap multiple children into single children for better error isolation
     const childArray = Array.isArray(children) ? children : [children];
     return childArray.map((child, i) => (
+      // eslint-disable-next-line react/no-array-index-key -- children have no identity but their position
       <SingleErrorBoundary key={i} {...extraProps}>
         {child}
       </SingleErrorBoundary>
