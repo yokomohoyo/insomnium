@@ -13,6 +13,7 @@ on:
       - packages/insomnia/packaging/windows/**
       - scripts/verify-smoke.mjs
       - .github/scripts/test-windows-installer.ps1
+      - .github/scripts/test-windows-installer-wizard.ps1
       - .github/workflows/windows-installer.yml
 
 concurrency:
@@ -62,7 +63,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release download "$SQUIRREL_VERSION" --repo "$GITHUB_REPOSITORY" --pattern "Insomnium.Core-$SQUIRREL_VERSION.exe" --dir "$RUNNER_TEMP/squirrel"
 
+      - name: Click through the wizard
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem packages/insomnia/dist -Filter 'Insomnium.Core-*.exe' | Where-Object { $_.Name -notlike '*portable*' } | Select-Object -First 1
+          .github/scripts/test-windows-installer-wizard.ps1 -Installer $installer.FullName -Screenshots (Join-Path $env:RUNNER_TEMP 'wizard')
+
+      - name: Upload the wizard's screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer-wizard-${{ github.run_number }}
+          path: ${{ runner.temp }}/wizard/*.png
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Install, run, uninstall, upgrade
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $installer = Get-ChildItem packages/insomnia/dist -Filter 'Insomnium.Core-*.exe' | Where-Object { $_.Name -notlike '*portable*' } | Select-Object -First 1
