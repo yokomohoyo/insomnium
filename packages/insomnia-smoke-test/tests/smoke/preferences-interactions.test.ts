@@ -1,3 +1,5 @@
+import { expect } from '@playwright/test';
+
 import { importIntoCollection } from '../../playwright/import';
 import { loadFixture } from '../../playwright/paths';
 import { test } from '../../playwright/test';
@@ -22,6 +24,8 @@ test('Check filter responses by environment preference @ci', async ({ app, page 
 
   // Send a request
   await page.getByLabel('Request Collection').getByRole('row', { name: 'example http' }).click();
+  // the request has to be open first, or Send goes to the one that was
+  await expect(page.getByTestId('request-pane').getByTestId('OneLineEditor').first()).toContainText('localhost:4010/pets/1');
   await page.click('[data-testid="request-pane"] button:has-text("Send")');
   await page.click('text=Timeline');
   await page.locator('text=HTTP/1.1 200 OK').click();
