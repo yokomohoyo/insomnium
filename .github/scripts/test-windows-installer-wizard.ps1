@@ -222,7 +222,7 @@ function Invoke-Wizard([string] $titleHas, [string] $label, [scriptblock] $onPag
 }
 
 function Find-Control($page, [string] $class, [string] $textLike) {
-  $page.Controls | Where-Object { $_.Class -eq $class -and $_.Text -like $textLike } | Select-Object -First 1
+  $page.Controls | Where-Object { $_.Class -eq $class -and ($_.Text -replace '&', '') -like $textLike } | Select-Object -First 1
 }
 
 function Get-UninstallEntries {
