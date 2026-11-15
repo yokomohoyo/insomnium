@@ -17,7 +17,7 @@ When you enable the server, the app writes a discovery file
 token. `insomnium-mcp` reads that file and transparently relays JSON-RPC between
 your MCP client (stdio) and the app (SSE):
 
-```
+```text
 MCP client  ──stdio──▶  insomnium-mcp  ──HTTP+SSE──▶  Insomnium app (127.0.0.1)
 ```
 

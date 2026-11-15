@@ -14,7 +14,7 @@ Its files' JSON Schema goes in the folder too, as `.insomnium/folder.schema.json
 
 ## The files
 
-```
+```text
 insomnium.yaml              the collection
 environments/_base.yaml     its base environment
 environments/Staging.yaml   a sub environment
