@@ -36,6 +36,7 @@ export const GitLogModal: FC<Props> = ({ branch, onHide }) => {
   }, []);
 
   const { log } = gitLogFetcher.data && 'log' in gitLogFetcher.data ? gitLogFetcher.data : { log: [] };
+  const errors = gitLogFetcher.data && 'errors' in gitLogFetcher.data ? gitLogFetcher.data.errors : [];
 
   return (
     <OverlayContainer>
@@ -46,7 +47,8 @@ export const GitLogModal: FC<Props> = ({ branch, onHide }) => {
             <i className="fa fa-spinner fa-spin space-right" />
             {t('Loading git log...')}
           </div>}
-          {!isLoading && <table className="table--fancy table--striped">
+          {!isLoading && errors.length > 0 && <p className="notice error selectable" data-testid="git-log-error">{errors.join('\n')}</p>}
+          {!isLoading && errors.length === 0 && <table className="table--fancy table--striped">
             <thead>
               <tr>
                 <th className="text-left">{t('Message')}</th>

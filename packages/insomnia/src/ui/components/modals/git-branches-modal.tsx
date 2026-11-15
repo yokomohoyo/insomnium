@@ -5,7 +5,7 @@ import { useFetcher, useParams } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { GitRepository } from '../../../models/git-repository';
-import { CreateNewGitBranchResult, GitBranchesLoaderData, MergeGitBranchResult } from '../../routes/git-actions';
+import { CheckoutGitBranchResult, CreateNewGitBranchResult, GitBranchesLoaderData, MergeGitBranchResult } from '../../routes/git-actions';
 import { gitPath } from '../../routes/paths';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -34,7 +34,7 @@ export const GitBranchesModal: FC<Props> = (({
   }, []);
 
   const branchesFetcher = useFetcher<GitBranchesLoaderData>();
-  const checkoutBranchFetcher = useFetcher();
+  const checkoutBranchFetcher = useFetcher<CheckoutGitBranchResult>();
   const mergeBranchFetcher = useFetcher<MergeGitBranchResult>();
   // the branch being merged in (or rebased onto), and the documents both sides changed
   const [merging, setMerging] = useState('');
@@ -80,6 +80,15 @@ export const GitBranchesModal: FC<Props> = (({
       });
     }
   }, [newBranchFetcher.data?.errors]);
+
+  useEffect(() => {
+    if (checkoutBranchFetcher.data?.errors?.length) {
+      showAlert({
+        title: t('Checkout Failed'),
+        message: checkoutBranchFetcher.data.errors.join('\n'),
+      });
+    }
+  }, [checkoutBranchFetcher.data?.errors]);
 
   return (
     <OverlayContainer>

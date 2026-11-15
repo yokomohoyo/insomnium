@@ -187,6 +187,26 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
     }
   }, [gitCheckoutFetcher.data?.errors]);
 
+  // A fetch asked for from the menu says why it failed in an alert, as push
+  // and pull do. The one every five minutes doesn't interrupt: its failure
+  // shows as a warning beside the branch, until a fetch works again.
+  const fetchAsked = useRef(false);
+  const [fetchError, setFetchError] = useState('');
+  useEffect(() => {
+    if (gitFetchFetcher.state !== 'idle' || !gitFetchFetcher.data) {
+      return;
+    }
+    const message = gitFetchFetcher.data.errors.join('\n');
+    setFetchError(message);
+    if (message && fetchAsked.current) {
+      showAlert({
+        title: t('Fetch Failed'),
+        message,
+      });
+    }
+    fetchAsked.current = false;
+  }, [gitFetchFetcher.state, gitFetchFetcher.data]);
+
   async function handlePush({ force }: { force: boolean }) {
     gitPushFetcher.submit(
       {
@@ -288,6 +308,7 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
       name: 'Fetch',
       label: t('Fetch'),
       onClick: () => {
+        fetchAsked.current = true;
         gitFetchFetcher.submit(
           {},
           {
@@ -379,6 +400,11 @@ export const GitSyncDropdown: FC<Props> = ({ className, gitRepository }) => {
                     ><i className={`fa fa-${isLoading ? 'refresh fa-spin' : 'cube'} space-left`} /></span>
                   </Tooltip>
                 </div>
+                {fetchError && (
+                  <Tooltip message={`${t('Fetch Failed')}: ${fetchError}`}>
+                    <i className="fa fa-exclamation-triangle warning" data-testid="git-fetch-error" />
+                  </Tooltip>
+                )}
               </div>
 
             </DropdownButton>

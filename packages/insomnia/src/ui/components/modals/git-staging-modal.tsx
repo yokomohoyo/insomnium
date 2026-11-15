@@ -72,6 +72,8 @@ export const GitStagingModal: FC<ModalProps> = ({
   };
 
   const hasChanges = Boolean(changes.length);
+  // the changes couldn't be read: not the same as there being none
+  const loadErrors = gitChangesFetcher.data?.errors ?? [];
   const isPicked = (item: { path: string; staged: boolean }) => picked[item.path] ?? item.staged;
   const pick = (path: string, checked: boolean) => setPicked(prev => ({ ...prev, [path]: checked }));
   // rows stay ticked once select-all is unticked
@@ -397,6 +399,8 @@ export const GitStagingModal: FC<ModalProps> = ({
                   </div>
                 )}
               </>
+            ) : !isLoadingGitChanges && loadErrors.length > 0 ? (
+              <p className="notice error selectable" data-testid="git-changes-error">{loadErrors.join('\n')}</p>
             ) : (
               <div className="txt-sm faint italic">
                 {isLoadingGitChanges ? <>

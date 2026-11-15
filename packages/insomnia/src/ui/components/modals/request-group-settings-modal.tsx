@@ -78,6 +78,8 @@ export const RequestGroupSettingsModal = ({ requestGroup, onHide }: ModalProps &
       name: requestGroup.name, // Because duplicate will add (Copy) suffix if name is not provided in patch
       parentId: state.activeWorkspaceIdToCopyTo,
     });
+    // closed as after a move, staying here: a second click would copy it again
+    modalRef.current?.hide();
   };
 
   const {

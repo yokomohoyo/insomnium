@@ -881,5 +881,6 @@
   "Copy details": "Details kopieren",
   "All collections in {name}": "Alle Sammlungen in {name}",
   "Switch to": "Wechseln zu",
-  "Saved: type a new one to replace it": "Gespeichert: zum Ersetzen einen neuen eingeben"
+  "Saved: type a new one to replace it": "Gespeichert: zum Ersetzen einen neuen eingeben",
+  "Fetch Failed": "Fetch fehlgeschlagen"
 }

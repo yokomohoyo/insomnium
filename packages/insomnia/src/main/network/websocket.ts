@@ -27,7 +27,6 @@ import { getBasicAuthHeader } from '../../network/basic-auth/get-header';
 import { getBearerAuthHeader } from '../../network/bearer-auth/get-header';
 import { lookupRefusingMetadata, metadataGuarded } from '../../network/metadata-hosts';
 import { urlMatchesCertHost } from '../../network/url-matches-cert-host';
-import { guard } from '../../utils/guard';
 import { setDefaultProtocol } from '../../utils/url/protocol';
 import { buildQueryStringFromParams, joinUrlAndQueryString } from '../../utils/url/querystring';
 import { getCaBundle } from './ca-bundle';
@@ -193,12 +192,9 @@ const openWebSocketConnection = async (
   }
 
   const workspaceMeta = await models.workspaceMeta.getOrCreateByParentId(options.workspaceId);
-  // fallback to base environment
-  const activeEnvironmentId = workspaceMeta.activeEnvironmentId;
-  const activeEnvironment = activeEnvironmentId && await models.environment.getById(activeEnvironmentId);
-  const environment = activeEnvironment || await models.environment.getOrCreateForParentId(options.workspaceId);
-  guard(environment, 'failed to find environment ' + activeEnvironmentId);
-  const responseEnvironmentId = environment ? environment._id : null;
+  // saved with the active environment as the workspace has it, none for the
+  // base one, as HTTP responses are: the history is filtered by it
+  const responseEnvironmentId = workspaceMeta.activeEnvironmentId ?? null;
 
   try {
     if (!options.url) {
