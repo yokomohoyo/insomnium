@@ -320,9 +320,10 @@ export const runAllTestsAction: ActionFunction = async ({
   // code that doesn't parse throws before any test runs: each fails with it
   const results = await runTests(src, { sendRequest }).catch((err: Error) => notRun(unitTests, err));
 
+  // the suite's, so that each suite shows its own last run and loses it when deleted
   const testResult = await models.unitTestResult.create({
     results,
-    parentId: workspaceId,
+    parentId: testSuiteId,
   });
 
   return redirect(testResultPath({ organizationId, projectId, workspaceId }, testSuiteId, testResult._id));

@@ -60,7 +60,7 @@ export function registerTestRunTools(server: McpServer, confirm: ConfirmTestRun)
           return json({ error: `the tests could not run: ${(err as Error).message}` }, true);
         }
         if (workspace) {
-          await models.unitTestResult.create({ results, parentId: workspace._id });
+          await models.unitTestResult.create({ results, parentId: suite._id });
         }
         const failures = new Map(results.failures.map(failure => [failure.fullTitle, failure]));
         const failed = results.stats.failures;
