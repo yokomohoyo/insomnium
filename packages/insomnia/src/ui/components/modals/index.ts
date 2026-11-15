@@ -62,13 +62,6 @@ export function showError(config: ErrorModalOptions) {
   }
 }
 
-export function hideAllModals() {
-  for (const key of Object.keys(modals)) {
-    const modal = modals[key];
-    modal.hide?.();
-  }
-}
-
 function getModalComponentHandle(name: string) {
   const modalComponentRef = modals[name];
   guard(modalComponentRef, `Modal ${name} not found`);

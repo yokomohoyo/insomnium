@@ -4,7 +4,6 @@ import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
-import { showModal } from '.';
 
 export interface SelectModalOptions {
   message: string | null;
@@ -71,5 +70,3 @@ export const SelectModal = forwardRef<SelectModalHandle, ModalProps>((_, ref) =>
   );
 });
 SelectModal.displayName = 'SelectModal';
-
-export const showSelectModal = (opts: SelectModalOptions) => showModal(SelectModal, opts);

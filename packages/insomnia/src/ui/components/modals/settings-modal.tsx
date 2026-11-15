@@ -24,7 +24,6 @@ export interface SettingsModalHandle {
   show: (options?: { tab?: string }) => void;
 }
 
-export const TAB_INDEX_EXPORT = 'data';
 export const TAB_INDEX_SHORTCUTS = 'keyboard';
 export const TAB_INDEX_THEMES = 'themes';
 export const TAB_INDEX_PLUGINS = 'plugins';

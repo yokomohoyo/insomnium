@@ -10,7 +10,6 @@ export type SelectProtoFileHandler = (id: string) => void;
 export type DeleteProtoFileHandler = (protofile: ProtoFile) => void;
 export type DeleteProtoDirectoryHandler = (protoDirectory: ProtoDirectory) => void;
 export type UpdateProtoFileHandler = (protofile: ProtoFile | ProtoDirectory) => Promise<void>;
-export type RenameProtoFileHandler = (protoFile: ProtoFile, name?: string) => Promise<void>;
 export const ProtoListItem = styled(ListGroupItem).attrs(() => ({
   className: 'row-spaced',
 }))`

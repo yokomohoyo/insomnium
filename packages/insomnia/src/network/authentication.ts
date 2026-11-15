@@ -33,7 +33,6 @@ interface Header {
   value: string;
 }
 
-export type { GcpAudienceApproval } from './gcp-id-token/get-token';
 export { setGcpAudienceApproval } from './gcp-id-token/get-token';
 
 // Resolve one auth strategy into a single Header (or undefined if it doesn't emit one).

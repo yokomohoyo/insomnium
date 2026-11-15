@@ -11,7 +11,6 @@ import { ModalHeader } from '../base/modal-header';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { CodeEditor } from '../codemirror/code-editor';
 import { HelpTooltip } from '../help-tooltip';
-import { showModal } from './index';
 
 interface Config {
   label: string;
@@ -167,5 +166,3 @@ export const GenerateConfigModal = forwardRef<GenerateConfigModalHandle, ModalPr
   );
 });
 GenerateConfigModal.displayName = 'GenerateConfigModal';
-
-export const showGenerateConfigModal = (opts: GenerateConfigModalOptions) => showModal(GenerateConfigModal, opts);

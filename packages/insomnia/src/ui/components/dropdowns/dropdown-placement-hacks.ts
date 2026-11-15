@@ -5,8 +5,3 @@ export const svgPlacementHack = {
   // Without this, the icon is too high with respect to the text because of Tooltip introducing some changes to the placement of the icon.
   marginTop: 1,
 };
-
-export const tooltipIconPlacementHack = {
-  // see above comment for `svgPlacementHack`.
-  marginTop: 3,
-};
