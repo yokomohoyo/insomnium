@@ -39,6 +39,7 @@ import * as models from '../../models';
 import type { Environment } from '../../models/environment';
 import { type GrpcRequest, isGrpcRequest, isGrpcRequestId } from '../../models/grpc-request';
 import { getByParentId as getGrpcRequestMetaByParentId } from '../../models/grpc-request-meta';
+import * as requestOperations from '../../models/helpers/request-operations';
 import { isMcpRequest, isMcpRequestId, type McpRequest } from '../../models/mcp-request';
 import {
   isEventStreamRequest,
@@ -154,7 +155,8 @@ export const loader: LoaderFunction = async ({ params }) => {
       await models.workspaceMeta.getOrCreateByParentId(workspaceId);
     guard(activeWorkspaceMeta, 'Workspace meta not found');
     const activeRequestId = activeWorkspaceMeta.activeRequestId;
-    const activeRequest = activeRequestId ? await models.request.getById(activeRequestId) : null;
+    // of any kind: a WebSocket, gRPC or MCP request is not in the HTTP requests
+    const activeRequest = activeRequestId ? await requestOperations.getById(activeRequestId) : null;
     if (activeRequest) {
       return redirect(requestPath({ organizationId, projectId, workspaceId }, activeRequestId));
     }
