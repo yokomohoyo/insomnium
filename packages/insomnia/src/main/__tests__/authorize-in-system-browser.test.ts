@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { describe, expect, it } from '@jest/globals';
+import { createServer } from 'net';
 
 import { authorizeInSystemBrowser, loopbackRedirect } from '../authorize-in-system-browser';
 
@@ -12,6 +13,16 @@ const browser = (query: string) => async (url: string) => {
   expect(response.status).toBe(200);
   expect(await response.text()).toContain('go back to Insomnium');
 };
+
+// a port nothing listens on: the system picks one, and it is given back at once
+const freePort = () => new Promise<number>((resolve, reject) => {
+  const server = createServer();
+  server.once('error', reject);
+  server.listen(0, '127.0.0.1', () => {
+    const { port } = server.address() as { port: number };
+    server.close(() => resolve(port));
+  });
+});
 
 describe('authorizeInSystemBrowser()', () => {
   it('takes the redirect on a free loopback port when the URL has none', async () => {
@@ -26,7 +37,7 @@ describe('authorizeInSystemBrowser()', () => {
   });
 
   it('keeps a redirect URL with a port as it was typed', async () => {
-    const port = 40000 + Math.floor(Math.random() * 20000);
+    const port = await freePort();
     const { redirectUri } = await authorizeInSystemBrowser(
       { url: 'https://auth.example.com/authorize', redirectUrl: `http://127.0.0.1:${port}/cb` },
       browser('error=access_denied'),
