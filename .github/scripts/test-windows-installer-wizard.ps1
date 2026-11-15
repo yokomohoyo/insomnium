@@ -205,8 +205,8 @@ function Invoke-Wizard([string] $titleHas, [string] $label, [scriptblock] $onPag
     $controls = [Wizard]::Controls($dialog)
     Write-Host "--- $label page $($pages.Count + 1): $name"
     $controls | Where-Object { $_.Text -and $_.Class -in 'Button', 'Static', 'Edit' } | ForEach-Object {
-      $state = if ($_.Class -eq 'Button' -and [Wizard]::IsChecked($_.Handle)) { ' (selected)' } else { '' }
-      Write-Host ("    {0,-7} {1,5}  {2}{3}" -f $_.Class, $_.Id, ($_.Text -replace '\s+', ' '), $state)
+      $mark = if ($_.Class -eq 'Button' -and [Wizard]::IsChecked($_.Handle)) { ' (selected)' } else { '' }
+      Write-Host ("    {0,-7} {1,5}  {2}{3}" -f $_.Class, $_.Id, ($_.Text -replace '\s+', ' '), $mark)
     }
     $page = [pscustomobject]@{ Name = $name; Dialog = $dialog; Controls = $controls }
     $pages += $page
@@ -245,6 +245,14 @@ function Show-Entries {
 function Get-Uninstaller {
   $entry = Get-UninstallEntries | Select-Object -First 1
   if ($entry.UninstallString -match '^"([^"]+)"\s*(.*)$') { @{ Exe = $Matches[1]; Arguments = $Matches[2] } } else { $null }
+}
+
+# a wizard left open would hold the installer's lock against whatever runs next
+trap {
+  Write-Host "error: $_"
+  Write-Host $_.ScriptStackTrace
+  Get-Process | Where-Object { $_.Path -eq $Installer -or $_.Name -like 'Un_*' } | Stop-Process -Force -ErrorAction SilentlyContinue
+  exit 1
 }
 
 $perUserDir = Join-Path $env:LOCALAPPDATA 'Programs\Insomnium'
