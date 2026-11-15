@@ -1,9 +1,15 @@
 # Lints the staged js/ts/tsx files (lint-staged, eslint --fix).
 # Skip once with: git commit --no-verify
 
-# git from WSL doesn't load nvm
-if ! command -v node >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
-  . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1
+# a hook's shell doesn't load nvm: take the version .nvmrc names, else the
+# newest one installed
+nvm_versions="$HOME/.nvm/versions/node"
+if ! command -v node >/dev/null 2>&1 && [ -d "$nvm_versions" ]; then
+  nvm_version="v$(cat .nvmrc 2>/dev/null)"
+  if [ ! -x "$nvm_versions/$nvm_version/bin/node" ]; then
+    nvm_version=$(ls "$nvm_versions" | sort -V | tail -n 1)
+  fi
+  PATH="$nvm_versions/$nvm_version/bin:$PATH"
 fi
 
 if ! command -v node >/dev/null 2>&1; then
@@ -11,9 +17,11 @@ if ! command -v node >/dev/null 2>&1; then
   exit 0
 fi
 
-if [ ! -e node_modules/.bin/lint-staged ]; then
+lint_staged=node_modules/lint-staged/bin/lint-staged.js
+if [ ! -f "$lint_staged" ]; then
   echo "pre-commit: lint-staged not installed (run npm install), skipping lint"
   exit 0
 fi
 
-npx --no-install lint-staged
+# called directly: npx prints npm's config warnings on every commit
+node "$lint_staged"
