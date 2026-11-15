@@ -100,7 +100,7 @@ export function keyedDebounce<T>(
   return t;
 }
 
-export function debounce<T extends Function>(
+export function debounce<T extends (...args: any[]) => any>(
   callback: T,
   milliseconds: number = DEBOUNCE_MILLIS,
 ): T {

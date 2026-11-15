@@ -317,13 +317,17 @@ export const createConfiguredCurlInstance = ({
       return CurlPreReqFunc.Abort;
     });
   }
-  socketPath && curl.setOpt(Curl.option.UNIX_SOCKET_PATH, socketPath);
+  if (socketPath) {
+    curl.setOpt(Curl.option.UNIX_SOCKET_PATH, socketPath);
+  }
   // HTTP(S) only, for the request and any redirect: curl's other protocols
   // (file, ftp, gopher, smb, ...) would give requests local file access.
   curl.setOpt(Curl.option.PROTOCOLS_STR, 'http,https');
   curl.setOpt(Curl.option.REDIR_PROTOCOLS_STR, 'http,https');
   // opt-in: weakens TLS for every connection this handle makes
-  settings.legacyTls && curl.setLegacyTls(true);
+  if (settings.legacyTls) {
+    curl.setLegacyTls(true);
+  }
 
   curl.setOpt(Curl.option.VERBOSE, true); // Set all the basic options
   curl.setOpt(Curl.option.NOPROGRESS, true); // True so debug function works

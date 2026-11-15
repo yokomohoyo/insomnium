@@ -21,7 +21,9 @@ function useTimeoutWhen(
   });
 
   function callback() {
-    savedRefCallback.current && savedRefCallback.current();
+    if (savedRefCallback.current) {
+      savedRefCallback.current();
+    }
   }
 
   useEffect(() => {

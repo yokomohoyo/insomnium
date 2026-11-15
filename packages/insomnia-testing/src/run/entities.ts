@@ -20,7 +20,7 @@ export interface TestResult {
   file?: string;
   duration?: number;
   currentRetry: number;
-  err: TestErr | NodeErr | {};
+  err: TestErr | NodeErr | object;
 }
 
 export interface TestResults {

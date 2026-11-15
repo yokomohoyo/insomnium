@@ -43,8 +43,12 @@ export const PromptButton = <T, >({
 
   useEffect(() => {
     return () => {
-      triggerTimeout.current && clearTimeout(triggerTimeout.current);
-      doneTimeout.current && clearTimeout(doneTimeout.current);
+      if (triggerTimeout.current) {
+        clearTimeout(triggerTimeout.current);
+      }
+      if (doneTimeout.current) {
+        clearTimeout(doneTimeout.current);
+      }
     };
   }, []);
 

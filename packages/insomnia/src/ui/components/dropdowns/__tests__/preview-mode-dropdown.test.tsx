@@ -23,11 +23,8 @@ jest.mock('../../../../common/har', () => ({
   exportHarCurrentRequest: jest.fn(),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useRouteLoaderData } = require('react-router-dom');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { showError } = require('../../modals');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { exportHarCurrentRequest } = require('../../../../common/har');
 
 describe('<PreviewModeDropdown /> exports', () => {

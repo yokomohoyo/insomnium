@@ -20,7 +20,6 @@ export const oauthRoutes = (port: number) => {
 
   const clientRedirectUri = `http://127.0.0.1:${port}/callback`;
 
-  /* eslint-disable camelcase */
   const oidcConfig: Configuration = {
     findAccount,
     interactions: {
@@ -130,7 +129,6 @@ export const oauthRoutes = (port: number) => {
       return grant;
     },
   };
-  /* eslint-enable camelcase */
 
   const oidc = new Provider(`http://127.0.0.1:${port}`, oidcConfig);
 
@@ -313,14 +311,12 @@ function registerROPC(oidc: Provider) {
 
     const accessToken = await at.save();
 
-    /* eslint-disable camelcase */
     ctx.body = {
       access_token: accessToken,
       expires_in: at.expiration,
       scope: at.scope,
       token_type: at.tokenType,
     };
-    /* eslint-enable camelcase */
   }, parameters);
 }
 

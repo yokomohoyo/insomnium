@@ -17,7 +17,6 @@ jest.mock('react-aria', () => ({
   OverlayContainer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 jest.mock('../ui/components/base/modal', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { forwardRef, useImperativeHandle } = require('react') as typeof import('react');
   return { ...(jest.requireActual('../ui/components/base/modal') as object), Modal: forwardRef(({ children }: { children: React.ReactNode }, ref) => {
     useImperativeHandle(ref, () => ({ show: () => {}, hide: () => {} }));
@@ -43,7 +42,6 @@ jest.mock('../network/runner', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { RunnerModal } = require('../ui/components/modals/runner-modal');
 
 describe('the runner window, as results come in', () => {

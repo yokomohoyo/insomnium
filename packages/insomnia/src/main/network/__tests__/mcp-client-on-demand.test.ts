@@ -24,7 +24,6 @@ jest.mock('electron', () => ({
 
 describe('the MCP client', () => {
   it('loads the SDK when a request first connects, not as the app starts', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const client = require('../mcp-client');
     client.registerMcpClientHandlers();
     expect(mockSdkLoaded).toBe(false);

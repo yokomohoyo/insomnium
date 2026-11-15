@@ -8,7 +8,6 @@ import { tryToInterpolateRequest } from '../network/network';
 import { median, report, seedCollection } from './seed';
 
 // more ids than the mocked list has
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock('uuid', () => ({ v4: () => require('crypto').randomUUID() }));
 
 describe('rendering a request to send it (each send, each runner iteration, each flow step)', () => {

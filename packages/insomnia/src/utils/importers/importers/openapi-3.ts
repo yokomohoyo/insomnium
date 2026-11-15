@@ -21,7 +21,6 @@ function isPlainObject(value: any) {
   return (prototype === null || prototype === Object.prototype || Object.getPrototypeOf(prototype) === null) && !(Symbol.toStringTag in value) && !(Symbol.iterator in value);
 }
 
-/* eslint-disable camelcase -- some camecase is required by the parsing of the spec itself */
 
 const SUPPORTED_OPENAPI_VERSION = /^3\.\d+\.\d+$/;
 

@@ -129,7 +129,7 @@ describe('install.js', () => {
       add = { exitCode: 0, stdout: ADD_DEPRECATED_STDOUT, stderr: '' };
 
       // Replays the yarn output and, when the add succeeded, lays out the modules folder like yarn does
-      jest.spyOn(yarnProcess, 'run').mockImplementation(((args: string[], options: { cwd?: string }, callback: Function) => {
+      jest.spyOn(yarnProcess, 'run').mockImplementation(((args: string[], options: { cwd?: string }, callback: (...args: any[]) => void) => {
         const result = args.includes('info') ? info : add;
         if (args.includes('add') && result.stdout.includes('success') && options.cwd) {
           mkdirSync(path.join(options.cwd, 'insomnia-plugin-request'));
@@ -219,7 +219,7 @@ describe('install.js', () => {
       packageJson = { name: 'insomnia-plugin-local', version: '1.0.0', insomnia: { name: 'local' } };
 
       // yarn add file:…tgz, laid out as yarn does: the package, its dependencies, and it in package.json
-      jest.spyOn(yarnProcess, 'run').mockImplementation(((args: string[], options: { cwd: string }, callback: Function) => {
+      jest.spyOn(yarnProcess, 'run').mockImplementation(((args: string[], options: { cwd: string }, callback: (...args: any[]) => void) => {
         mkdirSync(path.join(options.cwd, 'insomnia-plugin-local'));
         writeFileSync(path.join(options.cwd, 'insomnia-plugin-local', 'package.json'), JSON.stringify(packageJson));
         mkdirSync(path.join(options.cwd, 'left-pad'));

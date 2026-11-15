@@ -21,7 +21,6 @@ export const id = 'swagger2';
 export const name = 'Swagger 2.0';
 export const description = 'Importer for Swagger 2.0 specification (json/yaml)';
 
-/* eslint-disable camelcase -- this file uses camel case too often */
 
 /**
  * Return Insomnium folder / request group

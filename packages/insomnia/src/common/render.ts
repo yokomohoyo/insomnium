@@ -440,8 +440,8 @@ export async function getRenderContext(
   return buildRenderContext({ ancestors, rootEnvironment, subEnvironment: subEnvironment || undefined, globalEnvironments, baseContext, iterationData });
 }
 interface BaseRenderContext {
-  getMeta: () => {};
-  getKeysContext: () => {};
+  getMeta: () => object;
+  getKeysContext: () => object;
   getPurpose: () => string | undefined;
   getExtraInfo: (key: string) => string | null;
   getEnvironmentId: () => string | undefined;

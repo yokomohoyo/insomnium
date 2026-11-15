@@ -22,11 +22,15 @@ export const MarkdownPreview: FC<Props> = ({ markdown, className, heading }) => 
     const fn = async () => {
       try {
         const compiled = markdownToHTML(markdown);
-        shouldUpdate && setCompiled(compiled);
-        shouldUpdate && setError('');
+        if (shouldUpdate) {
+          setCompiled(compiled);
+          setError('');
+        }
       } catch (err) {
-        shouldUpdate && setCompiled('');
-        shouldUpdate && setError(err.message);
+        if (shouldUpdate) {
+          setCompiled('');
+          setError(err.message);
+        }
       }
     };
     fn();

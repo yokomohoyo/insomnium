@@ -249,10 +249,16 @@ export const GraphQLEditor: FC<Props> = ({
         environmentId,
         url: request.url,
       });
-      isMounted && setSchemaFetchError(newState?.schemaFetchError);
-      isMounted && newState?.schema && setSchema(newState.schema);
-      isMounted && newState?.schema && setSchemaLastFetchTime(Date.now());
-      isMounted && setSchemaIsFetching(false);
+      if (isMounted) {
+        setSchemaFetchError(newState?.schemaFetchError);
+      }
+      if (isMounted && newState?.schema) {
+        setSchema(newState.schema);
+        setSchemaLastFetchTime(Date.now());
+      }
+      if (isMounted) {
+        setSchemaIsFetching(false);
+      }
     };
     init();
     return () => {
@@ -535,8 +541,10 @@ export const GraphQLEditor: FC<Props> = ({
                     url: request.url,
                   });
                   setSchemaFetchError(newState?.schemaFetchError);
-                  newState?.schema && setSchema(newState.schema);
-                  newState?.schema && setSchemaLastFetchTime(Date.now());
+                  if (newState?.schema) {
+                    setSchema(newState.schema);
+                    setSchemaLastFetchTime(Date.now());
+                  }
                   setSchemaIsFetching(false);
                 }}
               />

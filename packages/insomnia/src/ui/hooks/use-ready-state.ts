@@ -10,7 +10,9 @@ export function useReadyState({ requestId, protocol }: { requestId: string; prot
     const fn = async () => {
       window.main[protocol].readyState.getCurrent({ requestId })
         .then((currentReadyState: boolean) => {
-          isMounted && setReadyState(currentReadyState);
+          if (isMounted) {
+            setReadyState(currentReadyState);
+          }
         });
     };
     fn();
@@ -23,7 +25,9 @@ export function useReadyState({ requestId, protocol }: { requestId: string; prot
     let isMounted = true;
     const unsubscribe = window.main.on(`${protocol}.${requestId}.readyState`,
       (_, incomingReadyState: boolean) => {
-        isMounted && setReadyState(incomingReadyState);
+        if (isMounted) {
+          setReadyState(incomingReadyState);
+        }
       });
     return () => {
       isMounted = false;

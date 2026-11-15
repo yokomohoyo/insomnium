@@ -22,7 +22,6 @@ jest.mock('electron', () => ({
 
 describe('the spectralRun handler', () => {
   it('loads Spectral when it first lints, not as the app starts', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('../main').registerMainHandlers();
     expect(handlers.has('spectralRun')).toBe(true);
     expect(mockSpectralLoaded).toBe(false);

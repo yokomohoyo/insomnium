@@ -125,7 +125,11 @@ export const CaptureModal: FC<ModalProps & { workspace: Workspace }> = ({ worksp
                         checked={chosen.has(exchange.id)}
                         onChange={event => {
                           const next = new Set(chosen);
-                          event.currentTarget.checked ? next.add(exchange.id) : next.delete(exchange.id);
+                          if (event.currentTarget.checked) {
+                            next.add(exchange.id);
+                          } else {
+                            next.delete(exchange.id);
+                          }
                           setChosen(next);
                         }}
                       />

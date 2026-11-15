@@ -243,7 +243,11 @@ export const RunnerModal: FC<ModalProps & Props> = ({ parentId, name, folders = 
                     disabled={busy}
                     onChange={event => {
                       const next = new Set(skipped);
-                      event.currentTarget.checked ? next.delete(request._id) : next.add(request._id);
+                      if (event.currentTarget.checked) {
+                        next.delete(request._id);
+                      } else {
+                        next.add(request._id);
+                      }
                       setSkipped(next);
                     }}
                   />

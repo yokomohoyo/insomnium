@@ -19,7 +19,6 @@ describe('initializeLogging()', () => {
 
   it('starts the log afresh in the main process, writing as each line comes', () => {
     as('browser');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('../log').initializeLogging();
 
     expect(transport.archiveLog).toHaveBeenCalledWith(file);
@@ -29,7 +28,6 @@ describe('initializeLogging()', () => {
 
   it("in a window, keeps what's in it and writes when idle", () => {
     as('renderer');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     require('../log').initializeLogging();
 
     expect(transport.archiveLog).not.toHaveBeenCalled();

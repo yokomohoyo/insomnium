@@ -39,7 +39,7 @@ describe('onChange()', () => {
       parentId: 'nothing',
       name: 'foo',
     };
-    const changesSeen: Function[] = [];
+    const changesSeen: unknown[] = [];
 
     const callback = (change: any) => {
       changesSeen.push(change);
@@ -70,7 +70,7 @@ describe('bufferChanges()', () => {
       parentId: 'n/a',
       name: 'foo',
     };
-    const changesSeen: Function[] = [];
+    const changesSeen: unknown[] = [];
 
     const callback = (change: any) => {
       changesSeen.push(change);
@@ -107,7 +107,7 @@ describe('bufferChanges()', () => {
       parentId: 'n/a',
       name: 'foo',
     };
-    const changesSeen: Function[] = [];
+    const changesSeen: unknown[] = [];
 
     const callback = (change: any) => {
       changesSeen.push(change);
@@ -134,7 +134,7 @@ describe('bufferChanges()', () => {
       parentId: 'n/a',
       name: 'foo',
     };
-    const changesSeen: Function[] = [];
+    const changesSeen: unknown[] = [];
 
     const callback = (change: any) => {
       changesSeen.push(change);
@@ -164,7 +164,7 @@ describe('bufferChangesIndefinitely()', () => {
       parentId: 'n/a',
       name: 'foo',
     };
-    const changesSeen: Function[] = [];
+    const changesSeen: unknown[] = [];
 
     const callback = (change: any) => {
       changesSeen.push(change);

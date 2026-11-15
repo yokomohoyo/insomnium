@@ -64,7 +64,7 @@ export interface PrivateProperties {
   loadRendererModules: () => Promise<{
     ReactDOM: typeof ReactDOM;
     React: typeof React;
-  } | {}>;
+  } | object>;
 }
 
 export function init(renderPurpose: RenderPurpose = RENDER_PURPOSE_GENERAL): {

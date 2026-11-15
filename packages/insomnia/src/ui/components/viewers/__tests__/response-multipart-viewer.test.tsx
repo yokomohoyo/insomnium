@@ -16,7 +16,6 @@ jest.mock('../../modals/wrapper-modal', () => ({ WrapperModal: () => null }));
 jest.mock('../response-viewer', () => ({ ResponseViewer: () => null }));
 jest.mock('../response-headers-viewer', () => ({ ResponseHeadersViewer: () => null }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { showError } = require('../../modals/index');
 
 describe('<ResponseMultipartViewer /> Save as File', () => {

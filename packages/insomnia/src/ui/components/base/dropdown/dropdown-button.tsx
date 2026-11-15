@@ -45,7 +45,7 @@ type DropdownButtonProps = {
   onClick?: () => void;
 } & ButtonProps & AriaButtonProps & StyledThemedButtonProps;
 
-export const DropdownButton = forwardRef<{}, DropdownButtonProps>((props: DropdownButtonProps, ref: any) => {
+export const DropdownButton = forwardRef<object, DropdownButtonProps>((props: DropdownButtonProps, ref: any) => {
   const buttonRef = useRef(ref);
   const { buttonProps, isPressed } = useButton({ ...props, onPress: props.onClick }, buttonRef);
   const { focusProps } = useFocusRing();

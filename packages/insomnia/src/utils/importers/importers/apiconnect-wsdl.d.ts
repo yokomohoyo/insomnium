@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- this is a temporary hold-me-over while we get the types into better condition
 type UNKNOWN = any;
 interface UNKNOWN_OBJ {
   [key: string]: UNKNOWN;

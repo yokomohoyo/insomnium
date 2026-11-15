@@ -11,7 +11,6 @@ const changes = [
 const mockLoaded: { data: object } = { data: { changes, branch: 'main', statusNames: {} } };
 
 jest.mock('react-router-dom', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { forwardRef } = require('react') as typeof import('react');
   const Form = forwardRef<HTMLFormElement, React.FormHTMLAttributes<HTMLFormElement>>((props, ref) => <form ref={ref} {...props} />);
   return {
@@ -26,7 +25,6 @@ jest.mock('react-aria', () => ({
   OverlayContainer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 jest.mock('../../base/modal', () => {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { forwardRef, useImperativeHandle } = require('react') as typeof import('react');
   return { ...(jest.requireActual('../../base/modal') as object), Modal: forwardRef(({ children }: { children: React.ReactNode }, ref) => {
     useImperativeHandle(ref, () => ({ show: () => {}, hide: () => {} }));
@@ -37,7 +35,6 @@ jest.mock('../../base/modal', () => {
 jest.mock('../index', () => ({ showAlert: () => {} }));
 jest.mock('../../tooltip', () => ({ Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { GitStagingModal } = require('../git-staging-modal');
 
 describe('<GitStagingModal />', () => {

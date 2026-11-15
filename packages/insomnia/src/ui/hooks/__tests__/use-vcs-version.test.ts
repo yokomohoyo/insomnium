@@ -9,7 +9,6 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ requestId: mockRequestId }),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useActiveRequestSyncVCSVersion } = require('../use-vcs-version');
 
 describe('useActiveRequestSyncVCSVersion()', () => {

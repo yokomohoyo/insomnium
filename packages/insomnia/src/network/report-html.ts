@@ -11,7 +11,6 @@ export const xml = (text: unknown) => String(text ?? '')
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   // characters XML 1.0 can't hold at all
-  // eslint-disable-next-line no-control-regex
   .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
 
 export const ms = (value?: number) => value === undefined ? '' : value < 1000 ? `${value.toFixed(1)} ms` : `${(value / 1000).toFixed(2)} s`;

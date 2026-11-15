@@ -4,7 +4,7 @@ import { useNunjucks } from '../../context/nunjucks/use-nunjucks';
 
 interface Props {
   defaultValue: string;
-  onChange: Function;
+  onChange: (value: string) => void;
 }
 
 export const VariableEditor: FC<Props> = ({ onChange, defaultValue }) => {
@@ -19,14 +19,20 @@ export const VariableEditor: FC<Props> = ({ onChange, defaultValue }) => {
     const syncInterpolation = async () => {
       try {
         const p = await handleRender(selected);
-        isMounted && setPreview(p);
-        isMounted && setError('');
+        if (isMounted) {
+          setPreview(p);
+          setError('');
+        }
       } catch (e) {
-        isMounted && setPreview('');
-        isMounted && setError(e.message);
+        if (isMounted) {
+          setPreview('');
+          setError(e.message);
+        }
       }
       const context = await handleGetRenderContext();
-      isMounted && setOptions(context.keys.sort((a, b) => (a.name < b.name ? -1 : 1)));
+      if (isMounted) {
+        setOptions(context.keys.sort((a, b) => (a.name < b.name ? -1 : 1)));
+      }
     };
     syncInterpolation();
     return () => {

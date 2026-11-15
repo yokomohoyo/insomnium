@@ -7,9 +7,7 @@ import { appFlowRunner } from '../flow-runner';
 jest.mock('../../network/runner', () => ({ sendForRun: jest.fn() }));
 jest.mock('../../network/network', () => ({ cancelCurlAndWriteTimeline: jest.fn() }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { sendForRun } = require('../../network/runner');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { cancelCurlAndWriteTimeline } = require('../../network/network');
 
 describe('appFlowRunner', () => {

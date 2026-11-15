@@ -33,9 +33,7 @@ jest.mock('../../viewers/response-headers-viewer', () => ({ ResponseHeadersViewe
 jest.mock('../../viewers/response-cookies-viewer', () => ({ ResponseCookiesViewer: () => null }));
 jest.mock('../../viewers/response-timeline-viewer', () => ({ ResponseTimelineViewer: () => null }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { useRouteLoaderData } = require('react-router-dom');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { showError } = require('../../modals');
 
 describe('<ResponsePane /> Save Response Body', () => {

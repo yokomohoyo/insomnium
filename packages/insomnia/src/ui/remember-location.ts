@@ -28,7 +28,9 @@ export function rememberLocation(router: Router, storage: Pick<Storage, 'setItem
       storage.setItem('requester_locationHistoryEntry', location.pathname);
     }
     storage.setItem('locationHistoryEntry', location.pathname);
-    match?.params.organizationId && storage.setItem(`locationHistoryEntry:${match?.params.organizationId}`, location.pathname);
+    if (match?.params.organizationId) {
+      storage.setItem(`locationHistoryEntry:${match?.params.organizationId}`, location.pathname);
+    }
     console.log('location.pathname', location.pathname);
   });
 }

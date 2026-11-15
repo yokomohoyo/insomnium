@@ -25,7 +25,6 @@ jest.mock('../websocket-preview-dropdown', () => ({
   ),
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { showError } = require('../../modals');
 
 describe('<MessageEventView /> Save Response Body', () => {

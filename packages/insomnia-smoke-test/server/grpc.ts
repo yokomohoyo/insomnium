@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable camelcase */
 // inspiration: https://github.com/grpc/grpc/blob/master/examples/node/dynamic_codegen/route_guide/route_guide_server.js
 import * as grpc from '@grpc/grpc-js';
 import { HandleCall } from '@grpc/grpc-js/build/src/server-call';
@@ -21,7 +19,6 @@ const packageDefinition = protoLoader.loadSync(
 
 const routeguide = grpc.loadPackageDefinition(packageDefinition).routeguide;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let featureList: any[] = [];
 
 const COORD_FACTOR = 1e7;
@@ -32,7 +29,6 @@ const COORD_FACTOR = 1e7;
  * @return {feature} The feature object at the point. Note that an empty name
  *     indicates no feature
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function checkFeature(point: { latitude: any; longitude: any }) {
   let feature;
   // Check if there is already a feature object for the given point
@@ -54,7 +50,6 @@ function checkFeature(point: { latitude: any; longitude: any }) {
 /**
  * getFeature request handler.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getFeature: HandleCall<any, any> = (call: any, callback: any) => {
   callback(null, checkFeature(call.request));
 };
@@ -62,7 +57,6 @@ const getFeature: HandleCall<any, any> = (call: any, callback: any) => {
 /**
  * listFeatures request handler.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const listFeatures: HandleCall<any, any> = (call: any) => {
   const lo = call.request.lo;
   const hi = call.request.hi;
