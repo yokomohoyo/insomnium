@@ -6,7 +6,9 @@ import { setLanguage } from '../../common/i18n';
 import { tx } from '../tx';
 
 describe('tx', () => {
-  afterEach(() => setLanguage('en'));
+  afterEach(() => {
+    setLanguage('en');
+  });
 
   it('puts the elements where the translation has them', () => {
     const link = <a href="https://example.com">docs</a>;

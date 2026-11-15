@@ -6,7 +6,9 @@ import { MemClient } from '../mem-client';
 import { assertAsyncError, setupDateMocks } from './util';
 
 describe('MemClient', () => {
-  afterAll(() => jest.restoreAllMocks());
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
   beforeEach(setupDateMocks);
   const fooTxt = 'foo.txt';
   const barTxt = 'bar.txt';

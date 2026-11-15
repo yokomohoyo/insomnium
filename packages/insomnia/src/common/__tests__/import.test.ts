@@ -48,7 +48,7 @@ describe('importRaw()', () => {
       content,
     });
 
-    expect(scanResult.type.id).toBe('curl');
+    expect(scanResult.type?.id).toBe('curl');
     expect(scanResult.errors.length).toBe(0);
 
     await importResourcesToProject.importResourcesToProject({
@@ -107,7 +107,7 @@ describe('importRaw()', () => {
       content,
     });
 
-    expect(scanResult.type.id).toBe('postman');
+    expect(scanResult.type?.id).toBe('postman');
     expect(scanResult.errors.length).toBe(0);
 
     await importResourcesToProject.importResourcesToProject({

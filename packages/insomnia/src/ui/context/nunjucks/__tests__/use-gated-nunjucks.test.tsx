@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { renderHook } from '@testing-library/react';
-import React, { FC } from 'react';
+import React, { FC, PropsWithChildren } from 'react';
 
 import { NunjucksEnabledProvider } from '../nunjucks-enabled-context';
 import { useGatedNunjucks } from '../use-gated-nunjucks';
@@ -8,8 +8,8 @@ import { useNunjucks } from '../use-nunjucks';
 
 jest.mock('../use-nunjucks', () => {
   const funcs: ReturnType<typeof useNunjucks> = {
-    handleRender: jest.fn(),
-    handleGetRenderContext: jest.fn(),
+    handleRender: jest.fn() as unknown as ReturnType<typeof useNunjucks>['handleRender'],
+    handleGetRenderContext: jest.fn<ReturnType<typeof useNunjucks>['handleGetRenderContext']>(),
   };
 
   return ({
@@ -19,7 +19,7 @@ jest.mock('../use-nunjucks', () => {
 
 describe('useGatedNunjucks', () => {
   it('should return defined functions (disableContext false, disableProp false)', () => {
-    const wrapper: FC = ({ children }) => (
+    const wrapper: FC<PropsWithChildren> = ({ children }) => (
       <NunjucksEnabledProvider disable={false}>
         {children}
       </NunjucksEnabledProvider>
@@ -36,7 +36,7 @@ describe('useGatedNunjucks', () => {
     [false, true],
     [true, true],
   ])('should return undefined functions (disableContext %s, disableProp %s)', (disableContext: boolean, disableProp: boolean) => {
-    const wrapper: FC = ({ children }) => (
+    const wrapper: FC<PropsWithChildren> = ({ children }) => (
       <NunjucksEnabledProvider disable={disableContext}>
         {children}
       </NunjucksEnabledProvider>

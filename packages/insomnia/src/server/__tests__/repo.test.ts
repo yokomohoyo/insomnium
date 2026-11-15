@@ -25,7 +25,7 @@ const base = doc(models.environment.type, 'env_1', { parentId: 'wrk_1', name: 'B
 const list = doc(models.request.type, 'req_1', { parentId: 'wrk_1', name: 'list pets', method: 'GET', url: 'https://{{ host }}/pets' });
 const add = doc(models.request.type, 'req_2', { parentId: 'wrk_1', name: 'add pet', method: 'POST', url: 'https://{{ host }}/pets' });
 const file = ({ _id, type }: { _id: string; type: string }) => `.insomnium/${type}/${_id}.yml`;
-const files = (...docs: { _id: string; type: string }[]) => Object.fromEntries(docs.map(d => [file(d), YAML.stringify(d)]));
+const files = (...docs: { _id: string; type: string; [field: string]: unknown }[]) => Object.fromEntries(docs.map(d => [file(d), YAML.stringify(d)]));
 
 const load = (repos: string[]) => loadSources({ collections: [], repos, variables: { token: 'from-the-deployment' }, validateSSL: true, allowedHosts: ['*'], allowedEnvironmentVariables: '' });
 const names = async () => (await models.request.all()).map(request => request.name).sort();

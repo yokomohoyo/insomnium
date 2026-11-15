@@ -19,7 +19,7 @@ import { routableFSClient } from '../routable-fs-client';
 jest.unmock('isomorphic-git');
 jest.mock('../http-client', () => ({ httpClient: jest.requireActual('isomorphic-git/http/node') }));
 
-const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' };
+const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' as const };
 const request = { _id: 'req_1', type: models.request.type, parentId: 'wrk_1', name: 'list pets', method: 'GET', url: 'https://pets.example.com/pets' };
 const file = (doc: { _id: string; type?: string }) => `.insomnium/${doc.type || models.request.type}/${doc._id}.yml`;
 const messages = async () => (await GitVCS.log()).map(entry => entry.commit.message.trim());
@@ -71,7 +71,9 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
     await GitVCS.setAuthor('Ana', 'ana@example.com');
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   describe('tags', () => {
     it('tags the current commit, lightweight or with a message', async () => {

@@ -11,9 +11,9 @@ import { EventEmitter } from 'events';
 import fs from 'fs';
 
 class Curl extends EventEmitter {
-  _options = {};
-  _meta = {};
-  _features = {};
+  _options: Record<string, any> = {};
+  _meta: Record<string, any> = {};
+  _features: Record<string, boolean> = {};
   // the address a host name connects to, for PREREQFUNCTION (a test sets
   // these); global, as a dynamic import gets its own copy of this module
   static get addresses(): Record<string, string> {
@@ -86,18 +86,18 @@ class Curl extends EventEmitter {
     return 'libcurl/7.54.0 LibreSSL/2.0.20 zlib/1.2.11 nghttp2/1.24.0';
   }
 
-  enable(name) {
+  enable(name: string) {
     this._features[name] = true;
   }
 
-  setLegacyTls(enabled) {
+  setLegacyTls(enabled: boolean) {
     if (enabled) {
       this._options.LEGACY_TLS = true;
     }
     return this;
   }
 
-  setOpt(name, value) {
+  setOpt(name: string, value: any) {
     if (!name) {
       throw new Error(`Invalid option ${name} ${value}`);
     }
@@ -140,7 +140,7 @@ class Curl extends EventEmitter {
     }
   }
 
-  getInfo(name) {
+  getInfo(name: string) {
     switch (name) {
       case Curl.info.COOKIELIST:
         return [`#HttpOnly_.insomnia.rest\tTRUE\t/url/path\tTRUE\t${Date.now() / 1000}\tfoo\tbar`];
@@ -173,7 +173,6 @@ class Curl extends EventEmitter {
 
   perform() {
     process.nextTick(() => {
-      // @ts-expect-error -- TSCONVERSION
       const prereq = this._options.PREREQFUNCTION;
       if (prereq) {
         const host = new URL(String(this._options[Curl.option.URL])).hostname.replace(/^\[(.*)\]$/, '$1');
@@ -191,7 +190,6 @@ class Curl extends EventEmitter {
       );
       this.emit('data', data);
 
-      // @ts-expect-error -- TSCONVERSION
       this._options.WRITEFUNCTION(data);
 
       // a URL with /status/<code> in it answers with that status, and with
@@ -234,7 +232,7 @@ class Curl extends EventEmitter {
  * ```
  * We only want the named members (non-number ones)
  */
-const getTsEnumOnlyWithNamedMembers = enumObj => {
+const getTsEnumOnlyWithNamedMembers = (enumObj: Record<string, unknown>) => {
   let obj = {};
 
   for (const member in enumObj) {

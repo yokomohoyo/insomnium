@@ -45,6 +45,7 @@ describe('validateTheme', () => {
       displayName,
       theme: {
         background: {
+          // @ts-expect-error -- a template in place of a colour, on purpose
           default: nunjucksValue,
           info: '#abcdef',
         },
@@ -65,6 +66,7 @@ describe('validateTheme', () => {
         styles: {
           appHeader: {
             foreground: {
+              // @ts-expect-error -- a template in place of a colour, on purpose
               default: nunjucksValue,
               info: '#abcdef',
             },

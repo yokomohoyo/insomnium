@@ -8,7 +8,7 @@ import * as models from '../../../../models';
 import { FlowEditor } from '../flow-editor';
 
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual<object>('react-router-dom'),
+  ...(jest.requireActual('react-router-dom') as object),
   useParams: jest.fn(),
   useRouteLoaderData: jest.fn(),
 }));

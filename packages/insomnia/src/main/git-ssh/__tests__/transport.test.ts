@@ -28,7 +28,7 @@ jest.unmock('isomorphic-git');
 // after a test that turned a host down takes about five seconds.
 jest.setTimeout(20_000);
 
-const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' };
+const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' as const };
 const request = { _id: 'req_1', type: models.request.type, parentId: 'wrk_1', name: 'list pets', method: 'GET', url: 'https://pets.example.com/pets' };
 const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${doc._id}.yml`;
 

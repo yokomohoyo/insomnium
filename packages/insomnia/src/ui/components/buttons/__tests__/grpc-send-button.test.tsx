@@ -9,7 +9,7 @@ describe('<GrpcSendButton />', () => {
     const { getByRole } = render(
       <GrpcSendButton
         running={false}
-        handleStart={jest.fn()}
+        handleStart={jest.fn<() => Promise<void>>()}
         handleCancel={jest.fn()}
         methodType={undefined}
       />,
@@ -24,7 +24,7 @@ describe('<GrpcSendButton />', () => {
     const { getByRole } = render(
       <GrpcSendButton
         running={true}
-        handleStart={jest.fn()}
+        handleStart={jest.fn<() => Promise<void>>()}
         handleCancel={handleCancel}
         methodType={'unary'}
       />,
@@ -41,7 +41,7 @@ describe('<GrpcSendButton />', () => {
     const { getByRole } = render(
       <GrpcSendButton
         running={false}
-        handleStart={handleSend()}
+        handleStart={handleSend() as () => Promise<void>}
         handleCancel={jest.fn()}
         methodType={'unary'}
       />,
@@ -60,9 +60,9 @@ describe('<GrpcSendButton />', () => {
       const { getByRole } = render(
         <GrpcSendButton
           running={false}
-          handleStart={handleSend()}
+          handleStart={handleSend() as () => Promise<void>}
           handleCancel={jest.fn()}
-          methodType={type}
+          methodType={type as 'bidi' | 'server' | 'client'}
         />,
       );
       const button = getByRole('button');

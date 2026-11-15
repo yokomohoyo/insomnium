@@ -55,6 +55,7 @@ describe('insomnium-server', () => {
       variables: { path: 'v1' },
       validateSSL: true,
       allowedEnvironmentVariables: 'INSOMNIUM_TEST_*',
+      allowedSecrets: '',
     }));
     base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });

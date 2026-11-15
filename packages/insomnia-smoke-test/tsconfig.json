@@ -3,6 +3,8 @@
   "compilerOptions": {
     "composite": false,
     "rootDir": ".",
+    // zod's declarations need a newer TypeScript
+    "skipLibCheck": true,
   },
   "include": [
     "**/*.d.ts",

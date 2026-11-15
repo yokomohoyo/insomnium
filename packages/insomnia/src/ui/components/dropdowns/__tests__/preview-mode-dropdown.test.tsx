@@ -10,7 +10,7 @@ import React from 'react';
 import { PreviewModeDropdown } from '../preview-mode-dropdown';
 
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual<object>('react-router-dom'),
+  ...(jest.requireActual('react-router-dom') as object),
   useRouteLoaderData: jest.fn(),
 }));
 jest.mock('../../../hooks/use-request', () => ({

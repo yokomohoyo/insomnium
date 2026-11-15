@@ -34,7 +34,7 @@ describe('getKeys()', () => {
       },
       {
         name: 'array[1].hi',
-        value: obj.array[1].hi,
+        value: (obj.array[1] as { hi: string }).hi,
       },
       {
         name: 'array[2]',
@@ -42,15 +42,15 @@ describe('getKeys()', () => {
       },
       {
         name: 'array[3][0]',
-        value: obj.array[3][0],
+        value: (obj.array[3] as string[])[0],
       },
       {
         name: 'array[3][1]',
-        value: obj.array[3][1],
+        value: (obj.array[3] as string[])[1],
       },
       {
         name: 'array[3][2]',
-        value: obj.array[3][2],
+        value: (obj.array[3] as string[])[2],
       },
       {
         name: 'false',
@@ -229,7 +229,7 @@ describe('unTokenizeTag()', () => {
   it('handles the default case', () => {
     const tagStr = '{% name bar, "baz \\"qux\\""   , 1 + 5, \'hi\' %}';
     const tagData = utils.tokenizeTag(tagStr);
-    const result = utils.unTokenizeTag(tagData);
+    const result = utils.unTokenizeTag(tagData as Parameters<typeof utils.unTokenizeTag>[0]);
     expect(result).toEqual('{% name bar, "baz \\"qux\\"", 1 + 5, \'hi\' %}');
   });
 
@@ -271,7 +271,7 @@ describe('unTokenizeTag()', () => {
         },
       ],
     };
-    const result = utils.unTokenizeTag(tagData);
+    const result = utils.unTokenizeTag(tagData as Parameters<typeof utils.unTokenizeTag>[0]);
     expect(result).toEqual(
       "{% name true, 'foo', foo.length, 'foo/bar/baz', 'id_123', 10, 'foo', var %}",
     );
@@ -291,7 +291,7 @@ describe('unTokenizeTag()', () => {
         },
       ],
     };
-    const result = utils.unTokenizeTag(tagData);
+    const result = utils.unTokenizeTag(tagData as Parameters<typeof utils.unTokenizeTag>[0]);
     expect(result).toEqual("{% name 'foo/bar/baz', 'foo' %}");
   });
 });

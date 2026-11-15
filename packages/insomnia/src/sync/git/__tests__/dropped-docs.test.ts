@@ -74,7 +74,9 @@ describe('docs removed upstream', () => {
     await GitVCS.commit('one');
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('are removed from the app by a pull, with what hangs off them', async () => {
     await pullDeleting(FOLDER, IN_FOLDER, REQUEST);

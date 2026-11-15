@@ -4,6 +4,7 @@ import electron from 'electron';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import { getRenderedRequestAndContext } from '../../common/render';
 import { timingPhases } from '../../common/timings';
+import type { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
 import * as networkUtils from '../network';
 
@@ -21,7 +22,7 @@ describe('response timings', () => {
     const { request: rendered } = await getRenderedRequestAndContext({ request });
     // the mock's libcurl: 10 ms to resolve, connected at 30 ms, no TLS, first byte at 500 ms
     const response = await networkUtils.sendCurlAndWriteTimeline(rendered, [], null, await models.settings.getOrCreate());
-    expect(response.timings).toEqual({ dns: 10, connect: 30, tls: 0, firstByte: 500 });
+    expect((response as ResponsePatch).timings).toEqual({ dns: 10, connect: 30, tls: 0, firstByte: 500 });
 
     const stored = await models.response.create({ ...response, parentId: request._id });
     expect(stored.timings).toEqual({ dns: 10, connect: 30, tls: 0, firstByte: 500 });

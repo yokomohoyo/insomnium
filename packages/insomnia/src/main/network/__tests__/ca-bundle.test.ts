@@ -18,7 +18,9 @@ const systemStore = (getCACertificates: (type: 'system') => string[]) =>
   jest.spyOn(tls as unknown as { getCACertificates: typeof getCACertificates }, 'getCACertificates').mockImplementation(getCACertificates);
 
 describe('getCaBundle()', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('is the bundled roots without a workspace CA', async () => {
     expect(await load().getCaBundle(null)).toBe(tls.rootCertificates.join('\n'));

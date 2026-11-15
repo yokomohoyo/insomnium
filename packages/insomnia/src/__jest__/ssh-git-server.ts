@@ -111,7 +111,7 @@ export async function startSshGitServer() {
       };
     },
     async close() {
-      await new Promise(resolve => server.close(resolve));
+      await new Promise<void>(resolve => server.close(() => resolve()));
       fs.rmSync(root, { recursive: true, force: true });
     },
   };

@@ -15,7 +15,7 @@ import { listSnapshots, restorePendingSnapshot, restoreSnapshotOnRestart, snapsh
 jest.mock('electron');
 
 // as sqlite-store does: jest's module system doesn't know node:sqlite
-const { DatabaseSync } = process.getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
+const { DatabaseSync } = (process as unknown as { getBuiltinModule(id: string): unknown }).getBuiltinModule('node:sqlite') as typeof import('node:sqlite');
 // what a database file holds, read without the app
 const workspaceNames = (file: string) => {
   const db = new DatabaseSync(file);
@@ -90,7 +90,6 @@ describe('snapshots', () => {
 
     // the oldest daily one, restored: the snapshot before the restore mustn't prune it
     const oldest = daily[daily.length - 1].name;
-    // @ts-expect-error -- not part of the electron mock
     electron.app.relaunch = jest.fn();
     await restoreSnapshotOnRestart(oldest);
 

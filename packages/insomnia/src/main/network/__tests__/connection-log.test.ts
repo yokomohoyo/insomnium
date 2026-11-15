@@ -167,7 +167,7 @@ describe('saveErrorResponse()', () => {
 
 describe('storeSetCookies()', () => {
   const jar = () => ({ _id: 'jar_1', cookies: [] } as unknown as CookieJar);
-  const stored = () => (jest.mocked(models.cookieJar.update).mock.calls[0][1].cookies || []).map(cookie => `${cookie.key}=${cookie.value}@${cookie.domain}`);
+  const stored = () => (jest.mocked(models.cookieJar.update).mock.calls[0][1]?.cookies || []).map(cookie => `${cookie.key}=${cookie.value}@${cookie.domain}`);
 
   it('saves the cookies as set by the URL it is given', async () => {
     const timeline: TimelineEntry[] = [];

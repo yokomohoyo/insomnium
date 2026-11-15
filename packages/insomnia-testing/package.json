@@ -17,6 +17,7 @@
   "scripts": {
     "lint": "eslint . --cache",
     "test": "jest",
+    "type-check": "tsc --noEmit --project tsconfig.check.json",
     "build": "tsc --build tsconfig.build.json",
     "watch": "npm run build -- --watch"
   },

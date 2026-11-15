@@ -41,7 +41,7 @@ describe('onChange()', () => {
     };
     const changesSeen: Function[] = [];
 
-    const callback = change => {
+    const callback = (change: any) => {
       changesSeen.push(change);
     };
 
@@ -72,7 +72,7 @@ describe('bufferChanges()', () => {
     };
     const changesSeen: Function[] = [];
 
-    const callback = change => {
+    const callback = (change: any) => {
       changesSeen.push(change);
     };
 
@@ -109,7 +109,7 @@ describe('bufferChanges()', () => {
     };
     const changesSeen: Function[] = [];
 
-    const callback = change => {
+    const callback = (change: any) => {
       changesSeen.push(change);
     };
 
@@ -136,7 +136,7 @@ describe('bufferChanges()', () => {
     };
     const changesSeen: Function[] = [];
 
-    const callback = change => {
+    const callback = (change: any) => {
       changesSeen.push(change);
     };
 
@@ -166,7 +166,7 @@ describe('bufferChangesIndefinitely()', () => {
     };
     const changesSeen: Function[] = [];
 
-    const callback = change => {
+    const callback = (change: any) => {
       changesSeen.push(change);
     };
 
@@ -647,7 +647,9 @@ describe('_fixDBShape()', () => {
 describe('duplicate()', () => {
   beforeEach(globalBeforeEach);
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('should overwrite appropriate fields on the parent when duplicating', async () => {
     const date = 1478795580200;
@@ -687,7 +689,9 @@ describe('duplicate()', () => {
 
 describe('docCreate()', () => {
   beforeEach(globalBeforeEach);
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('should call migrate when creating', async () => {
     const spy = jest.spyOn(models.workspace, 'migrate');

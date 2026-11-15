@@ -12,7 +12,7 @@ import type { CookieJar } from '../../../models/cookie-jar';
 import { webSockets } from '../websocket';
 
 jest.mock('ws', () => {
-  const { EventEmitter } = jest.requireActual<typeof import('node:events')>('node:events');
+  const { EventEmitter } = (jest.requireActual('node:events') as typeof import('node:events'));
   // a socket that connects to nothing: the test plays the server
   class MockSocket extends EventEmitter {
     static OPEN = 1;

@@ -1,6 +1,7 @@
 import { TextDecoder, TextEncoder } from 'node:util';
 
-globalThis.__DEV__ = false;
+const globals = globalThis as Record<string, any>;
+globals.__DEV__ = false;
 
 // jsdom does not provide TextEncoder/TextDecoder, but react-router v7 reaches for
 // them at module load, which fails every suite that transitively imports it.
@@ -24,4 +25,4 @@ globalThis.console.log = (...args) => {
   }
 };
 
-global.main = {};
+globals.main = {};

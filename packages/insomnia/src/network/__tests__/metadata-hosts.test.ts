@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import { getRenderedRequestAndContext } from '../../common/render';
+import type { ResponsePatch } from '../../main/network/libcurl-promise';
 import { onWebSocketRedirect } from '../../main/network/websocket-redirect';
 import * as models from '../../models';
+import type { Request } from '../../models/request';
 import { assertNotMetadataHost, isMetadataHost, lookupRefusingMetadata, setMetadataGuard } from '../metadata-hosts';
 import * as networkUtils from '../network';
 
@@ -35,7 +37,9 @@ describe('cloud metadata hosts', () => {
   });
 
   describe('names that resolve to one', () => {
-    afterEach(() => jest.restoreAllMocks());
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
 
     it('are refused before a connection that resolves its own names', async () => {
       jest.spyOn(dns.promises, 'lookup').mockImplementation((async (name: string) => [{ address: name === 'rebind.example.com' ? '169.254.169.254' : '93.184.215.14', family: 4 }]) as any);
@@ -69,9 +73,9 @@ describe('cloud metadata hosts', () => {
     const send = async (url: string) => {
       const workspace = await models.workspace.create();
       const settings = await models.settings.getOrCreate();
-      const request = Object.assign(models.request.init(), { _id: 'req_123', parentId: workspace._id, url });
+      const request = Object.assign(models.request.init(), { _id: 'req_123', parentId: workspace._id, url }) as Request;
       const { request: rendered } = await getRenderedRequestAndContext({ request });
-      return networkUtils.sendCurlAndWriteTimeline(rendered, [], null, settings);
+      return networkUtils.sendCurlAndWriteTimeline(rendered, [], null, settings) as Promise<ResponsePatch>;
     };
 
     it('no HTTP request connects to one, whatever name leads there', async () => {

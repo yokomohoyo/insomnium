@@ -2,7 +2,7 @@ export function setupDateMocks() {
   let ts = 1000000000000;
 
   class fakeDate extends Date {
-    constructor(arg) {
+    constructor(arg?: number | string | Date) {
       if (!arg) {
         return new Date(ts++);
       } else {
@@ -19,7 +19,7 @@ export function setupDateMocks() {
     }
   }
 
-  global.Date = fakeDate;
+  global.Date = fakeDate as DateConstructor;
 }
 
 export async function assertAsyncError(promise: Promise<any>, code?: string) {

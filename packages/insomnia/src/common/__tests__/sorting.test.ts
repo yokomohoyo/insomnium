@@ -20,9 +20,13 @@ import {
 import {
   ascendingNumberSort,
   descendingNumberSort,
-  metaSortKeySort,
+  metaSortKeySort as modelMetaSortKeySort,
   sortMethodMap,
 } from '../sorting';
+
+// the tests give a sort only the fields it reads
+type PartialSort = (a: Record<string, unknown>, b: Record<string, unknown>) => number;
+const metaSortKeySort = modelMetaSortKeySort as unknown as PartialSort;
 
 describe('Sorting methods', () => {
   it('sorts by name', () => {
@@ -356,7 +360,7 @@ describe('Sorting methods', () => {
   });
 
   it('sorts by type', () => {
-    const ascendingTypeSort = sortMethodMap[SORT_TYPE_ASC];
+    const ascendingTypeSort = sortMethodMap[SORT_TYPE_ASC] as unknown as PartialSort;
     expect(
       ascendingTypeSort(
         {
@@ -501,7 +505,7 @@ describe('Sorting methods', () => {
         },
       ),
     ).toBe(1);
-    const descendingTypeSort = sortMethodMap[SORT_TYPE_DESC];
+    const descendingTypeSort = sortMethodMap[SORT_TYPE_DESC] as unknown as PartialSort;
     expect(
       descendingTypeSort(
         {
@@ -649,7 +653,7 @@ describe('Sorting methods', () => {
   });
 
   it('sorts by HTTP method', () => {
-    const httpMethodSort = sortMethodMap[SORT_HTTP_METHOD];
+    const httpMethodSort = sortMethodMap[SORT_HTTP_METHOD] as unknown as PartialSort;
     expect(
       httpMethodSort(
         {

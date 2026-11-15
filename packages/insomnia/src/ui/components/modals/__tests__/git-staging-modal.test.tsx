@@ -37,7 +37,9 @@ jest.mock('../../tooltip', () => ({ Tooltip: ({ children }: { children: React.Re
 const { GitStagingModal } = require('../git-staging-modal');
 
 describe('<GitStagingModal />', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('keeps the row checkboxes controlled through select-all', () => {
     const error = jest.spyOn(console, 'error').mockImplementation(() => {});

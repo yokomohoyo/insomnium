@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import { getRenderedRequestAndContext } from '../../common/render';
+import type { ResponsePatch } from '../../main/network/libcurl-promise';
 import * as models from '../../models';
+import type { Request } from '../../models/request';
 import * as networkUtils from '../network';
 import { setRequestPolicy } from '../request-policy';
 
@@ -18,9 +20,9 @@ describe('the request policy', () => {
 
   const send = async (url: string) => {
     const workspace = await models.workspace.create();
-    const request = Object.assign(models.request.init(), { _id: 'req_1', parentId: workspace._id, url });
+    const request = Object.assign(models.request.init(), { _id: 'req_1', parentId: workspace._id, url }) as Request;
     const { request: rendered } = await getRenderedRequestAndContext({ request });
-    return networkUtils.sendCurlAndWriteTimeline(rendered, [], null, await models.settings.getOrCreate());
+    return networkUtils.sendCurlAndWriteTimeline(rendered, [], null, await models.settings.getOrCreate()) as Promise<ResponsePatch>;
   };
 
   it('is checked with the final url before anything is sent, so every way of sending is covered', async () => {

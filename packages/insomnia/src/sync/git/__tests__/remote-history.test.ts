@@ -20,7 +20,7 @@ import { routableFSClient } from '../routable-fs-client';
 jest.unmock('isomorphic-git');
 jest.mock('../http-client', () => ({ httpClient: jest.requireActual('isomorphic-git/http/node') }));
 
-const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' };
+const workspace = { _id: 'wrk_1', type: models.workspace.type, parentId: null, name: 'Pets', scope: 'collection' as const };
 const request = { _id: 'req_1', type: models.request.type, parentId: 'wrk_1', name: 'list pets', method: 'GET', url: 'https://pets.example.com/pets' };
 const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${doc._id}.yml`;
 
@@ -60,7 +60,9 @@ const file = (doc: { _id: string; type: string }) => `.insomnium/${doc.type}/${d
     await GitVCS.setAuthor('Ana', 'ana@example.com');
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it("merges what was pushed since the last fetch, however many commits, with this side's own", async () => {
     // a commit here, so the pull is a merge, which needs where the two sides parted

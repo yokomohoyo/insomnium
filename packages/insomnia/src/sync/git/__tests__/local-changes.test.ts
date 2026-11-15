@@ -26,7 +26,7 @@ const nameOf = async (id: string) => (await models.request.getById(id))?.name;
 const writeOther = (text: string) => (GitVCS.getFs() as git.PromiseFsClient).promises.writeFile('package.json', text);
 
 // a commit on 'upstream' that renames 'list pets', as a pull would fetch it
-const upstream = async (change = () => rename('req_1', 'list all pets'), files = [LIST]) => {
+const upstream = async (change: () => Promise<unknown> = () => rename('req_1', 'list all pets'), files = [LIST]) => {
   await GitVCS.checkout('upstream');
   await change();
   for (const filepath of files) {
@@ -58,7 +58,9 @@ describe('changes that were never committed', () => {
     await GitVCS.commit('one');
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it("aren't written over by a pull of a change to the same request: it stops, and nothing moves", async () => {
     await upstream();

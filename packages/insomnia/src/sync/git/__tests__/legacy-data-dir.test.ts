@@ -16,7 +16,7 @@ import { routableFSClient } from '../routable-fs-client';
 // data in .insomnia, and keeps it there
 const LEGACY = GIT_INSOMNIA_LEGACY_DIR_NAME;
 const author = { name: 'a', email: 'a@example.com', timestamp: 1, timezoneOffset: 0 };
-const workspace = { _id: 'wrk_9', type: models.workspace.type, name: 'From Insomnia', scope: 'collection', parentId: null };
+const workspace = { _id: 'wrk_9', type: models.workspace.type, name: 'From Insomnia', scope: 'collection' as const, parentId: null };
 const request = { _id: 'req_9', type: models.request.type, parentId: 'wrk_9', name: 'pets', url: 'https://example.com/pets' };
 const file = (dataDirName: string, doc: { _id: string; type: string }) => `${dataDirName}/${doc.type}/${doc._id}.yml`;
 
@@ -45,7 +45,7 @@ const treeOf = async (opts: object, files: [string, string][]): Promise<string> 
     if (rest.length) {
       folders.set(name, [...(folders.get(name) || []), [rest.join('/'), content]]);
     } else {
-      tree.push({ mode: '100644', path: name, type: 'blob' as const, oid: await git.writeBlob({ ...opts, blob: Buffer.from(content) } as Parameters<typeof git.writeBlob>[0]) });
+      tree.push({ mode: '100644', path: name, type: 'blob' as const, oid: await git.writeBlob({ ...opts, blob: Buffer.from(content) } as unknown as Parameters<typeof git.writeBlob>[0]) });
     }
   }
   for (const [name, inside] of folders) {
@@ -60,7 +60,9 @@ describe('a repository with its data in .insomnia', () => {
     await models.project.all();
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   describe('clonedDataDir()', () => {
     it('finds the folder that holds a workspace, Insomnium\'s first', async () => {

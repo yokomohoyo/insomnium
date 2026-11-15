@@ -124,7 +124,6 @@ describe('install.js', () => {
       jest.spyOn(console, 'warn').mockImplementation(() => {});
       dataPath = mkdtempSync(path.join(os.tmpdir(), 'insomnia-install-plugin-'));
       process.env['INSOMNIA_DATA_PATH'] = dataPath;
-      // @ts-expect-error -- not part of the electron mock
       electron.app.getAppPath = () => '/app';
       info = { exitCode: 0, stdout: PLUGIN_INFO, stderr: '' };
       add = { exitCode: 0, stdout: ADD_DEPRECATED_STDOUT, stderr: '' };
@@ -214,7 +213,6 @@ describe('install.js', () => {
       jest.spyOn(console, 'log').mockImplementation(() => {});
       dataPath = mkdtempSync(path.join(os.tmpdir(), 'insomnia-install-plugin-'));
       process.env['INSOMNIA_DATA_PATH'] = dataPath;
-      // @ts-expect-error -- not part of the electron mock
       electron.app.getAppPath = () => '/app';
       tarball = path.join(dataPath, 'insomnia-plugin-local-1.0.0.tgz');
       writeFileSync(tarball, '');
@@ -286,7 +284,6 @@ describe('install.js', () => {
 
   describe('yarnProcess', () => {
     it('runs yarn in a utility process, not the app run as Node, with its output and exit code', async () => {
-      // @ts-expect-error -- not part of the electron mock
       electron.app.getAppPath = () => '/app';
       const child = Object.assign(new EventEmitter(), { stdout: new PassThrough(), stderr: new PassThrough(), kill: jest.fn() });
       jest.mocked(electron.utilityProcess.fork).mockReturnValue(child as any);

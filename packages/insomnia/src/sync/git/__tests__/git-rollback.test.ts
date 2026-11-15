@@ -9,9 +9,9 @@ import { setupDateMocks } from './util';
 
 describe('git rollback', () => {
   describe('mocked', () => {
-    const removeMock = jest.fn().mockResolvedValue(undefined);
-    const unlinkMock = jest.fn().mockResolvedValue(undefined);
-    const undoPendingChangesMock = jest.fn().mockResolvedValue(undefined);
+    const removeMock = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const unlinkMock = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
+    const undoPendingChangesMock = jest.fn<() => Promise<void>>().mockResolvedValue(undefined);
 
     let vcs: Partial<typeof GitVCS> = {};
 
@@ -23,7 +23,7 @@ describe('git rollback', () => {
         },
       };
       vcs = {
-        getFs: jest.fn().mockReturnValue(fsMock),
+        getFs: jest.fn<typeof GitVCS.getFs>().mockReturnValue(fsMock as unknown as ReturnType<typeof GitVCS.getFs>),
         remove: removeMock,
         undoPendingChanges: undoPendingChangesMock,
       };
@@ -42,7 +42,7 @@ describe('git rollback', () => {
           status: '*added',
         },
       ];
-      await gitRollback(vcs, files);
+      await gitRollback(vcs as typeof GitVCS, files);
       expect(unlinkMock).toHaveBeenCalledTimes(2);
       expect(unlinkMock).toHaveBeenNthCalledWith(1, aTxt);
       expect(unlinkMock).toHaveBeenNthCalledWith(2, bTxt);
@@ -65,7 +65,7 @@ describe('git rollback', () => {
           status: 'deleted',
         },
       ];
-      await gitRollback(vcs, files);
+      await gitRollback(vcs as typeof GitVCS, files);
       expect(unlinkMock).toHaveBeenCalledTimes(0);
       expect(removeMock).toHaveBeenCalledTimes(0);
       expect(undoPendingChangesMock).toHaveBeenCalledTimes(1);
@@ -95,7 +95,7 @@ describe('git rollback', () => {
           status: 'deleted',
         },
       ];
-      await gitRollback(vcs, files);
+      await gitRollback(vcs as typeof GitVCS, files);
       expect(unlinkMock).toHaveBeenCalledTimes(2);
       expect(unlinkMock).toHaveBeenNthCalledWith(1, aTxt);
       expect(unlinkMock).toHaveBeenNthCalledWith(2, bTxt);
@@ -116,7 +116,9 @@ describe('git rollback', () => {
       barTxt = path.join(GIT_INSOMNIA_DIR, 'bar.txt');
       bazTxt = path.join(GIT_INSOMNIA_DIR, 'baz.txt');
     });
-    afterAll(() => jest.restoreAllMocks());
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
     beforeEach(setupDateMocks);
 
     it('should rollback files as expected', async () => {
@@ -162,7 +164,7 @@ describe('git rollback', () => {
         },
       ];
       // Remove both
-      await gitRollback(vcs, files);
+      await gitRollback(vcs as typeof GitVCS, files);
       // Ensure git doesn't know about the two files anymore
       expect(await vcs.status(fooTxt)).toBe('absent');
       expect(await vcs.status(barTxt)).toBe('absent');

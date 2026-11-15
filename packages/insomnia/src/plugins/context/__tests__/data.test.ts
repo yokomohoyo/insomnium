@@ -46,7 +46,7 @@ describe('app.import.*', () => {
     await data.import.uri(`file://${filename}`);
     const allWorkspaces = await db.all(models.workspace.type);
     expect(allWorkspaces).toMatchObject([
-      workspace,
+      workspace as unknown as Record<string, unknown>,
       {
         description: '',
         name: 'New',
@@ -71,7 +71,7 @@ describe('app.import.*', () => {
         method: 'GET',
         name: 'Test',
         parameters: [],
-        parentId: importedWorkspace._id,
+        parentId: importedWorkspace!._id,
         settingDisableRenderRequestBody: false,
         settingEncodeUrl: true,
         settingSendCookies: true,
@@ -93,7 +93,7 @@ describe('app.import.*', () => {
     await data.import.raw(fs.readFileSync(filename, 'utf8'));
     const allWorkspaces = await db.all(models.workspace.type);
     expect(allWorkspaces).toMatchObject([
-      workspace,
+      workspace as unknown as Record<string, unknown>,
       {
         description: '',
         name: 'New',
@@ -116,7 +116,7 @@ describe('app.import.*', () => {
         method: 'GET',
         name: 'Test',
         parameters: [],
-        parentId: importedWorkspace._id,
+        parentId: importedWorkspace!._id,
         settingDisableRenderRequestBody: false,
         settingEncodeUrl: true,
         settingSendCookies: true,
