@@ -24,7 +24,8 @@ jest.mock('../../base/modal', () => {
 });
 jest.mock('../../load-test-panel', () => ({ LoadTestPanel: () => null }));
 
-// a run whose results come in a burst, then one more a while later
+// a run whose results come in a burst, then one more when the test lets it go on
+let mockLetRunGoOn = () => {};
 jest.mock('../../../../network/runner', () => ({
   notRunnable: () => '',
   listRunnableRequests: async () => [{ request: { _id: 'req_1', name: 'Get', method: 'GET', type: 'Request' }, folders: [] }],
@@ -32,7 +33,9 @@ jest.mock('../../../../network/runner', () => ({
     const result = (iteration: number) => ({ iteration, requestId: 'req_1', name: 'Get', folders: [], method: 'GET', statusCode: 200, statusMessage: 'OK', elapsedTime: 5, assertions: [], passed: iteration !== 3 }) as unknown as RunResult;
     const all = [1, 2, 3].map(result);
     all.forEach(r => onResult?.(r));
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise<void>(resolve => {
+      mockLetRunGoOn = resolve;
+    });
     all.push(result(4));
     onResult?.(all[3]);
     return { iterations: 4, results: all, requests: { total: 4, failed: 1 }, assertions: { total: 0, failed: 0 }, elapsedTime: 0, bailed: false, stopped: false };
@@ -55,6 +58,9 @@ describe('<RunnerModal />', () => {
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(3));
     expect((await findByTestId('run-summary')).textContent).toBe('Running: 3 sent');
 
+    await act(async () => {
+      mockLetRunGoOn();
+    });
     await waitFor(() => expect(within(list).getAllByRole('listitem')).toHaveLength(4));
     expect((await findByTestId('run-summary')).textContent).toContain('3 of 4 requests passed');
     expect(within(list).getAllByLabelText('Failed')).toHaveLength(1);
