@@ -26,11 +26,11 @@ export const forwardStatusAndMetadata = (event: Pick<IpcMainEvent, 'reply'>, cal
 };
 
 const grpcCalls = new Map<string, Call>();
-export interface GrpcIpcRequestParams {
+interface GrpcIpcRequestParams {
   request: RenderedGrpcRequest;
 }
 
-export interface GrpcIpcMessageParams {
+interface GrpcIpcMessageParams {
   requestId: string;
   body: RenderedGrpcRequestBody;
 }

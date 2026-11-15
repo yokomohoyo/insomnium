@@ -9,11 +9,11 @@ export interface UNKNOWN_OBJ {
   [key: string]: UNKNOWN;
 }
 
-export interface Comment {
+interface Comment {
   comment?: UNKNOWN;
 }
 
-export type Variable = `{{ ${string} }}`;
+type Variable = `{{ ${string} }}`;
 
 export interface Authentication extends Comment {
   authorizationUrl?: string;
@@ -53,7 +53,7 @@ export type Body =
       params?: Parameter[];
     };
 
-export interface Cookie {
+interface Cookie {
   name: string;
   value: string;
 }
@@ -70,11 +70,11 @@ export interface PostData {
   text?: string;
 }
 
-export interface QueryString extends Comment {
+interface QueryString extends Comment {
   name: string;
 }
 
-export type ImportRequestType =
+type ImportRequestType =
   | 'environment'
   | 'request'
   | 'request_group'

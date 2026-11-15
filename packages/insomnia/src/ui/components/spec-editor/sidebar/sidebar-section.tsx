@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import { SidebarFilter } from './sidebar-filter';
 import { SidebarHeader } from './sidebar-header';
 
-export interface SidebarSectionProps {
+interface SidebarSectionProps {
   title: string;
   renderBody: (filterValue: string) => ReactNode;
 }

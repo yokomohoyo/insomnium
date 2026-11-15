@@ -54,7 +54,7 @@ interface Schema {
   rows: Row[];
   json: string;
 }
-export interface DocsModel {
+interface DocsModel {
   title: string;
   version: string;
   description: string;

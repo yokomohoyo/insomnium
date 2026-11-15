@@ -10,7 +10,7 @@ import { GLOBAL_ENVIRONMENT_IMPORT_ID } from '../utils/importers/entities';
 // They render under the collection's own environments, and they aren't part
 // of a collection, so its exports and Git Sync leave them out.
 
-export interface GlobalEnvironments {
+interface GlobalEnvironments {
   base: Environment | null;
   // the sub environment the collection uses
   active: Environment | null;

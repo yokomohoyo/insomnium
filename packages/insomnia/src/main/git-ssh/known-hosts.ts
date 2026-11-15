@@ -6,13 +6,13 @@ import crypto from 'crypto';
 
 import { hostMatches } from './ssh-config';
 
-export type HostKeyCheck =
+type HostKeyCheck =
   | { status: 'known' }
   | { status: 'unknown'; otherTypesKnown: boolean }
   | { status: 'changed'; file: string; line: number }
   | { status: 'revoked'; file: string; line: number };
 
-export interface KnownHostsFile {
+interface KnownHostsFile {
   path: string;
   text: string;
 }

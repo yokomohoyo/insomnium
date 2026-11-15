@@ -33,7 +33,7 @@ interface CodePromptModalOptions {
   onModeChange?: (value: string) => void;
 }
 
-export interface CodePromptModalHandle {
+interface CodePromptModalHandle {
   show: (options: CodePromptModalOptions) => void;
   hide: () => void;
 }

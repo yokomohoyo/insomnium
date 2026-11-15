@@ -27,7 +27,7 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // a message's Server-Sent Events fields, as the stream framed them ("event:",
 // "id:", "data:" lines; several data lines join with a newline), when it has any
-export const sseFields = (raw: string) => {
+const sseFields = (raw: string) => {
   const fields: { event?: string; id?: string; data?: string } = {};
   const data: string[] = [];
   for (const line of raw.split(/\r?\n/)) {

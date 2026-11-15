@@ -5,7 +5,7 @@
 // deliveries, and keeps the connection alive. The event log shows each packet
 // as text: a delivery as "topic: payload".
 
-export interface MqttSubscription {
+interface MqttSubscription {
   topic: string;
   qos: 0 | 1;
 }
@@ -76,11 +76,11 @@ export function publishPacket({ topic, qos, retain }: MqttPublish, payload: Buff
   return packet(0x30 | (qos << 1) | (retain ? 1 : 0), Buffer.concat([string(topic), qos ? u16(packetId ?? 1) : Buffer.alloc(0), payload]));
 }
 
-export const pubackPacket = (packetId: number) => packet(0x40, u16(packetId));
-export const pingreqPacket = () => Buffer.from([0xc0, 0]);
-export const disconnectPacket = () => Buffer.from([0xe0, 0]);
+const pubackPacket = (packetId: number) => packet(0x40, u16(packetId));
+const pingreqPacket = () => Buffer.from([0xc0, 0]);
+const disconnectPacket = () => Buffer.from([0xe0, 0]);
 
-export type MqttPacket =
+type MqttPacket =
   | { type: 'connack'; sessionPresent: boolean; returnCode: number }
   | { type: 'publish'; topic: string; payload: Buffer; qos: number; retain: boolean; packetId?: number }
   | { type: 'puback'; packetId: number }

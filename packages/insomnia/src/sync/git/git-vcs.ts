@@ -15,12 +15,12 @@ import { remoteUrlFor } from './ssh-url';
 import { filesAt, mergeFile, readText, type TreeFile, writeFiles } from './trees';
 import { gitCallbacks } from './utils';
 
-export interface GitAuthor {
+interface GitAuthor {
   name: string;
   email: string;
 }
 
-export interface GitRemoteConfig {
+interface GitRemoteConfig {
   remote: string;
   url: string;
 }
@@ -44,11 +44,11 @@ interface GitCredentialsOAuth {
 
 export type GitCredentials = GitCredentialsBase | GitCredentialsOAuth;
 
-export type GitHash = string;
+type GitHash = string;
 
-export type GitRef = GitHash | string;
+type GitRef = GitHash | string;
 
-export interface GitTimestamp {
+interface GitTimestamp {
   timezoneOffset: number;
   timestamp: number;
 }

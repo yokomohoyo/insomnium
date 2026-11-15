@@ -27,7 +27,7 @@ export const grpcOptions = {
 // Protos are loaded with loadSync on purpose: async load() resolves the types
 // inside its file-read callback, so an unresolvable type throws there and the
 // returned promise never settles.
-export const loadMethodsFromFilePath = async (filePath: string, includeDirs: string[]): Promise<MethodDefs[]> => {
+const loadMethodsFromFilePath = async (filePath: string, includeDirs: string[]): Promise<MethodDefs[]> => {
   try {
     const definition = protoLoader.loadSync(filePath, {
       ...grpcOptions,
@@ -123,7 +123,7 @@ const servicesIn = (ns: protobuf.NamespaceBase): protobuf.Service[] => {
 // protobufjs `fullName` is `.pkg.Sub.Service`; gRPC paths drop the leading dot.
 const fullName = (svc: protobuf.Service): string => svc.fullName.replace(/^\./, '');
 
-export const getMethodsFromPackageDefinition = (packageDefinition: PackageDefinition): MethodDefs[] => {
+const getMethodsFromPackageDefinition = (packageDefinition: PackageDefinition): MethodDefs[] => {
   return Object.values(packageDefinition)
     .filter(isServiceDefinition)
     .flatMap(Object.values);
@@ -158,7 +158,7 @@ interface ProtoJob {
   // Return what this one method needs (methodJSON) instead of the methods.
   method?: string;
 }
-export interface LoadedProto {
+interface LoadedProto {
   methods: Pick<MethodDefs, 'path' | 'requestStream' | 'responseStream'>[];
   examples: { [methodPath: string]: object };
 }

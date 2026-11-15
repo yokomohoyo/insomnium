@@ -21,7 +21,7 @@ export type CredentialSource =
   | { kind: 'sa-file'; path: string; impersonateServiceAccount?: string }
   | { kind: 'sa-inline'; json: string; impersonateServiceAccount?: string };
 
-export interface MintOptions {
+interface MintOptions {
   source: CredentialSource;
   audience: string;
 }
@@ -70,7 +70,7 @@ const IAMCREDENTIALS_HOST = 'iamcredentials.googleapis.com';
 // request, someone else's. So that needs the user's say, which the window asks
 // for (ui/gcp-audience.ts) and the main process asks or refuses
 // (main/gcp-audience.ts). The auth type and the gcpIdToken tag both check.
-export type GcpAudienceApproval = (token: { audience: string; origin: string }) => boolean | Promise<boolean>;
+type GcpAudienceApproval = (token: { audience: string; origin: string }) => boolean | Promise<boolean>;
 let approveGcpAudience: GcpAudienceApproval = () => true;
 export const setGcpAudienceApproval = (approve: GcpAudienceApproval) => {
   approveGcpAudience = approve;

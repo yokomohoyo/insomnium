@@ -6,7 +6,7 @@ import { AuthSelectRow } from './components/auth-select-row';
 import { AuthTableBody } from './components/auth-table-body';
 import { AuthToggleRow } from './components/auth-toggle-row';
 
-export const options = [
+const options = [
   { name: 'Header', value: HEADER },
   { name: 'Query params', value: QUERY_PARAMS },
   { name: 'Cookie', value: COOKIE },

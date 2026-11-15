@@ -15,12 +15,12 @@ import { buildEventStreamCurlRequest, EventStreamConnection } from './event-stre
 import { createConfiguredCurlInstance, setCurlMethod } from './libcurl-promise';
 import { proxyFor } from './proxy';
 
-export interface CurlConnection extends Curl {
+interface CurlConnection extends Curl {
   _id: string;
   requestId: string;
 }
 
-export interface CurlOpenEvent {
+interface CurlOpenEvent {
   _id: string;
   requestId: string;
   type: 'open';
@@ -36,7 +36,7 @@ export interface CurlMessageEvent {
   direction: 'OUTGOING' | 'INCOMING';
 }
 
-export interface CurlErrorEvent {
+interface CurlErrorEvent {
   _id: string;
   requestId: string;
   type: 'error';
@@ -45,7 +45,7 @@ export interface CurlErrorEvent {
   error: Error;
 }
 
-export interface CurlCloseEvent {
+interface CurlCloseEvent {
   _id: string;
   requestId: string;
   type: 'close';

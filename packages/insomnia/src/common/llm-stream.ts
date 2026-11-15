@@ -4,14 +4,14 @@
 // completions (OpenAI, Ollama, LM Studio, vLLM, OpenRouter, Gemini's), OpenAI's
 // Responses API, and Anthropic's Messages API.
 
-export interface ServerSentEvent {
+interface ServerSentEvent {
   event: string;
   data: string;
   // when its last chunk arrived
   timestamp: number;
 }
 
-export interface StreamChunk {
+interface StreamChunk {
   data: string;
   timestamp: number;
 }
@@ -71,7 +71,7 @@ export function parseServerSentEvents(chunks: StreamChunk[]): ServerSentEvent[] 
   return events;
 }
 
-export interface LlmUsage {
+interface LlmUsage {
   input?: number;
   output?: number;
   total?: number;

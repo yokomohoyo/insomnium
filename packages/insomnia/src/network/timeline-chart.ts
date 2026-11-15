@@ -4,7 +4,7 @@ import type { TimelinePoint } from './load-stats';
 // alike: a bar a second for the requests sent (its failed part on top), and a
 // line each for the p50 and p95 latency, on their own scale.
 
-export interface TimelineGeometry {
+interface TimelineGeometry {
   width: number;
   height: number;
   // the plot's top and bottom, inside the axes' labels
@@ -18,8 +18,8 @@ export interface TimelineGeometry {
   maxLatency: number;
 }
 
-export const CHART_WIDTH = 800;
-export const CHART_HEIGHT = 180;
+const CHART_WIDTH = 800;
+const CHART_HEIGHT = 180;
 const TOP = 12;
 const BOTTOM = CHART_HEIGHT - 20;
 

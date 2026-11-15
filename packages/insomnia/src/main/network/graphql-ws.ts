@@ -4,7 +4,7 @@
 // subscribe on connection_ack. The server's next, error and complete messages
 // show in the event log like any other; a ping gets its pong.
 export const GRAPHQL_WS_PROTOCOL = 'graphql-transport-ws';
-export const SUBSCRIPTION_ID = '1';
+const SUBSCRIPTION_ID = '1';
 
 export interface GraphqlSubscription {
   query: string;

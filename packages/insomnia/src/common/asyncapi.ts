@@ -10,7 +10,7 @@ export interface AsyncApiMessage {
   payload?: unknown;
 }
 
-export interface AsyncApiOperation {
+interface AsyncApiOperation {
   id: string;
   // 3.x says send or receive; 2.x said publish or subscribe
   action: string;
@@ -18,7 +18,7 @@ export interface AsyncApiOperation {
   messages: AsyncApiMessage[];
 }
 
-export interface AsyncApiChannel {
+interface AsyncApiChannel {
   name: string;
   address: string;
   description?: string;
@@ -27,7 +27,7 @@ export interface AsyncApiChannel {
   messages: AsyncApiMessage[];
 }
 
-export interface AsyncApiOutline {
+interface AsyncApiOutline {
   version: string;
   title: string;
   infoVersion: string;

@@ -20,7 +20,7 @@ export const ButtonVariantEnum = {
 } as const;
 
 // Sets the `bg` color to a themed color
-export const ButtonThemeEnum = {
+const ButtonThemeEnum = {
   Default: 'default',
   Surprise: 'surprise',
   Info: 'info',

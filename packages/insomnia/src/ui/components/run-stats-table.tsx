@@ -14,7 +14,7 @@ const PHASE_COLORS: Record<keyof PhaseDurations, string> = {
   download: 'var(--color-notice)',
 };
 
-export const ms = (value?: number) => value === undefined ? '' : value < 1000 ? `${Math.round(value * 10) / 10} ms` : `${(value / 1000).toFixed(2)} s`;
+const ms = (value?: number) => value === undefined ? '' : value < 1000 ? `${Math.round(value * 10) / 10} ms` : `${(value / 1000).toFixed(2)} s`;
 export const size = (bytes?: number) => bytes === undefined ? '' : bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} kB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
 // what a request's time is made of: each phase's share of it

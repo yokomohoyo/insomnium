@@ -40,7 +40,7 @@ const cached = (key: string, read: () => Promise<string>) => {
   return value;
 };
 
-export const assertSecretAllowed = (reference: string, allowedSecrets = '') => guard(
+const assertSecretAllowed = (reference: string, allowedSecrets = '') => guard(
   isAllowed(reference, allowedNames(allowedSecrets)),
   `${reference} isn't an allowed secret: add it, or a prefix of it ending in *, in Preferences > General > Secrets`,
 );

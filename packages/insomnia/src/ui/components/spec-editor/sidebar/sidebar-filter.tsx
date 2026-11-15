@@ -1,7 +1,7 @@
 import React, { createRef, FunctionComponent, useLayoutEffect } from 'react';
 import styled from 'styled-components';
 
-export interface SidebarFilterProps {
+interface SidebarFilterProps {
   filter: boolean;
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }

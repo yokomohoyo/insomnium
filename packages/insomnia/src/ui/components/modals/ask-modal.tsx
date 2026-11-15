@@ -12,14 +12,14 @@ interface State {
   noText: string;
   onDone?: (success: boolean) => Promise<void>;
 }
-export interface AskModalOptions {
+interface AskModalOptions {
   title?: string;
   message: React.ReactNode;
   onDone?: (success: boolean) => Promise<void>;
   yesText?: string;
   noText?: string;
 }
-export interface AskModalHandle {
+interface AskModalHandle {
   show: (options: AskModalOptions) => void;
   hide: () => void;
 }

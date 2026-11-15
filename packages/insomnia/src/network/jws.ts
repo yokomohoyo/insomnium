@@ -6,7 +6,7 @@ import crypto from 'crypto';
 export const JWS_SECRET_ALGORITHMS = ['HS256', 'HS384', 'HS512'];
 export const JWS_KEY_ALGORITHMS = ['RS256', 'RS384', 'RS512', 'PS256', 'PS384', 'PS512', 'ES256', 'ES384', 'ES512'];
 
-export const base64Url = (input: Buffer | string) => Buffer.from(input).toString('base64url');
+const base64Url = (input: Buffer | string) => Buffer.from(input).toString('base64url');
 
 export function signJws(header: Record<string, unknown>, claims: Record<string, unknown>, key: string | Buffer): string {
   const algorithm = String(header.alg);

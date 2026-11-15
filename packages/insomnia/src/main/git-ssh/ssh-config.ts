@@ -3,7 +3,7 @@
 // winning. Only the settings Git over SSH uses are read; Match blocks and
 // Include aren't followed.
 
-export interface HostConfig {
+interface HostConfig {
   hostName?: string;
   user?: string;
   port?: number;

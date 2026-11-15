@@ -34,7 +34,7 @@ export function initNewOAuthSession() {
   return authWindowSessionId;
 }
 
-export function getOAuthSession(): string {
+function getOAuthSession(): string {
   const token = window.localStorage.getItem(LOCALSTORAGE_KEY_SESSION_ID);
   return token || initNewOAuthSession();
 }
@@ -227,7 +227,7 @@ const getNewOAuth2Token = async (requestId: string, authentication: AuthTypeOAut
 };
 
 // The JWT bearer grant's assertion: as given, or signed here with the private key
-export const jwtBearerAssertion = (authentication: AuthTypeOAuth2) => {
+const jwtBearerAssertion = (authentication: AuthTypeOAuth2) => {
   if (authentication.assertion) {
     return authentication.assertion;
   }
@@ -361,7 +361,7 @@ async function getExistingAccessTokenAndRefreshIfExpired(
 }
 
 // the body as it came (the response's file has the tokens replaced, redact.ts)
-export const oauthResponseToAccessToken = (accessTokenUrl: string, response: Response, bodyBuffer = models.response.getBodyBuffer(response)) => {
+const oauthResponseToAccessToken = (accessTokenUrl: string, response: Response, bodyBuffer = models.response.getBodyBuffer(response)) => {
   if (!bodyBuffer) {
     return {
       xResponseId: response._id,
@@ -452,7 +452,7 @@ const sendAccessTokenRequest = async (requestId: string, authentication: AuthTyp
   await redactTokenResponse(created);
   return { response: created, body };
 };
-export const encodePKCE = (buffer: Buffer) => {
+const encodePKCE = (buffer: Buffer) => {
   return buffer.toString('base64')
     // The characters + / = are reserved for PKCE as per the RFC,
     // so we replace them with unreserved characters
@@ -478,7 +478,7 @@ const insertAuthKeyIf = (name: AuthKeys, value?: string) => value ? [{ name, val
 
 // For grants where the client may be public: its credentials when it has
 // some, or else just its ID, if any
-export const optionalClientAuthentication = (authentication: AuthTypeOAuth2, params: RequestParameter[], headers: RequestHeader[]) =>
+const optionalClientAuthentication = (authentication: AuthTypeOAuth2, params: RequestParameter[], headers: RequestHeader[]) =>
   authentication.usePrivateKeyJwt || authentication.clientSecret
     ? withClientAuthentication(authentication, params, headers)
     : { params: [...params, ...insertAuthKeyIf('client_id', authentication.clientId)], headers };

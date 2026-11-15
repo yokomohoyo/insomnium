@@ -16,8 +16,8 @@ import { schemaComment } from './schema';
 
 export const COLLECTION_FILE = 'insomnium.yaml';
 export const FOLDER_FILE = '_folder.yaml';
-export const ENVIRONMENTS_DIR = 'environments';
-export const BASE_ENVIRONMENT_FILE = '_base.yaml';
+const ENVIRONMENTS_DIR = 'environments';
+const BASE_ENVIRONMENT_FILE = '_base.yaml';
 
 export const REQUEST_TYPES = ['Request', 'GrpcRequest', 'WebSocketRequest', 'McpRequest'];
 const EXAMPLE_TYPE = 'ResponseExample';

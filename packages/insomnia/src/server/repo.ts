@@ -27,7 +27,7 @@ import { GIT_CLONE_DIR, GIT_INTERNAL_DIR } from '../sync/git/git-vcs';
 import { clonedDataDir, readClonedDocs } from '../sync/git/ne-db-client';
 import { routableFSClient } from '../sync/git/routable-fs-client';
 
-export interface RepoOptions {
+interface RepoOptions {
   // a cloned repository's branch; its default one otherwise
   branch?: string;
   // for a private repository: a token, and the username to send it with

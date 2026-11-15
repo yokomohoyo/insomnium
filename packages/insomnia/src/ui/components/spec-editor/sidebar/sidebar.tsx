@@ -15,7 +15,7 @@ import { SidebarSchemas } from './sidebar-schemas';
 import { SidebarSecurity } from './sidebar-security';
 import { SidebarServer, SidebarServers } from './sidebar-servers';
 
-export interface SidebarProps {
+interface SidebarProps {
   className?: string;
   onClick: (section: string, path: any) => void;
   jsonData?: {

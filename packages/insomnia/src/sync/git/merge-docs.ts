@@ -10,7 +10,7 @@ import { mergeLines } from './line-merge';
 
 export type MergeChoice = 'ours' | 'theirs';
 
-export interface FieldConflict {
+interface FieldConflict {
   field: string;
   ours?: string;
   theirs?: string;

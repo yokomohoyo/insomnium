@@ -37,7 +37,7 @@ interface ScriptOutput {
   visualization?: Visualization | null;
 }
 
-export const hasScript = (script?: string) => !!script?.trim();
+const hasScript = (script?: string) => !!script?.trim();
 
 const toScriptRequest = (request: Request): ScriptRequest => ({
   id: request._id,
@@ -125,7 +125,7 @@ async function run(event: 'prerequest' | 'test', script: string, request: Reques
   return result;
 }
 
-export interface PreRequestResult {
+interface PreRequestResult {
   request: Request;
   // set with insomnia.variables: rendered above everything else
   variables: Record<string, unknown>;
@@ -150,7 +150,7 @@ const asText = (response: ResponsePatch) => {
   return body ? body.toString() : '';
 };
 
-export interface AfterResponseResult {
+interface AfterResponseResult {
   results: AssertionResult[];
   logs: ScriptLog[];
   visualization?: Visualization;

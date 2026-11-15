@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from 'react';
 import styled from 'styled-components';
 
-export interface SidebarTextItemProps {
+interface SidebarTextItemProps {
   label: string;
   headline: string;
 }

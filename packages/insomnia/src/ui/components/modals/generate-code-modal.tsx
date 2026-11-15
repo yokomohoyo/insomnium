@@ -31,17 +31,17 @@ const TO_ADD_CONTENT_LENGTH: Record<string, string[]> = {
 type Props = ModalProps & {
   environmentId: string;
 };
-export interface GenerateCodeModalOptions {
+interface GenerateCodeModalOptions {
   request?: Request;
 }
-export interface State {
+interface State {
   cmd: string;
   request?: Request;
   target?: AvailableTarget;
   client?: ClientInfo;
   targets: AvailableTarget[];
 }
-export interface GenerateCodeModalHandle {
+interface GenerateCodeModalHandle {
   show: (options: GenerateCodeModalOptions) => void;
   hide: () => void;
 }

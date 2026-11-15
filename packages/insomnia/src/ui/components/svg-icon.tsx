@@ -60,7 +60,7 @@ import { SvgIcnWarning } from './assets/svgr/IcnWarning';
 import { SvgIcnWarningCircle } from './assets/svgr/IcnWarningCircle';
 import { SvgIcnX } from './assets/svgr/IcnX';
 
-export const ThemeEnum = {
+const ThemeEnum = {
   default: 'default',
   highlight: 'highlight',
 
@@ -136,7 +136,7 @@ export const IconEnum = {
   empty: 'empty',
 } as const;
 
-export type IconId = ValueOf<typeof IconEnum>;
+type IconId = ValueOf<typeof IconEnum>;
 
 export interface SvgIconProps {
   icon: IconId;

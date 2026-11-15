@@ -166,6 +166,6 @@ export const GrpcResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
     : <GrpcUnaryResponsePane grpcState={grpcState} />;
 };
 
-export function hasStreamingResponse(method: GrpcMethodInfo): boolean {
+function hasStreamingResponse(method: GrpcMethodInfo): boolean {
   return method.type === 'server' || method.type === 'bidi';
 }

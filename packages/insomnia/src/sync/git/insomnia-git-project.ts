@@ -18,7 +18,7 @@ import { GIT_CLONE_DIR } from './git-vcs';
 const V5_FILE = /^type:\s*["']?(?:collection|spec)\.insomnia\.rest\/5\.0["']?\s*$/m;
 export const isInsomniaV5File = (text: string) => V5_FILE.test(text);
 
-export interface ProjectFile {
+interface ProjectFile {
   path: string;
   content: string;
 }
