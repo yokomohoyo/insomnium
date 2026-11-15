@@ -15,7 +15,7 @@ import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { OneLineEditor } from '../codemirror/one-line-editor';
-export interface CookieModifyModalOptions {
+interface CookieModifyModalOptions {
   cookie: Cookie;
 }
 

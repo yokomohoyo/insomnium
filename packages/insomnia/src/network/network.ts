@@ -288,7 +288,7 @@ export async function renderEventStreamConnection(request: Request, environmentI
     settingRebuildPath: renderedRequest.settingRebuildPath,
   };
 }
-export interface AfterResponseContext {
+interface AfterResponseContext {
   preRequestLogs?: ScriptLog[];
   iterationData?: Record<string, unknown>;
   iteration?: number;
@@ -329,7 +329,7 @@ export const transformedResponse = async (patch: ResponsePatch, environmentId: s
 
 // The after-response script's tests join the assertions' results, and what
 // the scripts logged (the pre-request one's too) is kept with the response
-export const withAfterResponseScript = async (
+const withAfterResponseScript = async (
   renderedRequest: RenderedRequest,
   response: ResponsePatch,
   environmentId: string | null,
@@ -355,7 +355,7 @@ const specFor = async (requestId: string) => {
   return workspace ? (await models.apiSpec.getByParentId(workspace._id))?.contents || '' : '';
 };
 
-export const withAssertionResults = async (renderedRequest: Pick<RenderedRequest, '_id' | 'method' | 'assertions'>, response: ResponsePatch): Promise<ResponsePatch> => {
+const withAssertionResults = async (renderedRequest: Pick<RenderedRequest, '_id' | 'method' | 'assertions'>, response: ResponsePatch): Promise<ResponsePatch> => {
   if (!renderedRequest.assertions?.some(assertion => !assertion.disabled)) {
     return response;
   }
@@ -519,7 +519,7 @@ async function _applyResponsePluginHooks(
 
 }
 
-export function storeTimeline(timeline: ResponseTimelineEntry[]): Promise<string> {
+function storeTimeline(timeline: ResponseTimelineEntry[]): Promise<string> {
   const timelineStr = JSON.stringify(timeline, null, '\t');
   const timelineHash = uuidv4();
   const responsesDir = pathJoin(processEnv['INSOMNIA_DATA_PATH'] || (process.type === 'renderer' ? window : electron).app.getPath('userData'), 'responses');

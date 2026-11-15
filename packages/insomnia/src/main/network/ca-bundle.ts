@@ -5,7 +5,7 @@ let systemCertificates: string[] | undefined;
 
 // The OS trust store, read once: it can hold a corporate root that the
 // bundled roots lack. tls.getCACertificates needs Node 22.15+.
-export const getSystemCertificates = () => {
+const getSystemCertificates = () => {
   if (!systemCertificates) {
     try {
       const { getCACertificates } = tls as { getCACertificates?: (type: 'system') => string[] };

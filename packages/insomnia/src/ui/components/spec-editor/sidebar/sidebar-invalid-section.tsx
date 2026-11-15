@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from 'react';
 import styled from 'styled-components';
 
-export interface SidebarInvalidSectionProps {
+interface SidebarInvalidSectionProps {
   name: string;
 }
 

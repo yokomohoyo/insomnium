@@ -78,7 +78,7 @@ export class OidcError extends Error {
 }
 
 // an RS*, PS* or ES* JWS signature checked with a JWK
-export function verifyJws(token: string, findKey: (header: Record<string, unknown>) => JsonWebKey | undefined): Record<string, any> {
+function verifyJws(token: string, findKey: (header: Record<string, unknown>) => JsonWebKey | undefined): Record<string, any> {
   const parts = token.split('.');
   if (parts.length !== 3) {
     throw new OidcError('The ID token is not a JWT');

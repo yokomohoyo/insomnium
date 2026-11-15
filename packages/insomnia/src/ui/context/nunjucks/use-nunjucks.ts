@@ -8,7 +8,7 @@ import { RequestLoaderData } from '../../routes/request';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 let getRenderContextPromiseCache: any = {};
 
-export const initializeNunjucksRenderPromiseCache = () => {
+const initializeNunjucksRenderPromiseCache = () => {
   getRenderContextPromiseCache = {};
 };
 

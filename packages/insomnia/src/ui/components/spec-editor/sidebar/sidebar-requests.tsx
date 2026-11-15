@@ -8,7 +8,7 @@ import { SidebarInvalidSection } from './sidebar-invalid-section';
 import { pressable, SidebarItem } from './sidebar-item';
 import { SidebarSection } from './sidebar-section';
 
-export interface SidebarRequestsProps {
+interface SidebarRequestsProps {
   requests: Record<string, any>;
   onClick: (section: string, ...args: any) => void;
 }

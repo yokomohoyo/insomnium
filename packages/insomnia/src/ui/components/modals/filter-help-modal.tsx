@@ -62,7 +62,7 @@ const XPathHelp: FC = () => (
 interface FilterHelpModalOptions {
   isJSON: boolean;
 }
-export interface FilterHelpModalHandle {
+interface FilterHelpModalHandle {
   show: (options: FilterHelpModalOptions) => void;
   hide: () => void;
 }

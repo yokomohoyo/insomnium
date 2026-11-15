@@ -5,7 +5,7 @@
 import * as models from '../models';
 import type { Environment } from '../models/environment';
 
-export const secretKeysOf = (environment: Pick<Environment, 'secretKeys'>) =>
+const secretKeysOf = (environment: Pick<Environment, 'secretKeys'>) =>
   Array.isArray(environment.secretKeys) ? environment.secretKeys.filter(key => typeof key === 'string') : [];
 
 // the environment as requests see it: its secret variables' values in its data

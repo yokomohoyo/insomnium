@@ -5,7 +5,7 @@ import type { RequestRunStats } from './run-stats';
 // slower when its p95 grew past the allowed share and by more than a few
 // milliseconds, so the noise of fast requests doesn't count.
 
-export interface BaselineStats {
+interface BaselineStats {
   requestId?: string;
   name: string;
   p50: number;
@@ -38,15 +38,15 @@ export interface RunComparison {
   slower: number;
 }
 
-export interface CompareOptions {
+interface CompareOptions {
   // the share of the baseline's p95 a request may grow by, 0 to 1 and over
   maxSlowdown?: number;
   // milliseconds a change has to exceed to count either way
   minChangeMs?: number;
 }
 
-export const DEFAULT_MAX_SLOWDOWN = 0.2;
-export const DEFAULT_MIN_CHANGE_MS = 5;
+const DEFAULT_MAX_SLOWDOWN = 0.2;
+const DEFAULT_MIN_CHANGE_MS = 5;
 
 // the baseline from a report's text; throws when it isn't one
 export function parseBaseline(text: string): Baseline {

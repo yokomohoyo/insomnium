@@ -14,7 +14,7 @@ export interface FetchedProto {
   files: FetchedProtoFile[];
 }
 
-export interface FetchedProtoFile {
+interface FetchedProtoFile {
   path: string;                 // relative path; '/' separators
   protoText: string;
 }
@@ -32,7 +32,7 @@ const RAW_GITHUB_RE = /^https:\/\/raw\.githubusercontent\.com\/[^/]+\/[^/]+\/[^/
 const BSR_RE = /^(?:https?:\/\/)?buf\.build\/([^/]+)\/([^/:?#]+)(?::([^/?#]+))?\/?$/i;
 const HTTPS_PROTO_RE = /^https:\/\/.+\.proto$/i;
 
-export type ProtoSourceKind = 'github-blob' | 'github-tree' | 'github-raw' | 'bsr' | 'https-raw';
+type ProtoSourceKind = 'github-blob' | 'github-tree' | 'github-raw' | 'bsr' | 'https-raw';
 
 export function classifyProtoUrl(input: string): { kind: ProtoSourceKind } | null {
   const url = input.trim();

@@ -20,7 +20,7 @@ import { withFolderSettings } from './folder-inheritance';
 import { getGlobalEnvironments } from './global-environments';
 
 export const KEEP_ON_ERROR = 'keep';
-export const THROW_ON_ERROR = 'throw';
+const THROW_ON_ERROR = 'throw';
 export type RenderPurpose = 'send' | 'general' | 'no-render';
 export const RENDER_PURPOSE_SEND: RenderPurpose = 'send';
 export const RENDER_PURPOSE_GENERAL: RenderPurpose = 'general';
@@ -46,7 +46,7 @@ export type RenderedGrpcRequest = GrpcRequest;
 
 export type RenderedGrpcRequestBody = GrpcRequestBody;
 
-export interface RenderContextAndKeys {
+interface RenderContextAndKeys {
   context: Record<string, any>;
   keys: {
     name: string;

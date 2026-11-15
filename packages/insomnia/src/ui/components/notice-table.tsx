@@ -10,7 +10,7 @@ export interface Notice {
   message: string;
 }
 
-export interface TableProps {
+interface TableProps {
   children: ReactNode;
   striped?: boolean;
   outlined?: boolean;
@@ -18,7 +18,7 @@ export interface TableProps {
   headings?: ReactNode[];
 }
 
-export const Table = styled.table<TableProps>`
+const Table = styled.table<TableProps>`
   width: 100%;
   border-spacing: 0;
   border-collapse: collapse;
@@ -73,38 +73,38 @@ export const Table = styled.table<TableProps>`
 /********/
 /* <tr> */
 /********/
-export const TableRow = styled.tr``;
+const TableRow = styled.tr``;
 
 /********/
 /* <td> */
 /********/
-export interface TableDataProps {
+interface TableDataProps {
   compact?: boolean;
   align?: 'center' | 'left';
 }
 
-export const TableData = styled.td<TableDataProps>`
+const TableData = styled.td<TableDataProps>`
   vertical-align: top;
   padding: 0 var(--padding-md);
   text-align: ${({ align }) => align || 'left'};
 `;
 
-export interface TableHeaderProps {
+interface TableHeaderProps {
   compact?: boolean;
   align?: 'center' | 'left';
 }
 
-export const TableHeader = styled.th<TableHeaderProps>`
+const TableHeader = styled.th<TableHeaderProps>`
   vertical-align: top;
   padding: 0 var(--padding-md);
   text-align: ${({ align }) => align || 'left'};
 `;
 
-export const TableHead = styled.thead``;
+const TableHead = styled.thead``;
 
-export const TableBody = styled.tbody``;
+const TableBody = styled.tbody``;
 
-export interface NoticeTableProps<T extends Notice> {
+interface NoticeTableProps<T extends Notice> {
   notices: T[];
   onClick: (notice: T) => void;
   onVisibilityToggle?: (expanded: boolean) => any;

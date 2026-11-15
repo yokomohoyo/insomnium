@@ -22,7 +22,7 @@ async function* bodyOf(chunk: Uint8Array) {
 }
 
 // how a request leaves: the main process's SSH and HTTP (main/git-ssh, axios-request)
-export interface GitTransport {
+interface GitTransport {
   gitSshRequest: Window['main']['gitSshRequest'];
   axiosRequest: Window['main']['axiosRequest'];
 }

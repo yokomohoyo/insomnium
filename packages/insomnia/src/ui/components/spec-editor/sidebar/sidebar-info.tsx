@@ -12,7 +12,7 @@ export interface SidebarInfoType {
   };
 }
 
-export interface SidebarInfoProps {
+interface SidebarInfoProps {
   info: SidebarInfoType;
   childrenVisible: boolean;
   onClick: (section: string, ...args: string[]) => void;

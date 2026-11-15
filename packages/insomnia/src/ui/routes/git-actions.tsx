@@ -377,7 +377,7 @@ const sshCredentialsFrom = (formData: FormData) => ({
   sshPassphrase: String(formData.get('sshPassphrase') || ''),
 });
 
-export function parseGitToHttpsURL(s: string) {
+function parseGitToHttpsURL(s: string) {
   // try to convert any git URL to https URL
   let parsed = fromUrl(s)?.https({ noGitPlus: true }) || '';
 
@@ -855,7 +855,7 @@ export const rebaseGitBranchAction: ActionFunction = async ({
   });
 };
 
-export interface DeleteGitBranchResult {
+interface DeleteGitBranchResult {
   errors?: string[];
 }
 

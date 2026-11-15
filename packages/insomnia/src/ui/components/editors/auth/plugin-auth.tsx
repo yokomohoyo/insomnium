@@ -9,7 +9,7 @@ import { AuthPrivateKeyRow } from './components/auth-private-key-row';
 import { AuthTableBody } from './components/auth-table-body';
 import { AuthToggleRow } from './components/auth-toggle-row';
 
-export interface ProvidedAuth {
+interface ProvidedAuth {
   plugin: string;
   provider: AuthProviderManifest;
 }

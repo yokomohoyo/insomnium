@@ -85,7 +85,7 @@ export function parseRequestReply(reply: string): DescribedRequest {
   };
 }
 
-export interface CommitChange {
+interface CommitChange {
   status: string;
   type: string;
   name: string;

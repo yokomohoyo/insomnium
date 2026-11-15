@@ -16,7 +16,7 @@ import { debounceEdit } from '../../pending-edits';
 import { RootLoaderData } from '../../routes/root';
 import { isKeyCombinationInRegistry } from '../settings/shortcuts';
 import { closeEditor } from './close-editor';
-export interface OneLineEditorProps {
+interface OneLineEditorProps {
   defaultValue: string;
   getAutocompleteConstants?: () => string[] | PromiseLike<string[]>;
   id: string;

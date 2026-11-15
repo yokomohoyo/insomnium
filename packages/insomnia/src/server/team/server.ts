@@ -26,7 +26,7 @@ export interface TeamConfig {
 }
 
 // what a request signs in with: Basic (name and password or token) or Bearer (a token)
-export function credentialsOf(header: string | undefined): { name?: string; secret: string; token: boolean } | null {
+function credentialsOf(header: string | undefined): { name?: string; secret: string; token: boolean } | null {
   const [scheme, value = ''] = (header || '').split(' ');
   if (/^bearer$/i.test(scheme)) {
     return { secret: value.trim(), token: true };

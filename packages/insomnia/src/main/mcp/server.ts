@@ -46,7 +46,7 @@ export function getRunningMcpServer(): { port: number; token: string } | null {
   return current ? { port: current.port, token: current.token } : null;
 }
 
-export async function ensureMcpToken(): Promise<string> {
+async function ensureMcpToken(): Promise<string> {
   const settings = await models.settings.getOrCreate();
   if (settings.mcpToken && settings.mcpToken.length >= 32) {
     return settings.mcpToken;
@@ -177,7 +177,7 @@ const gitHttp = makeHttpClient(() => ({ axiosRequest, gitSshRequest: gitSshReque
 
 // The server, with each tool's handler run as a restricted render (no file
 // tag): a client, or a prompt in what it read, mustn't read this computer's files
-export const restrictToolRenders = (server: McpServer): McpServer => new Proxy(server, {
+const restrictToolRenders = (server: McpServer): McpServer => new Proxy(server, {
   get: (target, property, receiver) => property === 'tool'
     ? (...args: unknown[]) => {
       const handler = args.pop() as (...handlerArgs: unknown[]) => unknown;

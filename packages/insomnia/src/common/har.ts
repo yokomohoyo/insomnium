@@ -360,7 +360,7 @@ async function _applyRequestPluginHooks(
   return newRenderedRequest;
 }
 
-export async function exportHarWithRenderedRequest(
+async function exportHarWithRenderedRequest(
   renderedRequest: RenderedRequest,
   addContentLength = false,
 ) {

@@ -22,7 +22,7 @@ export const getMethodShortHand = (doc: Request) => {
   }
   return formatMethodName(doc.method);
 };
-export function formatMethodName(method: string) {
+function formatMethodName(method: string) {
   let methodName = method || '';
 
   if (method === METHOD_DELETE || method === METHOD_OPTIONS) {
@@ -34,7 +34,7 @@ export function formatMethodName(method: string) {
   return methodName;
 }
 
-export const MethodTag: FC<Props> = memo(({ method, override, fullNames }) => {
+const MethodTag: FC<Props> = memo(({ method, override, fullNames }) => {
   let methodName = method;
   let overrideName = override;
 

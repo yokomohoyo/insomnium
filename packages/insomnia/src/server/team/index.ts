@@ -11,7 +11,7 @@ import { parseOidcConfig } from './oidc';
 import { startTeamServer, type TeamConfig } from './server';
 import { newPassword, TeamStore } from './store';
 
-export const TEAM_USAGE = `Usage: insomnium-server team [--data <dir>] [--host <address>] [--port <port>] [--public-url <url>]
+const TEAM_USAGE = `Usage: insomnium-server team [--data <dir>] [--host <address>] [--port <port>] [--public-url <url>]
        insomnium-server team user list | add <name> [--admin] | reset-password <name> | admin <name> on|off | remove <name>
        insomnium-server team token <name> [label]
 
@@ -45,7 +45,7 @@ register a confidential client with the redirect URL <url>/auth/oidc/callback, a
   INSOMNIUM_TEAM_OIDC_CREATE_USERS    true: make an account for someone who has none
   INSOMNIUM_TEAM_OIDC_NAME            the provider's name, for the sign-in button`;
 
-export interface TeamCliConfig extends TeamConfig {
+interface TeamCliConfig extends TeamConfig {
   command: string[];
 }
 

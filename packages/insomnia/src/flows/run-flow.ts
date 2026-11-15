@@ -48,7 +48,7 @@ export interface FlowResponse extends ResponseUnderTest {
   statusMessage?: string;
 }
 
-export type FlowStepStatus = 'running' | 'passed' | 'failed' | 'true' | 'false';
+type FlowStepStatus = 'running' | 'passed' | 'failed' | 'true' | 'false';
 
 export interface FlowStep {
   nodeId: string;
@@ -87,7 +87,7 @@ const sleep = (milliseconds: number, signal: AbortSignal) => new Promise<void>((
 });
 
 // the way out of a step: a condition's by its result, another's by its one arrow
-export function nextNode(graph: FlowGraph, node: FlowNode, branch?: 'true' | 'false') {
+function nextNode(graph: FlowGraph, node: FlowNode, branch?: 'true' | 'false') {
   const out = graph.edges.filter(edge => edge.source === node.id && (branch ? edge.sourceHandle === branch : !edge.sourceHandle || edge.sourceHandle === 'out'));
   return out.length ? graph.nodes.find(candidate => candidate.id === out[0].target) : undefined;
 }

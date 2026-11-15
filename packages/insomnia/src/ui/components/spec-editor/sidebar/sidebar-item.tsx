@@ -15,7 +15,7 @@ export const pressable = (onPress?: (event: React.SyntheticEvent) => void) => on
   },
 } : {};
 
-export interface SidebarItemProps {
+interface SidebarItemProps {
   children: ReactNode;
   gridLayout?: boolean;
   onClick?: () => void;

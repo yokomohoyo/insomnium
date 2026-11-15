@@ -62,7 +62,7 @@ const StyledDropdownWrapper = styled.div({
   gap: 'var(--padding-xs)',
 });
 
-export const canClientStream = (methodType?: GrpcMethodType) => methodType === 'client' || methodType === 'bidi';
+const canClientStream = (methodType?: GrpcMethodType) => methodType === 'client' || methodType === 'bidi';
 // getters, so each read is in the app's current language
 export const GrpcMethodTypeName = {
   get unary() {

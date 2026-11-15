@@ -652,7 +652,7 @@ const getZoomFactor = () => {
   return ZOOM_DEFAULT;
 };
 
-export const setZoom = (transformer: (current: number) => number) => () => {
+const setZoom = (transformer: (current: number) => number) => () => {
   const browserWindow = BrowserWindow.getFocusedWindow();
 
   if (!browserWindow || !browserWindow.webContents) {

@@ -22,7 +22,7 @@ import { importGlobalEnvironments } from './global-environments';
 import { importResourcesToProject } from './importResourcesToProject';
 import { generateId } from './misc';
 
-export interface ExportedModel extends BaseModel {
+interface ExportedModel extends BaseModel {
   _type: string;
 }
 

@@ -18,7 +18,7 @@ import { database as db } from './database';
 const SPEC_WORKSPACE_ID = '__WORKSPACE_ID__';
 const SPEC_BASE_ENVIRONMENT_ID = '__BASE_ENVIRONMENT_ID__';
 
-export interface SpecSyncResult {
+interface SpecSyncResult {
   added: Request[];
   updated: Request[];
   unchanged: Request[];

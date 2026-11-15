@@ -10,11 +10,11 @@ import { Link } from '../base/link';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
-export interface RequestRenderErrorModalOptions {
+interface RequestRenderErrorModalOptions {
   error: RenderError | null;
   request: Request | WebSocketRequest | GrpcRequest | null;
 }
-export interface RequestRenderErrorModalHandle {
+interface RequestRenderErrorModalHandle {
   show: (options: RequestRenderErrorModalOptions) => void;
   hide: () => void;
 }

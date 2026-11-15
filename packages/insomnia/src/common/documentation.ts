@@ -9,10 +9,10 @@ export const docsTemplateTags = insomniumDocs('template-tags.md');
 export const docsPlugins = insomniumDocs('plugins.md');
 export const docsImportExport = insomniumDocs('import-export.md');
 export const docsKeyMaps = insomniumDocs('keyboard-shortcuts.md');
-export const docsIntroductionInsomnia = insomniumDocs('getting-started.md');
-export const docsWorkingWithDesignDocs = insomniumDocs('design-documents.md');
-export const docsUnitTesting = insomniumDocs('testing.md#unit-tests');
-export const docsRunInCI = insomniumDocs('testing.md#run-a-collection-in-ci');
+const docsIntroductionInsomnia = insomniumDocs('getting-started.md');
+const docsWorkingWithDesignDocs = insomniumDocs('design-documents.md');
+const docsUnitTesting = insomniumDocs('testing.md#unit-tests');
+const docsRunInCI = insomniumDocs('testing.md#run-a-collection-in-ci');
 export const docsScripts = insomniumDocs('scripts.md');
 export const docsAiAssistant = insomniumDocs('ai-assistant.md');
 

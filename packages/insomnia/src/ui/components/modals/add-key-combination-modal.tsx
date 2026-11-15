@@ -8,13 +8,13 @@ import { Modal, ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 
-export interface AddKeyCombinationModalOptions {
+interface AddKeyCombinationModalOptions {
   keyboardShortcut: KeyboardShortcut | null;
   checkKeyCombinationDuplicate: (pressedKeyComb: KeyCombination) => boolean;
   addKeyCombination: (keyboardShortcut: KeyboardShortcut, keyComb: KeyCombination) => void;
   pressedKeyCombination?: KeyCombination | null;
 }
-export interface AddKeyCombinationModalHandle {
+interface AddKeyCombinationModalHandle {
   show: (options: AddKeyCombinationModalOptions) => void;
   hide: () => void;
 }

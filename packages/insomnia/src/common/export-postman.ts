@@ -41,7 +41,7 @@ const strategies = (authentication: unknown): any[] => {
 
 // The first auth a request or folder uses: undefined to inherit, as an empty
 // auth does in Insomnium too
-export const toPostmanAuth = (authentication: unknown): Record<string, unknown> | undefined => {
+const toPostmanAuth = (authentication: unknown): Record<string, unknown> | undefined => {
   const auth = strategies(authentication).find(strategy => !strategy.disabled);
   if (!auth) {
     return undefined;
@@ -92,7 +92,7 @@ export const toPostmanAuth = (authentication: unknown): Record<string, unknown> 
 
 const RAW_LANGUAGES: [RegExp, string][] = [[/json/i, 'json'], [/xml/i, 'xml'], [/html/i, 'html'], [/javascript/i, 'javascript']];
 
-export const toPostmanBody = (body: any): Record<string, unknown> | undefined => {
+const toPostmanBody = (body: any): Record<string, unknown> | undefined => {
   if (!body || typeof body !== 'object') {
     return undefined;
   }

@@ -5,7 +5,7 @@
 // not listed, so a commit that only reorders things can say so.
 import YAML from 'yaml';
 
-export interface FieldChange {
+interface FieldChange {
   field: string;
   before?: string;
   after?: string;

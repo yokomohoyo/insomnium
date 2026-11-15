@@ -42,7 +42,7 @@ interface Props {
   onPaste: (text: string) => void;
 }
 
-export interface RequestUrlBarHandle {
+interface RequestUrlBarHandle {
   focusInput: () => void;
 }
 

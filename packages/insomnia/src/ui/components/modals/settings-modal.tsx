@@ -17,7 +17,7 @@ import { Snapshots } from '../settings/snapshots';
 import { ThemePanel } from '../settings/theme-panel';
 import { showModal } from './index';
 
-export interface SettingsModalHandle {
+interface SettingsModalHandle {
   hide: () => void;
   show: (options?: { tab?: string }) => void;
 }
@@ -25,7 +25,7 @@ export interface SettingsModalHandle {
 export const TAB_INDEX_SHORTCUTS = 'keyboard';
 export const TAB_INDEX_THEMES = 'themes';
 export const TAB_INDEX_PLUGINS = 'plugins';
-export const TAB_INDEX_AI = 'ai';
+const TAB_INDEX_AI = 'ai';
 
 export const SettingsModal = forwardRef<SettingsModalHandle, ModalProps>((props, ref) => {
   const [defaultTabKey, setDefaultTabKey] = useState('general');

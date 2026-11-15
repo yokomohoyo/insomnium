@@ -5,7 +5,7 @@ import { ListGroupItem } from './list-group-item';
 import { UnitTestResultBadge } from './unit-test-result-badge';
 import { UnitTestResultTimestamp } from './unit-test-result-timestamp';
 
-export interface UnitTestResultItemProps {
+interface UnitTestResultItemProps {
   item: {
     duration: string;
     err?: {

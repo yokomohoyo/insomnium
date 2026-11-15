@@ -43,7 +43,7 @@ export interface WebSocketConnection extends WebSocket {
   requestId: string;
 }
 
-export type WebSocketOpenEvent = Omit<Event, 'target'> & {
+type WebSocketOpenEvent = Omit<Event, 'target'> & {
   _id: string;
   requestId: string;
   type: 'open';
@@ -60,14 +60,14 @@ export type WebSocketMessageEvent = Omit<MessageEvent, 'target'> & {
   binary?: true;
 };
 
-export type WebSocketErrorEvent = Omit<ErrorEvent, 'target'> & {
+type WebSocketErrorEvent = Omit<ErrorEvent, 'target'> & {
   _id: string;
   requestId: string;
   type: 'error';
   timestamp: number;
 };
 
-export type WebSocketCloseEvent = Omit<CloseEvent, 'target'> & {
+type WebSocketCloseEvent = Omit<CloseEvent, 'target'> & {
   _id: string;
   requestId: string;
   type: 'close';

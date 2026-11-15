@@ -30,10 +30,10 @@ export interface CapturedExchange {
   error?: string;
 }
 
-export const MAX_EXCHANGES = 500;
+const MAX_EXCHANGES = 500;
 export const MAX_BODY = 1024 * 1024;
 // the bodies kept in all, the oldest exchanges' let go first
-export const MAX_KEPT_BYTES = 32 * 1024 * 1024;
+const MAX_KEPT_BYTES = 32 * 1024 * 1024;
 // sent on by the proxy, not by what's captured
 const HOP_BY_HOP = new Set(['connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization', 'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade']);
 

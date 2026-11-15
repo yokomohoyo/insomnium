@@ -6,7 +6,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-export interface McpDiscovery {
+interface McpDiscovery {
   port: number;
   token: string;
   url: string;
@@ -15,7 +15,7 @@ export interface McpDiscovery {
   updatedAt: string;
 }
 
-export function getDiscoveryFilePath(): string {
+function getDiscoveryFilePath(): string {
   return process.env.INSOMNIUM_MCP_DISCOVERY_FILE
     || path.join(os.homedir(), '.insomnium', 'mcp.json');
 }

@@ -3,12 +3,12 @@
 import { Enum, Field, MapField, Message, OneOf, Service, Type } from 'protobufjs';
 import { v4 } from 'uuid';
 
-export interface MethodPayload {
+interface MethodPayload {
   plain: {[key: string]: any};
   message: Message;
 }
 
-export interface ServiceMethodsPayload {
+interface ServiceMethodsPayload {
   [name: string]: () => MethodPayload;
 }
 

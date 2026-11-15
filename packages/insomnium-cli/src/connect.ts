@@ -14,7 +14,7 @@ export const VERSION: string = createRequire(import.meta.url)('../package.json')
 
 export class CliError extends Error {}
 
-export async function connect(): Promise<Client> {
+async function connect(): Promise<Client> {
   const disc = await readDiscovery();
   const endpoint = new URL(endpointUrl(disc));
   const transport = new SSEClientTransport(endpoint, {

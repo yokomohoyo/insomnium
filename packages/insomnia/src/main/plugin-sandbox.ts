@@ -10,7 +10,7 @@ import { pathToFileURL } from 'url';
 
 import { isDevelopment } from '../common/constants';
 
-export const PLUGIN_SANDBOX_PARTITION = 'plugin-sandbox';
+const PLUGIN_SANDBOX_PARTITION = 'plugin-sandbox';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 // what a sandbox may read in all: its plugin's code, many times over

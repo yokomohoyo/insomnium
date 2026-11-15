@@ -19,7 +19,7 @@ export const LANGUAGES = [
   { code: 'zh-CN', name: '简体中文' },
 ] as const;
 
-export type Language = typeof LANGUAGES[number]['code'];
+type Language = typeof LANGUAGES[number]['code'];
 
 const catalogs: Record<Exclude<Language, 'en'>, Record<string, string>> = { de, es, fr, ja, 'pt-BR': ptBR, 'zh-CN': zhCN };
 

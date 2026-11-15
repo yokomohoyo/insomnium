@@ -1,7 +1,7 @@
 // What the app and a team server (`insomnium-server team`, server/team) share:
 // its collections as the API lists them, and how a typed address is read.
 
-export type TeamRole = 'viewer' | 'editor' | 'owner';
+type TeamRole = 'viewer' | 'editor' | 'owner';
 
 export interface TeamCollection {
   slug: string;

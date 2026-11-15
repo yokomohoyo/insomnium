@@ -126,7 +126,7 @@ const failureReason = (sample: LoadSample) =>
 const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
 
 // the mean of each phase over the sends libcurl timed
-export function meanPhases(samples: LoadSample[]): PhaseDurations | undefined {
+function meanPhases(samples: LoadSample[]): PhaseDurations | undefined {
   const phases = samples.filter(sample => sample.timings).map(sample => phaseDurations(sample.timings!, sample.elapsed));
   if (!phases.length) {
     return undefined;
@@ -193,7 +193,7 @@ export interface LoadThresholds {
   errorRate?: number;
 }
 
-export interface ThresholdCheck {
+interface ThresholdCheck {
   passed: boolean;
   // what was measured against what was allowed
   message: string;

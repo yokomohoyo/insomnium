@@ -15,7 +15,7 @@ export interface AlertModalOptions {
   // however it's closed
   onHide?: () => void;
 }
-export interface AlertModalHandle {
+interface AlertModalHandle {
   show: (options: AlertModalOptions) => void;
   hide: () => void;
 }

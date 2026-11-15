@@ -1,7 +1,7 @@
 import React, { FC } from 'react';
 import styled, { css } from 'styled-components';
 
-export interface ListGroupItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
+interface ListGroupItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
   isSelected?: boolean;
   selectable?: boolean;
   indentLevel?: number;

@@ -56,7 +56,7 @@ export const setDeviceCodeUi = (ui: DeviceCodeUi) => {
   showPrompt = ui;
 };
 
-export interface TokenPoll {
+interface TokenPoll {
   // the token endpoint's answer to one poll
   status: number;
   body: Record<string, any> | null;

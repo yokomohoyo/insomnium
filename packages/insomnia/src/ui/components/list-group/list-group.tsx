@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import styled from 'styled-components';
 
-export interface ListGroupProps {
+interface ListGroupProps {
   children?: ReactNode;
   bordered?: boolean;
 }

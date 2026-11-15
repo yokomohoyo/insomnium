@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 
 import type { McpServerSummary } from '../../../main/network/mcp-client';
 
-export type McpConnection =
+type McpConnection =
   | { status: 'disconnected'; error?: string }
   | { status: 'connecting' }
   | { status: 'connected'; server: McpServerSummary };

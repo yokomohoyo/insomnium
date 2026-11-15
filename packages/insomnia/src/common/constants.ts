@@ -14,7 +14,7 @@ export const getAppDefaultDarkTheme = () => appConfig.darkTheme;
 export const getAppPlatform = () => process.platform;
 export const isMac = () => getAppPlatform() === 'darwin';
 export const isWindows = () => getAppPlatform() === 'win32';
-export const getAppEnvironment = () => process.env.INSOMNIA_ENV || 'production';
+const getAppEnvironment = () => process.env.INSOMNIA_ENV || 'production';
 export const isDevelopment = () => getAppEnvironment() === 'development';
 export const getAppBuildDate = () => new Date(process.env.BUILD_DATE ?? '').toLocaleDateString();
 export type AuthType =
@@ -61,7 +61,7 @@ export const REQUEST_TIME_TO_SHOW_COUNTER = 1; // Seconds
  * For initial introduction, see https://github.com/Kong/insomnia/blob/8aa274d21b351c4710f0bb833cba7deea3d56c29/app/ui/components/ResponsePane.js#L100
 */
 export const REQUEST_SETUP_TEARDOWN_COMPENSATION = 200;
-export const STATUS_CODE_PLUGIN_ERROR = -222;
+const STATUS_CODE_PLUGIN_ERROR = -222;
 export const LARGE_RESPONSE_MB = 5;
 export const HUGE_RESPONSE_MB = 100;
 export const FLEXIBLE_URL_REGEX = /^(http|https):\/\/[\wàâäèéêëîïôóœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ\-_.]+[/\wàâäèéêëîïôóœùûüÿçÀÂÄÈÉÊËÎÏÔŒÙÛÜŸÇ.\-+=:\][@%^*&!#?;$~'(),]*/;
@@ -136,7 +136,7 @@ export const MIN_EDITOR_FONT_SIZE = 8;
 export const MAX_EDITOR_FONT_SIZE = 24;
 
 // Activities
-export type GlobalActivity =
+type GlobalActivity =
   | 'spec'
   | 'debug'
   | 'unittest'

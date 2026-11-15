@@ -75,7 +75,7 @@ const basePaths = (spec: Record<string, any>): string[] => {
   });
 };
 
-export interface SpecOperation {
+interface SpecOperation {
   // e.g. GET /pets/{id} 200
   label: string;
   // a JSON pointer to the response's schema in the spec

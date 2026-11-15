@@ -384,7 +384,7 @@ const listen = () => {
   });
 };
 
-export async function startFolderSync({ workspaceId, folder }: { workspaceId: string; folder: string }) {
+async function startFolderSync({ workspaceId, folder }: { workspaceId: string; folder: string }) {
   await stopFolderSync({ workspaceId, forget: false });
   const sync = new FolderSync(workspaceId, path.resolve(folder));
   await sync.start();
@@ -397,7 +397,7 @@ export async function startFolderSync({ workspaceId, folder }: { workspaceId: st
   return sync.root;
 }
 
-export async function stopFolderSync({ workspaceId, forget = true }: { workspaceId: string; forget?: boolean }) {
+async function stopFolderSync({ workspaceId, forget = true }: { workspaceId: string; forget?: boolean }) {
   syncs.get(workspaceId)?.stop();
   syncs.delete(workspaceId);
   if (forget) {
@@ -406,7 +406,7 @@ export async function stopFolderSync({ workspaceId, forget = true }: { workspace
   }
 }
 
-export const folderSyncStatus = ({ workspaceId }: { workspaceId: string }) => syncs.get(workspaceId)?.root || null;
+const folderSyncStatus = ({ workspaceId }: { workspaceId: string }) => syncs.get(workspaceId)?.root || null;
 
 // the folders collections were synced to when the app last closed
 export async function restoreFolderSyncs() {

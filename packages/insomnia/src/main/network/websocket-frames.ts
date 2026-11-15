@@ -82,7 +82,7 @@ export function hexDump(bytes: Buffer, limit = 64 * 1024): string {
 }
 
 // the reconnect setting, within bounds: 1 s to 5 min apart, 1 to 100 tries
-export interface ReconnectSetting {
+interface ReconnectSetting {
   enabled: boolean;
   delaySeconds: number;
   maxAttempts: number;

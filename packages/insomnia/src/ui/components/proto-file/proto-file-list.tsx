@@ -6,11 +6,11 @@ import type { ProtoFile } from '../../../models/proto-file';
 import { ListGroup, ListGroupItem } from '../list-group';
 import { Button } from '../themed-button';
 
-export type SelectProtoFileHandler = (id: string) => void;
-export type DeleteProtoFileHandler = (protofile: ProtoFile) => void;
-export type DeleteProtoDirectoryHandler = (protoDirectory: ProtoDirectory) => void;
-export type UpdateProtoFileHandler = (protofile: ProtoFile | ProtoDirectory) => Promise<void>;
-export const ProtoListItem = styled(ListGroupItem).attrs(() => ({
+type SelectProtoFileHandler = (id: string) => void;
+type DeleteProtoFileHandler = (protofile: ProtoFile) => void;
+type DeleteProtoDirectoryHandler = (protoDirectory: ProtoDirectory) => void;
+type UpdateProtoFileHandler = (protofile: ProtoFile | ProtoDirectory) => Promise<void>;
+const ProtoListItem = styled(ListGroupItem).attrs(() => ({
   className: 'row-spaced',
 }))`
   button i.fa {

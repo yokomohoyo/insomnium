@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { IconEnum, SvgIcon } from '../../svg-icon';
 import { pressable } from './sidebar-item';
 
-export interface SidebarHeaderProps {
+interface SidebarHeaderProps {
   headerTitle: string;
   toggleSection: () => void;
   toggleFilter?: () => void;

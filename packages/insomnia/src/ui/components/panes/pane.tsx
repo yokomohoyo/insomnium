@@ -27,7 +27,7 @@ export const PaneHeader: FC<PropsWithChildren<PaneHeaderProps>> = ({ className, 
   </header>
 );
 
-export const paneBodyClasses = 'pane__body theme--pane__body';
+const paneBodyClasses = 'pane__body theme--pane__body';
 export const PaneBody: FC<PropsWithChildren<PaneBodyProps>> = ({ placeholder, children }) => (
   <div className={classnames(paneBodyClasses, placeholder && 'pane__body--placeholder')}>
     {children}
