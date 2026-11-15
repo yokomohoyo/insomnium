@@ -1,0 +1,19 @@
+# Lints the staged js/ts/tsx files (lint-staged, eslint --fix).
+# Skip once with: git commit --no-verify
+
+# git from WSL doesn't load nvm
+if ! command -v node >/dev/null 2>&1 && [ -s "$HOME/.nvm/nvm.sh" ]; then
+  . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found, skipping lint"
+  exit 0
+fi
+
+if [ ! -e node_modules/.bin/lint-staged ]; then
+  echo "pre-commit: lint-staged not installed (run npm install), skipping lint"
+  exit 0
+fi
+
+npx --no-install lint-staged

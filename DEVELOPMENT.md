@@ -62,6 +62,10 @@ Unit tests for components follow the same pattern.
 
 The structure for smoke tests is explained in the smoke testing package: [`packages/insomnia-smoke-test`](packages/insomnia-smoke-test).
 
+## Pre-commit hook
+
+`npm install` sets up a git hook ([husky](https://typicode.github.io/husky/)) that runs `eslint --fix` on the staged `.js`, `.ts` and `.tsx` files ([lint-staged](https://github.com/lint-staged/lint-staged)) before each commit. A commit is stopped only by errors eslint can't fix itself. It needs `node` on the `PATH` (or nvm in `~/.nvm`) and is skipped without it; to skip it once, use `git commit --no-verify`.
+
 ## Technical Debt
 
 This is just a brief summary of Insomnium's current technical debt.
