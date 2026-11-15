@@ -3,12 +3,16 @@
 // asserts a 200 response renders. Verifies libcurl native binding actually
 // transfers data through electron. Run with:
 //   BUNDLE=build node scripts/verify-smoke.mjs
+// or, for an installed app:
+//   APP_EXE=<path to Insomnium.exe> node scripts/verify-smoke.mjs
+import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
+import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import url from 'node:url';
 
-import { _electron as electron } from '@playwright/test';
+import { _electron as electron, chromium } from '@playwright/test';
 
 const REPO = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const INSOMNIA = path.join(REPO, 'packages', 'insomnia');
@@ -28,21 +32,69 @@ await new Promise(r => server.listen(0, '127.0.0.1', r));
 const target = `http://127.0.0.1:${server.address().port}/ping`;
 console.log(`[smoke] inline target: ${target}`);
 
-console.log(`[smoke] launching electron with ${mainJs}`);
-const app = await electron.launch({
-  cwd: INSOMNIA,
-  executablePath: electronBin,
-  args: [mainJs],
-  env: {
-    ...process.env,
-    // app.setPath wants a drive letter on Windows, so not /tmp
-    INSOMNIA_DATA_PATH: path.join(os.tmpdir(), `insomnia-smoke-${Date.now()}`),
-    PLAYWRIGHT: 'true',
-  },
-  timeout: 30_000,
-});
+const env = {
+  ...process.env,
+  // app.setPath wants a drive letter on Windows, so not /tmp
+  INSOMNIA_DATA_PATH: path.join(os.tmpdir(), `insomnia-smoke-${Date.now()}`),
+  PLAYWRIGHT: 'true',
+};
 
-const page = await app.firstWindow();
+// An installed app (APP_EXE=<its exe>): a released build won't take a
+// debugger from Playwright's launcher (the inspect fuse is off), so it is
+// started as a user would and driven over the DevTools protocol.
+const launchInstalled = async exe => {
+  const probe = net.createServer();
+  await new Promise(r => probe.listen(0, '127.0.0.1', r));
+  const { port } = probe.address();
+  await new Promise(r => probe.close(r));
+
+  console.log(`[smoke] starting ${exe} with DevTools on ${port}`);
+  const child = spawn(exe, [`--remote-debugging-port=${port}`], { env, stdio: 'ignore' });
+  let browser;
+  for (let attempt = 0; !browser; attempt++) {
+    try {
+      browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+    } catch (err) {
+      if (attempt === 30) {
+        throw err;
+      }
+      await new Promise(r => setTimeout(r, 1_000));
+    }
+  }
+  const pages = () => browser.contexts().flatMap(context => context.pages()).filter(p => !p.url().startsWith('devtools://'));
+  for (let attempt = 0; pages().length === 0; attempt++) {
+    if (attempt === 30) {
+      throw new Error('the app opened no window');
+    }
+    await new Promise(r => setTimeout(r, 1_000));
+  }
+  return {
+    page: pages()[0],
+    close: async () => {
+      await browser.close().catch(() => {});
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F']);
+      } else {
+        child.kill();
+      }
+    },
+  };
+};
+
+const launchBundle = async () => {
+  console.log(`[smoke] launching electron with ${mainJs}`);
+  const app = await electron.launch({
+    cwd: INSOMNIA,
+    executablePath: electronBin,
+    args: [mainJs],
+    env,
+    timeout: 30_000,
+  });
+  return { page: await app.firstWindow(), close: () => app.close() };
+};
+
+const app = process.env.APP_EXE ? await launchInstalled(process.env.APP_EXE) : await launchBundle();
+const { page } = app;
 await page.waitForLoadState('domcontentloaded');
 await page.waitForTimeout(8_000);
 

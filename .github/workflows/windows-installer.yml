@@ -1,0 +1,79 @@
+name: Windows Installer
+
+# Builds the Windows installer and, on the runner, installs it silently, runs
+# the installed app, uninstalls it, and upgrades a real Squirrel install of an
+# earlier release to it (.github/scripts/test-windows-installer.ps1). Not a
+# required check: it runs when what it tests changes, or by hand.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - packages/insomnia/electron-builder.config.js
+      - packages/insomnia/packaging/windows/**
+      - scripts/verify-smoke.mjs
+      - .github/scripts/test-windows-installer.ps1
+      - .github/workflows/windows-installer.yml
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # the last release whose installer was Squirrel's
+  SQUIRREL_VERSION: 0.8.13
+
+jobs:
+  install:
+    name: Install, upgrade, uninstall
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: ".nvmrc"
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install packages
+        uses: ./.github/actions/install
+
+      - name: Build the installer
+        shell: bash
+        run: npm run app-package
+        env:
+          NODE_OPTIONS: "--max_old_space_size=6144"
+          BUILD_TARGETS: nsis
+
+      - name: List what was built
+        shell: bash
+        run: ls -lh packages/insomnia/dist/
+
+      - name: Download the Squirrel installer of ${{ env.SQUIRREL_VERSION }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$SQUIRREL_VERSION" --repo "$GITHUB_REPOSITORY" --pattern "Insomnium.Core-$SQUIRREL_VERSION.exe" --dir "$RUNNER_TEMP/squirrel"
+
+      - name: Install, run, uninstall, upgrade
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem packages/insomnia/dist -Filter 'Insomnium.Core-*.exe' | Where-Object { $_.Name -notlike '*portable*' } | Select-Object -First 1
+          .github/scripts/test-windows-installer.ps1 -Installer $installer.FullName -Kind nsis `
+            -SquirrelInstaller (Join-Path $env:RUNNER_TEMP "squirrel/Insomnium.Core-$env:SQUIRREL_VERSION.exe")
+
+      - name: Upload the installer
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-installer-${{ github.run_number }}
+          path: packages/insomnia/dist/Insomnium.Core-*.exe
+          if-no-files-found: warn
+          retention-days: 3

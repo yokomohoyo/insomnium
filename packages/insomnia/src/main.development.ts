@@ -28,17 +28,11 @@ import { mcpServerAction } from './main/mcp/server-state';
 import { registerMcpClientHandlers } from './main/network/mcp-client';
 import { registerWebSocketHandlers } from './main/network/websocket';
 import { restorePendingSnapshot, scheduleSnapshots } from './main/snapshots';
-import { checkIfRestartNeeded } from './main/squirrel-startup';
 import { hardenWebContents, lockDownSession } from './main/web-hardening';
 import * as windowUtils from './main/window-utils';
 import * as models from './models/index';
 import { nativeThemeSourceFor } from './plugins/native-theme';
 import builtInThemes from './plugins/themes';
-
-// Handle potential auto-update
-if (checkIfRestartNeeded()) {
-  process.exit(0);
-}
 
 initializeLogging();
 log.info(`Running version ${getAppVersion()}`);
