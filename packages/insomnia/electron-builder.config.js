@@ -238,9 +238,10 @@ const {
 const targets = BUILD_TARGETS?.split(',');
 if (platform && targets) {
   console.log('overriding build targets to: ', targets);
+  /** @type {Record<string, 'mac' | 'linux' | 'win'>} */
   const PLATFORM_MAP = { darwin: 'mac', linux: 'linux', win32: 'win' };
-  config[PLATFORM_MAP[platform]].target = config[
-    PLATFORM_MAP[platform]
-  ].target.filter(({ target }) => targets.includes(target));
+  /** @type {{ target: { target: string }[] }} */
+  const platformConfig = /** @type {any} */ (config[PLATFORM_MAP[platform]]);
+  platformConfig.target = platformConfig.target.filter(({ target }) => targets.includes(target));
 }
 module.exports = config;

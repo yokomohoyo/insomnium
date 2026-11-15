@@ -63,10 +63,15 @@ describe('filterHeaders()', () => {
   beforeEach(globalBeforeEach);
 
   it('handles bad headers', () => {
+    // @ts-expect-error -- invalid input on purpose
     expect(filterHeaders(null, null)).toEqual([]);
+    // @ts-expect-error -- invalid input on purpose
     expect(filterHeaders([], null)).toEqual([]);
+    // @ts-expect-error -- invalid input on purpose
     expect(filterHeaders(['bad'], null)).toEqual([]);
+    // @ts-expect-error -- invalid input on purpose
     expect(filterHeaders(['bad'], 'good')).toEqual([]);
+    // @ts-expect-error -- invalid input on purpose
     expect(filterHeaders(null, 'good')).toEqual([]);
     expect(
       filterHeaders(
@@ -83,7 +88,9 @@ describe('filterHeaders()', () => {
       filterHeaders(
         [
           {
+            // @ts-expect-error -- invalid input on purpose
             name: 123,
+            // @ts-expect-error -- invalid input on purpose
             value: 123,
           },
         ],
@@ -98,6 +105,7 @@ describe('filterHeaders()', () => {
             value: 'valid',
           },
         ],
+        // @ts-expect-error -- invalid input on purpose
         123,
       ),
     ).toEqual([]);
@@ -109,6 +117,7 @@ describe('filterHeaders()', () => {
             value: 'valid',
           },
         ],
+        // @ts-expect-error -- invalid input on purpose
         null,
       ),
     ).toEqual([]);
@@ -168,8 +177,8 @@ describe('debounce()', () => {
 
   it('debounces correctly', () => {
     jest.useFakeTimers();
-    const resultList = [];
-    const fn = debounce((...args) => {
+    const resultList: unknown[][] = [];
+    const fn = debounce((...args: unknown[]) => {
       resultList.push(args);
     }, 100);
     fn('foo');
@@ -200,6 +209,7 @@ describe('fuzzyMatch()', () => {
   });
 
   it('can get a negative fuzzy match on a single field', () => {
+    // @ts-expect-error -- invalid input on purpose
     expect(fuzzyMatch('foo', undefined)).toBeNull();
     expect(fuzzyMatch('foo', 'bar')).toBeNull();
   });
@@ -209,6 +219,7 @@ describe('fuzzyMatchAll()', () => {
   beforeEach(globalBeforeEach);
 
   it('can get a positive fuzzy match on multiple fields', () => {
+    // @ts-expect-error -- invalid input on purpose
     expect(fuzzyMatchAll('', [undefined])).toEqual(null);
     expect(fuzzyMatchAll('', ['testing'])).toEqual(null);
     expect(fuzzyMatchAll('   ', ['testing'])).toEqual(null);
@@ -244,6 +255,7 @@ describe('fuzzyMatchAll()', () => {
   });
 
   it('can get a negative fuzzy match on multiple fields', () => {
+    // @ts-expect-error -- invalid input on purpose
     expect(fuzzyMatchAll('foo', [undefined])).toEqual(null);
     expect(fuzzyMatchAll('foo', ['bar'])).toEqual(null);
     expect(fuzzyMatchAll('wrong this ou', ['testing', 'this', 'out'])).toEqual(null);

@@ -8,11 +8,14 @@ import { buildMultipart, DEFAULT_BOUNDARY } from '../../main/network/multipart';
 
 window.app = electron.app;
 
+// some of these parts are malformed on purpose
+const build = (params: object[]) => buildMultipart(params as Parameters<typeof buildMultipart>[0]);
+
 describe('buildMultipart()', () => {
   beforeEach(globalBeforeEach);
 
   it('builds a simple request', async () => {
-    const { filePath, boundary, contentLength } = await buildMultipart([
+    const { filePath, boundary, contentLength } = await build([
       {
         name: 'foo',
         value: 'bar',
@@ -41,7 +44,7 @@ describe('buildMultipart()', () => {
   });
 
   it('builds a multiline request with content-type', async () => {
-    const { filePath, boundary, contentLength } = await buildMultipart([
+    const { filePath, boundary, contentLength } = await build([
       {
         name: 'foo',
         value: 'bar',
@@ -82,7 +85,7 @@ describe('buildMultipart()', () => {
 
   it('builds with file', async () => {
     const fileName = path.resolve(path.join(__dirname, './testfile.txt'));
-    const { filePath, boundary, contentLength } = await buildMultipart([
+    const { filePath, boundary, contentLength } = await build([
       {
         name: 'foo',
         value: 'bar',
@@ -121,7 +124,7 @@ describe('buildMultipart()', () => {
   });
 
   it('skips entries with no name or value', async () => {
-    const { filePath, boundary, contentLength } = await buildMultipart([
+    const { filePath, boundary, contentLength } = await build([
       {
         value: 'bar',
       },

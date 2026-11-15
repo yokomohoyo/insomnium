@@ -16,6 +16,10 @@ const CONTEXT = {
   null_test: null,
 };
 
+// the plugin takes a rendered request; these tests give it the stored one
+type Rendered = NonNullable<Parameters<typeof plugin.init>[0]>;
+const storedRequest = async () => (await models.request.getById('req_1')) as unknown as Rendered;
+
 describe('init()', () => {
   beforeEach(async () => {
     await globalBeforeEach();
@@ -31,7 +35,7 @@ describe('init()', () => {
   });
 
   it('initializes correctly', async () => {
-    const result = plugin.init(await models.request.getById('req_1'), CONTEXT);
+    const result = plugin.init(await storedRequest(), CONTEXT);
     expect(Object.keys(result)).toEqual(['request']);
     expect(Object.keys(result.request).sort()).toEqual([
       'addHeader',
@@ -71,7 +75,7 @@ describe('init()', () => {
   });
 
   it('initializes correctly in read-only mode', async () => {
-    const result = plugin.init(await models.request.getById('req_1'), CONTEXT, true);
+    const result = plugin.init(await storedRequest(), CONTEXT, true);
     expect(Object.keys(result)).toEqual(['request']);
     expect(Object.keys(result.request).sort()).toEqual([
       'getAuthentication',
@@ -94,6 +98,7 @@ describe('init()', () => {
   });
 
   it('fails to initialize without request', () => {
+    // @ts-expect-error -- no arguments on purpose
     expect(() => plugin.init()).toThrowError('contexts.request initialized without request');
   });
 });
@@ -140,7 +145,7 @@ describe('request.*', () => {
 
   it('works for basic getters', async () => {
     const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    const result = plugin.init(await models.request.getById('req_1'), CONTEXT);
+    const result = plugin.init(await storedRequest(), CONTEXT);
     expect(result.request.getId()).toBe('req_1');
     expect(result.request.getName()).toBe('My Request');
     expect(result.request.getUrl()).toBe('');
@@ -155,7 +160,7 @@ describe('request.*', () => {
   });
 
   it('works for parameters', async () => {
-    const result = plugin.init(await models.request.getById('req_1'), CONTEXT);
+    const result = plugin.init(await storedRequest(), CONTEXT);
     // getParameters()
     expect(result.request.getParameters()).toEqual([
       {
@@ -187,7 +192,7 @@ describe('request.*', () => {
   });
 
   it('works for headers', async () => {
-    const result = plugin.init(await models.request.getById('req_1'), CONTEXT);
+    const result = plugin.init(await storedRequest(), CONTEXT);
     // getHeaders()
     expect(result.request.getHeaders()).toEqual([
       {
@@ -219,7 +224,7 @@ describe('request.*', () => {
   });
 
   it('works for cookies', async () => {
-    const request = await models.request.getById('req_1');
+    const request = await storedRequest();
     request.cookies = []; // Because the plugin technically needs a RenderedRequest
 
     const result = plugin.init(request, CONTEXT);
@@ -234,7 +239,7 @@ describe('request.*', () => {
   });
 
   it('works for environment', async () => {
-    const request = await models.request.getById('req_1');
+    const request = await storedRequest();
     request.cookies = []; // Because the plugin technically needs a RenderedRequest
 
     const result = plugin.init(request, CONTEXT);
@@ -262,7 +267,7 @@ describe('request.*', () => {
   });
 
   it('works for authentication', async () => {
-    const request = await models.request.getById('req_1');
+    const request = await storedRequest();
     // Seed with a single strategy so setAuthenticationParameter has something to patch.
     request.authentication = [{ type: 'basic' }];
 
@@ -270,11 +275,11 @@ describe('request.*', () => {
     result.request.setAuthenticationParameter('foo', 'bar');
     result.request.setAuthenticationParameter('foo', 'baz');
     expect(result.request.getAuthentication()).toMatchObject({ foo: 'baz' });
-    expect(request.authentication[0]).toMatchObject({ foo: 'baz' });
+    expect((request.authentication as unknown[])[0]).toMatchObject({ foo: 'baz' });
   });
 
   it('works for request body', async () => {
-    const result = plugin.init(await models.request.getById('req_1'), CONTEXT);
+    const result = plugin.init(await storedRequest(), CONTEXT);
     expect(result.request.getBody()).toEqual({
       text: 'body',
     });

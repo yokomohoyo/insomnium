@@ -5,11 +5,14 @@ import { CONTENT_TYPE_GRAPHQL } from '../../common/constants';
 import { newBodyGraphQL, updateMimeType } from '../../ui/components/dropdowns/content-type-dropdown';
 import * as models from '../index';
 
+// a document as an older version stored it
+const migrate = (doc: object) => models.request.migrate(doc as Parameters<typeof models.request.migrate>[0]);
+
 describe('init()', () => {
   beforeEach(globalBeforeEach);
 
   it('contains all required fields', async () => {
-    Date.now = jest.fn().mockReturnValue(1478795580200);
+    Date.now = jest.fn<() => number>().mockReturnValue(1478795580200);
     expect(models.request.init()).toEqual({
       isPrivate: false,
       authentication: [],
@@ -36,7 +39,7 @@ describe('create()', () => {
   beforeEach(globalBeforeEach);
 
   it('creates a valid request', async () => {
-    Date.now = jest.fn().mockReturnValue(1478795580200);
+    Date.now = jest.fn<() => number>().mockReturnValue(1478795580200);
     const request = await models.request.create({
       name: 'Test Request',
       parentId: 'fld_124',
@@ -71,7 +74,7 @@ describe('create()', () => {
   });
 
   it('fails when missing parentId', async () => {
-    Date.now = jest.fn().mockReturnValue(1478795580200);
+    Date.now = jest.fn<() => number>().mockReturnValue(1478795580200);
     expect(() =>
       models.request.create({
         name: 'Test Request',
@@ -112,8 +115,10 @@ describe('updateMimeType()', () => {
           value: 'bar',
         },
         {
+          // @ts-expect-error -- invalid header on purpose
           bad: true,
         },
+        // @ts-expect-error -- invalid header on purpose
         null,
       ],
     });
@@ -191,7 +196,7 @@ describe('migrate()', () => {
       authentication: [],
       url: '',
     };
-    expect(models.request.migrate(original)).toEqual(expected);
+    expect(migrate(original)).toEqual(expected);
   });
 
   it('migrates form-urlencoded', () => {
@@ -227,7 +232,7 @@ describe('migrate()', () => {
       authentication: [],
       url: '',
     };
-    expect(models.request.migrate(original)).toEqual(expected);
+    expect(migrate(original)).toEqual(expected);
   });
 
   it('migrates form-urlencoded with charset', () => {
@@ -263,7 +268,7 @@ describe('migrate()', () => {
       authentication: [],
       url: '',
     };
-    expect(models.request.migrate(original)).toEqual(expected);
+    expect(migrate(original)).toEqual(expected);
   });
 
   it('migrates form-urlencoded malformed', () => {
@@ -295,7 +300,7 @@ describe('migrate()', () => {
       authentication: [],
       url: '',
     };
-    expect(models.request.migrate(original)).toEqual(expected);
+    expect(migrate(original)).toEqual(expected);
   });
 
   it('migrates mime-type', () => {
@@ -323,13 +328,13 @@ describe('migrate()', () => {
           },
         ],
         body: {
-          mimeType: contentToMimeMap[contentType],
+          mimeType: contentToMimeMap[contentType as keyof typeof contentToMimeMap],
           text: '',
         },
         authentication: [],
         url: '',
       };
-      expect(models.request.migrate(original)).toEqual(expected);
+      expect(migrate(original)).toEqual(expected);
     }
   });
 
@@ -340,7 +345,7 @@ describe('migrate()', () => {
         text: 'foo',
       },
     };
-    expect(models.request.migrate(original)).toBe(original);
+    expect(migrate(original)).toBe(original);
   });
 
   it('migrates with weird data', () => {
@@ -370,14 +375,14 @@ describe('migrate()', () => {
       authentication: [],
       url: '',
     };
-    expect(models.request.migrate(newBody)).toEqual(expected);
-    expect(models.request.migrate(stringBody)).toEqual(expected);
-    expect(models.request.migrate(nullBody)).toEqual(expected2);
-    expect(models.request.migrate(noBody)).toEqual(expected2);
+    expect(migrate(newBody)).toEqual(expected);
+    expect(migrate(stringBody)).toEqual(expected);
+    expect(migrate(nullBody)).toEqual(expected2);
+    expect(migrate(noBody)).toEqual(expected2);
   });
 
   it('migrates from initModel()', async () => {
-    Date.now = jest.fn().mockReturnValue(1478795580200);
+    Date.now = jest.fn<() => number>().mockReturnValue(1478795580200);
     const original = {
       _id: 'req_123',
       headers: [],

@@ -6,7 +6,7 @@ import { disableTemplateTags, render } from '../index';
 
 jest.mock('electron');
 
-const failure = (template: string) => render(template).then(() => '', (err: Error) => err.message);
+const failure = (template: string) => Promise.resolve(render(template)).then(() => '', (err: Error) => err.message);
 
 describe('disableTemplateTags()', () => {
   beforeEach(async () => {

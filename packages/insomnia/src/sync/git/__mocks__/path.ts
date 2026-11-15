@@ -3,10 +3,10 @@ import pathOriginal from 'path';
 
 const path = jest.requireActual('path') as typeof pathOriginal;
 
-const exportObj = { __mockPath, ...path };
+const exportObj: Record<string, unknown> = { __mockPath, ...path };
 
-function __mockPath(type) {
-  const mock = type === 'win32' ? path.win32 : path.posix;
+function __mockPath(type: string) {
+  const mock: Record<string, unknown> = { ...(type === 'win32' ? path.win32 : path.posix) };
 
   Object.keys(mock).forEach(k => {
     exportObj[k] = mock[k];

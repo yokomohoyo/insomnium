@@ -8,7 +8,7 @@ import { localTemplateTags } from '../local-template-tags';
 
 jest.mock('electron');
 jest.mock('../../../../network/gcp-id-token/get-token', () => ({
-  ...jest.requireActual<object>('../../../../network/gcp-id-token/get-token'),
+  ...(jest.requireActual('../../../../network/gcp-id-token/get-token') as object),
   getGcpIdToken: jest.fn(),
 }));
 
@@ -33,7 +33,9 @@ describe('hmac', () => {
 });
 
 describe('jwt', () => {
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   it('signs the claims (the jwt.io example)', () => {
     expect(run('jwt', 'HS256', '{"sub":"1234567890","name":"John Doe","iat":1516239022}', 'your-256-bit-secret', 0))
@@ -110,7 +112,9 @@ describe('env', () => {
 });
 
 describe('now', () => {
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   it('shifts the time by the offset', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:00Z'));

@@ -10,7 +10,7 @@ import type { WebSocketMessageEvent } from '../../../../main/network/websocket';
 import { MessageEventView } from '../event-view';
 
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual<object>('react-router-dom'),
+  ...(jest.requireActual('react-router-dom') as object),
   useParams: () => ({ requestId: 'req_1' }),
   useRouteLoaderData: () => ({ activeRequestMeta: {} }),
 }));

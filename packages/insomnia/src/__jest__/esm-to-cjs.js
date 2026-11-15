@@ -4,6 +4,10 @@
 const { transformSync } = require('esbuild');
 
 module.exports = {
+  /**
+   * @param {string} source
+   * @param {string} filename
+   */
   process(source, filename) {
     const { code, map } = transformSync(source, { format: 'cjs', loader: 'js', target: 'node20', sourcefile: filename, sourcemap: true });
     return { code, map };

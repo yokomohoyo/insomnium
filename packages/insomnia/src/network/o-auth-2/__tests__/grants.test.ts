@@ -177,7 +177,7 @@ describe('the newer grants', () => {
     const authorizeUserInWindow = jest.fn(async ({ url }: { url: string }) =>
       `https://app.example.com/callback?code=c0de&state=${forged ? 'forged' : new URL(url).searchParams.get('state')}`);
     (window as any).main = { authorizeUserInWindow };
-    const authentication = { type: 'oauth2', grantType: 'authorization_code', authorizationUrl: 'https://auth.example.com/authorize', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', redirectUrl: 'https://app.example.com/callback' };
+    const authentication: Parameters<typeof getOAuth2Token>[1] = { type: 'oauth2', grantType: 'authorization_code', authorizationUrl: 'https://auth.example.com/authorize', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', redirectUrl: 'https://app.example.com/callback' };
 
     expect(await getOAuth2Token(requestId, authentication)).toMatchObject({ accessToken: 'at-123' });
     expect(new URL(authorizeUserInWindow.mock.calls[0][0].url).searchParams.get('state')).toMatch(/^[\w-]{20,}$/);
@@ -192,7 +192,7 @@ describe('the newer grants', () => {
     const authorizeUserInWindow = jest.fn(async ({ url }: { url: string }) =>
       `https://app.example.com/callback?code=c0de&state=${new URL(url).searchParams.get('state')}`);
     (window as any).main = { authorizeUserInWindow };
-    const authentication = { type: 'oauth2', grantType: 'authorization_code', usePkce: true, authorizationUrl: 'https://auth.example.com/authorize', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', redirectUrl: 'https://app.example.com/callback' };
+    const authentication: Parameters<typeof getOAuth2Token>[1] = { type: 'oauth2', grantType: 'authorization_code', usePkce: true, authorizationUrl: 'https://auth.example.com/authorize', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', redirectUrl: 'https://app.example.com/callback' };
 
     await getOAuth2Token(requestId, authentication);
     const authorize = new URL(authorizeUserInWindow.mock.calls[0][0].url).searchParams;
@@ -208,7 +208,7 @@ describe('the newer grants', () => {
   });
 
   it('refreshes only at the token endpoint, for the client, the token came from', async () => {
-    const authentication = { type: 'oauth2', grantType: 'client_credentials', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', clientSecret: 's' };
+    const authentication: Parameters<typeof getOAuth2Token>[1] = { type: 'oauth2', grantType: 'client_credentials', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app', clientSecret: 's' };
     answer = () => ({ status: 200, body: '{"access_token":"at-1","refresh_token":"rt-1","expires_in":1}' });
     expect(await getOAuth2Token(requestId, authentication)).toMatchObject({ refreshToken: 'rt-1', accessTokenUrl: 'https://auth.example.com/token', clientId: 'app' });
     const expire = async () => models.oAuth2Token.update((await models.oAuth2Token.getByParentId(requestId))!, { expiresAt: Date.now() - 1000 });

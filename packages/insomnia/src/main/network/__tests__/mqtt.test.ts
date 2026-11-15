@@ -53,7 +53,9 @@ describe('MQTT packets', () => {
 });
 
 describe('MqttSession', () => {
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   const session = (options = {}) => {
     const sent: Buffer[] = [];

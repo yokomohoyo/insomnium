@@ -11,7 +11,7 @@ const scan = (fields: Record<string, string>) => {
     formData.append(key, value);
   }
   const request = { formData: async () => formData } as unknown as Request;
-  return scanForResourcesAction({ request, params: {}, context: undefined }) as Promise<ScanForResourcesActionResult>;
+  return scanForResourcesAction({ request, params: {}, context: undefined } as unknown as Parameters<typeof scanForResourcesAction>[0]) as Promise<ScanForResourcesActionResult>;
 };
 
 describe('scanForResourcesAction() importFrom=file', () => {

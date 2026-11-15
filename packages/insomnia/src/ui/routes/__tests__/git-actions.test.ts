@@ -5,6 +5,7 @@ import { globalBeforeEach } from '../../../__jest__/before-each';
 import { ChangeBufferEvent, database } from '../../../common/database';
 import * as models from '../../../models';
 import { DEFAULT_PROJECT_ID } from '../../../models/project';
+import type { Request } from '../../../models/request';
 import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR } from '../../../sync/git/git-vcs';
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
@@ -32,7 +33,7 @@ describe('a doc git rewrites', () => {
   const listen = (changes: ChangeBufferEvent[]) => {
     heard.push(...changes);
   };
-  const told = () => heard.some(([, doc, fromSync]) => doc._id === 'req_1' && (doc as models.request.Request).url === URL && fromSync);
+  const told = () => heard.some(([, doc, fromSync]) => doc._id === 'req_1' && (doc as Request).url === URL && fromSync);
 
   beforeEach(async () => {
     await globalBeforeEach();

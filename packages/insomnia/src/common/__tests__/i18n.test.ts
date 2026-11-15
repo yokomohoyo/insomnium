@@ -8,7 +8,9 @@ import { LANGUAGES, menuLabel, resolveLanguage, setLanguage, t } from '../i18n';
 const LOCALES = path.join(__dirname, '..', '..', 'locales');
 
 describe('t', () => {
-  afterEach(() => setLanguage('en'));
+  afterEach(() => {
+    setLanguage('en');
+  });
 
   it('shows English when the language has no translation', () => {
     setLanguage('de');

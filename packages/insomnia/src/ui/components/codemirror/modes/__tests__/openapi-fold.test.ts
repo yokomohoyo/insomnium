@@ -37,7 +37,7 @@ describe("the openapi mode's indent folding", () => {
     it(`folds ${name} as the indent helper does, without the line's tokens`, () => {
       const editor = CodeMirror(document.body, { value: text, mode: 'openapi' });
       const tokens = jest.spyOn(editor, 'getTokenTypeAt');
-      const ours = CodeMirror.fold['openapi-indent'];
+      const ours = (CodeMirror.fold as unknown as Record<string, typeof CodeMirror.fold.indent>)['openapi-indent'];
       const ranges = [];
       for (let line = 0; line < editor.lineCount(); line++) {
         ranges.push(ours(editor, CodeMirror.Pos(line, 0)));
@@ -48,7 +48,7 @@ describe("the openapi mode's indent folding", () => {
         expect([line, ranges[line]]).toEqual([line, CodeMirror.fold.indent(editor, CodeMirror.Pos(line, 0))]);
       }
       // it is the one the mode folds with
-      expect(editor.getHelpers(CodeMirror.Pos(0, 0), 'fold')).toContain(ours);
+      expect((editor as unknown as { getHelpers(pos: CodeMirror.Position, type: string): unknown[] }).getHelpers(CodeMirror.Pos(0, 0), 'fold')).toContain(ours);
     });
   }
 });

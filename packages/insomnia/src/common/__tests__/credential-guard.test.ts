@@ -115,7 +115,7 @@ describe('CredentialGuard', () => {
   it('binds ciphertext to its doc', async () => {
     const { guard } = await ready();
     const stored = guard.sealDoc(token('abc'), null);
-    expect(stored.accessToken.$enc).toBe(2);
+    expect((stored.accessToken as { $enc: number }).$enc).toBe(2);
     expect(guard.openDoc({ ...stored, _id: 'oa2_2' }).accessToken).toBe('');
     expect(guard.openDoc(stored).accessToken).toBe('abc');
   });
@@ -128,7 +128,7 @@ describe('CredentialGuard', () => {
     expect(guard.needsSealing(legacy)).toBe(true);
     expect(guard.hasLegacyEnvelope(legacy)).toBe(true);
     const resealed = guard.sealDoc(guard.openDoc(legacy), legacy);
-    expect(resealed.accessToken.$enc).toBe(2);
+    expect((resealed.accessToken as { $enc: number }).$enc).toBe(2);
     expect(guard.hasLegacyEnvelope(resealed)).toBe(false);
 
     guard.retireLegacyEnvelopes();

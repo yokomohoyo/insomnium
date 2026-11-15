@@ -31,6 +31,7 @@ class FakeProvider {
   private otherKey = generateKeyPairSync('rsa', { modulusLength: 2048 });
 
   async start() {
+    // @ts-expect-error -- returns only to stop early
     this.server = http.createServer((req, res) => {
       const url = new URL(req.url || '/', this.issuer);
       const json = (status: number, body: unknown) => res.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
@@ -51,6 +52,7 @@ class FakeProvider {
       if (url.pathname === '/token') {
         let body = '';
         req.on('data', chunk => (body += chunk));
+        // @ts-expect-error -- returns only to stop early
         req.on('end', () => {
           const params = new URLSearchParams(body);
           this.tokenRequests.push(params);

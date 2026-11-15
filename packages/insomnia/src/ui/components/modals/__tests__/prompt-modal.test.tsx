@@ -15,7 +15,7 @@ describe('<PromptModal />', () => {
   };
 
   it("won't take a blank name", () => {
-    const onComplete = jest.fn();
+    const onComplete = jest.fn<(value: string) => void>();
     const { input, submit } = open({ title: 'Rename Document', submitName: 'Rename', defaultValue: 'Pets', onComplete });
 
     fireEvent.change(input, { target: { value: '   ' } });

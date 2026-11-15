@@ -1,0 +1,17 @@
+// for `npm run type-check` only: not named tsconfig.json, so the bundlers and
+// ts-jest that compile these files don't pick it up
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node", "jest"],
+  },
+  "include": [
+    "src",
+  ],
+  // generated test files, compared as text
+  "exclude": [
+    "src/generate/fixtures",
+  ],
+}

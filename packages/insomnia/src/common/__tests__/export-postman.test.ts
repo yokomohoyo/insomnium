@@ -72,7 +72,7 @@ describe('toPostmanCollection()', () => {
       preRequestScript: expect.stringContaining("pm.variables.set('item', 'book');"),
       afterResponseScript: expect.stringContaining("pm.test('created'"),
     });
-    expect(imported.filter(({ _type }) => _type === 'response_example')).toEqual([expect.objectContaining({ name: 'Created', statusCode: 201, parentId: createOrder?._id })]);
+    expect(imported.filter(({ _type }) => (_type as string) === 'response_example')).toEqual([expect.objectContaining({ name: 'Created', statusCode: 201, parentId: createOrder?._id })]);
     expect(imported.find(({ name }) => name === 'Sign in')).toMatchObject({ authentication: { type: 'basic', username: 'kim', password: '{{password}}' } });
   });
 

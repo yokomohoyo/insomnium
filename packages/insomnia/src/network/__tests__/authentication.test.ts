@@ -7,6 +7,9 @@ import {
   getAuthQueryParams,
 } from '../authentication';
 
+// a request with only the fields the header is made from
+const authHeader = (request: object, url: string) => getAuthHeader(request as Parameters<typeof getAuthHeader>[0], url);
+
 describe('OAuth 1.0', () => {
   it('Does OAuth 1.0', async () => {
     const authentication = {
@@ -25,7 +28,7 @@ describe('OAuth 1.0', () => {
       method: 'GET',
       authentication,
     };
-    const header = await getAuthHeader(request, 'https://insomnia.rest/');
+    const header = await authHeader(request, 'https://insomnia.rest/');
     expect(header).toEqual({
       name: 'Authorization',
       value: [
@@ -74,7 +77,7 @@ describe('OAuth 1.0', () => {
       method: 'GET',
       authentication,
     };
-    const header = await getAuthHeader(request, 'https://insomnia.rest/');
+    const header = await authHeader(request, 'https://insomnia.rest/');
     expect(header).toEqual({
       name: 'Authorization',
       value: [
@@ -102,9 +105,9 @@ describe('OAuth 1.0', () => {
       method: 'GET',
       authentication,
     };
-    const header = await getAuthHeader(request, 'https://insomnia.rest/');
-    expect(header.name).toBe('Authorization');
-    expect(header.value).toMatch(
+    const header = await authHeader(request, 'https://insomnia.rest/');
+    expect(header?.name).toBe('Authorization');
+    expect(header?.value).toMatch(
       new RegExp(
         [
           'OAuth ' + 'oauth_consumer_key="consumerKey"',
@@ -162,7 +165,7 @@ describe('API Key', () => {
         method: 'GET',
         authentication,
       };
-      const header = await getAuthHeader(request, 'https://insomnia.rest/');
+      const header = await authHeader(request, 'https://insomnia.rest/');
       expect(header).toEqual({
         'name': 'x-api-key',
         'value': 'test',
@@ -181,7 +184,7 @@ describe('API Key', () => {
         method: 'GET',
         authentication,
       };
-      const header = await getAuthHeader(request, 'https://insomnia.rest/');
+      const header = await authHeader(request, 'https://insomnia.rest/');
       expect(header).toEqual({
         'name': 'Cookie',
         'value': 'x-api-key=test',
@@ -198,7 +201,7 @@ describe('API Key', () => {
         addTo: 'queryParams',
       };
 
-      const header = getAuthQueryParams(authentication, 'https://insomnia.rest/');
+      const header = getAuthQueryParams(authentication);
       expect(header).toEqual({
         'name': 'x-api-key',
         'value': 'test',

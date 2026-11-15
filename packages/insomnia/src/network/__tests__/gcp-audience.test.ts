@@ -5,7 +5,7 @@ import { getAuthHeader, setGcpAudienceApproval } from '../authentication';
 import { getGcpIdToken } from '../gcp-id-token/get-token';
 
 jest.mock('../gcp-id-token/get-token', () => ({
-  ...jest.requireActual<object>('../gcp-id-token/get-token'),
+  ...(jest.requireActual('../gcp-id-token/get-token') as object),
   getGcpIdToken: jest.fn(),
 }));
 

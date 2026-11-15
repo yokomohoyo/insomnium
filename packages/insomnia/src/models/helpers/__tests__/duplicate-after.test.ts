@@ -67,12 +67,12 @@ describe('duplicateAfter()', () => {
 describe('duplicate() of each model', () => {
   beforeEach(globalBeforeEach);
 
-  const requestModels = [
+  const requestModels: [string, any][] = [
     ['request', models.request],
     ['grpcRequest', models.grpcRequest],
     ['webSocketRequest', models.webSocketRequest],
     ['mcpRequest', models.mcpRequest],
-  ] as const;
+  ];
 
   it.each(requestModels)('%s: names the copy "(Copy)" and places it after', async (_, model: any) => {
     const original = await model.create({ parentId: 'wrk_1', name: 'A', metaSortKey: 10 });

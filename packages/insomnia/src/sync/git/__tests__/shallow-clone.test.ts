@@ -11,7 +11,9 @@ const REPO_FILE = '[core]\n\tbare = false\n';
 const WORKSPACE = 'type: Workspace\n_id: wrk_1\nname: Cloned\n';
 
 describe('shallowClone()', () => {
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('clones a repository that has a git/config file of its own', async () => {
     // what git.clone does once it has fetched: init, then check out the commit

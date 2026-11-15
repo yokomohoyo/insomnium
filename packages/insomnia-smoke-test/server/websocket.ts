@@ -9,7 +9,7 @@ export function startWebSocketServer(server: Server) {
   const wsServer = new WebSocketServer({ noServer: true, handleProtocols: protocols => protocols.has('graphql-transport-ws') ? 'graphql-transport-ws' : protocols.has('mqtt') ? 'mqtt' : 'chat' });
 
   server.on('upgrade', (request, socket, head) => {
-    upgrade(wsServer, request, socket, head);
+    upgrade(wsServer, request, socket as Socket, head);
   });
 
   wsServer.on('connection', handleConnection);

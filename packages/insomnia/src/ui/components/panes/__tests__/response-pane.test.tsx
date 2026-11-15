@@ -10,7 +10,7 @@ import React from 'react';
 import { ResponsePane } from '../response-pane';
 
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual<object>('react-router-dom'),
+  ...(jest.requireActual('react-router-dom') as object),
   useRouteLoaderData: jest.fn(),
 }));
 jest.mock('../../../hooks/use-request', () => ({

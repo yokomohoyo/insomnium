@@ -16,7 +16,9 @@ import { assertAsyncError, setupDateMocks } from './util';
 const workspaceBuilder = createBuilder(workspaceModelSchema);
 
 describe('NeDBClient', () => {
-  afterAll(() => jest.restoreAllMocks());
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
   beforeEach(async () => {
     await globalBeforeEach();
     workspaceBuilder.reset();
@@ -161,7 +163,6 @@ describe('NeDBClient', () => {
       const neDbClient = new NeDBClient(workspaceId, projectId);
       const upsertSpy = jest.spyOn(db, 'upsert');
 
-      // @ts-expect-error not sure why scope is being typed as never
       workspaceBuilder._id(workspaceId).scope('design').certificates(null);
 
       // @ts-expect-error parentId can be string or null for a workspace

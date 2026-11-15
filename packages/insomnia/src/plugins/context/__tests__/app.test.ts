@@ -6,6 +6,9 @@ import { RENDER_PURPOSE_SEND } from '../../../common/render';
 import * as modals from '../../../ui/components/modals';
 import * as plugin from '../app';
 
+// the tests put mocks in place of these
+const mockedModals = modals as unknown as Record<'showAlert' | 'showPrompt', ReturnType<typeof jest.fn>>;
+
 describe('init()', () => {
   beforeEach(globalBeforeEach);
 
@@ -34,21 +37,22 @@ describe('app.alert()', () => {
   beforeEach(globalBeforeEach);
 
   it('does not show alert when not sending', async () => {
-    modals.showAlert = jest.fn();
+    mockedModals.showAlert = jest.fn();
     const result = plugin.init();
+    // @ts-expect-error -- no arguments on purpose
     result.app.alert();
     // Make sure it passes correct arguments
-    expect(modals.showAlert.mock.calls).toEqual([]);
+    expect(mockedModals.showAlert.mock.calls).toEqual([]);
   });
 
   it('shows alert with message when sending', async () => {
-    modals.showAlert = jest.fn().mockReturnValue('dummy-return-value');
+    mockedModals.showAlert = jest.fn().mockReturnValue('dummy-return-value');
     const result = plugin.init(RENDER_PURPOSE_SEND);
     // Make sure it returns result of showAlert()
     expect(result.app.alert('Title')).toBe('dummy-return-value');
     expect(result.app.alert('Title', 'Message')).toBe('dummy-return-value');
     // Make sure it passes correct arguments
-    expect(modals.showAlert.mock.calls).toEqual([
+    expect(mockedModals.showAlert.mock.calls).toEqual([
       [
         {
           title: 'Title',
@@ -68,15 +72,16 @@ describe('app.prompt()', () => {
   beforeEach(globalBeforeEach);
 
   it('does not show prompt when not sending', async () => {
-    modals.showPrompt = jest.fn();
+    mockedModals.showPrompt = jest.fn();
     const result = plugin.init();
+    // @ts-expect-error -- no arguments on purpose
     result.app.prompt();
     // Make sure it passes correct arguments
-    expect(modals.showPrompt.mock.calls).toEqual([]);
+    expect(mockedModals.showPrompt.mock.calls).toEqual([]);
   });
 
   it('shows alert with message when sending', async () => {
-    modals.showPrompt = jest.fn();
+    mockedModals.showPrompt = jest.fn();
     const result = plugin.init(RENDER_PURPOSE_SEND);
     // Make sure it returns result of showAlert()
     result.app.prompt('Title');
@@ -84,7 +89,7 @@ describe('app.prompt()', () => {
       label: 'Label',
     });
     // Make sure it passes correct arguments
-    expect(modals.showPrompt.mock.calls).toEqual([
+    expect(mockedModals.showPrompt.mock.calls).toEqual([
       [
         {
           title: 'Title',

@@ -4,7 +4,7 @@ import type * as WorkerThreads from 'worker_threads';
 // worker_threads, with Worker running the proto worker from its TypeScript
 // source instead of the proto-worker.min.js that esbuild.main.ts builds.
 // Use as: jest.mock('worker_threads', () => jest.requireActual('<this file>').workerThreads)
-const actual = jest.requireActual<typeof WorkerThreads>('worker_threads');
+const actual = (jest.requireActual('worker_threads') as typeof WorkerThreads);
 const source = path.join(__dirname, '../main/proto-worker.ts');
 
 class ProtoWorker extends actual.Worker {

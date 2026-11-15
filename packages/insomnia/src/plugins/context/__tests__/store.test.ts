@@ -14,6 +14,7 @@ describe('init()', () => {
 
   it('initializes correctly', async () => {
     const result = plugin.init({
+      // @ts-expect-error -- the store only reads the name
       name: PLUGIN,
     });
     expect(Object.keys(result.store).sort()).toEqual([
@@ -31,7 +32,7 @@ describe('store.*', () => {
   beforeEach(globalBeforeEach);
 
   it('all methods work', async () => {
-    const p = plugin.init(PLUGIN);
+    const p = plugin.init(PLUGIN as unknown as Parameters<typeof plugin.init>[0]);
     // Null item for no result
     expect(await p.store.getItem('unset-key')).toBeNull();
     // Add something

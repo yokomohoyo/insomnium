@@ -8,7 +8,7 @@ import { runAllTestsAction, runTestAction } from '../actions';
 
 // jsdom has no Response for redirect() to make
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual<typeof import('react-router-dom')>('react-router-dom'),
+  ...(jest.requireActual('react-router-dom') as typeof import('react-router-dom')),
   redirect: (url: string) => ({ redirectedTo: url }),
 }));
 

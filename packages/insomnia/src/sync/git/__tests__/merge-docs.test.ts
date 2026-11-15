@@ -90,7 +90,9 @@ describe('GitVCS.mergeByField()', () => {
   };
   const working = async () => YAML.parse((await fsClient.promises.readFile(file)).toString());
 
-  afterAll(() => jest.restoreAllMocks());
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
   beforeEach(async () => {
     setupDateMocks();
     fsClient = MemClient.createClient();

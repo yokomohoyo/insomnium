@@ -4,12 +4,12 @@ import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../index';
 import * as requestOperations from '../request-operations';
 
-const requestModels = [
+const requestModels: [string, any][] = [
   ['request', models.request],
   ['grpcRequest', models.grpcRequest],
   ['webSocketRequest', models.webSocketRequest],
   ['mcpRequest', models.mcpRequest],
-] as const;
+];
 
 describe('request-operations', () => {
   beforeEach(globalBeforeEach);

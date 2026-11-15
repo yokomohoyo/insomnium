@@ -45,7 +45,7 @@ describe('response examples', () => {
       }],
     })) || [];
     const request = resources.find(({ _type }) => _type === 'request');
-    expect(resources.filter(({ _type }) => _type === 'response_example')).toEqual([
+    expect(resources.filter(({ _type }) => (_type as string) === 'response_example')).toEqual([
       { _id: '__EX_1__', _type: 'response_example', parentId: request?._id, name: 'Found', statusCode: 200, statusMessage: 'OK', headers: [{ name: 'Content-Type', value: 'application/json' }], body: "{\"id\": \"{% faker 'guid' %}\"}" },
       { _id: '__EX_2__', _type: 'response_example', parentId: request?._id, name: '404 Not Found', statusCode: 404, statusMessage: 'Not Found', headers: [], body: '' },
     ]);

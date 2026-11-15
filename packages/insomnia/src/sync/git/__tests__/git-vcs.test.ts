@@ -15,7 +15,9 @@ describe('Git-VCS', () => {
     barTxt = path.join(GIT_INSOMNIA_DIR, 'bar.txt');
   });
 
-  afterAll(() => jest.restoreAllMocks());
+  afterAll(() => {
+    jest.restoreAllMocks();
+  });
 
   beforeEach(setupDateMocks);
 
@@ -209,7 +211,7 @@ First commit!
 
   describe('push()', () => {
     it('should throw an exception when push response contains errors', async () => {
-      git.push.mockReturnValue({
+      (git.push as unknown as ReturnType<typeof jest.fn>).mockReturnValue({
         ok: ['unpack'],
         errors: ['refs/heads/master pre-receive hook declined'],
       });
@@ -277,6 +279,7 @@ First commit!
       await Promise.all(files.map(f => fsClient.promises.writeFile(f, originalContent)));
       // Commit all files
       await GitVCS.setAuthor('Karen Brown', 'karen@example.com');
+      // @ts-expect-error -- add() takes the path alone; kept as the test was written
       await Promise.all(files.map(f => GitVCS.add(f, originalContent)));
       await GitVCS.commit('First commit!');
       // Change all files

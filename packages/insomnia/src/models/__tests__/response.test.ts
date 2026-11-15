@@ -7,6 +7,7 @@ import zlib from 'zlib';
 
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
+import type { Response } from '../../models/response';
 
 describe('migrate()', () => {
   beforeEach(globalBeforeEach);
@@ -14,10 +15,10 @@ describe('migrate()', () => {
   it('does it', async () => {
     const bodyPath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'insomnia-body-')), 'foo.zip');
     fs.writeFileSync(bodyPath, zlib.gzipSync('Hello World!'));
-    const response = await models.initModel(models.response.type, {
+    const response = await models.initModel<Response>(models.response.type, {
       bodyPath,
     });
-    const body = await models.response.getBodyBuffer(response).toString();
+    const body = await models.response.getBodyBuffer(response)!.toString();
     expect(response.bodyCompression).toBe('zip');
     expect(body).toBe('Hello World!');
   });
@@ -25,7 +26,7 @@ describe('migrate()', () => {
   it('migrates leaves bodyCompression for null', async () => {
     expect(
       (
-        await models.initModel(models.response.type, {
+        await models.initModel<Response>(models.response.type, {
           bodyPath: '/foo/bar',
           bodyCompression: null,
         })
@@ -36,7 +37,7 @@ describe('migrate()', () => {
   it('migrates sets bodyCompression to zip if does not have one yet', async () => {
     expect(
       (
-        await models.initModel(models.response.type, {
+        await models.initModel<Response>(models.response.type, {
           bodyPath: '/foo/bar',
         })
       ).bodyCompression,
@@ -46,7 +47,7 @@ describe('migrate()', () => {
   it('migrates leaves bodyCompression if string', async () => {
     expect(
       (
-        await models.initModel(models.response.type, {
+        await models.initModel<Response>(models.response.type, {
           bodyPath: '/foo/bar',
           bodyCompression: 'zip',
         })
