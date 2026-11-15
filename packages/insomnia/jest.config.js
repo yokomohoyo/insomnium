@@ -15,7 +15,7 @@ module.exports = {
     // ES modules only (src/__jest__/esm-to-cjs.js)
     '/node_modules/@faker-js/faker/.+\\.js$': '<rootDir>/src/__jest__/esm-to-cjs.js',
   },
-  transformIgnorePatterns: ['/node_modules/(?!(@getinsomnia/api-client|@faker-js/faker)/)'],
+  transformIgnorePatterns: ['/node_modules/(?!@faker-js/faker/)'],
   setupFiles: ['./src/__jest__/setup.ts'],
   setupFilesAfterEnv: ['./src/__jest__/setup-after-env.ts'],
   testEnvironment: 'jsdom',

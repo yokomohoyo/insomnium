@@ -33,9 +33,6 @@ module.exports = {
     '@typescript-eslint',
     'react',
     'jest',
-    'html',
-    'json',
-    'filenames',
     'react-hooks',
     'import',
   ],
@@ -176,7 +173,6 @@ module.exports = {
     // '@typescript-eslint/quotes': [ERROR, 'single', { avoidEscape: true }],
 
     // 'simple-import-sort/imports': ERROR,
-    'filenames/match-exported': OFF(UNKNOWN),
     camelcase: OFF(UNKNOWN),
     '@typescript-eslint/no-use-before-define': OFF(TYPESCRIPT_CONVERSION),
     '@typescript-eslint/no-explicit-any': OFF(TYPESCRIPT_CONVERSION),
