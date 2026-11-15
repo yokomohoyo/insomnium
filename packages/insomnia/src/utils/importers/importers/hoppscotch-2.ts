@@ -5,11 +5,11 @@ import {
   Header,
   ImportRequest,
   Parameter,
-} from "../entities";
+} from '../entities';
 
-export const id = "hoppscotch-2";
-export const name = "Hoppscotch v2";
-export const description = "Hoppscotch v2 format";
+export const id = 'hoppscotch-2';
+export const name = 'Hoppscotch v2';
+export const description = 'Hoppscotch v2 format';
 
 interface HoppscotchHeader {
   active: boolean;
@@ -18,7 +18,7 @@ interface HoppscotchHeader {
 }
 
 interface HoppscotchAuth {
-  authType: "none" | "inherit" | "basic" | "bearer" | "oauth-2" | "api-key";
+  authType: 'none' | 'inherit' | 'basic' | 'bearer' | 'oauth-2' | 'api-key';
   authActive: boolean;
   username?: string; // HoppRESTAuthBasic
   password?: string; // HoppRESTAuthBasic
@@ -30,7 +30,7 @@ interface HoppscotchAuth {
   scope?: string; // HoppRESTAuthOAuth2
   key?: string; // HoppRESTAuthAPIKey
   value?: string; // HoppRESTAuthAPIKey
-  addTo?: "Headers" | "Query params"; // HoppRESTAuthAPIKey
+  addTo?: 'Headers' | 'Query params'; // HoppRESTAuthAPIKey
 }
 
 interface HoppscotchRequestFormData {
@@ -42,14 +42,14 @@ interface HoppscotchRequestFormData {
 
 interface HoppscotchRequestBody {
   contentType:
-    | "application/json"
-    | "application/ld+json"
-    | "application/hal+json"
-    | "application/vnd.api+json"
-    | "application/xml"
-    | "application/x-www-form-urlencoded"
-    | "text/html"
-    | "text/plain";
+    | 'application/json'
+    | 'application/ld+json'
+    | 'application/hal+json'
+    | 'application/vnd.api+json'
+    | 'application/xml'
+    | 'application/x-www-form-urlencoded'
+    | 'text/html'
+    | 'text/plain';
   body: string | HoppscotchRequestFormData[] | null | undefined;
 }
 
@@ -100,9 +100,9 @@ const composeUid = (prefix: string): string => {
 };
 
 const replaceHoppscotchTokens = (input: string | undefined): string => {
-  return typeof input === "string"
-    ? input.replace(/<<(.+?)>>/g, "{{ _.$1 }}")
-    : "";
+  return typeof input === 'string'
+    ? input.replace(/<<(.+?)>>/g, '{{ _.$1 }}')
+    : '';
 };
 
 const importHoppscotchHeaders = (headers: HoppscotchHeader[]): Header[] => {
@@ -115,36 +115,36 @@ const importHoppscotchHeaders = (headers: HoppscotchHeader[]): Header[] => {
 
 const importHoppscotchAuth = (auth: HoppscotchAuth): Authentication => {
   switch (auth.authType) {
-    case "basic":
+    case 'basic':
       return {
-        type: "basic",
+        type: 'basic',
         username: replaceHoppscotchTokens(auth.username),
         password: replaceHoppscotchTokens(auth.password),
       };
-    case "api-key": {
+    case 'api-key': {
       return {
-        type: "apikey",
+        type: 'apikey',
         key: auth.key,
         value: auth.value,
-        addTo: auth.addTo === "Headers" ? "header" : "queryParams", // Only Headers and Query Params in current Hoppscotch format
+        addTo: auth.addTo === 'Headers' ? 'header' : 'queryParams', // Only Headers and Query Params in current Hoppscotch format
       };
     }
-    case "oauth-2":
+    case 'oauth-2':
       return {
-        type: "oauth2",
+        type: 'oauth2',
         token: auth.token,
         accessTokenUrl: replaceHoppscotchTokens(auth.accessTokenURL),
         authorizationUrl: replaceHoppscotchTokens(auth.authURL),
         clientId: replaceHoppscotchTokens(auth.clientID),
         scope: replaceHoppscotchTokens(auth.scope),
       };
-    case "bearer":
+    case 'bearer':
       return {
-        type: "bearer",
+        type: 'bearer',
         token: replaceHoppscotchTokens(auth.token),
       };
-    case "none":
-    case "inherit":
+    case 'none':
+    case 'inherit':
     default:
       return {
         disabled: true,
@@ -164,10 +164,10 @@ const importHoppscotchParams = (
 
 const importHoppscotchBody = (body: HoppscotchRequestBody): Body => {
   switch (body.contentType) {
-    case "application/x-www-form-urlencoded":
-      if (typeof body.body === "string") {
+    case 'application/x-www-form-urlencoded':
+      if (typeof body.body === 'string') {
         const params = body.body
-          .split("\n")
+          .split('\n')
           ?.map((line) => {
             const matches = /(^\w+?):[ "]*(.+?)[ "]*$/.exec(line);
 
@@ -201,11 +201,11 @@ const importHoppscotchRequest = (
   const { headers, auth } = inheritedProps
     ? mergeInheritedFolderProps(request, inheritedProps)
     : { headers: request.headers, auth: request.auth };
-  const _id = composeUid("REQ");
+  const _id = composeUid('REQ');
 
   return {
     _id,
-    _type: "request",
+    _type: 'request',
     name: request.name ?? `Imported request ${_id}`,
     method: request.method,
     body: importHoppscotchBody(request.body),
@@ -222,7 +222,7 @@ const importHoppscotchFolder = (
   parent: HoppscotchFolder
 ): ImportRequest => {
   if (!parent?.name) {
-    const _id = composeUid("WRK");
+    const _id = composeUid('WRK');
     HoppscotchFolderIdMap.set(current, _id);
     HoppscotchInheritableFolderPropsMap.set(current, {
       headers: current.headers,
@@ -231,22 +231,22 @@ const importHoppscotchFolder = (
 
     return {
       _id,
-      _type: "workspace",
+      _type: 'workspace',
       name: current.name ?? `Imported Folder ${_id}`,
       parentId: null,
     };
   }
 
-  const _id = composeUid("GRP");
+  const _id = composeUid('GRP');
   HoppscotchFolderIdMap.set(current, _id);
   setInheritedFolderProps(current, parent);
 
   return {
     _id,
-    _type: "request_group",
-    name: current.name || "",
+    _type: 'request_group',
+    name: current.name || '',
     environment: {},
-    parentId: HoppscotchFolderIdMap.get(parent) ?? "__WORKSPACE_ID__",
+    parentId: HoppscotchFolderIdMap.get(parent) ?? '__WORKSPACE_ID__',
   };
 };
 
@@ -263,7 +263,7 @@ const mergeInheritedFolderProps = (
   }
 
   const auth =
-    childProps.auth.authType === "inherit"
+    childProps.auth.authType === 'inherit'
       ? { ...parentProps.auth }
       : childProps.auth;
 
@@ -297,7 +297,7 @@ const importHoppscotchFolderRecursive = (
     try {
       items.push(importHoppscotchRequest(request, current));
     } catch (error) {
-      console.error("Import request failed", { request });
+      console.error('Import request failed', { request });
     }
   }
 
@@ -309,11 +309,11 @@ const importHoppscotchFolderRecursive = (
 };
 
 const isHoppscotchFolder = (obj: HoppscotchFolder, version = 2) => {
-  if (typeof obj?.name !== "string") return false;
-  if (typeof obj?.headers !== "object") return false;
-  if (typeof obj?.auth === "undefined") return false;
-  if (typeof obj?.requests !== "object") return false;
-  if (typeof obj?.folders !== "object") return false;
+  if (typeof obj?.name !== 'string') return false;
+  if (typeof obj?.headers !== 'object') return false;
+  if (typeof obj?.auth === 'undefined') return false;
+  if (typeof obj?.requests !== 'object') return false;
+  if (typeof obj?.folders !== 'object') return false;
   if (obj?.v !== version) return false;
 
   return true;

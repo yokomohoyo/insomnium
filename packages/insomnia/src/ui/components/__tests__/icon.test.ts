@@ -1,15 +1,15 @@
 /**
  * @jest-environment node
  */
+import '../icon';
+
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { describe, expect, it } from '@jest/globals';
 import { findIconDefinition, type IconName, type IconPrefix } from '@fortawesome/fontawesome-svg-core';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import { fas } from '@fortawesome/free-solid-svg-icons';
-
-import '../icon';
+import { describe, expect, it } from '@jest/globals';
 
 const SRC = path.join(__dirname, '..', '..', '..');
 

@@ -1,6 +1,7 @@
 /* eslint-disable prefer-rest-params -- don't want to change ...arguments usage for these sensitive functions without more testing */
-import electron from 'electron';
 import { env as processEnv } from 'node:process';
+
+import electron from 'electron';
 import fsPath from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -101,7 +102,7 @@ export const database = {
     return id;
   },
 
-  count: async function<T extends BaseModel>(type: string, query: Query = {}) {
+  count: async function(type: string, query: Query = {}) {
     if (!store) {
       return _send<number>('count', ...arguments);
     }

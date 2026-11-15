@@ -145,7 +145,7 @@ export const GitStagingModal: FC<ModalProps> = ({
                   action: gitPath({ organizationId, projectId, workspaceId }, 'commit'),
                   method: 'post',
                 });
-                setHasDone(true)
+                setHasDone(true);
 
               }
             }}

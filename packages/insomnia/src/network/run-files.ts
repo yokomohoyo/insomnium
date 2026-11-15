@@ -2,9 +2,9 @@ import Papa from 'papaparse';
 
 import { phaseDurations } from '../common/timings';
 import { card, generatedAt, ms, phaseBar, phaseLegend, reportPage, size, xml } from './report-html';
-import type { RunResult, RunSummary } from './runner';
 import type { RequestComparison, RunComparison } from './run-compare';
 import { requestRunStats } from './run-stats';
+import type { RunResult, RunSummary } from './runner';
 
 // What a run reads and writes, in the app and the CLI alike: data files, the
 // JUnit XML and JSON reports for CI, and CSV and HTML reports for people.

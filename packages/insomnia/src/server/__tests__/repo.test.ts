@@ -162,7 +162,7 @@ describe('a repository to serve', () => {
   it('refuses one whose workspace is already loaded from elsewhere, leaving no clone behind', async () => {
     const before = clones();
     remote = gitServer.createRepo(files(workspace, list));
-    await expect(load([remote.url, remote.url])).rejects.toThrow("already loaded from another collection or repository");
+    await expect(load([remote.url, remote.url])).rejects.toThrow('already loaded from another collection or repository');
     expect(clones()).toEqual(before);
   });
 

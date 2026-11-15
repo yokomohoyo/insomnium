@@ -3,8 +3,8 @@ import { pipeline, Readable } from 'stream';
 import zlib from 'zlib';
 
 import { database as db } from '../common/database';
-import type { ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import type { Visualization } from '../common/visualizer';
+import type { ResponseTimelineEntry } from '../main/network/libcurl-promise';
 import type { AssertionResult } from '../network/assertions';
 import * as responseHistory from './helpers/response-history';
 import type { BaseModel } from './index';

@@ -8,8 +8,8 @@ import { isUnitTest } from '../models/unit-test';
 import { isWorkspace, Workspace } from '../models/workspace';
 import { guard } from '../utils/guard';
 import { database as db } from './database';
+import { isApiSpecImport, isSubEnvironmentResource, remapTemplateIds, ResourceCache, sortKeyer } from './import';
 import { generateId } from './misc';
-import { ResourceCache, isApiSpecImport, isSubEnvironmentResource, remapTemplateIds, sortKeyer } from './import';
 
 export const importResourcesToNewWorkspace = async (projectId: string, _resources?: BaseModel[], workspaceToImport?: Workspace) => {
 

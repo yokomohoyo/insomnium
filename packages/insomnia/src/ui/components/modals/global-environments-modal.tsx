@@ -6,12 +6,12 @@ import { useParams, useRevalidator } from 'react-router-dom';
 import { t } from '../../../common/i18n';
 import * as models from '../../../models';
 import type { Environment } from '../../../models/environment';
+import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
-import { environmentPatchFrom, useSecretValues } from '../../hooks/use-secret-values';
 import { EnvironmentEditor, EnvironmentEditorHandle } from '../editors/environment-editor';
 
 // The project's global environments (common/global-environments.ts): their

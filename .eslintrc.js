@@ -35,6 +35,7 @@ module.exports = {
     'jest',
     'react-hooks',
     'import',
+    'simple-import-sort',
   ],
   globals: {
     __DEV__: true,
@@ -152,7 +153,7 @@ module.exports = {
       // From react-use https://github.com/streamich/react-use/issues/1703#issuecomment-770972824
       'additionalHooks': '^use(Async|AsyncFn|AsyncRetry|Debounce|UpdateEffect|IsomorphicLayoutEffect|DeepCompareEffect|ShallowCompareEffect)$',
     }],
-    'react-hooks/rules-of-hooks': WARN(UNKNOWN),
+    'react-hooks/rules-of-hooks': ERROR,
 
     '@typescript-eslint/array-type': [ERROR, { default: 'array', readonly: 'array' }],
     '@typescript-eslint/ban-types': OFF(UNKNOWN),
@@ -165,14 +166,14 @@ module.exports = {
     '@typescript-eslint/no-empty-interface': [ERROR, { 'allowSingleExtends': true }],
     '@typescript-eslint/no-namespace': [ERROR, { allowDeclarations: true }],
     '@typescript-eslint/no-redeclare': ERROR,
-    '@typescript-eslint/no-unused-vars': OFF(UNKNOWN),
-    // [ERROR, { ignoreRestSiblings: true }],
+    '@typescript-eslint/no-unused-vars': [ERROR, { ignoreRestSiblings: true, argsIgnorePattern: '^_' }],
     '@typescript-eslint/space-infix-ops': ERROR,
-    '@typescript-eslint/semi': OFF("can't turn prettier on for this rule"),
-    // [ERROR, 'always'],
-    // '@typescript-eslint/quotes': [ERROR, 'single', { avoidEscape: true }],
+    '@typescript-eslint/semi': [ERROR, 'always'],
+    '@typescript-eslint/quotes': [ERROR, 'single', { avoidEscape: true }],
 
-    // 'simple-import-sort/imports': ERROR,
+    'simple-import-sort/imports': ERROR,
+    'simple-import-sort/exports': ERROR,
+    'import/no-duplicates': ERROR,
     camelcase: OFF(UNKNOWN),
     '@typescript-eslint/no-use-before-define': OFF(TYPESCRIPT_CONVERSION),
     '@typescript-eslint/no-explicit-any': OFF(TYPESCRIPT_CONVERSION),

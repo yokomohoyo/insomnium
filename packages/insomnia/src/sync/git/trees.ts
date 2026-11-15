@@ -3,8 +3,8 @@
 // see the synced documents (NeDBClient keeps them in the database).
 import * as git from 'isomorphic-git';
 
-import { describeDoc, type DocConflict, isSyncedDoc, type MergeChoice, mergeDoc } from './merge-docs';
 import { mergeLines } from './line-merge';
+import { describeDoc, type DocConflict, isSyncedDoc, type MergeChoice, mergeDoc } from './merge-docs';
 
 interface Opts {
   fs: git.CallbackFsClient | git.PromiseFsClient;

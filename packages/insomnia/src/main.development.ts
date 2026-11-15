@@ -1,6 +1,7 @@
+// import order matters here: the side-effect import has to run after the modules above it
+/* eslint-disable simple-import-sort/imports */
 
-import electron, { app, ipcMain, nativeTheme, session } from 'electron';
-import { BrowserWindow } from 'electron';
+import electron, { app, ipcMain, nativeTheme, session, BrowserWindow } from 'electron';
 import contextMenu from 'electron-context-menu';
 import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import path from 'path';

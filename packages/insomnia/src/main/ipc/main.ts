@@ -3,28 +3,28 @@ import { app, ipcMain, IpcRendererEvent, shell } from 'electron';
 import fs from 'fs';
 
 import { credentialStorageStatus } from '../../common/database';
+import type { UpdateCheckResult } from '../../common/update-check';
+import * as models from '../../models';
 import type { NativeThemeSource } from '../../plugins/native-theme';
 import { runInSandbox, SandboxResult } from '../../scripting/sandbox';
-import type { UpdateCheckResult } from '../../common/update-check';
 import type { ToastNotification } from '../../ui/components/toast';
 import { type AiBridgeAPI, aiChat, aiModels, type ChatMessage } from '../ai';
-import { type TeamBridgeAPI, teamCollections, teamConnect, teamConnectSso, teamCreateCollection, teamDisconnect } from '../team-client';
 import { authorizeInSystemBrowser } from '../authorize-in-system-browser';
-import { type CaptureBridgeAPI, registerCaptureHandlers } from '../capture-proxy';
 import { authorizeUserInWindow } from '../authorizeUserInWindow';
+import { type CaptureBridgeAPI, registerCaptureHandlers } from '../capture-proxy';
 import { credentialStorageNotices } from '../credential-keys';
-import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopCollectionMock } from '../mock-servers';
-import * as models from '../../models';
-import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
-import { axiosRequest } from '../network/axios-request';
+import type { FolderSyncBridgeAPI } from '../folder-sync';
 import type { GitSshRequest, GitSshResponse } from '../git-ssh/transport';
-import { checkForNewRelease, checkForUpdatesNow } from '../release-check';
-import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
+import installPlugin, { installPluginFromFile, pluginInstallOptions } from '../install-plugin';
+import { collectionMockStatus, type MockServerStatus, startCollectionMock, stopCollectionMock } from '../mock-servers';
+import { axiosRequest } from '../network/axios-request';
 import { CurlBridgeAPI } from '../network/curl';
 import { cancelCurlRequest, curlRequest } from '../network/libcurl-promise';
-import type { FolderSyncBridgeAPI } from '../folder-sync';
 import type { McpClientBridgeAPI } from '../network/mcp-client';
 import { WebSocketBridgeAPI } from '../network/websocket';
+import { checkForNewRelease, checkForUpdatesNow } from '../release-check';
+import { getSnapshotsPath, listSnapshots, restoreSnapshotOnRestart, Snapshot, takeSnapshot } from '../snapshots';
+import { type TeamBridgeAPI, teamCollections, teamConnect, teamConnectSso, teamCreateCollection, teamDisconnect } from '../team-client';
 import { gRPCBridgeAPI } from './grpc';
 
 export interface MainBridgeAPI {

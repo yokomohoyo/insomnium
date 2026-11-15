@@ -155,7 +155,7 @@ export const KeyValueEditor: FC<Props> = ({
             </div>
           </li>
         )) : null}
-        {pairsWithIds.map((pair, i) => (
+        {pairsWithIds.map(pair => (
           <Row
             key={pair.id}
             showDescription={showDescription}

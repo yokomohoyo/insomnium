@@ -220,4 +220,4 @@ const PanelContainer: FC<PanelContainerProps> = ({ className, children }) => {
   return (<StyledPanelContainer className={className}>{children}</StyledPanelContainer>);
 };
 
-export { Tabs, Item as TabItem, PanelContainer };
+export { PanelContainer, Item as TabItem, Tabs };

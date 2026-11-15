@@ -18,8 +18,8 @@ import * as git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
 
 import { database as db } from '../common/database';
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import { DEFAULT_PROJECT_ID } from '../models/project';
 import { isWorkspace, type Workspace, WorkspaceScopeKeys } from '../models/workspace';
 import { fsClient } from '../sync/git/fs-client';

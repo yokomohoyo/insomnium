@@ -8,7 +8,6 @@ import { database as db } from '../../../common/database';
 import * as models from '../../../models/index';
 import { DEFAULT_PROJECT_ID, Project } from '../../../models/project';
 import { WorkspaceScopeKeys } from '../../../models/workspace';
-import * as plugin from '../data';
 import * as init from '../dataInit';
 
 jest.mock('../../../ui/components/modals');

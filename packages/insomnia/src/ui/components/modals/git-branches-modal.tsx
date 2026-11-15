@@ -12,8 +12,8 @@ import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
-import { GitConflictsModal } from './git-conflicts-modal';
 import { showAlert } from '.';
+import { GitConflictsModal } from './git-conflicts-modal';
 
 type Props = ModalProps & {
   activeBranch: string;

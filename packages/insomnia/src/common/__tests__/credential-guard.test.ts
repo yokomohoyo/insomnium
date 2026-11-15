@@ -1,5 +1,6 @@
-import { describe, expect, it, jest } from '@jest/globals';
 import crypto from 'node:crypto';
+
+import { describe, expect, it, jest } from '@jest/globals';
 
 import { CredentialGuard, isEnvelope, KeyWrapper, WrappedKey } from '../credential-guard';
 

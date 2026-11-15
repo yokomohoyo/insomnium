@@ -6,8 +6,8 @@
 // headers it gains; what you've set (names, values, bodies, auth, scripts and
 // assertions) stays. Requests whose operation left the spec are reported, not
 // deleted.
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import { type Environment, isEnvironment } from '../models/environment';
 import { getAuthStrategies, isRequest, type Request } from '../models/request';
 import { isRequestGroup } from '../models/request-group';

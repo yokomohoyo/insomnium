@@ -1,5 +1,5 @@
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import type { Environment } from '../models/environment';
 import { isEnvironment } from '../models/environment';
 import { GLOBAL_ENVIRONMENT_IMPORT_ID } from '../utils/importers/entities';

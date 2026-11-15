@@ -3,8 +3,7 @@ import React, { forwardRef, KeyboardEvent, useImperativeHandle, useRef, useState
 
 import { constructKeyCombinationDisplay, isModifierKeyCode } from '../../../common/hotkeys';
 import { keyboardKeys } from '../../../common/keyboard-keys';
-import { KeyCombination } from '../../../common/settings';
-import { KeyboardShortcut } from '../../../common/settings';
+import { KeyboardShortcut, KeyCombination  } from '../../../common/settings';
 import { Modal, ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';

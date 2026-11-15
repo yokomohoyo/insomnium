@@ -1,3 +1,5 @@
+// import order matters here: the side-effect import has to run after the modules above it
+/* eslint-disable simple-import-sort/imports */
 
 import {
 

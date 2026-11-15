@@ -1,15 +1,14 @@
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import zlib from 'zlib';
 
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-
 import { globalBeforeEach } from '../../../__jest__/before-each';
 import * as models from '../../../models';
 import * as networkModule from '../../network';
 import { getOAuth2Token } from '../get-token';
-import { REDACTED, redactBody, redactForm, redactStoredTokenResponses, redactTimeline, redactTokenResponse } from '../redact';
+import { redactBody, REDACTED, redactForm, redactStoredTokenResponses, redactTimeline, redactTokenResponse } from '../redact';
 
 // the token request goes nowhere: it's answered with this body
 jest.mock('../../network', () => ({
@@ -37,7 +36,7 @@ describe('a token request, as kept', () => {
       .toBe(`grant_type=authorization_code&code=${REDACTED}&redirect_uri=http%3A%2F%2Flocalhost&code_verifier=${REDACTED}&client_id=app&client_secret=${REDACTED}`);
     expect(redactForm('grant_type=password&username=kim&password=hunter2')).toBe(`grant_type=password&username=kim&password=${REDACTED}`);
     expect(redactForm('grant_type=refresh_token&refresh_token=rt-1')).toBe(`grant_type=refresh_token&refresh_token=${REDACTED}`);
-    expect(redactForm(`client_assertion_type=urn&client_assertion=eyJ.x.y`)).toBe(`client_assertion_type=urn&client_assertion=${REDACTED}`);
+    expect(redactForm('client_assertion_type=urn&client_assertion=eyJ.x.y')).toBe(`client_assertion_type=urn&client_assertion=${REDACTED}`);
   });
 
   it("has the client's credentials taken out of its headers, and leaves the rest of its timeline", () => {

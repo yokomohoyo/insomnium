@@ -1,16 +1,14 @@
 /**
  * @jest-environment node
  */
-import crypto from 'crypto';
-
 import { describe, expect, it } from '@jest/globals';
+import crypto from 'crypto';
 import { type ParsedKey, utils } from 'ssh2';
 
 import { keyPair } from '../../../__jest__/ssh-git-server';
-
-import { flushEnd } from '../transport';
 import { checkHostKey, fingerprint, keyType, knownHostsLine } from '../known-hosts';
 import { hostConfig } from '../ssh-config';
+import { flushEnd } from '../transport';
 
 const wireKey = () => (utils.parseKey(keyPair().public) as ParsedKey).getPublicSSH();
 const hashed = (name: string) => {

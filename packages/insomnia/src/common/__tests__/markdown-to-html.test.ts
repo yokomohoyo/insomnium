@@ -9,7 +9,7 @@ describe('markdownToHTML()', () => {
     expect(html).not.toMatch(/<style|style=|<script/);
   });
 
-  it("loads no remote image, keeping its alt text, and shows a data: one", () => {
+  it('loads no remote image, keeping its alt text, and shows a data: one', () => {
     const html = markdownToHTML('![tracker](https://t.example.com/pixel.png) ![dot](data:image/png;base64,iVBORw0KGgo=)');
     expect(html).toContain('alt="tracker"');
     expect(html).not.toContain('t.example.com');

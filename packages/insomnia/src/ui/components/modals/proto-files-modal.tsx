@@ -1,26 +1,25 @@
-import React, { FC, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import React, { FC, useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
-import { ChangeBufferEvent, database as db } from "../../../common/database";
-import { selectFileOrFolder } from "../../../common/select-file-or-folder";
-import * as models from "../../../models";
-import { isProtoDirectory, ProtoDirectory } from "../../../models/proto-directory";
-import { isProtoFile, ProtoFile } from "../../../models/proto-file";
-
-import { Modal, ModalHandle } from "../base/modal";
-import { ModalBody } from "../base/modal-body";
-import { ModalFooter } from "../base/modal-footer";
-import { ModalHeader } from "../base/modal-header";
-import { ExpandedProtoDirectory, ProtoFileList } from "../proto-file/proto-file-list";
-import { AsyncButton } from "../themed-button";
-import { showAlert, showError, showPrompt } from ".";
-import * as protoLoader from "../../../network/grpc/proto-loader";
+import { ChangeBufferEvent, database as db } from '../../../common/database';
+import { selectFileOrFolder } from '../../../common/select-file-or-folder';
+import * as models from '../../../models';
+import { isProtoDirectory, ProtoDirectory } from '../../../models/proto-directory';
+import { isProtoFile, ProtoFile } from '../../../models/proto-file';
+import * as protoLoader from '../../../network/grpc/proto-loader';
+import { Modal, ModalHandle } from '../base/modal';
+import { ModalBody } from '../base/modal-body';
+import { ModalFooter } from '../base/modal-footer';
+import { ModalHeader } from '../base/modal-header';
+import { ExpandedProtoDirectory, ProtoFileList } from '../proto-file/proto-file-list';
+import { AsyncButton } from '../themed-button';
+import { showAlert, showError, showPrompt } from '.';
 
 const tryToSelectFilePath = async () => {
   try {
     const { filePath, canceled } = await selectFileOrFolder({
-      itemTypes: ["file"],
-      extensions: ["proto"],
+      itemTypes: ['file'],
+      extensions: ['proto'],
     });
     if (!canceled && filePath) {
       return filePath;
@@ -33,8 +32,8 @@ const tryToSelectFilePath = async () => {
 const tryToSelectFolderPath = async () => {
   try {
     const { filePath, canceled } = await selectFileOrFolder({
-      itemTypes: ["directory"],
-      extensions: ["proto"],
+      itemTypes: ['directory'],
+      extensions: ['proto'],
     });
     if (!canceled && filePath) {
       return filePath;
@@ -91,16 +90,16 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
 
   // Per-workspace token overrides; empty = fall back to global Settings value.
   const [tokensExpanded, setTokensExpanded] = useState(false);
-  const [wsBufToken, setWsBufToken] = useState("");
-  const [wsGithubToken, setWsGithubToken] = useState("");
+  const [wsBufToken, setWsBufToken] = useState('');
+  const [wsGithubToken, setWsGithubToken] = useState('');
   const [bufHidden, setBufHidden] = useState(true);
   const [githubHidden, setGithubHidden] = useState(true);
 
   useEffect(() => {
     (async () => {
       const meta = await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-      setWsBufToken(meta.bufToken || "");
-      setWsGithubToken(meta.githubToken || "");
+      setWsBufToken(meta.bufToken || '');
+      setWsGithubToken(meta.githubToken || '');
     })();
   }, [workspaceId]);
 
@@ -152,8 +151,8 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
 
     if (addResult.errors.length > 0) {
       showError({
-        title: "Failed to add file",
-        message: `Could not add ${filePath}:\n${addResult.errors.join("\n")}`,
+        title: 'Failed to add file',
+        message: `Could not add ${filePath}:\n${addResult.errors.join('\n')}`,
       });
     }
   };
@@ -172,8 +171,8 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     }
     if (addResult.errors.length > 0) {
       showError({
-        title: "Encountered some issues while adding directory",
-        message: `Some proto files could not be added:\n${addResult.errors.join("\n")}`,
+        title: 'Encountered some issues while adding directory',
+        message: `Some proto files could not be added:\n${addResult.errors.join('\n')}`,
       });
     }
   };
@@ -196,13 +195,13 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
       }
       if (result.errors.length > 0) {
         showError({
-          title: "Some files failed to import",
-          message: result.errors.join("\n"),
+          title: 'Some files failed to import',
+          message: result.errors.join('\n'),
         });
       }
     } catch (err) {
       showError({
-        title: "Failed to fetch proto",
+        title: 'Failed to fetch proto',
         message: (err as Error).message,
       });
     }
@@ -210,10 +209,10 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
 
   const handleImportFromUrl = () => {
     showPrompt({
-      title: "Import proto from URL",
-      submitName: "Import",
-      placeholder: "github.com/owner/repo/blob/main/svc.proto, buf.build/owner/repo, https://....proto",
-      label: "URL",
+      title: 'Import proto from URL',
+      submitName: 'Import',
+      placeholder: 'github.com/owner/repo/blob/main/svc.proto, buf.build/owner/repo, https://....proto',
+      label: 'URL',
       onComplete: importFromUrl,
     });
   };
@@ -246,8 +245,8 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
 
     if (updateResult.errors.length > 0) {
       showError({
-        title: "Failed to update file",
-        message: `Could not update ${filePath}:\n${updateResult.errors.join("\n")}`,
+        title: 'Failed to update file',
+        message: `Could not update ${filePath}:\n${updateResult.errors.join('\n')}`,
       });
     }
   };
@@ -260,8 +259,8 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
 
     if (updateResult.errors.length > 0) {
       showError({
-        title: "Encountered some issues while updating directory",
-        message: `Some proto files failed to update:\n${updateResult.errors.join("\n")}`,
+        title: 'Encountered some issues while updating directory',
+        message: `Some proto files failed to update:\n${updateResult.errors.join('\n')}`,
       });
     }
   };
@@ -278,7 +277,7 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
       addCancel: true,
       onConfirm: async () => {
         models.protoDirectory.remove(protoDirectory);
-        setSelectedId("");
+        setSelectedId('');
       },
     });
   };
@@ -294,7 +293,7 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
       onConfirm: () => {
         models.protoFile.remove(protoFile);
         if (selectedId === protoFile._id) {
-          setSelectedId("");
+          setSelectedId('');
         }
       },
     });
@@ -304,45 +303,45 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
     <Modal ref={modalRef} onHide={onHide}>
       <ModalHeader>Select Proto File</ModalHeader>
       <ModalBody className="wide pad">
-        <div style={{ marginBottom: "var(--padding-sm)" }}>
+        <div style={{ marginBottom: 'var(--padding-sm)' }}>
           <button
             type="button"
             className="btn btn--super-compact btn--outlined"
             onClick={() => setTokensExpanded(v => !v)}
             title="Override the global BSR / GitHub tokens for this workspace only. Empty fields fall back to Preferences → Proto Tokens."
           >
-            <i className={`fa fa-caret-${tokensExpanded ? "down" : "right"}`} />
-            &nbsp;Workspace token overrides{(wsBufToken || wsGithubToken) ? " (active)" : ""}
+            <i className={`fa fa-caret-${tokensExpanded ? 'down' : 'right'}`} />
+            &nbsp;Workspace token overrides{(wsBufToken || wsGithubToken) ? ' (active)' : ''}
           </button>
           {tokensExpanded && (
-            <div className="pad-top-sm" style={{ display: "grid", gap: "var(--padding-sm)" }}>
+            <div className="pad-top-sm" style={{ display: 'grid', gap: 'var(--padding-sm)' }}>
               <label className="form-control form-control--outlined">
                 <span className="faint txt-sm">BSR token (overrides global)</span>
-                <div style={{ display: "flex", gap: "var(--padding-xs)" }}>
+                <div style={{ display: 'flex', gap: 'var(--padding-xs)' }}>
                   <input
-                    type={bufHidden ? "password" : "text"}
+                    type={bufHidden ? 'password' : 'text'}
                     value={wsBufToken}
                     onChange={e => saveBufToken(e.target.value)}
                     placeholder="leave blank to use global"
                     style={{ flex: 1 }}
                   />
                   <button type="button" className="btn btn--compact" aria-label={bufHidden ? 'Show token' : 'Hide token'} onClick={() => setBufHidden(v => !v)}>
-                    <i className={`fa fa-eye${bufHidden ? "-slash" : ""}`} />
+                    <i className={`fa fa-eye${bufHidden ? '-slash' : ''}`} />
                   </button>
                 </div>
               </label>
               <label className="form-control form-control--outlined">
                 <span className="faint txt-sm">GitHub token (overrides global)</span>
-                <div style={{ display: "flex", gap: "var(--padding-xs)" }}>
+                <div style={{ display: 'flex', gap: 'var(--padding-xs)' }}>
                   <input
-                    type={githubHidden ? "password" : "text"}
+                    type={githubHidden ? 'password' : 'text'}
                     value={wsGithubToken}
                     onChange={e => saveGithubToken(e.target.value)}
                     placeholder="leave blank to use global"
                     style={{ flex: 1 }}
                   />
                   <button type="button" className="btn btn--compact" aria-label={githubHidden ? 'Show token' : 'Hide token'} onClick={() => setGithubHidden(v => !v)}>
-                    <i className={`fa fa-eye${githubHidden ? "-slash" : ""}`} />
+                    <i className={`fa fa-eye${githubHidden ? '-slash' : ''}`} />
                   </button>
                 </div>
               </label>
@@ -378,7 +377,7 @@ export const ProtoFilesModal: FC<Props> = ({ defaultId, onHide, onSave, reloadRe
             className="btn"
             onClick={event => {
               event.preventDefault();
-              if (typeof onSave === "function" && selectedId) {
+              if (typeof onSave === 'function' && selectedId) {
                 onSave(selectedId);
               }
             }}

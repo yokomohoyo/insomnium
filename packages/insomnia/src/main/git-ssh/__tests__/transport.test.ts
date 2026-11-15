@@ -1,13 +1,12 @@
 /**
  * @jest-environment node
  */
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import crypto from 'crypto';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
 import path from 'path';
-
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { BaseAgent, type ParsedKey, utils } from 'ssh2';
 import YAML from 'yaml';
 

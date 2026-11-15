@@ -1,10 +1,10 @@
 import { ApiSpec, isApiSpec } from '../models/api-spec';
 import { CookieJar, isCookieJar } from '../models/cookie-jar';
 import { BaseEnvironment, Environment, isEnvironment } from '../models/environment';
+import { isFlow, remapRequests } from '../models/flow';
 import { GrpcRequest, isGrpcRequest } from '../models/grpc-request';
 import { BaseModel, getModel } from '../models/index';
 import * as models from '../models/index';
-import { isFlow, remapRequests } from '../models/flow';
 import { isMcpRequest, McpRequest } from '../models/mcp-request';
 import { isRequest, Request } from '../models/request';
 import { isUnitTest, UnitTest } from '../models/unit-test';
@@ -14,13 +14,13 @@ import {
   WebSocketRequest,
 } from '../models/websocket-request';
 import { isWorkspace, Workspace } from '../models/workspace';
-import { convert, InsomniaImporter } from '../utils/importers/convert';
 import { guard } from '../utils/guard';
-import { database as db } from './database';
-import { generateId } from './misc';
-import { importResourcesToProject } from './importResourcesToProject';
+import { convert, InsomniaImporter } from '../utils/importers/convert';
 import { getAppVersion } from './constants';
+import { database as db } from './database';
 import { importGlobalEnvironments } from './global-environments';
+import { importResourcesToProject } from './importResourcesToProject';
+import { generateId } from './misc';
 
 export interface ExportedModel extends BaseModel {
   _type: string;
@@ -329,67 +329,67 @@ export const dummyStartingWorkspace = () => {
   const eId = generateId(models.environment.prefix);
   const jId = generateId(models.cookieJar.prefix);
   return [({
-    "_type": "export",
-    "__export_format": 4,
-    "__export_date": "2023-10-04T20:25:03.318Z",
-    "__export_source": "insomnia.desktop.app:v0.1.3",
-    "resources": [
+    '_type': 'export',
+    '__export_format': 4,
+    '__export_date': '2023-10-04T20:25:03.318Z',
+    '__export_source': 'insomnia.desktop.app:v0.1.3',
+    'resources': [
       {
-        "_id": rId,
-        "parentId": wId,
-        "modified": currentUnixTime - oneSec * 3,
-        "created": currentUnixTime - oneSec * 3,
-        "url": "",
-        "name": "New Request",
-        "description": "",
-        "method": "GET",
-        "body": {},
-        "parameters": [],
-        "headers": [{ "name": "User-Agent", "value": "insomnium/" + getAppVersion() }],
-        "authentication": {},
-        "metaSortKey": -(currentUnixTime - oneSec * 3 - 1),
-        "isPrivate": false,
-        "settingStoreCookies": true,
-        "settingSendCookies": true,
-        "settingDisableRenderRequestBody": false,
-        "settingEncodeUrl": true,
-        "settingRebuildPath": true,
-        "settingFollowRedirects": "global",
-        "type": "Request",
+        '_id': rId,
+        'parentId': wId,
+        'modified': currentUnixTime - oneSec * 3,
+        'created': currentUnixTime - oneSec * 3,
+        'url': '',
+        'name': 'New Request',
+        'description': '',
+        'method': 'GET',
+        'body': {},
+        'parameters': [],
+        'headers': [{ 'name': 'User-Agent', 'value': 'insomnium/' + getAppVersion() }],
+        'authentication': {},
+        'metaSortKey': -(currentUnixTime - oneSec * 3 - 1),
+        'isPrivate': false,
+        'settingStoreCookies': true,
+        'settingSendCookies': true,
+        'settingDisableRenderRequestBody': false,
+        'settingEncodeUrl': true,
+        'settingRebuildPath': true,
+        'settingFollowRedirects': 'global',
+        'type': 'Request',
       },
       {
-        "_id": wId,
-        "parentId": null,
-        "modified": currentUnixTime - oneSec * 2,
-        "created": currentUnixTime - oneSec * 2,
-        "name": "My Collection",
-        "description": "",
-        "scope": "collection",
+        '_id': wId,
+        'parentId': null,
+        'modified': currentUnixTime - oneSec * 2,
+        'created': currentUnixTime - oneSec * 2,
+        'name': 'My Collection',
+        'description': '',
+        'scope': 'collection',
         // "_type": "workspace",
-        "type": "Workspace",
+        'type': 'Workspace',
         // hmm where is the fn for import field transfromation from Insomnia
       },
       {
-        "_id": eId,
-        "parentId": wId,
-        "modified": currentUnixTime - oneSec * 1,
-        "created": currentUnixTime - oneSec * 1,
-        "name": "Base Environment",
-        "data": {},
-        "dataPropertyOrder": null,
-        "color": null,
-        "isPrivate": false,
-        "metaSortKey": currentUnixTime - oneSec * 1,
-        "type": "Environment",
+        '_id': eId,
+        'parentId': wId,
+        'modified': currentUnixTime - oneSec * 1,
+        'created': currentUnixTime - oneSec * 1,
+        'name': 'Base Environment',
+        'data': {},
+        'dataPropertyOrder': null,
+        'color': null,
+        'isPrivate': false,
+        'metaSortKey': currentUnixTime - oneSec * 1,
+        'type': 'Environment',
       },
       {
-        "_id": jId,
-        "parentId": wId,
-        "modified": currentUnixTime,
-        "created": currentUnixTime,
-        "name": "Default Jar",
-        "cookies": [],
-        "type": "CookieJar",
+        '_id': jId,
+        'parentId': wId,
+        'modified': currentUnixTime,
+        'created': currentUnixTime,
+        'name': 'Default Jar',
+        'cookies': [],
+        'type': 'CookieJar',
       },
     ],
   }), wId, rId];

@@ -1,9 +1,10 @@
 /**
  * @jest-environment node
  */
-import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+
+import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
 import { _clearSecretCache, readAwsSecret, readAzureSecret, readGcpSecret, readOnePasswordSecret, readVaultSecret } from '../secret-managers';
 

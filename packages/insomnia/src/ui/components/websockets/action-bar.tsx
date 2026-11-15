@@ -7,9 +7,9 @@ import { renderWebSocketConnection, WebSocketSettingsError } from '../../../netw
 import { requestPath } from '../../routes/paths';
 import { ConnectActionParams } from '../../routes/request';
 import { OneLineEditor, OneLineEditorHandle } from '../codemirror/one-line-editor';
+import { createKeybindingsHandler, useDocBodyKeyboardShortcuts } from '../keydown-binder';
 import { showAlert, showModal } from '../modals';
 import { RequestRenderErrorModal } from '../modals/request-render-error-modal';
-import { createKeybindingsHandler, useDocBodyKeyboardShortcuts } from '../keydown-binder';
 import { DisconnectButton } from './disconnect-button';
 
 const Button = styled.button<{ warning?: boolean }>(({ warning }) => ({

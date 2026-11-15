@@ -1,5 +1,5 @@
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import { isRequest, type Request } from '../models/request';
 import { isRequestGroup } from '../models/request-group';
 import type { Response } from '../models/response';

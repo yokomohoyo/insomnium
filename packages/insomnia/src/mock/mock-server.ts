@@ -5,7 +5,7 @@ import { getRenderContext, KEEP_ON_ERROR, render } from '../common/render';
 import { restrictRenders } from '../main/restricted-renders';
 import * as models from '../models';
 import type { Request } from '../models/request';
-import { chooseExample, loadMockRoutes, type MockLogEntry, type MockRoute, matchRoute } from './mock-routes';
+import { chooseExample, loadMockRoutes, matchRoute, type MockLogEntry, type MockRoute } from './mock-routes';
 
 // A local mock server: it answers as a collection's requests would, with
 // their saved examples (models/response-example.ts), matched as mock-routes.ts

@@ -1,7 +1,7 @@
 import handlebarsRuntime from 'handlebars/dist/handlebars.min.js?raw';
 import React, { FC, useEffect, useRef } from 'react';
 
-import { type Visualization, VISUALIZER_PARTITION, visualizationDocument } from '../../../common/visualizer';
+import { type Visualization, visualizationDocument, VISUALIZER_PARTITION } from '../../../common/visualizer';
 
 // What the after-response script set with visualizer.set, rendered in a
 // webview of its own: no Node, no network, no navigation (main/web-hardening.ts)

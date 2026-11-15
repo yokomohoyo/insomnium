@@ -3,11 +3,11 @@ import path from 'path';
 import YAML from 'yaml';
 
 import { database as db } from '../../common/database';
-import * as models from '../../models';
 import type { BaseModel } from '../../models';
+import * as models from '../../models';
 import { httpClient } from './http-client';
-import { describeDoc, type DocConflict, isSyncedDoc, type MergeChoice, mergeDoc } from './merge-docs';
 import { mergeLines } from './line-merge';
+import { describeDoc, type DocConflict, isSyncedDoc, type MergeChoice, mergeDoc } from './merge-docs';
 import { convertToOsSep, convertToPosixSep } from './path-sep';
 import { sameFile } from './same-file';
 import { sanitizeGitConfig } from './sanitize-git-config';

@@ -267,7 +267,7 @@ resources:
     expect(login._id).not.toBe('req_login');
     expect(use.url).toBe(`https://example.com/{% response 'body', '${login._id}', 'b64::JC5pZA==::46b', 'never', 60 %}`);
     // an id the import doesn't have, and one outside a tag, are left alone
-    expect(use.headers[0].value).toBe(`{% response 'body', "req_elsewhere", '', 'never', 60 %} req_login`);
+    expect(use.headers[0].value).toBe('{% response \'body\', "req_elsewhere", \'\', \'never\', 60 %} req_login');
     const base = await environment.getOrCreateForParentId(workspaceId);
     expect(base.data.first).toContain(`'${login._id}'`);
     const [dev] = await environment.findByParentId(base._id);

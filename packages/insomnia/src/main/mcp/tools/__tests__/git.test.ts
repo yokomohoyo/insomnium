@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import electron from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import electron from 'electron';
 
 import { globalBeforeEach } from '../../../../__jest__/before-each';
 import * as models from '../../../../models';

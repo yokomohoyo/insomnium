@@ -1,4 +1,5 @@
 import { env as processEnv } from 'node:process';
+
 import * as path from 'path';
 import React, { FC, useEffect, useState } from 'react';
 import { useRouteLoaderData } from 'react-router-dom';
@@ -9,7 +10,6 @@ import {
 } from '../../../common/constants';
 import { docsPlugins } from '../../../common/documentation';
 import { t } from '../../../common/i18n';
-import { tx } from '../../tx';
 import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import * as models from '../../../models';
 import { createPlugin } from '../../../plugins/create';
@@ -18,6 +18,7 @@ import { getPlugins } from '../../../plugins/index';
 import { reload } from '../../../templating/index';
 import { useSettingsPatcher } from '../../hooks/use-request';
 import { RootLoaderData } from '../../routes/root';
+import { tx } from '../../tx';
 import { CopyButton } from '../base/copy-button';
 import { Link } from '../base/link';
 import { HelpTooltip } from '../help-tooltip';

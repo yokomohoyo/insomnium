@@ -13,7 +13,7 @@ describe('response examples', () => {
     await models.project.all();
   });
 
-  it("come with an export, for the requests exported, and back with an import", async () => {
+  it('come with an export, for the requests exported, and back with an import', async () => {
     const workspace = await models.workspace.create({ name: 'Pets' });
     const getPet = await models.request.create({ parentId: workspace._id, name: 'Get pet', url: 'https://pets.example.com/pets/1' });
     const other = await models.request.create({ parentId: workspace._id, name: 'Other' });

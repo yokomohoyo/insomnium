@@ -1,13 +1,13 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 
-import { gRPCBridgeAPI } from './main/ipc/grpc';
-import { CurlBridgeAPI } from './main/network/curl';
 import type { AiBridgeAPI } from './main/ai';
 import type { CaptureBridgeAPI } from './main/capture-proxy';
 import type { FolderSyncBridgeAPI } from './main/folder-sync';
+import { gRPCBridgeAPI } from './main/ipc/grpc';
+import { CurlBridgeAPI } from './main/network/curl';
 import type { McpClientBridgeAPI } from './main/network/mcp-client';
-import type { TeamBridgeAPI } from './main/team-client';
 import type { WebSocketBridgeAPI } from './main/network/websocket';
+import type { TeamBridgeAPI } from './main/team-client';
 
 const folderSync: FolderSyncBridgeAPI = {
   start: options => ipcRenderer.invoke('folderSync.start', options),

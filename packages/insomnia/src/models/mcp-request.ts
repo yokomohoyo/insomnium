@@ -1,6 +1,6 @@
 import { database } from '../common/database';
-import { duplicateAfter } from './helpers/duplicate-after';
 import type { BaseModel } from '.';
+import { duplicateAfter } from './helpers/duplicate-after';
 import { RequestHeader } from './request';
 
 // A connection to an MCP server, to try its tools, prompts and resources

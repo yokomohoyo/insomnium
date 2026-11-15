@@ -12,7 +12,7 @@
 // sends it a one-time code, which it trades at /auth/oidc/token for an access
 // token. Opened in a browser without one, the server shows a new token once,
 // for git on the command line.
-import { createHash, createPublicKey, randomBytes, verify as verifySignature, type JsonWebKey, constants, timingSafeEqual } from 'node:crypto';
+import { constants, createHash, createPublicKey, type JsonWebKey, randomBytes, timingSafeEqual, verify as verifySignature } from 'node:crypto';
 
 import { isName, type TeamStore, type User } from './store';
 

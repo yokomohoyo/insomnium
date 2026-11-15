@@ -1,5 +1,5 @@
 import { type PhaseDurations, phaseDurations } from '../common/timings';
-import { latencyStats, type LatencyStats, percentile } from './load-stats';
+import { type LatencyStats, latencyStats, percentile } from './load-stats';
 import type { RunResult } from './runner';
 
 // A run's numbers for each request, over its iterations: what the runner's

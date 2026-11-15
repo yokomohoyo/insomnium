@@ -6,18 +6,16 @@ import { Modal, type ModalHandle, ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
-
 import { AiAssistant } from '../settings/ai-assistant';
 import { General } from '../settings/general';
 import { ImportExport } from '../settings/import-export';
-
 import { McpAutomation } from '../settings/mcp-automation';
+import { Plugins } from '../settings/plugins';
 import { ProtoTokens } from '../settings/proto-tokens';
 import { Shortcuts } from '../settings/shortcuts';
 import { Snapshots } from '../settings/snapshots';
 import { ThemePanel } from '../settings/theme-panel';
 import { showModal } from './index';
-import { Plugins } from '../settings/plugins';
 
 export interface SettingsModalHandle {
   hide: () => void;

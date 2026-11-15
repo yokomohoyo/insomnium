@@ -3,9 +3,9 @@ import { useFetcher, useNavigate, useParams, useRouteLoaderData } from 'react-ro
 
 import { getProductName } from '../../../common/constants';
 import { database as db } from '../../../common/database';
-import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import { t } from '../../../common/i18n';
 import { RENDER_PURPOSE_NO_RENDER } from '../../../common/render';
+import { selectFileOrFolder } from '../../../common/select-file-or-folder';
 import { ascendingNameSort } from '../../../common/sorting';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
@@ -18,19 +18,18 @@ import { guard } from '../../../utils/guard';
 import { projectPath, workspaceHomePath, workspacePath } from '../../routes/paths';
 import { WorkspaceLoaderData } from '../../routes/workspace';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
-
 import { showAlert, showError, showModal, showPrompt } from '../modals';
 import { AskModal } from '../modals/ask-modal';
+import { CaptureModal } from '../modals/capture-modal';
 import { ExportRequestsModal } from '../modals/export-requests-modal';
 import { configGenerators } from '../modals/generate-config-modal';
 import { ImportModal } from '../modals/import-modal';
-import { CaptureModal } from '../modals/capture-modal';
 import { MockServerModal } from '../modals/mock-server-modal';
 import { RunnerModal } from '../modals/runner-modal';
 import { WorkspaceDuplicateModal } from '../modals/workspace-duplicate-modal';
 import { WorkspaceSettingsModal } from '../modals/workspace-settings-modal';
 
-console.log("[configGenerators] ", configGenerators);
+console.log('[configGenerators] ', configGenerators);
 
 export const WorkspaceDropdown: FC = () => {
   const { organizationId, projectId, workspaceId } = useParams<{ organizationId: string; projectId: string; workspaceId: string }>();

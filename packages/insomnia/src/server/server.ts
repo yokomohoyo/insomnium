@@ -7,15 +7,15 @@ import { HEADLESS_INSTRUCTIONS, HEADLESS_SERVER_INSTRUCTIONS, registerInstructio
 import { filterTools, registerTools } from '../main/mcp/tools';
 import * as models from '../models';
 import { DEFAULT_PROJECT_ID } from '../models/project';
+import type { Workspace } from '../models/workspace';
+import { isWorkspace } from '../models/workspace';
 import { setGcpAudienceApproval } from '../network/gcp-id-token/get-token';
 import { isMetadataHost, setMetadataGuard } from '../network/metadata-hosts';
 import { setRequestPolicy } from '../network/request-policy';
 import { disableTemplateTags } from '../templating';
-import type { Workspace } from '../models/workspace';
-import { isWorkspace } from '../models/workspace';
 import { MAX_PULL_INTERVAL, type ServerConfig } from './config';
 import { startHttpServer } from './http';
-import { loadCollection, applyEnvironment } from './load';
+import { applyEnvironment, loadCollection } from './load';
 import { makeHostPolicy } from './policy';
 import { openRepo, type Repo, syncRepoDocs } from './repo';
 import { assertOneTokenHost, type Sources } from './sources';

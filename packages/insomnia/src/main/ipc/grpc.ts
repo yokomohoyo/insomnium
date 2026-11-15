@@ -8,14 +8,14 @@ import * as models from '../../models';
 import type { GrpcRequest, GrpcRequestHeader } from '../../models/grpc-request';
 import { getAuthHeaders } from '../../network/authentication';
 import { parseGrpcUrl } from '../../network/grpc/parse-grpc-url';
-import { fetchProto, FetchedProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
+import { FetchedProto, fetchProto, ProtoFetchTokens } from '../../network/grpc/proto-fetcher';
 import { writeProtoFile } from '../../network/grpc/write-proto-file';
 import { checkRequestPolicy } from '../../network/request-policy';
 import { guard } from '../../utils/guard';
 import { assertGrpcAuthSupported, getGrpcCredentials } from '../network/grpc-credentials';
+import { type GrpcStatus, plainMetadata } from '../network/grpc-metadata';
 import { makeGrpcClient } from '../network/proxy';
 import { asServiceDefinition, grpcOptions, loadMethod, loadProto, validateProto } from '../proto-worker';
-import { type GrpcStatus, plainMetadata } from '../network/grpc-metadata';
 import { generateRequestTemplate, mockRequestMethods } from './automock';
 
 // What a response sends besides its messages: its headers (the initial

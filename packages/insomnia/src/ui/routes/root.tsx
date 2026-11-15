@@ -23,30 +23,25 @@ import {
 } from 'react-router-dom';
 
 /**** ><> ↑ --------- Imports */
-
 import { isDevelopment } from '../../common/constants';
 import { t } from '../../common/i18n';
-import { tx } from '../tx';
+import { assertValidThemeName } from '../../main/validate-package-spec';
 import * as models from '../../models';
-
+import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 import { Settings } from '../../models/settings';
 import { isDesign } from '../../models/workspace';
-import { assertValidThemeName } from '../../main/validate-package-spec';
 import { reloadPlugins } from '../../plugins';
 import { createPlugin } from '../../plugins/create';
 import { setTheme, themeFromLink } from '../../plugins/misc';
 /**** ><> ↑ --------- Account and Models */
-
 import { ConsoleDrawer } from '../components/console-drawer';
 import { WorkspaceDropdown } from '../components/dropdowns/workspace-dropdown';
 import { Hotkey } from '../components/hotkey';
 import { Icon } from '../components/icon';
-
 import { showError, showModal } from '../components/modals';
 import { AlertModal } from '../components/modals/alert-modal';
 import { AskModal } from '../components/modals/ask-modal';
 import { ImportModal } from '../components/modals/import-modal';
-
 import {
   /**** ><> ↑ --------- Modal Components */
   SettingsModal,
@@ -54,17 +49,14 @@ import {
   TAB_INDEX_PLUGINS,
   TAB_INDEX_THEMES } from '../components/modals/settings-modal';
 import { Toast } from '../components/toast';
-
 import { AppHooks } from '../containers/app-hooks';
-
 import { NunjucksEnabledProvider } from '../context/nunjucks/nunjucks-enabled-context';
 /**** ><> ↑ --------- Settings and Themes */
 import { useSettingsPatcher } from '../hooks/use-request';
+import { tx } from '../tx';
 import Modals from './modals';
 import { organizationPath, projectPath, workspacePath } from './paths';
-
 import { WorkspaceLoaderData } from './workspace';
-import { DEFAULT_ORGANIZATION_ID } from '../../models/organization';
 
 /**** ><> ↑ --------- Hooks and Containers */
 

@@ -9,7 +9,7 @@ import GitVCS, { GIT_CLONE_DIR, GIT_INSOMNIA_DIR, GIT_INTERNAL_DIR } from '../..
 import { MemClient } from '../../../sync/git/mem-client';
 import { NeDBClient } from '../../../sync/git/ne-db-client';
 import { routableFSClient } from '../../../sync/git/routable-fs-client';
-import { GitStashesLoaderData, gitStashesLoader } from '../git-actions';
+import { gitStashesLoader, GitStashesLoaderData } from '../git-actions';
 
 jest.mock('path');
 

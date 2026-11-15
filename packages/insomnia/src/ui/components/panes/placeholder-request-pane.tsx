@@ -1,6 +1,5 @@
 import React, { FC, useCallback } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
-import { useFetcher, useParams } from 'react-router-dom';
+import { useFetcher, useParams, useRouteLoaderData  } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
 import { debugPath } from '../../routes/paths';

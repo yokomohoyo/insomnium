@@ -21,7 +21,7 @@ const collection = JSON.stringify({
   ],
 });
 
-test("the Visualize tab renders what the script set, and keeps it off the network @ci", async ({ app, page }) => {
+test('the Visualize tab renders what the script set, and keeps it off the network @ci', async ({ app, page }) => {
   await app.evaluate(async ({ clipboard }, text) => clipboard.writeText(text), collection);
   await page.getByRole('button', { name: 'My Collection' }).click();
   await page.getByRole('menuitem', { name: 'Import' }).click();

@@ -114,7 +114,7 @@ const head = () => git.resolveRef({ ...GitVCS._baseOpts, ref: 'HEAD' });
       expect((await GitVCS.listTags()).map(tag => tag.name)).toEqual(['there', 'here']);
     });
 
-    it("pulls an annotated tag, with its own object and message", async () => {
+    it('pulls an annotated tag, with its own object and message', async () => {
       pushUpstream([{ ...request, name: 'renamed' }], 'rename');
       remote.tag('v1.0.0', 'the first release');
 

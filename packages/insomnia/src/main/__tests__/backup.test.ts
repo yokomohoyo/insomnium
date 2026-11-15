@@ -1,6 +1,7 @@
+import { rename, writeFile } from 'node:fs/promises';
+
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import fs from 'fs';
-import { rename, writeFile } from 'node:fs/promises';
 import os from 'os';
 import path from 'path';
 

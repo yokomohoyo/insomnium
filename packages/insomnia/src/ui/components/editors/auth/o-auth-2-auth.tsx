@@ -7,6 +7,7 @@ import authorizationUrls from '../../../../datasets/authorization-urls';
 import * as models from '../../../../models';
 import type { OAuth2Token } from '../../../../models/o-auth-2-token';
 import type { AuthTypeOAuth2, OAuth2ResponseType } from '../../../../models/request';
+import { CLIENT_ASSERTION_ALGORITHMS } from '../../../../network/o-auth-2/client-assertion';
 import {
   GRANT_TYPE_AUTHORIZATION_CODE,
   GRANT_TYPE_CLIENT_CREDENTIALS,
@@ -19,10 +20,7 @@ import {
   PKCE_CHALLENGE_S256,
   TOKEN_TYPES,
 } from '../../../../network/o-auth-2/constants';
-import { CLIENT_ASSERTION_ALGORITHMS } from '../../../../network/o-auth-2/client-assertion';
-import { getOAuth2Token, tokenSource } from '../../../../network/o-auth-2/get-token';
-import { useAuthStrategy } from './auth-strategy-context';
-import { initNewOAuthSession } from '../../../../network/o-auth-2/get-token';
+import { getOAuth2Token, initNewOAuthSession, tokenSource  } from '../../../../network/o-auth-2/get-token';
 import { useNunjucks } from '../../../context/nunjucks/use-nunjucks';
 import { RequestLoaderData } from '../../../routes/request';
 import { Link } from '../../base/link';
@@ -30,6 +28,7 @@ import { showModal } from '../../modals';
 import { ResponseDebugModal } from '../../modals/response-debug-modal';
 import { Button } from '../../themed-button';
 import { TimeFromNow } from '../../time-from-now';
+import { useAuthStrategy } from './auth-strategy-context';
 import { AuthAccordion } from './components/auth-accordion';
 import { AuthInputRow } from './components/auth-input-row';
 import { AuthPrivateKeyRow } from './components/auth-private-key-row';

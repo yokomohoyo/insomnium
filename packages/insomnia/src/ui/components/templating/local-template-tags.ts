@@ -1245,7 +1245,7 @@ const localTemplatePlugins: { templateTag: PluginTemplateTag }[] = [
           if (request.parameters.length === 0) {
             throw new Error('No query parameters available');
           }
-          console.log("{TEMPLATE}", request.parameters);
+          console.log('{TEMPLATE}', request.parameters);
 
           for (const queryParameter of request.parameters) {
             const queryParameterName = await context.util.render(queryParameter.name);

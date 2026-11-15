@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { database as db } from '../../common/database';
 import { inheritedAuthFolder, inheritedHeaders } from '../../common/folder-inheritance';
-import * as models from '../../models';
 import type { BaseModel } from '../../models';
+import * as models from '../../models';
 import type { RequestGroup } from '../../models/request-group';
 
 interface FolderInheritance {

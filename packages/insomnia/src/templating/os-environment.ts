@@ -1,8 +1,9 @@
-import { parse } from 'dotenv';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { env as processEnv } from 'node:process';
+
+import { parse } from 'dotenv';
 
 import type { Settings } from '../common/settings';
 import { guard } from '../utils/guard';

@@ -51,7 +51,7 @@ describe('an environment with secret variables', () => {
     expect(await render('Bearer {{ token }}', context)).toBe('Bearer hunter2');
   });
 
-  it("keeps a value set by a script or the MCP server in its secrets, not the data", async () => {
+  it('keeps a value set by a script or the MCP server in its secrets, not the data', async () => {
     const { base } = await setup();
     await setEnvironmentData(base, { host: 'shop.example.com', token: 'rotated', added: 'x' });
     const saved = (await models.environment.getById(base._id))!;
@@ -68,7 +68,7 @@ describe('an environment with secret variables', () => {
     expect(environment).toMatchObject({ data: { token: '' }, secretKeys: ['token'] });
   });
 
-  it("leaves an environment without secrets as it was, without the new key", async () => {
+  it('leaves an environment without secrets as it was, without the new key', async () => {
     const workspace = await models.workspace.create({ name: 'Plain' });
     const base = await models.environment.getOrCreateForParentId(workspace._id);
     await setEnvironmentData(base, { a: '1' });

@@ -99,7 +99,7 @@ describe('changes that were never committed', () => {
     await expect(GitVCS.pull()).rejects.toThrow('overwrite changes that aren\'t committed yet: package.json.');
   });
 
-  it("include a request deleted here, which a pull would bring back", async () => {
+  it('include a request deleted here, which a pull would bring back', async () => {
     await upstream();
     await models.request.remove((await models.request.getById('req_1'))!);
 

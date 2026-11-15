@@ -11,7 +11,7 @@ import { median, report, seedCollection } from './seed';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 jest.mock('uuid', () => ({ v4: () => require('crypto').randomUUID() }));
 
-describe("rendering a request to send it (each send, each runner iteration, each flow step)", () => {
+describe('rendering a request to send it (each send, each runner iteration, each flow step)', () => {
   for (const envVars of [50, 500, 2000]) {
     it(`an environment of ${envVars} variables`, async () => {
       await globalBeforeEach();

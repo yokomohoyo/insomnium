@@ -25,9 +25,10 @@ import {
   QueryEditorPreview,
 } from '../editors/query-editor';
 import { RequestHeadersEditor } from '../editors/request-headers-editor';
-import { RequestScriptsEditor } from '../editors/request-scripts-editor';
-import { ResponseExamplesEditor } from '../editors/response-examples-editor';
 import { RequestParametersEditor } from '../editors/request-parameters-editor';
+import { RequestScriptsEditor } from '../editors/request-scripts-editor';
+import { RequestSegmentEditor } from '../editors/request-segment-editor';
+import { ResponseExamplesEditor } from '../editors/response-examples-editor';
 import { ErrorBoundary } from '../error-boundary';
 import { MarkdownPreview } from '../markdown-preview';
 import { RequestSettingsModal } from '../modals/request-settings-modal';
@@ -35,7 +36,6 @@ import { RenderedQueryString } from '../rendered-query-string';
 import { RequestUrlBar } from '../request-url-bar';
 import { Pane, PaneHeader } from './pane';
 import { PlaceholderRequestPane } from './placeholder-request-pane';
-import { RequestSegmentEditor } from '../editors/request-segment-editor';
 const HeaderContainer = styled.div({
   display: 'flex',
   flexDirection: 'column',
@@ -211,7 +211,7 @@ export const RequestPane: FC<Props> = ({
 
                 <br />
                 <RequestSegmentEditor
-                  key={contentType + "segment"}
+                  key={contentType + 'segment'}
                   bulk={settings.useBulkParametersEditor}
                 />
               </ErrorBoundary>

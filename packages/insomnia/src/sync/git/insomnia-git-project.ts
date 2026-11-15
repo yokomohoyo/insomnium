@@ -7,8 +7,8 @@
 import type { PromiseFsClient } from 'isomorphic-git';
 import path from 'path';
 
-import { importResourcesToProject } from '../../common/importResourcesToProject';
 import { scanResources } from '../../common/import';
+import { importResourcesToProject } from '../../common/importResourcesToProject';
 import * as models from '../../models';
 import { isWorkspace, type Workspace } from '../../models/workspace';
 import { GIT_CLONE_DIR } from './git-vcs';

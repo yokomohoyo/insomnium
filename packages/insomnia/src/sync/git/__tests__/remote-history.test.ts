@@ -1,10 +1,9 @@
 /**
  * @jest-environment node
  */
-import path from 'path';
-
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import * as git from 'isomorphic-git';
+import path from 'path';
 import YAML from 'yaml';
 
 import { globalBeforeEach } from '../../../__jest__/before-each';

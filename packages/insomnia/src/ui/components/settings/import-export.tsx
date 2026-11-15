@@ -1,6 +1,5 @@
 import React, { FC, Fragment, useEffect, useState } from 'react';
-import { useFetcher, useParams } from 'react-router-dom';
-import { useRouteLoaderData } from 'react-router-dom';
+import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { getProductName } from '../../../common/constants';
 import { docsImportExport } from '../../../common/documentation';

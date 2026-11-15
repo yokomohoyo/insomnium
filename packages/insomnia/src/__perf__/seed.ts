@@ -1,8 +1,8 @@
 // Puts a fixture straight into the (in-memory) database, with the metas the
 // app makes once requests and folders have been opened.
 import { database } from '../common/database';
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import { type CollectionOptions, largeCollection, MODEL_TYPES } from './fixtures';
 
 export async function seedCollection(options: CollectionOptions = {}) {

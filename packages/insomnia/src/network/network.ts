@@ -1,7 +1,8 @@
+import { env as processEnv } from 'node:process';
+
 import clone from 'clone';
 import electron from 'electron';
 import fs from 'fs';
-import { env as processEnv } from 'node:process';
 import { join as pathJoin } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,12 +21,12 @@ import {
 } from '../common/render';
 import type { EventStreamConnection } from '../main/network/event-stream-request';
 import type { HeaderResult, ResponsePatch, ResponseTimelineEntry } from '../main/network/libcurl-promise';
-import * as models from '../models';
 import type { BaseModel } from '../models';
+import * as models from '../models';
 import { CaCertificate } from '../models/ca-certificate';
 import { ClientCertificate } from '../models/client-certificate';
-import { getAuthStrategies } from '../models/request';
 import type { Request, RequestAuthentication, RequestParameter, RequestSegment } from '../models/request';
+import { getAuthStrategies } from '../models/request';
 import type { Settings } from '../models/settings';
 import { isWorkspace } from '../models/workspace';
 import { isPluginStrategy, pluginAuthValues } from '../plugins/auth-providers';
@@ -466,7 +467,7 @@ async function _applyRequestPluginHooks(
     };
 
     try {
-      console.log("[plugin] applying ", plugin);
+      console.log('[plugin] applying ', plugin);
       await hook(context);
     } catch (err) {
       err.plugin = plugin;

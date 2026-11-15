@@ -65,7 +65,7 @@ describe('translateDynamicVariables()', () => {
     }])).toEqual([{
       url: "https://api.example.com/users/{% faker 'randomInt' %}?trace={% faker 'guid' %}",
       headers: [{ name: 'X-Name', value: "{% faker 'randomFullName' %} <{% faker 'randomEmail' %}>" }],
-      body: { text: `{"id":"{% faker 'randomUUID' %}","at":{% faker 'timestamp' %}}` },
+      body: { text: '{"id":"{% faker \'randomUUID\' %}","at":{% faker \'timestamp\' %}}' },
       count: 3,
       disabled: false,
       parentId: null,

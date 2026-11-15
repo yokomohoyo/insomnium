@@ -1,15 +1,15 @@
 import React, { FunctionComponent, useEffect, useRef } from 'react';
 
 import { t } from '../../../common/i18n';
+import { type GrpcMethodInfo } from '../../../main/ipc/grpc';
+import type { GrpcMetadata } from '../../../main/network/grpc-metadata';
 import { GrpcMessage, GrpcRequestState } from '../../routes/debug';
 import { TabItem, Tabs } from '../base/tabs';
 import { CodeEditor } from '../codemirror/code-editor';
 import { GrpcStatusTag } from '../tags/grpc-status-tag';
+import { Timestamp } from '../timestamp';
 import { Pane, PaneBody, PaneHeader } from './pane';
 import { PlaceholderResponsePane } from './placeholder-response-pane';
-import { type GrpcMethodInfo } from '../../../main/ipc/grpc';
-import type { GrpcMetadata } from '../../../main/network/grpc-metadata';
-import { Timestamp } from '../timestamp';
 
 interface Props {
   grpcState: GrpcRequestState;
@@ -101,14 +101,14 @@ const GrpcStreamingResponseHeader: FunctionComponent<{ message: GrpcMessage }> =
   return (
     <div
       style={{
-        width: "100%",
+        width: '100%',
         backgroundColor: BG_COLOR,
         borderBottom: `1px solid ${BORDER_COLOR}`,
-        padding: "0px 0px 3px 25px",
+        padding: '0px 0px 3px 25px',
         color: TEXT_COLOR,
-        fontStyle: "italic",
-        fontSize: "8pt",
-        paddingTop: "2px",
+        fontStyle: 'italic',
+        fontSize: '8pt',
+        paddingTop: '2px',
       }}
     >
       {t('Received at:')} <Timestamp time={message.created} />
@@ -129,7 +129,7 @@ const GrpcStreamingResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
       <PaneBody>
         <Tabs aria-label={t('Grpc streaming response tabs')} isNested>
           <TabItem key="messages" title={t('Messages')}>
-            <div style={{ height: "100%", overflow:"scroll" }}>
+            <div style={{ height: '100%', overflow:'scroll' }}>
               {grpcState.responseMessages.map(m => (
                 <div key={m.id} style={{ borderBottom: `1px solid ${BORDER_COLOR}` }}>
                   <GrpcStreamingResponseHeader message={m} />
@@ -167,5 +167,5 @@ export const GrpcResponsePane: FunctionComponent<Props> = ({ grpcState }) => {
 };
 
 export function hasStreamingResponse(method: GrpcMethodInfo): boolean {
-  return method.type === "server" || method.type === "bidi";
+  return method.type === 'server' || method.type === 'bidi';
 }

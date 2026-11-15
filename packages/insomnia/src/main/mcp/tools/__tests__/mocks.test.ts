@@ -1,6 +1,7 @@
+import http from 'node:http';
+
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import electron from 'electron';
-import http from 'node:http';
 
 import { globalBeforeEach } from '../../../../__jest__/before-each';
 import type { MockLogEntry } from '../../../../mock/mock-routes';

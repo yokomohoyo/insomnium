@@ -49,12 +49,12 @@ export async function fetchProto(url: string, tokens: ProtoFetchTokens = {}): Pr
   const kind = classifyProtoUrl(input);
   if (!kind) {
     throw new Error(
-      `Unrecognized proto source. Supported forms:\n` +
-        `  github.com/<owner>/<repo>/blob/<ref>/<path>.proto\n` +
-        `  github.com/<owner>/<repo>/tree/<ref>[/<path>]\n` +
-        `  raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>.proto\n` +
-        `  https://<host>/<path>.proto\n` +
-        `  buf.build/<owner>/<repo>[:<ref>]`,
+      'Unrecognized proto source. Supported forms:\n' +
+        '  github.com/<owner>/<repo>/blob/<ref>/<path>.proto\n' +
+        '  github.com/<owner>/<repo>/tree/<ref>[/<path>]\n' +
+        '  raw.githubusercontent.com/<owner>/<repo>/<ref>/<path>.proto\n' +
+        '  https://<host>/<path>.proto\n' +
+        '  buf.build/<owner>/<repo>[:<ref>]',
     );
   }
   switch (kind.kind) {
