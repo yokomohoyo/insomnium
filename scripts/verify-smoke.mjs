@@ -3,7 +3,7 @@
 // asserts a 200 response renders. Verifies libcurl native binding actually
 // transfers data through electron. Run with:
 //   BUNDLE=build node scripts/verify-smoke.mjs
-import { _electron as electron } from 'playwright-core';
+import { _electron as electron } from '@playwright/test';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';

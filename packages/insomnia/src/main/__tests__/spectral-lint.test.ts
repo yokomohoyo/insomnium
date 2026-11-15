@@ -85,6 +85,15 @@ describe('lintSpec()', () => {
     expect(codes(diagnostics)).not.toContain('ruleset');
   });
 
+  it("keeps a ruleset's rule to the formats it names", async () => {
+    const rule = (name: string, format: string) => `  ${name}:\n    given: $.info\n    formats: [${format}]\n    severity: warn\n    then: {field: summary, function: truthy}\n`;
+    const rulesetPath = ruleset('.spectral.yaml', `rules:\n${rule('for-oas3', 'oas3')}${rule('for-oas2', 'oas2')}`);
+
+    const diagnostics = await lintSpec({ contents: spec, rulesetPath });
+
+    expect(codes(diagnostics)).toEqual(['for-oas3']);
+  });
+
   it.each([
     ['one with custom functions', 'functions: [myFunc]\n', 'custom functions are not supported'],
     ['one that extends a file', 'extends: ./other.yaml\n', 'can only extend built-in rulesets'],
