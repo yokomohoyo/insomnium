@@ -24,7 +24,7 @@ import { assertOneTokenHost, type Sources } from './sources';
 // environments or auth, or imports files. Nor generate_code or
 // export_workspace: they'd give a client the INSOMNIUM_VAR_ values (secrets
 // from the deployment) that sends only use.
-export const SERVER_TOOLS = new Set([
+const SERVER_TOOLS = new Set([
   'list_projects',
   'list_workspaces',
   'list_request_groups',

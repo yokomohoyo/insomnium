@@ -23,7 +23,7 @@ interface NunjucksModalOptions {
   onDone: (template: string) => void;
 }
 
-export interface NunjucksModalHandle {
+interface NunjucksModalHandle {
   show: (options: NunjucksModalOptions) => void;
   hide: () => void;
 }

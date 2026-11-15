@@ -5,7 +5,7 @@ import { Request } from '../request';
 import { isWebSocketRequest, isWebSocketRequestId, WebSocketRequest } from '../websocket-request';
 
 /** Any of the request documents: HTTP, gRPC, WebSocket or MCP. */
-export type AnyRequest = Request | GrpcRequest | WebSocketRequest | McpRequest;
+type AnyRequest = Request | GrpcRequest | WebSocketRequest | McpRequest;
 
 interface RequestModel<T> {
   update(request: T, patch?: Partial<T>): Promise<T>;

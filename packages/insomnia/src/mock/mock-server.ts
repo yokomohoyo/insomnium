@@ -42,7 +42,7 @@ export interface MockServer {
   close: () => Promise<void>;
 }
 
-export interface MockServerOptions {
+interface MockServerOptions {
   // the collections it answers for
   workspaceIds: string[];
   port?: number;

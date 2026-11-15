@@ -21,9 +21,9 @@ export interface TimelineEntry {
   timestamp: number;
 }
 
-export const timelineText = (value: string): TimelineEntry => ({ value, name: 'Text', timestamp: Date.now() });
+const timelineText = (value: string): TimelineEntry => ({ value, name: 'Text', timestamp: Date.now() });
 
-export interface ConnectionLogPaths {
+interface ConnectionLogPaths {
   eventLogPath: string;
   timelinePath: string;
 }

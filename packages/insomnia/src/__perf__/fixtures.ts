@@ -12,7 +12,7 @@ export interface CollectionOptions {
   subEnvironments?: number;
 }
 
-export interface ExportResource {
+interface ExportResource {
   _id: string;
   _type: 'workspace' | 'request_group' | 'request' | 'environment';
   parentId: string | null;

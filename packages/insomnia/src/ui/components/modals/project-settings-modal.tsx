@@ -10,11 +10,11 @@ import { ModalBody } from '../base/modal-body';
 import { ModalHeader } from '../base/modal-header';
 import { PromptButton } from '../base/prompt-button';
 
-export interface ProjectSettingsModalProps extends ModalProps {
+interface ProjectSettingsModalProps extends ModalProps {
   project: Project;
 }
 
-export const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, onHide }) => {
+const ProjectSettingsModal: FC<ProjectSettingsModalProps> = ({ project, onHide }) => {
   const modalRef = useRef<ModalHandle>(null);
   const { organizationId } = useParams<{organizationId: string}>();
   const { submit } = useFetcher();

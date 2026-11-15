@@ -43,7 +43,7 @@ interface InsomniaPlugin {
 
 // Where installs come from: the npm registry, or another set in Preferences (a
 // mirror, or a company's own), through the proxy requests go through
-export interface PluginInstallOptions {
+interface PluginInstallOptions {
   registry?: string;
   proxy?: string;
 }
@@ -77,7 +77,7 @@ export async function pluginInstallOptions(settings: InstallSettings, env?: Reco
 }
 
 // yarn's flags for them
-export const yarnNetworkArgs = ({ registry, proxy }: PluginInstallOptions) => [
+const yarnNetworkArgs = ({ registry, proxy }: PluginInstallOptions) => [
   ...(registry ? ['--registry', registry] : []),
   ...(proxy ? ['--proxy', proxy, '--https-proxy', proxy] : []),
 ];

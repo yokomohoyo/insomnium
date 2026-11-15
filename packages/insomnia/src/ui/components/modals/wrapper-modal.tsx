@@ -11,7 +11,7 @@ interface WrapperModalOptions {
   skinny?: boolean;
   wide?: boolean;
 }
-export interface WrapperModalHandle {
+interface WrapperModalHandle {
   show: (options: WrapperModalOptions) => void;
   hide: () => void;
 }

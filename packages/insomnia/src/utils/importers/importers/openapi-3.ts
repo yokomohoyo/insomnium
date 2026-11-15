@@ -115,7 +115,7 @@ const parseDocument = (rawData: string): OpenAPIV3.Document | null => {
   }
 };
 
-export type SpecExtension = `x-${string}`;
+type SpecExtension = `x-${string}`;
 /**
  * Checks if the given property name is an open-api extension
  * @param property The property name

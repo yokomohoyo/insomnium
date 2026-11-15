@@ -27,7 +27,7 @@ export interface FlowRequest {
   folders: string[];
 }
 
-export interface FlowsLoaderData {
+interface FlowsLoaderData {
   flows: Flow[];
   requests: FlowRequest[];
 }

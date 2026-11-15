@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Request } from '../../../models/request';
 import { requestDisplayName } from '../../utils/request-name';
 
-export interface UnitTestRequestSelectorProps {
+interface UnitTestRequestSelectorProps {
   onSetActiveRequest: React.ChangeEventHandler<HTMLSelectElement>;
   selectedRequestId?: string | null;
   selectableRequests: Request[];

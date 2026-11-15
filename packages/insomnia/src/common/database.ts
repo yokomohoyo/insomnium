@@ -32,14 +32,14 @@ export interface Operation {
   remove?: BaseModel[];
 }
 
-export interface SpecificQuery {
+interface SpecificQuery {
   $gt?: number;
   $in?: string[];
   $nin?: string[];
 }
 
 export type ModelQuery<T extends BaseModel> = Partial<Record<keyof T, SpecificQuery>>;
-export type ChangeType = 'insert' | 'update' | 'remove';
+type ChangeType = 'insert' | 'update' | 'remove';
 export const database = {
   all: async function<T extends BaseModel>(type: string) {
     if (!store) {

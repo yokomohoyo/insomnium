@@ -13,10 +13,10 @@ interface State {
   requestGroup: RequestGroup | null;
 }
 
-export interface EnvironmentEditModalOptions {
+interface EnvironmentEditModalOptions {
   requestGroup: RequestGroup;
 }
-export interface EnvironmentEditModalHandle {
+interface EnvironmentEditModalHandle {
   show: (options: EnvironmentEditModalOptions) => void;
   hide: () => void;
 }

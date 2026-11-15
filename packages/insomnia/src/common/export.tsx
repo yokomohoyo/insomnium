@@ -30,7 +30,7 @@ const VALUE_TYPESCRIPT = 'typescript';
 const VALUE_MARKDOWN = 'markdown';
 const VALUE_HTML = 'html';
 
-export type SelectedFormat =
+type SelectedFormat =
   | typeof VALUE_HAR
   | typeof VALUE_JSON
   | typeof VALUE_YAML

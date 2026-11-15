@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 type DatabaseSync = import('node:sqlite').DatabaseSync;
 
 export type CollectionRole = 'viewer' | 'editor' | 'owner';
-export const ROLES: CollectionRole[] = ['viewer', 'editor', 'owner'];
+const ROLES: CollectionRole[] = ['viewer', 'editor', 'owner'];
 const RANK: Record<CollectionRole, number> = { viewer: 1, editor: 2, owner: 3 };
 export const atLeast = (role: CollectionRole | null, needed: CollectionRole) => !!role && RANK[role] >= RANK[needed];
 
@@ -19,14 +19,14 @@ export interface User {
   created: number;
 }
 
-export interface Collection {
+interface Collection {
   slug: string;
   name: string;
   created: number;
   createdBy: string;
 }
 
-export interface AuditEntry {
+interface AuditEntry {
   id: number;
   at: number;
   user: string;

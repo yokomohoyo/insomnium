@@ -68,7 +68,7 @@ const sortOrderName = (order: DashboardSortOrder) => ({
   'modified-desc': t('Last Modified'),
 })[order];
 
-export interface WorkspaceWithMetadata {
+interface WorkspaceWithMetadata {
   _id: string;
   hasUnsavedChanges: boolean;
   lastModifiedTimestamp: number;

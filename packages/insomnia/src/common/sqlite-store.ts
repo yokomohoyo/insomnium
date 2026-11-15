@@ -19,7 +19,7 @@ type QueryCondition = string | number | boolean | null | undefined | OperatorQue
 
 export type StoreQuery = Record<string, QueryCondition>;
 
-export interface StoreDoc {
+interface StoreDoc {
   _id: string;
   type: string;
   parentId?: string | null;
@@ -51,7 +51,7 @@ function conditionMatches(value: any, cond: QueryCondition): boolean {
   return value === cond;
 }
 
-export function docMatches(doc: StoreDoc, query: StoreQuery): boolean {
+function docMatches(doc: StoreDoc, query: StoreQuery): boolean {
   return Object.entries(query).every(([key, cond]) => conditionMatches(doc[key], cond));
 }
 

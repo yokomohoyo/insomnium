@@ -42,7 +42,7 @@ export const configGenerators = [{
   label: 'Kong for Kubernetes',
   docsLink: 'https://docs.insomnia.rest/insomnia/kong-for-kubernetes',
 }];
-export interface GenerateConfigModalHandle {
+interface GenerateConfigModalHandle {
   show: (options: GenerateConfigModalOptions) => void;
   hide: () => void;
 }

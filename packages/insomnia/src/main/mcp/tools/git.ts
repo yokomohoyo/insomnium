@@ -20,7 +20,7 @@ export interface GitActionRequest {
   details: string[];
 }
 
-export interface GitControls {
+interface GitControls {
   open: (workspaceId: string) => Promise<OpenedWorkspaceGit>;
   // the signal is the MCP request's: a request the client gives up on is a no
   confirm: (request: GitActionRequest, signal?: AbortSignal) => Promise<boolean>;

@@ -8,7 +8,7 @@ import { SidebarSection } from './sidebar-section';
 
 export type SidebarPathsType = Record<string, any> | string;
 
-export interface SidebarPathsProps {
+interface SidebarPathsProps {
   paths: SidebarPathsType;
   onClick: (section: string, ...args: any) => void;
 }

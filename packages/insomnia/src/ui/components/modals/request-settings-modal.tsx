@@ -20,7 +20,7 @@ import { HelpTooltip } from '../help-tooltip';
 import { MarkdownEditor } from '../markdown-editor';
 import { MoveCopyToWorkspace, useProjectWorkspaces } from './move-copy-to-workspace';
 
-export interface RequestSettingsModalOptions {
+interface RequestSettingsModalOptions {
   request: Request | GrpcRequest | WebSocketRequest;
 }
 interface State {

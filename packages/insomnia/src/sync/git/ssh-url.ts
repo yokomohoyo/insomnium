@@ -4,7 +4,7 @@
 // process to run over SSH instead (main/git-ssh). The repository's own address,
 // as typed, stays in its settings.
 
-export interface SshAddress {
+interface SshAddress {
   // '' and 0 when the address has none: ~/.ssh/config's then, or git and 22
   user: string;
   host: string;

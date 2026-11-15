@@ -21,7 +21,7 @@ export const CREDENTIAL_FIELDS: Readonly<Record<string, readonly string[]>> = {
 
 // 1: bound to the doc's type and field only, from before 0.8.4; read until the
 // startup pass has moved every one to 2, which binds the doc's _id as well
-export interface Envelope {
+interface Envelope {
   $enc: 1 | 2;
   k: string;
   v: string;
@@ -42,7 +42,7 @@ export interface KeyWrapper {
   isWeak(wrapped: string): boolean;
 }
 
-export interface GuardMeta {
+interface GuardMeta {
   get(key: string): string | null;
   set(key: string, value: string): void;
 }
@@ -57,7 +57,7 @@ const KEYS_META = 'credentials.keys';
 // set once no version 1 envelope is left, after which none opens
 const ENVELOPES_META = 'credentials.envelopes';
 // how long to wait on the keychain before carrying on without it this session
-export const KEYCHAIN_TIMEOUT_MS = 30_000;
+const KEYCHAIN_TIMEOUT_MS = 30_000;
 interface Doc {
   _id: string;
   type: string;

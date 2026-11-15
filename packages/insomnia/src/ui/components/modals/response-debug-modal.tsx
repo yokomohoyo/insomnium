@@ -19,7 +19,7 @@ interface State {
   timeline?: ResponseTimelineEntry[];
   title?: string | null;
 }
-export interface ResponseDebugModalHandle {
+interface ResponseDebugModalHandle {
   show: (options: ResponseDebugModalOptions) => void;
   hide: () => void;
 }

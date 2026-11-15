@@ -16,7 +16,7 @@ const LEFT_OUT = new Set(['host', 'content-length']);
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err)).replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
 
 // an exchange as a request in the collection: its method, URL, headers and body
-export async function saveExchange(exchange: CapturedExchange, parentId: string) {
+async function saveExchange(exchange: CapturedExchange, parentId: string) {
   const url = new URL(exchange.url);
   const contentType = exchange.requestHeaders.find(({ name }) => name.toLowerCase() === 'content-type')?.value;
   return models.request.create({

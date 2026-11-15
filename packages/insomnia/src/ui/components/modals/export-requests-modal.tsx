@@ -27,7 +27,7 @@ export interface Node {
   selectedRequests: number;
 }
 
-export interface State {
+interface State {
   treeRoot: Node | null;
 }
 

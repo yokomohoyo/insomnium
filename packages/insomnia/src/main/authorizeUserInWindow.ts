@@ -3,12 +3,12 @@ import { BrowserWindow, dialog } from 'electron';
 import { withoutSecrets } from '../common/misc';
 import * as models from '../models';
 
-export enum ChromiumVerificationResult {
+enum ChromiumVerificationResult {
   BLIND_TRUST = 0,
   USE_CHROMIUM_RESULT = -3
 }
 
-export enum URLLoadErrorCodes {
+enum URLLoadErrorCodes {
   /**
    * An operation was aborted (due to user action).
    * Error code generated from Electron or Chromium. e.g. redirect

@@ -23,10 +23,7 @@ import { ResponseWebView } from './response-web-view';
 
 let alwaysShowLargeResponses = false;
 
-export interface ResponseViewerHandle {
-  refresh: () => void;
-}
-export function xmlDecode(input: string) {
+function xmlDecode(input: string) {
   const ESCAPED_CHARACTERS_MAP = {
     '&amp;': '&',
     '&quot;': '"',

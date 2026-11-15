@@ -10,7 +10,7 @@ import { RootLoaderData } from '../routes/root';
 const keyCombinationToTinyKeyString = ({ ctrl, alt, shift, meta, keyCode }: KeyCombination): string =>
   `${meta ? 'Meta+' : ''}${alt ? 'Alt+' : ''}${ctrl ? 'Control+' : ''}${shift ? 'Shift+' : ''}` + Object.entries(keyboardKeys).find(([, { keyCode: kc }]) => kc === keyCode)?.[1].code;
 
-export function useKeyboardShortcuts(getTarget: () => HTMLElement, listeners: { [key in KeyboardShortcut]?: (event: KeyboardEvent) => any }) {
+function useKeyboardShortcuts(getTarget: () => HTMLElement, listeners: { [key in KeyboardShortcut]?: (event: KeyboardEvent) => any }) {
   const {
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;

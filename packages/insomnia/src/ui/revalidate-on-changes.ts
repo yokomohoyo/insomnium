@@ -5,7 +5,7 @@ import { type ChangeBufferEvent, database } from '../common/database';
 type Router = ReturnType<typeof createMemoryRouter>;
 
 // What the routes' loaders show; Response/Stats/*Meta excluded to avoid Send-loop.
-export const REVALIDATE_TYPES = new Set([
+const REVALIDATE_TYPES = new Set([
   'Workspace', 'Project', 'Request', 'RequestGroup', 'Environment',
   'GrpcRequest', 'WebSocketRequest', 'McpRequest', 'ApiSpec', 'ProtoFile', 'ProtoDirectory',
   // the Flows tab's list, and an open flow changed elsewhere (over MCP, or by Git)

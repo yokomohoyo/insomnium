@@ -7,7 +7,7 @@
 // Rejecting on this boundary blocks shell metacharacters (`;`, `&&`, `$()`,
 // backticks, pipes, redirects, spaces) AND path-traversal (`..`, `/`) from
 // reaching the yarn argv or the tmpDir path-join in install-plugin.ts.
-export const PACKAGE_SPEC_RE =
+const PACKAGE_SPEC_RE =
   /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(?:@[A-Za-z0-9._+~^><=*\-|\s]{1,100})?$/;
 
 export function isValidPackageSpec(spec: string): boolean {
@@ -28,7 +28,7 @@ export function assertValidPackageSpec(spec: string): void {
 // in createPlugin(), so it must not contain `..`, `/`, `\`, or any character that
 // could be re-interpreted by path joins. Themes don't have versions/scopes - keep
 // this stricter than PACKAGE_SPEC_RE.
-export const THEME_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,62}$/;
+const THEME_NAME_RE = /^[a-z0-9][a-z0-9._-]{0,62}$/;
 
 export function isValidThemeName(name: string): boolean {
   return typeof name === 'string' && THEME_NAME_RE.test(name);

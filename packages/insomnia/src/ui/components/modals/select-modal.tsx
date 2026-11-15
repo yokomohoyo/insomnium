@@ -5,7 +5,7 @@ import { ModalBody } from '../base/modal-body';
 import { ModalFooter } from '../base/modal-footer';
 import { ModalHeader } from '../base/modal-header';
 
-export interface SelectModalOptions {
+interface SelectModalOptions {
   message: string | null;
   onDone?: (selectedValue: string | null) => void | Promise<void>;
   options: {
@@ -15,7 +15,7 @@ export interface SelectModalOptions {
   title: string | null;
   value: string | null;
 }
-export interface SelectModalHandle {
+interface SelectModalHandle {
   show: (options: SelectModalOptions) => void;
   hide: () => void;
 }

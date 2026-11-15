@@ -20,7 +20,7 @@ interface Props {
 }
 const PROTO_PATH_REGEX = /^\/(?:(?<package>[\w.]+)\.)?(?<service>\w+)\/(?<method>\w+)$/;
 
-export const NO_PACKAGE_KEY = 'no-package';
+const NO_PACKAGE_KEY = 'no-package';
 
 function groupBy(list: object[], keyGetter: (item: any) => string): Record<string, any[]> {
   const map = new Map();
@@ -36,12 +36,12 @@ function groupBy(list: object[], keyGetter: (item: any) => string): Record<strin
   return Object.fromEntries(map);
 }
 
-export const groupGrpcMethodsByPackage = (methodInfoList: GrpcMethodInfo[]): Record<string, GrpcMethodInfo[]> => {
+const groupGrpcMethodsByPackage = (methodInfoList: GrpcMethodInfo[]): Record<string, GrpcMethodInfo[]> => {
   return groupBy(methodInfoList, ({ fullPath }) => PROTO_PATH_REGEX.exec(fullPath)?.groups?.package || NO_PACKAGE_KEY);
 };
 
 // If all segments are found, return a shorter path, otherwise the original path
-export const getShortGrpcPath = (fullPath: string): string => {
+const getShortGrpcPath = (fullPath: string): string => {
   const result = PROTO_PATH_REGEX.exec(fullPath);
   const packageName = result?.groups?.package;
   const serviceName = result?.groups?.service;

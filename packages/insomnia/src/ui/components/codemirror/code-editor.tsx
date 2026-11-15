@@ -80,7 +80,7 @@ const keepEditorState = (key: string, state: EditorState) => {
     editorStates.delete(editorStates.keys().next().value!);
   }
 };
-export interface CodeEditorProps {
+interface CodeEditorProps {
   // what a screen reader calls the editor
   ariaLabel?: string;
   autoPrettify?: boolean;

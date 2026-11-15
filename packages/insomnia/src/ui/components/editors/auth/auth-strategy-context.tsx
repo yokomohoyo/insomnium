@@ -2,7 +2,7 @@ import React, { createContext, useContext } from 'react';
 
 import type { RequestAuthenticationStrategy } from '../../../../models/request';
 
-export interface AuthStrategyContextValue {
+interface AuthStrategyContextValue {
   strategy: RequestAuthenticationStrategy;
   strategyIndex: number;
   patch: (patch: Partial<RequestAuthenticationStrategy>) => void;

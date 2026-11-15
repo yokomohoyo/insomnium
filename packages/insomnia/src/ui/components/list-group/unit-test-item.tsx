@@ -8,11 +8,11 @@ import { Button } from '../themed-button';
 import { ListGroupItem } from './list-group-item';
 import { UnitTestRequestSelector } from './unit-test-request-selector';
 
-export interface TestItem {
+interface TestItem {
   _id: string;
 }
 
-export interface UnitTestItemProps {
+interface UnitTestItemProps {
   item: TestItem;
   children?: ReactNode;
   onDeleteTest?: () => void;

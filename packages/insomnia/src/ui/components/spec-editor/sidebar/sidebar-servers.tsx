@@ -9,7 +9,7 @@ export interface SidebarServer {
   url: string;
 }
 
-export interface SidebarServersProps {
+interface SidebarServersProps {
   servers: SidebarServer[];
   onClick: (section: string, path: string | number) => void;
 }

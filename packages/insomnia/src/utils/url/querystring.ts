@@ -224,7 +224,7 @@ export const smartEncodeUrl = (url: string, encode?: boolean) => {
  * @param str string to encode
  * @param ignore characters to ignore
  */
-export const flexibleEncodeComponent = (str = '', ignore = '') => {
+const flexibleEncodeComponent = (str = '', ignore = '') => {
   // Sometimes spaces screw things up because of url.parse
   str = str.replace(/%20/g, ' ');
 

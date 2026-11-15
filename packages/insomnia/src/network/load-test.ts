@@ -26,7 +26,7 @@ export const MAX_DURATION_MS = 60 * 60 * 1000;
 // the samples kept for the percentiles; a longer test counts on with these
 const MAX_SAMPLES = 200_000;
 
-export interface LoadOptions {
+interface LoadOptions {
   // a sub environment's id; the workspace's active one when left out
   environmentId?: string;
   virtualUsers: number;

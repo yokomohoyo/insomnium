@@ -6,7 +6,7 @@ import { SidebarInvalidSection } from './sidebar-invalid-section';
 import { SidebarItem } from './sidebar-item';
 import { SidebarSection } from './sidebar-section';
 
-export interface SidebarParametersProps {
+interface SidebarParametersProps {
   parameters: Record<string, any>;
   onClick: (section: string, ...args: any) => void;
 }

@@ -1,7 +1,7 @@
 // What the MCP server should do for the settings as they are now: start, stop,
 // or start again on a new port or token, which drops the clients that had the
 // old one
-export type McpServerAction = 'none' | 'start' | 'stop' | 'restart';
+type McpServerAction = 'none' | 'start' | 'stop' | 'restart';
 
 export function mcpServerAction(
   settings: { mcpEnabled: boolean; mcpPort: number; mcpToken: string },

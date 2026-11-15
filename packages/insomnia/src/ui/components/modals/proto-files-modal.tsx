@@ -74,7 +74,7 @@ const getProtoDirectories = async (workspaceId: string) => {
   return expandedDirs;
 };
 
-export interface Props {
+interface Props {
   defaultId?: string;
   onSave?: (arg0: string) => Promise<void>;
   onHide: () => void;

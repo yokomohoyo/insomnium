@@ -44,7 +44,7 @@ const HeaderContainer = styled.div({
   overflowY: 'auto',
 });
 
-export const TabPanelFooter = styled.div({
+const TabPanelFooter = styled.div({
   boxSizing: 'content-box',
   display: 'flex',
   flexDirection: 'row',

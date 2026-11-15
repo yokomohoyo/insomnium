@@ -3,7 +3,7 @@ import styled from 'styled-components';
 
 import { pressable } from './sidebar-item';
 
-export interface SidebarBadgeProps {
+interface SidebarBadgeProps {
   label?: string;
   onClick?: () => void;
   method?: 'get' | 'post' | 'delete' | 'parameters' | 'patch' | 'put' | 'options-head' | string;

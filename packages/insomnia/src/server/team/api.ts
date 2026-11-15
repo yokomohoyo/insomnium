@@ -63,7 +63,7 @@ export const readJson = (req: http.IncomingMessage) => new Promise<Record<string
   req.on('error', reject);
 });
 
-export interface ApiContext {
+interface ApiContext {
   store: TeamStore;
   dataDir: string;
   // how clients reach this server, for clone URLs: https://nas.example.com

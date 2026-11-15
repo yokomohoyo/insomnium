@@ -173,7 +173,7 @@ export function withoutSecrets(url: string) {
   return url.split(/[?#]/)[0];
 }
 
-export interface FuzzyMatchOptions {
+interface FuzzyMatchOptions {
   splitSpace?: boolean;
   loose?: boolean;
 }

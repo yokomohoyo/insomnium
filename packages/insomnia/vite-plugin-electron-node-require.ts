@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 
 import type { Plugin } from 'vite';
 
-export interface Options {
+interface Options {
   modules: string[];
 }
 
