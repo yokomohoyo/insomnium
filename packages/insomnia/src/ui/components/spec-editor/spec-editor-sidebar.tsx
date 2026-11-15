@@ -6,7 +6,7 @@ import YAMLSourceMap from 'yaml-source-map';
 import { parseApiSpec } from '../../../common/api-specs';
 import type { ApiSpec } from '../../../models/api-spec';
 
-import { Sidebar } from './sidebar';
+import { Sidebar } from './sidebar/sidebar';
 
 interface Props {
   apiSpec: ApiSpec;

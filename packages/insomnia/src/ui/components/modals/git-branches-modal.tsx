@@ -21,10 +21,6 @@ type Props = ModalProps & {
   branches: string[];
 };
 
-export interface GitBranchesModalOptions {
-  onCheckout: () => void;
-}
-
 export const GitBranchesModal: FC<Props> = (({
   branches,
   onHide,

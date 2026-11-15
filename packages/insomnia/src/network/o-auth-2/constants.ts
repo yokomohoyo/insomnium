@@ -2,7 +2,6 @@ export const GRANT_TYPE_AUTHORIZATION_CODE = 'authorization_code';
 export const GRANT_TYPE_IMPLICIT = 'implicit';
 export const GRANT_TYPE_PASSWORD = 'password';
 export const GRANT_TYPE_CLIENT_CREDENTIALS = 'client_credentials';
-export const GRANT_TYPE_REFRESH = 'refresh_token';
 // grants named by URN: a device's sign-in with a code (RFC 8628), a JWT that
 // stands for the grant (RFC 7523) and a token traded for another (RFC 8693)
 export const GRANT_TYPE_DEVICE_CODE = 'urn:ietf:params:oauth:grant-type:device_code';

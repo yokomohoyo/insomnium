@@ -1,14 +1,6 @@
 import { ValueOf } from 'type-fest';
 
 /**
- * The readable definition of a hotkey.
- */
-export interface KeyboardShortcutDefinition {
-  id: string;
-  description: string;
-}
-
-/**
  * The combination of key presses that will activate a hotkey if pressed.
  */
 export interface KeyCombination {

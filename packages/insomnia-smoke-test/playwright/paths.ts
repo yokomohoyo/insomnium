@@ -13,7 +13,6 @@ export const loadFixture = async (fixturePath: string) => {
 };
 
 export const randomDataPath = () => path.join(os.tmpdir(), 'insomnia-smoke-test', `${uuidv4()}`);
-export const INSOMNIA_DATA_PATH = randomDataPath();
 
 // Packaged app paths
 const pathLookup: Record<string, string> = {

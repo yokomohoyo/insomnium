@@ -7,17 +7,6 @@ export interface InsomniaImporter {
   description: string;
 }
 
-export interface ConvertResult {
-  type: InsomniaImporter;
-  data: {
-    _type: 'export';
-    __export_format: 4;
-    __export_date: string;
-    __export_source: `insomnia.importers:v${string}`;
-    resources: ImportRequest[];
-  };
-}
-
 export const convert = async (rawData: string) => {
   const importers = (await import('./importers')).importers;
   for (const importer of importers) {

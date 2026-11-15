@@ -58,14 +58,6 @@ export type PluginArgumentNumber = PluginArgumentBase & {
   defaultValue?: number;
 };
 
-export type PluginArgument =
-  | PluginArgumentEnum
-  | PluginArgumentModel
-  | PluginArgumentString
-  | PluginArgumentBoolean
-  | PluginArgumentFile
-  | PluginArgumentNumber;
-
 export type PluginTemplateTagContext = HelperContext & {
   app: AppContext;
   store:  PluginStore;
@@ -87,12 +79,6 @@ export type PluginTemplateTagContext = HelperContext & {
 
 export interface PluginTemplateTagActionContext {
   store: PluginStore;
-}
-
-export interface PluginTemplateTagAction {
-  name: string;
-  icon?: string;
-  run: (context: PluginTemplateTagActionContext) => Promise<void>;
 }
 
 export interface PluginTemplateTag {

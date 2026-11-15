@@ -11,7 +11,7 @@ import { TabItem, Tabs } from '../base/tabs';
 import { OneLineEditor } from '../codemirror/one-line-editor';
 import { RequestHeadersEditor } from '../editors/request-headers-editor';
 import { useDocBodyKeyboardShortcuts } from '../keydown-binder';
-import { showAlert, showModal } from '../modals';
+import { showModal } from '../modals';
 import { AskModal } from '../modals/ask-modal';
 import { Pane, PaneHeader } from '../panes/pane';
 import { argsOf } from './arguments';
@@ -180,6 +180,3 @@ export const McpRequestPane: FC<{ environmentId: string }> = ({ environmentId })
     </Pane>
   );
 };
-
-export const showMcpError = (title: string, error: unknown) =>
-  showAlert({ title, message: mcpErrorMessage(error) });

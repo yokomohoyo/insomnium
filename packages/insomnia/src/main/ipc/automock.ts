@@ -18,20 +18,6 @@ const enum MethodType {
 }
 
 /**
- * Mock method response
- */
-export function mockResponseMethods(
-  service: Service,
-  mocks?: void | {},
-) {
-  return mockMethodReturnType(
-    service,
-    MethodType.response,
-    mocks
-  );
-}
-
-/**
  * Mock methods request
  */
 export function mockRequestMethods(

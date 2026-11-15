@@ -182,8 +182,6 @@ export async function mcpDisconnect({ requestId }: { requestId: string }) {
 
 export const mcpIsConnected = ({ requestId }: { requestId: string }) => connections.has(requestId);
 
-export const mcpDisconnectAll = () => Promise.all([...connections.keys()].map(requestId => mcpDisconnect({ requestId })));
-
 export interface McpClientBridgeAPI {
   connect: typeof mcpConnect;
   call: typeof mcpCall;

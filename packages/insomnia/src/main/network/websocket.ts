@@ -81,8 +81,6 @@ export type WebSocketEvent =
   | WebSocketErrorEvent
   | WebSocketCloseEvent;
 
-export type WebSocketEventLog = WebSocketEvent[];
-
 const WebSocketConnections = new Map<string, WebSocket>();
 const MqttSessions = new Map<string, MqttSession>();
 const logs = new ConnectionLogs();
