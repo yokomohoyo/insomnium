@@ -471,7 +471,8 @@ export const Debug: FC = () => {
     getItems: keys =>
       [...keys].map(key => ({ 'text/plain': key.toString() })),
     onReorder(event) {
-      const id = event.keys.values().next().value.toString();
+      const [first] = event.keys;
+      const id = first.toString();
       const targetId = event.target.key.toString();
 
       const dropItem = collection.find(r => r.doc._id === id);
@@ -965,7 +966,8 @@ export const Debug: FC = () => {
                 selectionMode="single"
                 onSelectionChange={keys => {
                   if (keys !== 'all') {
-                    const value = keys.values().next().value;
+                    // the keys are ids
+                    const [value] = keys as Iterable<string>;
                     navigate(
                       `${requestPath({ organizationId, projectId, workspaceId }, value)}?${searchParams.toString()}`
                     );
@@ -1036,7 +1038,8 @@ export const Debug: FC = () => {
                 selectionMode="single"
                 onSelectionChange={keys => {
                   if (keys !== 'all') {
-                    const value = keys.values().next().value;
+                    // the keys are ids
+                    const [value] = keys as Iterable<string>;
 
                     const item = collection.find(
                       item => item.doc._id === value
