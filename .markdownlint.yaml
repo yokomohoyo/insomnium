@@ -20,8 +20,13 @@ MD033:
   allowed_elements:
     - details # there is no markdown equivalent for accordions
     - summary # there is no markdown equivalent for accordions
+    - br # line breaks inside the README's link lists
 
 # MD029 - Ordered list item prefix
-# Plain and simple, markdown parsers do not respect the numbering you use for ordered lists.  It only leads to confusion and misconception to allow otherwise.
+# The docs number their steps 1, 2, 3, which reads right in the source as well; all ones is fine too.
 MD029:
-  style: one
+  style: one_or_ordered
+
+# MD060 - Table column style
+# Tables are written with a bare |---|---| delimiter row; how the pipes are padded does not change what is rendered.
+MD060: false

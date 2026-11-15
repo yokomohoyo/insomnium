@@ -103,7 +103,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
   ghcr.io/yokomohoyo/insomnium-server run --collection api.yaml --env staging --junit report.xml
 ```
 
-```
+```text
 [run] Pet Store: 3 requests
   ✓ Pets / List pets  GET 200 OK  41 ms
       ✓ Status code equals 200
@@ -145,7 +145,7 @@ docker run --rm -e INSOMNIUM_VAR_apiKey="$API_KEY" -v "$PWD:/work" -w /work \
   --users 20 --duration 1m --ramp-up 10s --max-p95 300 --max-errors 1
 ```
 
-```
+```text
 Request      Sent   Failed      Mean       p50       p90       p95       p99       Max
 List pets    4212        0   41.2 ms     38 ms     55 ms     63 ms     91 ms    240 ms
 Get pet      4207        3   12.9 ms     11 ms     18 ms     22 ms     40 ms    185 ms
@@ -228,6 +228,7 @@ By hand, or with git on the command line: make a token (`POST /api/tokens`, belo
 Step by step, with a Synology NAS's SSO Server and others: [Team server single sign-on](../../docs/team-server-sso.md).
 
 Set `INSOMNIUM_TEAM_URL` too, so the redirect URL is the one you registered. The server uses the authorization code flow with PKCE, and checks the ID token's signature against the provider's keys, plus its issuer, audience, expiry and nonce.
+
 - **Account linking.** The first sign-in links the account to the provider's subject id. From then on, that id decides who someone is, whatever the name claim says later. An account already linked to someone else can't be claimed.
 - **Accounts made by SSO** have no password until an admin resets one.
 - **In the app,** **Sign In with SSO** opens the provider in your browser and comes back to Insomnium with a token.

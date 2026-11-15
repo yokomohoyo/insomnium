@@ -40,9 +40,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # - name: Lint markdown
-      #   run: npm run lint:markdown
-      
+      - name: Lint markdown
+        run: npm run lint:markdown
+
   Test:
     runs-on: ubuntu-latest
     strategy:

@@ -23,7 +23,6 @@ Insomnium has no user login, tracking or analytics: it is a 100% local app. (And
 
 **[Documentation](docs/README.md)**: getting started; a guide for each kind of request ([GraphQL](docs/graphql.md), [gRPC](docs/grpc.md), [WebSocket, Socket.IO and MQTT](docs/websockets.md), [event streams](docs/event-streams.md) and [MCP](docs/mcp-requests.md)); template tags, scripts, tests and the runner, flows, the mock server, Git Sync and Folder Sync, import and export, design documents, plugins, and the [MCP automation server](docs/mcp-server.md).
 
-
 ## Download
 
 Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). macOS builds are signed and notarized with the maintainer's Apple Developer ID; Windows builds aren't signed. On Arch Linux, use the AppImage or `.tar.gz` from the releases page for now: the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
@@ -57,7 +56,6 @@ and how to opt out.
 
 Alternatively, you can build Insomnium from source on your local machine using `npm run app-package`.
 
-
 ## gRPC
 
 Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type to get started.
@@ -74,7 +72,6 @@ Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type
 
 How to use all of it: [docs/grpc.md](docs/grpc.md).
 
-
 ## Runner, reports and load tests
 
 **Run Collection** (in a collection's menu, or a folder's) sends its requests in order and checks their assertions, once or over many iterations, with a CSV or JSON data file for a row of variables per iteration.
@@ -85,7 +82,6 @@ How to use all of it: [docs/grpc.md](docs/grpc.md).
 - **Load test mode:** virtual users send the requests again and again for a set time, with ramp-up and think time. A chart shows each second's requests, failures and latency, and thresholds (p95, p99, error rate) say whether the API held up.
 
 The same runner works in CI from the container: `insomnium-server run` (with `--baseline last.json` to fail when a request got slower) and `insomnium-server load`. Every option: [Run a collection in CI](packages/insomnium-server/README.md#run-a-collection-in-ci) and [Load test a collection](packages/insomnium-server/README.md#load-test-a-collection).
-
 
 ## MCP automation server
 
@@ -126,7 +122,6 @@ To connect an MCP client without copying the token, use the `insomnium-mcp` laun
 
 The whole guide, with what a client can see: [docs/mcp-server.md](docs/mcp-server.md). To try out an MCP server of your own instead, use an [MCP request](docs/mcp-requests.md).
 
-
 ## Command line
 
 `insomnium-cli` drives a running Insomnium from your terminal, a script or a coding agent. It talks to the [MCP automation server](#mcp-automation-server) above, so turn that on first. Anything it changes shows up in the app straight away.
@@ -150,7 +145,6 @@ insomnium call run_requests --arg parentId=fld_123 --json     # run a folder and
 **For coding agents:** `insomnium agent install` installs a skill for Claude Code (`--dir` for another agent's skills folder) that tells it how to use your collections: find a request, check the environment, send it, read the response and its assertions, and run a folder. The agent can then use the CLI, or connect to the tools directly with `claude mcp add insomnium npx insomnium-mcp`.
 
 Every option: [insomnium-cli](packages/insomnium-cli/README.md).
-
 
 ## Team server
 
@@ -191,7 +185,6 @@ The MCP server in the same image takes the same two settings. Then, in Insomnium
 
 How to set it up, with HTTPS (behind a proxy or without one), roles, single sign-on, backups and a diagram of how it fits together: [docs/team-server.md](docs/team-server.md). Every option and the API: [Share collections with a team](packages/insomnium-server/README.md#share-collections-with-a-team). Git Sync itself: [docs/git-sync.md](docs/git-sync.md).
 
-
 ## Saved credentials
 
 Insomnium encrypts the credentials it keeps for you before writing them to its database: OAuth 2 access, refresh and ID tokens, Git Sync credentials, client certificate passphrases, and the proto and MCP tokens in Settings, and team server sign-ins. Each value is encrypted with AES-256-GCM under a key that your operating system's keychain protects (macOS Keychain, Windows DPAPI, or GNOME Keyring / KWallet on Linux). The key is created the first time it's needed: when you first save one of these, or at the first launch of this version if you already have some. That is when a keychain prompt may appear.
@@ -210,7 +203,6 @@ How it behaves:
 - **Copies from earlier versions.** Earlier versions stored these in plain text. On the first launch with a working keychain Insomnium encrypts them in `insomnia.sqlite` and compacts the file, but it leaves other copies alone: the copy of your data it takes in the `backups` folder on each upgrade (the newest three are kept), the `insomnia.*.db` files from versions that predate the SQLite store, any copies of the data folder you made, and the original Insomnia folder if you migrated from it. Delete those if that matters to you.
 - **Downgrading.** Older versions can't read the encrypted values, so re-enter saved credentials there.
 
-
 ## Backstory
 
 Insomnium is a fork of [Kong/insomnia at 2023.5.8](https://github.com/Kong/insomnia/tree/core@2023.5.8), the last commit before compulsory account login was introduced. In a sense, Insomnium is a community response to [the latest product update that forces account creation w/o warning](https://news.ycombinator.com/item?id=37680522).
@@ -221,9 +213,8 @@ I was among the users who were deeply affected by the recent change. I still thi
 
 > *I choose to walk in shades.* <br>
 > *Hearken now, to the song of dusk* <br>
-> *The forest venerates your name* <br> 
+> *The forest venerates your name* <br>
 >--- [Insomnium, song of the dusk](https://youtu.be/nTIDh1miBSc)
-
 
 ## Migration from Insomnia
 
