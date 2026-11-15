@@ -55,7 +55,7 @@ describe('run_test_suite', () => {
       expect.objectContaining({ title: 'is up', passed: true }),
       expect.objectContaining({ title: 'is teapot', passed: false, error: 'expected 200 to equal 418' }),
     ]);
-    expect(await models.unitTestResult.all()).toEqual([expect.objectContaining({ parentId: workspaceId })]);
+    expect(await models.unitTestResult.all()).toEqual([expect.objectContaining({ parentId: suiteId })]);
   });
 
   it('refuses a suite that is missing or empty, without asking', async () => {

@@ -19,7 +19,8 @@ export const indexLoader: LoaderFunction = async ({ params }) => {
   guard(workspaceId, 'Workspace ID is required');
   guard(testSuiteId, 'Test suite ID is required');
 
-  const testResult = await models.unitTestResult.getLatestByParentId(workspaceId);
+  // this suite's own last run, not the last run of any suite in the workspace
+  const testResult = await models.unitTestResult.getLatestByParentId(testSuiteId);
   if (testResult) {
     return redirect(testResultPath({ organizationId, projectId, workspaceId }, testSuiteId, testResult._id));
   }
