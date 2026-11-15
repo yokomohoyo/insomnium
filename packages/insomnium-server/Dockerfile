@@ -1,7 +1,7 @@
 # Build from the repository root:
 #   docker build -f packages/insomnium-server/Dockerfile -t insomnium-server .
 # by digest, so a retagged image can't slip into a build (Dependabot moves it)
-FROM node:26-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39 AS build
+FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc AS build
 WORKDIR /src
 # the bundle needs no Electron; libcurl's install still fetches its prebuilt binary
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
@@ -12,7 +12,7 @@ COPY . .
 ENV npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=10000 npm_config_fetch_retry_maxtimeout=60000
 RUN for attempt in 1 2 3; do npm ci --no-audit --no-fund && break; [ "$attempt" = 3 ] && exit 1; sleep $((attempt * 30)); done   && npm run build:server --workspace=packages/insomnia
 
-FROM node:26-slim@sha256:e4db4c914bf8ad241bd24804fc25d272d89bad97e68cdc8a1414862790a02c39
+FROM node:26-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc
 ENV NODE_ENV=production \
     INSOMNIUM_HOST=0.0.0.0 \
     INSOMNIUM_PORT=8080
