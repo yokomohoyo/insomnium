@@ -1,7 +1,5 @@
 # Repo-level "Automated security fixes" opens security PRs automatically.
-# This file: sets cadence, disables routine version bumps, and silences
-# advisories on packages whose version is set by `overrides` in package.json
-# (their parents ask for older ranges, so a PR could not move them).
+# This file: sets cadence and disables routine version bumps.
 version: 2
 updates:
   - package-ecosystem: "npm"
@@ -9,17 +7,6 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 0  # security PRs only — no routine bumps
-    ignore:
-      # react-use's dependency; overridden to ^3.0.8.
-      - dependency-name: "js-cookie"
-      # mocha@10 asks for ^6; overridden to ^7.
-      - dependency-name: "serialize-javascript"
-      # apiconnect-wsdl@1.8.31 asks for xmldom ^0.1; overridden to an alias of @xmldom/xmldom.
-      - dependency-name: "xmldom"
-      # the ^3, ^9 and ^10 ranges are overridden; mocha's and filelist's ^5 resolve to a patched 5.1.x.
-      - dependency-name: "minimatch"
-      # apiconnect-wsdl@1.8.31 asks for ^0.4; overridden to ^0.5.0.
-      - dependency-name: "xml2js"
 
   - package-ecosystem: "github-actions"
     directory: "/"
