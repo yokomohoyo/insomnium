@@ -14,9 +14,6 @@ export default defineConfig([
     '**/node_modules/',
     // dot files and folders (.github, .idea, .cache, .husky, ...)
     '**/.*',
-    // only .js, .ts and .tsx are linted
-    '**/*.mjs',
-    '**/*.cjs',
     'docker/',
     '**/traces/',
     '**/build/',
@@ -32,7 +29,7 @@ export default defineConfig([
     'packages/insomnia/src/plugin-host-preload.js',
   ]),
   {
-    files: ['**/*.{js,ts,tsx}'],
+    files: ['**/*.{js,mjs,cjs,ts,tsx}'],
     extends: [
       tseslint.configs.recommended,
       react.configs.flat.recommended,
@@ -177,7 +174,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs,cjs}'],
     rules: {
       '@typescript-eslint/no-var-requires': 'off',
     },

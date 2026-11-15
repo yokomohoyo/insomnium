@@ -3,11 +3,12 @@
 // asserts a 200 response renders. Verifies libcurl native binding actually
 // transfers data through electron. Run with:
 //   BUNDLE=build node scripts/verify-smoke.mjs
-import { _electron as electron } from '@playwright/test';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import url from 'node:url';
+
+import { _electron as electron } from '@playwright/test';
 
 const REPO = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const INSOMNIA = path.join(REPO, 'packages', 'insomnia');
