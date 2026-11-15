@@ -11,6 +11,7 @@
 #    replaced: one install, one Start Menu and one desktop shortcut, one
 #    Installed apps entry, nothing left in %LOCALAPPDATA%\insomnium, the data
 #    untouched, and the new app works.
+# 3. the same upgrade, installing for everyone on the computer (NSIS only).
 param(
   [Parameter(Mandatory)] [string] $Installer,
   [ValidateSet('nsis', 'msi')] [string] $Kind = 'nsis',
@@ -88,13 +89,13 @@ function Show-State([string] $title) {
   }
 }
 
-function Install-New {
+function Install-New([string[]] $more = @()) {
   $started = Get-Date
   if ($Kind -eq 'msi') {
     $log = Join-Path $env:RUNNER_TEMP "msi-install-$(Get-Date -Format HHmmss).log"
     $p = Start-Process msiexec.exe -ArgumentList @('/i', "`"$Installer`"", '/qn', '/norestart', '/l*v', "`"$log`"") -Wait -PassThru
   } else {
-    $p = Start-Process $Installer -ArgumentList '/S' -Wait -PassThru
+    $p = Start-Process $Installer -ArgumentList (@('/S') + $more) -Wait -PassThru
   }
   Write-Host "installer exit code $($p.ExitCode) after $([int]((Get-Date) - $started).TotalSeconds) s"
   Check ($p.ExitCode -eq 0) 'the silent install exits 0'
@@ -155,9 +156,10 @@ Check (@(Get-UninstallEntries).Count -eq 0) 'after the uninstall, its Installed 
 Check ((Test-Path $marker) -and (Get-Content $marker) -eq 'kept') 'after the uninstall, %APPDATA%\Insomnium is as it was'
 
 # -------------------------------------------------------------- 2. upgrade
-if ($SquirrelInstaller) {
-  $SquirrelInstaller = (Resolve-Path $SquirrelInstaller).Path
-  Write-Host "`n=== upgrade from the Squirrel install: $SquirrelInstaller"
+$squirrelStartMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\yokomohoyo'
+
+function Test-Upgrade([string] $title, [string[]] $more, [string] $expectedExe) {
+  Write-Host "`n=== $title"
   Start-Process $SquirrelInstaller -ArgumentList '--silent' -Wait
   $installedOld = Wait-Until { (Test-Path (Join-Path $squirrelDir 'Update.exe')) -and (Get-ChildItem $squirrelDir -Filter 'app-*' -Directory | ForEach-Object { Test-Path (Join-Path $_.FullName 'Insomnium.exe') }) -contains $true } 240
   Check $installedOld 'the Squirrel installer installed the old version'
@@ -173,17 +175,37 @@ if ($SquirrelInstaller) {
   Check (Wait-Until { @(Get-AppProcesses $squirrelDir).Count -gt 0 } 30) 'the old app is running'
   Start-Sleep -Seconds 10
 
-  Install-New
+  Install-New $more
   # Squirrel finishes removing itself a moment after its uninstaller returns
   [void](Wait-Until { -not (Test-Path $squirrelDir) } 30)
   Show-State 'after the upgrade'
   Check (-not (Test-Path $squirrelDir)) 'after the upgrade, %LOCALAPPDATA%\insomnium is gone'
+  Check (-not (Test-Path $squirrelStartMenu)) 'after the upgrade, the old Start Menu folder is gone'
+  if ($expectedExe) {
+    Check ((Get-InstalledExe) -eq $expectedExe) "after the upgrade, the app is in $(Split-Path $expectedExe)"
+  }
   Check (@(Get-AppProcesses $squirrelDir).Count -eq 0) 'after the upgrade, the old app is not running'
   Check-OneInstall 'after the upgrade'
   $target = Get-DesktopShortcuts | Select-Object -First 1 | ForEach-Object { (New-Object -ComObject WScript.Shell).CreateShortcut($_.FullName).TargetPath }
   Check ($target -eq (Get-InstalledExe)) "after the upgrade, the desktop shortcut opens the new install ($target)"
   Check ((Test-Path $marker) -and (Get-Content $marker) -eq 'kept') 'after the upgrade, %APPDATA%\Insomnium is as it was'
   Test-Smoke 'the upgraded app starts and sends a request'
+}
+
+if ($SquirrelInstaller) {
+  $SquirrelInstaller = (Resolve-Path $SquirrelInstaller).Path
+  $perUser = Join-Path $env:LOCALAPPDATA 'Programs\Insomnium\Insomnium.exe'
+  $perMachine = Join-Path $env:ProgramFiles 'Insomnium\Insomnium.exe'
+  if ($Kind -eq 'nsis') {
+    Test-Upgrade "upgrade from the Squirrel install: $SquirrelInstaller" @() $perUser
+    Uninstall-New
+    Check (-not (Get-InstalledExe) -and @(Get-UninstallEntries).Count -eq 0) 'the upgraded install uninstalls'
+    Test-Upgrade 'upgrade from the Squirrel install, for everyone on the computer' @('/allusers') $perMachine
+    Check ((Get-UninstallEntries | Select-Object -First 1).PSPath -like '*HKEY_LOCAL_MACHINE*') 'the install for everyone is registered for the computer'
+  } else {
+    # an MSI is built for one or the other
+    Test-Upgrade "upgrade from the Squirrel install: $SquirrelInstaller" @() ''
+  }
 }
 
 Write-Host ''

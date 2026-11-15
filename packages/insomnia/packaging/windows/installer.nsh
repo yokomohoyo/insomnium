@@ -10,6 +10,8 @@
 !macro removeSquirrelInstall
   Push $0
   Push $1
+  ; the old install is always this user's, also when this one is for everyone
+  SetShellVarContext current
   StrCpy $1 "$LOCALAPPDATA\insomnium"
   ; Update.exe is what makes the folder a Squirrel install. Never when this
   ; install was pointed at that same folder.
@@ -28,6 +30,11 @@
     ; what Squirrel leaves of itself (Update.exe, its log, a .dead marker)
     RMDir /r "$1"
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\insomnium"
+    ; the Start Menu folder Squirrel named after the author, once it is empty
+    RMDir "$SMPROGRAMS\yokomohoyo"
+    ${if} $installMode == "all"
+      SetShellVarContext all
+    ${endIf}
 
     ; The old uninstaller deletes shortcuts by name, and the desktop one has
     ; the name of the shortcut this installer just made: put back what it took.
@@ -47,6 +54,9 @@
       ${endIf}
     !endif
     System::Call 'Shell32::SHChangeNotify(i 0x8000000, i 0, i 0, i 0)'
+  ${endIf}
+  ${if} $installMode == "all"
+    SetShellVarContext all
   ${endIf}
   Pop $1
   Pop $0

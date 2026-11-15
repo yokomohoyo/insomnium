@@ -32,6 +32,27 @@ Publishing starts **Release On Publish**, which checks the assets again, and the
 **Server Image** workflow. The **APT Repository**, **Bump Homebrew Cask**, **AUR
 Package** and **npm Packages** workflows run after Release On Publish passes.
 
+A release has 12 assets: nine builds (`.dmg` and `.zip` for macOS; the
+installer `Insomnium.Core-X.Y.Z.exe` and the portable `.exe` for Windows;
+`.AppImage`, `.deb`, `.rpm`, `.snap` and `.tar.gz` for Linux) and a
+`SHA256SUMS-<os>.txt` for each OS.
+
+**winget.** The **winget Manifest** workflow writes the manifest files for a
+published release from the Windows installer's URL and SHA-256, and uploads
+them as an artifact; it submits nothing:
+
+```bash
+gh workflow run winget-manifest.yml --ref main -f tag=X.Y.Z
+```
+
+They go to [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)
+in a pull request made by hand, under the path the artifact has them in.
+
+The **Windows Installer** workflow runs on pull requests that change the
+installer, and by hand: on a Windows runner it installs the installer silently,
+runs the installed app, uninstalls it, and upgrades an install made by the
+Squirrel installer of 0.8.13.
+
 A dry run builds any commit on every OS, unsigned, and uploads nothing:
 
 ```bash
