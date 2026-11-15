@@ -86,6 +86,7 @@ export const GlobalEnvironmentsModal: FC<ModalProps & { projectName: string }> =
   const remove = async (environment: Environment) => {
     await models.environment.remove(environment);
     if (activeId === environment._id) {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- the function above, not React's hook
       await use(null);
     }
     await load();
