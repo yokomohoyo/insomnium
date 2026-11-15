@@ -8,7 +8,6 @@
   },
   "include": [
     "**/*.d.ts",
-    ".eslintrc.js",
     "__jest__",
     "fixtures",
     "playwright",

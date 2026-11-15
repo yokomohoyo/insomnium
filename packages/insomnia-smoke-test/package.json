@@ -13,7 +13,7 @@
   },
   "version": "0.8.13",
   "scripts": {
-    "lint": "eslint . --cache",
+    "lint": "eslint . --cache --max-warnings 0",
     "type-check": "tsc --noEmit --project tsconfig.json",
     "test:dev": "xvfb-maybe cross-env BUNDLE=dev playwright test",
     "test:build": "xvfb-maybe cross-env BUNDLE=build playwright test",
@@ -43,10 +43,5 @@
     "zod": "^4.6.7"
   },
   "description": "[![Playwright](https://img.shields.io/badge/playwright-blue.svg?style=for-the-badge&logo=playwright)](https://github.com/microsoft/playwright)",
-  "homepage": "https://github.com/yokomohoyo/insomnium#readme",
-  "main": ".eslintrc.js",
-  "directories": {
-    "doc": "docs",
-    "test": "tests"
-  }
+  "homepage": "https://github.com/yokomohoyo/insomnium#readme"
 }

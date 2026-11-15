@@ -62,6 +62,7 @@ export const TestRunStatus: FC = () => {
           </div>
           <ListGroup>
             {tests.map((t: any, i: number) => (
+              // eslint-disable-next-line react/no-array-index-key -- results of a finished run: no id, and the list never changes
               <UnitTestResultItem key={i} item={t} />
             ))}
           </ListGroup>

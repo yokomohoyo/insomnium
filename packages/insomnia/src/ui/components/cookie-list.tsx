@@ -141,6 +141,7 @@ export const CookieList: FC<CookieListProps> = ({
           <CookieRow
             cookie={cookie}
             index={i}
+            // eslint-disable-next-line react/no-array-index-key -- rows are addressed by position, and the tbody remounts when the count changes
             key={i}
             deleteCookie={handleCookieDelete}
           />

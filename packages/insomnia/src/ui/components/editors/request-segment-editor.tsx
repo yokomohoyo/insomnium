@@ -21,10 +21,10 @@ export const RequestSegmentEditor: FC<Props> = () => {
   const url = activeRequest.url;
 
   // a list of all :(.*?)/ regex matches
-  const matches = [...url.matchAll(/\:([\w_-]*?)(?=($|[^[\w_-]))/g)].filter(a => {
+  const matches = useMemo(() => [...url.matchAll(/\:([\w_-]*?)(?=($|[^[\w_-]))/g)].filter(a => {
     // filter if it is a number as we assume it to be the port like :3000
     return Number.isNaN(parseInt(a[1])) && a[1] !== '';
-  });
+  }), [url]);
 
   // pairs : empty with strings
   const segmentedCreatedViaUI = useMemo(() => {
@@ -38,7 +38,7 @@ export const RequestSegmentEditor: FC<Props> = () => {
         fileName: seg?.fileName || '',
       };
     });
-  }, [url, activeRequest]);
+  }, [matches, activeRequest]);
 
   const patchRequest = useRequestSetter();
   // const handleBulkUpdate = useCallback((paramsString: string) => {
@@ -88,12 +88,15 @@ export const RequestSegmentEditor: FC<Props> = () => {
     });
   }, [patchRequest, requestId]);
 
+  const segmentNames = segmentedCreatedViaUI.map(a => a.name).join(',');
   useEffect(() => {
-    // console.log("Changing names", segmentedCreatedViaUI.map((a) => a.name).join(","));
     if (segmentedCreatedViaUI.length > 0) {
       onChangeParameter(segmentedCreatedViaUI);
     }
-  }, [segmentedCreatedViaUI.map(a => a.name).join(',')]);
+    // only when the names in the URL change: this writes to the request, which
+    // makes new pairs, so depending on them would write on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [segmentNames]);
 
   // if (bulk) {
   //   return (

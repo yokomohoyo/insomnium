@@ -117,6 +117,9 @@ export const GrpcRequestPane: FunctionComponent<Props> = ({
       }
     }
     loadMethods();
+    // for a change of request only: it sets the state it reads, so depending on
+    // that would run it again after each of its own updates
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRequest]);
 
   const editorRef = useRef<CodeEditorHandle>(null);

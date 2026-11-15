@@ -51,6 +51,7 @@ export const Shortcuts: FC = () => {
                 <td className="text-right">
                   {keyCombosForThisPlatform.map((keyComb: KeyCombination, index: number) => {
                     return (
+                      // eslint-disable-next-line react/no-array-index-key -- a key combination has no id, and the same one may be listed twice
                       <code key={index} className="margin-left-sm" style={{ lineHeight: '1.25em' }}>
                         <Hotkey keyCombination={keyComb} />
                       </code>

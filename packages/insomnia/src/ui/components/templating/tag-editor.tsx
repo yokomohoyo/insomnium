@@ -288,6 +288,7 @@ export const TagEditor: FC<Props> = props => {
             value={activeTagDefinition ? activeTagDefinition.name : ''}
           >
             {state.tagDefinitions.map((tagDefinition, i) => (
+              // eslint-disable-next-line react/no-array-index-key -- plugins may register two tags with one name
               <option key={`${i}::${tagDefinition.name}`} value={tagDefinition.name}>
                 {tagDefinition.displayName} – {tagDefinition.description}
               </option>
@@ -422,6 +423,7 @@ export const TagEditor: FC<Props> = props => {
           'form-control--outlined': argDefinition.type !== 'boolean',
         });
         return (
+          // eslint-disable-next-line react/no-array-index-key -- a tag's arguments are positional
           <div key={index} className="form-row">
             <div className={formControlClasses}>
               <label data-arg-index={index}>
@@ -439,6 +441,7 @@ export const TagEditor: FC<Props> = props => {
                       -- Select Variable --
                     </option>
                     {state.variables.map((v, i) => (
+                      // eslint-disable-next-line react/no-array-index-key -- variable names may repeat across environments
                       <option key={`${i}::${v.name}`} value={v.name}>
                         {v.name}
                       </option>

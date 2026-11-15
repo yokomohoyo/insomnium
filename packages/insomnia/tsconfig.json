@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.build.json",
   "include": [
-    ".eslintrc.js",
     "config",
     "electron-builder.config.js",
     "esbuild.main.ts",

@@ -132,6 +132,7 @@ export const KeyValueEditor: FC<Props> = ({
           />
         )}
         {isWebSocketRequest ? readOnlyPairs.map((pair, i) => (
+          // eslint-disable-next-line react/no-array-index-key -- a fixed, read-only list
           <li key={i} className="key-value-editor__row-wrapper">
             <div className="key-value-editor__row">
               <div className="form-control form-control--underlined form-control--wide">

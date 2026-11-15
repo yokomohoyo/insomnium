@@ -35,7 +35,7 @@
     "url": "https://github.com/yokomohoyo/insomnium/issues"
   },
   "scripts": {
-    "lint": "eslint . --cache",
+    "lint": "eslint . --cache --max-warnings 0",
     "sync": "node scripts/sync-discovery.mjs",
     "build": "npm run sync && tsc -p tsconfig.json",
     "type-check": "npm run sync && tsc -p tsconfig.json --noEmit",
