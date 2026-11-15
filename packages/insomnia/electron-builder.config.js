@@ -119,17 +119,30 @@ const config = {
   win: {
     target: [
       {
-        target: 'squirrel',
+        target: 'nsis',
       },
       {
         target: 'portable',
       },
     ],
   },
-  squirrelWindows: {
+  // A setup wizard: for this user by default, without elevation, into
+  // %LOCALAPPDATA%\Programs\Insomnium, or for everyone on the computer. `/S`
+  // installs silently, for this user unless `/ALLUSERS` is given.
+  nsis: {
+    // the name the Squirrel installer had, so download links keep working
     artifactName: `${BINARY_PREFIX}-\${version}.\${ext}`,
-    iconUrl:
-      'https://github.com/yokomohoyo/insomnium/blob/main/packages/insomnia/src/icons/icon.png?raw=true',
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    // "Insomnium" under Installed apps, not "Insomnium 0.9.0"
+    uninstallDisplayName: '${productName}',
+    // settings and data stay when the app is uninstalled
+    deleteAppDataOnUninstall: false,
+    // no updater reads a block map
+    differentialPackage: false,
+    // removes an install made by the Squirrel installer of 0.8.x and earlier
+    include: 'packaging/windows/installer.nsh',
   },
   portable: {
     artifactName: `${BINARY_PREFIX}-\${version}-portable.\${ext}`,

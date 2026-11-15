@@ -149,7 +149,7 @@ jobs:
 
       # no dependency's install script runs in the job that later holds the
       # signing secrets; only those the build needs, by name: node-libcurl's
-      # fetches its prebuilt binary, electron-winstaller's picks its 7-Zip
+      # fetches its prebuilt binary
       - name: Install packages
         shell: bash
         env:
@@ -171,7 +171,7 @@ jobs:
             done
           }
           retry npm ci --ignore-scripts
-          retry npm rebuild @getinsomnia/node-libcurl electron-winstaller
+          retry npm rebuild @getinsomnia/node-libcurl
 
       # the binary node-libcurl downloaded is the one pinned
       - name: Check node-libcurl's binary
@@ -255,9 +255,6 @@ jobs:
             packages/insomnia/dist/*.dmg
             packages/insomnia/dist/*.zip
             packages/insomnia/dist/*.exe
-            packages/insomnia/dist/squirrel-windows/*.exe
-            packages/insomnia/dist/squirrel-windows/*.nupkg
-            packages/insomnia/dist/squirrel-windows/RELEASES
             packages/insomnia/dist/*.snap
             packages/insomnia/dist/*.rpm
             packages/insomnia/dist/*.deb
@@ -274,8 +271,6 @@ jobs:
             packages/insomnia/dist/*.dmg
             packages/insomnia/dist/*.zip
             packages/insomnia/dist/*.exe
-            packages/insomnia/dist/squirrel-windows/*.exe
-            packages/insomnia/dist/squirrel-windows/*.nupkg
             packages/insomnia/dist/*.snap
             packages/insomnia/dist/*.rpm
             packages/insomnia/dist/*.deb
@@ -296,8 +291,6 @@ jobs:
             packages/insomnia/dist/*.dmg
             packages/insomnia/dist/*.zip
             packages/insomnia/dist/*.exe
-            packages/insomnia/dist/squirrel-windows/*.exe
-            packages/insomnia/dist/squirrel-windows/*.nupkg
             packages/insomnia/dist/*.snap
             packages/insomnia/dist/*.rpm
             packages/insomnia/dist/*.deb

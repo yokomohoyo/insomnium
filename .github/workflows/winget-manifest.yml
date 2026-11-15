@@ -1,0 +1,133 @@
+name: winget Manifest
+
+# Writes the three winget manifest files for a published release, from its
+# Windows installer's URL and SHA-256, and uploads them as an artifact. It
+# submits nothing: the files are for a pull request to microsoft/winget-pkgs,
+# made by hand (docs/releasing.md). Run by hand only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release to write a manifest for, e.g. 0.9.0"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_IDENTIFIER: yokomohoyo.Insomnium
+  # as the installer writes them under Installed apps, which winget matches on
+  PUBLISHER: yokomohoyo
+  PACKAGE_NAME: Insomnium
+  # the installer's key under Installed apps: electron-builder derives it from
+  # the appId (com.insomnium.app), so it is the same in every version
+  PRODUCT_CODE: 88eec264-f2f2-51fb-bf3d-c18bf0b21ee3
+  MANIFEST_VERSION: 1.12.0
+
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write the manifest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::'$TAG' is not a version like 0.9.0"
+            exit 1
+          fi
+          asset="Insomnium.Core-$TAG.exe"
+          release=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG")
+          if [ "$(jq -r .draft <<<"$release")" != false ]; then
+            echo "::error::$TAG is not published"
+            exit 1
+          fi
+          digest=$(jq -r --arg n "$asset" '.assets[] | select(.name == $n) | .digest // ""' <<<"$release")
+          url=$(jq -r --arg n "$asset" '.assets[] | select(.name == $n) | .browser_download_url' <<<"$release")
+          if [[ "$digest" != sha256:* ]]; then
+            echo "::error::$asset is not on the release $TAG, or has no SHA-256 digest"
+            exit 1
+          fi
+          sha=$(tr '[:lower:]' '[:upper:]' <<<"${digest#sha256:}")
+          date=$(jq -r '.published_at[0:10]' <<<"$release")
+
+          # manifests/<first letter>/<publisher>/<package>/<version>/
+          id=$PACKAGE_IDENTIFIER
+          dir="manifests/$(tr '[:upper:]' '[:lower:]' <<<"${id:0:1}")/${id%%.*}/${id#*.}/$TAG"
+          mkdir -p "$dir"
+
+          cat > "$dir/$id.yaml" <<EOF
+          PackageIdentifier: $id
+          PackageVersion: $TAG
+          DefaultLocale: en-US
+          ManifestType: version
+          ManifestVersion: $MANIFEST_VERSION
+          EOF
+
+          # An NSIS installer: winget passes /S itself. It installs for the
+          # current user unless /allusers is given.
+          cat > "$dir/$id.installer.yaml" <<EOF
+          PackageIdentifier: $id
+          PackageVersion: $TAG
+          InstallerType: nullsoft
+          InstallModes:
+          - interactive
+          - silent
+          UpgradeBehavior: install
+          ProductCode: $PRODUCT_CODE
+          ReleaseDate: $date
+          Installers:
+          - Architecture: x64
+            Scope: user
+            InstallerUrl: $url
+            InstallerSha256: $sha
+            InstallerSwitches:
+              Custom: /currentuser
+          - Architecture: x64
+            Scope: machine
+            InstallerUrl: $url
+            InstallerSha256: $sha
+            InstallerSwitches:
+              Custom: /allusers
+            ElevationRequirement: elevationRequired
+          ManifestType: installer
+          ManifestVersion: $MANIFEST_VERSION
+          EOF
+
+          cat > "$dir/$id.locale.en-US.yaml" <<EOF
+          PackageIdentifier: $id
+          PackageVersion: $TAG
+          PackageLocale: en-US
+          Publisher: $PUBLISHER
+          PublisherUrl: https://github.com/yokomohoyo
+          PublisherSupportUrl: https://github.com/$GITHUB_REPOSITORY/issues
+          PackageName: $PACKAGE_NAME
+          PackageUrl: https://github.com/$GITHUB_REPOSITORY
+          License: MIT
+          LicenseUrl: https://github.com/$GITHUB_REPOSITORY/blob/$TAG/LICENSE
+          ShortDescription: A local, privacy-focused API client for HTTP, GraphQL, gRPC, WebSocket and more.
+          Moniker: insomnium
+          Tags:
+          - api
+          - api-client
+          - graphql
+          - grpc
+          - http
+          - rest
+          - websocket
+          ReleaseNotesUrl: https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG
+          ManifestType: defaultLocale
+          ManifestVersion: $MANIFEST_VERSION
+          EOF
+
+          for f in "$dir"/*.yaml; do echo "--- $f"; cat "$f"; done
+
+      - name: Upload the manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: winget-manifest-${{ inputs.tag }}
+          path: manifests
+          if-no-files-found: error

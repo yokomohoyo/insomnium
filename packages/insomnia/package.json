@@ -153,7 +153,6 @@
     "dotenv": "^16.6.1",
     "electron": "45.2.3",
     "electron-builder": "^26.15.7",
-    "electron-builder-squirrel-windows": "^26.15.7",
     "electron-devtools-installer": "^3.2.0",
     "esbuild": "^0.28.1",
     "esbuild-plugin-alias": "0.2.1",

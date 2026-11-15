@@ -61,7 +61,6 @@ jest.mock('../main/git-ssh', () => ({ registerGitSshHandlers: () => {} }));
 jest.mock('../main/plugin-sandbox', () => ({ registerPluginSandboxHandlers: () => {} }));
 jest.mock('../main/folder-sync', () => ({ registerFolderSyncHandlers: () => {}, restoreFolderSyncs: async () => {} }));
 jest.mock('../network/o-auth-2/redact', () => ({ redactStoredTokenResponses: async () => {} }));
-jest.mock('../main/squirrel-startup', () => ({ checkIfRestartNeeded: () => false }));
 jest.mock('../main/web-hardening', () => ({ hardenWebContents: () => {}, lockDownSession: () => {} }));
 jest.mock('../main/mcp/server', () => ({ getRunningMcpServer: () => null }));
 jest.mock('../main/window-utils', () => ({ init: () => {}, getOrCreateWindow: () => mockWindow, createMenu: () => {} }));

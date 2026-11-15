@@ -54,6 +54,14 @@ Updates then arrive through `apt upgrade` like any other package. Installing the
 to date too — see [docs/apt-repository.md](docs/apt-repository.md) for details
 and how to opt out.
 
+### Windows installer
+
+`Insomnium.Core-<version>.exe` is a setup wizard. It installs for you alone, which needs no administrator rights, or for everyone on the computer, and lets you choose the folder. `Insomnium.Core-<version>-portable.exe` runs without installing anything.
+
+- To install without the wizard, run `Insomnium.Core-<version>.exe /S`. That installs for the current user; add `/allusers` to install for everyone.
+- Versions up to 0.8 came with a different installer. Installing over one of those removes the old copy and its shortcuts. Your collections and settings are kept: they are in `%APPDATA%\Insomnium`, which neither installer nor uninstalling touches.
+- The builds aren't signed, so Windows SmartScreen asks before running the installer: choose **More info**, then **Run anyway**. Each release lists the files' SHA-256 sums in `SHA256SUMS-windows.txt`, and `gh attestation verify <file> --repo yokomohoyo/insomnium` checks that a download was built here.
+
 Alternatively, you can build Insomnium from source on your local machine using `npm run app-package`.
 
 ## gRPC
