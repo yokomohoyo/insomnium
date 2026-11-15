@@ -1,6 +1,6 @@
 {
   "name": "insomnium",
-  "version": "0.8.13",
+  "version": "0.8.14",
   "productName": "Insomnium",
   "private": true,
   "description": "A 100% local and privacy-focused API client",
