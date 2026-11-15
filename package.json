@@ -43,7 +43,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@types/chai": "^4.3.5",
     "@types/mocha": "^10.0.1",
-    "@types/node": "^20.3.3",
+    "@types/node": "^24.19.0",
     "esbuild": "^0.28.1",
     "esbuild-runner": "^2.2.2",
     "eslint": "^9.39.5",
