@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/yokomohoyo/insomnium/issues"
   },
-  "version": "0.9.0",
+  "version": "0.9.1",
   "scripts": {
     "lint": "eslint . --cache --max-warnings 0",
     "type-check": "tsc --noEmit --project tsconfig.json",
