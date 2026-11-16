@@ -166,9 +166,16 @@ jobs:
             $null = $process.Handle
             if (-not $process.WaitForExit(300000)) {
               Write-Host "::error::winget $($args[0]) did not finish in 5 minutes"
+              Write-Host 'processes started in the last 10 minutes:'
               Get-CimInstance Win32_Process |
-                Where-Object { "$($_.Name) $($_.CommandLine)" -match 'Insomnium|winget|WindowsPackageManager|Un_|nsis' } |
+                Where-Object { $_.CreationDate -gt (Get-Date).AddMinutes(-10) } |
                 ForEach-Object { Write-Host "  $($_.ProcessId) (parent $($_.ParentProcessId)) $($_.Name): $($_.CommandLine)" }
+              Write-Host 'installed so far:'
+              Get-ChildItem "$env:LOCALAPPDATA\Programs", "$env:ProgramFiles\Insomnium" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" }
+              Write-Host 'winget log:'
+              Get-ChildItem "$env:LOCALAPPDATA\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir" -Filter *.log -ErrorAction SilentlyContinue |
+                Sort-Object LastWriteTime | Select-Object -Last 1 |
+                ForEach-Object { Get-Content $_.FullName -Tail 60 | ForEach-Object { Write-Host "  $_" } }
               throw "winget $($args[0]) hung"
             }
             if ($process.ExitCode -ne 0) { throw "winget $($args[0]) exited $($process.ExitCode)" }
@@ -199,7 +206,7 @@ jobs:
           foreach ($scope in $scopes) {
             $name = $scope.name
             Write-Host "=== scope $name"
-            Invoke-Winget install --manifest $dir --scope $name --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            Invoke-Winget install --manifest $dir --scope $name --silent --verbose-logs --accept-package-agreements --accept-source-agreements --disable-interactivity
 
             Check (Test-Path $scope.exe) "$name scope: $($scope.exe) exists"
             $entry = Get-ItemProperty $scope.key -ErrorAction SilentlyContinue
