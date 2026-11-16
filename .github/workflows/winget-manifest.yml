@@ -232,7 +232,7 @@ jobs:
             $version = (Get-Item $scope.exe -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
             Check ("$version".StartsWith($env:TAG)) "$name scope: Insomnium.exe is version '$version'"
 
-            Invoke-Winget uninstall --manifest $dir --silent --disable-interactivity
+            Invoke-Winget uninstall --manifest $dir --silent --accept-source-agreements --disable-interactivity
             Check (Wait-Gone $scope.exe) "$name scope: Insomnium.exe is gone after uninstall"
             Check (Wait-Gone $scope.key) "$name scope: Installed apps key is gone after uninstall"
           }
