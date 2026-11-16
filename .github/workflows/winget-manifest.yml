@@ -174,6 +174,10 @@ jobs:
             $false
           }
 
+          # the runner's winget is too old to know the manifest schema
+          Invoke-Winget --version
+          Install-Module Microsoft.WinGet.Client -Force -Scope CurrentUser
+          Repair-WinGetPackageManager -Latest -Force
           Invoke-Winget --version
           Invoke-Winget validate --manifest $dir
           Invoke-Winget settings --enable LocalManifestFiles
