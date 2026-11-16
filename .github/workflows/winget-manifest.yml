@@ -193,14 +193,17 @@ jobs:
             $false
           }
 
-          # winget marks its download as coming from the internet, and
-          # SmartScreen then holds an unsigned installer at a prompt nobody
-          # can answer here: winget waits on it for ever. On a desktop the user
-          # sees "Windows protected your PC" and chooses Run anyway.
+          # winget marks its download as coming from the internet, and Windows
+          # then holds an unsigned installer at a prompt nobody can answer
+          # here, so winget waits on it for ever: SmartScreen's "Windows
+          # protected your PC", or with SmartScreen off, "Open File - Security
+          # Warning: the publisher could not be verified". Both are switched
+          # off for this run; on a desktop the user answers the prompt.
           $policy = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System'
           New-Item $policy -Force | Out-Null
           Set-ItemProperty $policy EnableSmartScreen 0 -Type DWord
           Set-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' SmartScreenEnabled Off
+          $env:SEE_MASK_NOZONECHECKS = '1'
 
           # the runner's winget is too old to know the manifest schema
           Invoke-Winget --version
