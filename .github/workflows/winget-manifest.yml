@@ -146,6 +146,7 @@ jobs:
   test:
     needs: manifest
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -161,8 +162,16 @@ jobs:
           $dir = (Get-ChildItem -Recurse -Directory manifests | Where-Object Name -eq $env:TAG).FullName
           function Invoke-Winget {
             Write-Host "> winget $($args -join ' ')"
-            winget @args | Out-Host
-            if ($LASTEXITCODE -ne 0) { throw "winget $($args[0]) exited $LASTEXITCODE" }
+            $process = Start-Process winget -ArgumentList $args -NoNewWindow -PassThru
+            $null = $process.Handle
+            if (-not $process.WaitForExit(300000)) {
+              Write-Host "::error::winget $($args[0]) did not finish in 5 minutes"
+              Get-CimInstance Win32_Process |
+                Where-Object { "$($_.Name) $($_.CommandLine)" -match 'Insomnium|winget|WindowsPackageManager|Un_|nsis' } |
+                ForEach-Object { Write-Host "  $($_.ProcessId) (parent $($_.ParentProcessId)) $($_.Name): $($_.CommandLine)" }
+              throw "winget $($args[0]) hung"
+            }
+            if ($process.ExitCode -ne 0) { throw "winget $($args[0]) exited $($process.ExitCode)" }
           }
           $script:failed = 0
           function Check($ok, $what) {
