@@ -170,6 +170,9 @@ jobs:
               Get-CimInstance Win32_Process |
                 Where-Object { "$($_.Name) $($_.CommandLine)" -match 'Insomnium|winget|SmartScreen|consent|Un_' } |
                 ForEach-Object { Write-Host "  $($_.ProcessId) (parent $($_.ParentProcessId)) $($_.Name): $($_.CommandLine)" }
+              Write-Host 'windows:'
+              Get-Process | Where-Object MainWindowTitle | ForEach-Object { Write-Host "  $($_.Id) $($_.ProcessName): $($_.MainWindowTitle)" }
+              powershell -NoProfile -Command "Add-Type -AssemblyName System.Drawing; `$b = New-Object System.Drawing.Bitmap 1920, 1080; `$g = [System.Drawing.Graphics]::FromImage(`$b); `$g.CopyFromScreen(0, 0, 0, 0, `$b.Size); `$b.Save('winget-hang.png')"
               Write-Host 'installed so far:'
               Get-ChildItem "$env:LOCALAPPDATA\Programs", "$env:ProgramFiles\Insomnium" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  $($_.FullName)" }
               Write-Host 'winget log:'
@@ -233,3 +236,11 @@ jobs:
 
           if ($script:failed) { throw "$($script:failed) check(s) failed" }
           Write-Host 'All checks passed'
+
+      - name: Upload a screenshot of a hung install
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: winget-hang-${{ inputs.tag }}
+          path: winget-hang.png
+          if-no-files-found: ignore
