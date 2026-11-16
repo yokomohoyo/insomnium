@@ -1,9 +1,10 @@
 name: winget Manifest
 
 # Writes the three winget manifest files for a published release, from its
-# Windows installer's URL and SHA-256, and uploads them as an artifact. It
-# submits nothing: the files are for a pull request to microsoft/winget-pkgs,
-# made by hand (docs/releasing.md). Run by hand only.
+# Windows installer's URL and SHA-256, uploads them as an artifact, and then
+# installs from them with winget on a Windows runner. It submits nothing: the
+# files are for a pull request to microsoft/winget-pkgs, made by hand
+# (docs/releasing.md). Run by hand only.
 
 on:
   workflow_dispatch:
@@ -23,7 +24,8 @@ env:
   # the installer's key under Installed apps: electron-builder derives it from
   # the appId (com.insomnium.app), so it is the same in every version
   PRODUCT_CODE: 88eec264-f2f2-51fb-bf3d-c18bf0b21ee3
-  MANIFEST_VERSION: 1.12.0
+  # the schema winget-pkgs' pull request template asks for
+  MANIFEST_VERSION: 1.28.0
 
 jobs:
   manifest:
@@ -60,6 +62,8 @@ jobs:
           mkdir -p "$dir"
 
           cat > "$dir/$id.yaml" <<EOF
+          # yaml-language-server: \$schema=https://aka.ms/winget-manifest.version.$MANIFEST_VERSION.schema.json
+
           PackageIdentifier: $id
           PackageVersion: $TAG
           DefaultLocale: en-US
@@ -70,6 +74,8 @@ jobs:
           # An NSIS installer: winget passes /S itself. It installs for the
           # current user unless /allusers is given.
           cat > "$dir/$id.installer.yaml" <<EOF
+          # yaml-language-server: \$schema=https://aka.ms/winget-manifest.installer.$MANIFEST_VERSION.schema.json
+
           PackageIdentifier: $id
           PackageVersion: $TAG
           InstallerType: nullsoft
@@ -98,6 +104,8 @@ jobs:
           EOF
 
           cat > "$dir/$id.locale.en-US.yaml" <<EOF
+          # yaml-language-server: \$schema=https://aka.ms/winget-manifest.defaultLocale.$MANIFEST_VERSION.schema.json
+
           PackageIdentifier: $id
           PackageVersion: $TAG
           PackageLocale: en-US
@@ -131,3 +139,68 @@ jobs:
           name: winget-manifest-${{ inputs.tag }}
           path: manifests
           if-no-files-found: error
+
+  # Installs from the manifest with winget on a clean Windows machine, for this
+  # user and then for everyone, and checks what winget-pkgs' own validation
+  # looks at: the entry the installer leaves under Installed apps.
+  test:
+    needs: manifest
+    runs-on: windows-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: winget-manifest-${{ inputs.tag }}
+          path: manifests
+
+      - name: Install and uninstall with winget
+        shell: pwsh
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dir = (Get-ChildItem -Recurse -Directory manifests | Where-Object Name -eq $env:TAG).FullName
+          function Invoke-Winget {
+            Write-Host "> winget $($args -join ' ')"
+            winget @args | Out-Host
+            if ($LASTEXITCODE -ne 0) { throw "winget $($args[0]) exited $LASTEXITCODE" }
+          }
+          $script:failed = 0
+          function Check($ok, $what) {
+            if ($ok) { Write-Host "ok    $what" } else { Write-Host "::error::$what"; $script:failed++ }
+          }
+          function Wait-Gone($path) {
+            # the uninstaller hands over to a copy of itself and returns early
+            foreach ($i in 1..60) { if (-not (Test-Path $path)) { return $true }; Start-Sleep 1 }
+            $false
+          }
+
+          Invoke-Winget --version
+          Invoke-Winget validate --manifest $dir
+          Invoke-Winget settings --enable LocalManifestFiles
+
+          $uninstall = 'Software\Microsoft\Windows\CurrentVersion\Uninstall'
+          $scopes = @(
+            @{ name = 'user'; key = "HKCU:\$uninstall\$env:PRODUCT_CODE"; exe = "$env:LOCALAPPDATA\Programs\Insomnium\Insomnium.exe" },
+            @{ name = 'machine'; key = "HKLM:\$uninstall\$env:PRODUCT_CODE"; exe = "$env:ProgramFiles\Insomnium\Insomnium.exe" }
+          )
+          foreach ($scope in $scopes) {
+            $name = $scope.name
+            Write-Host "=== scope $name"
+            Invoke-Winget install --manifest $dir --scope $name --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+
+            Check (Test-Path $scope.exe) "$name scope: $($scope.exe) exists"
+            $entry = Get-ItemProperty $scope.key -ErrorAction SilentlyContinue
+            Check ($null -ne $entry) "$name scope: Installed apps key $($scope.key)"
+            Check ($entry.DisplayName -eq $env:PACKAGE_NAME) "$name scope: DisplayName '$($entry.DisplayName)' is '$env:PACKAGE_NAME'"
+            Check ($entry.Publisher -eq $env:PUBLISHER) "$name scope: Publisher '$($entry.Publisher)' is '$env:PUBLISHER'"
+            Check ($entry.DisplayVersion -eq $env:TAG) "$name scope: DisplayVersion '$($entry.DisplayVersion)' is '$env:TAG'"
+            $version = (Get-Item $scope.exe -ErrorAction SilentlyContinue).VersionInfo.ProductVersion
+            Check ("$version".StartsWith($env:TAG)) "$name scope: Insomnium.exe is version '$version'"
+
+            Invoke-Winget uninstall --manifest $dir --silent --disable-interactivity
+            Check (Wait-Gone $scope.exe) "$name scope: Insomnium.exe is gone after uninstall"
+            Check (Wait-Gone $scope.key) "$name scope: Installed apps key is gone after uninstall"
+          }
+
+          if ($script:failed) { throw "$($script:failed) check(s) failed" }
+          Write-Host 'All checks passed'
