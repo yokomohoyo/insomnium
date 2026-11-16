@@ -143,6 +143,10 @@ const config = {
     differentialPackage: false,
     // removes an install made by the Squirrel installer of 0.8.x and earlier
     include: 'packaging/windows/installer.nsh',
+    // the picture on the finish page, and on the uninstaller's welcome and
+    // finish pages; drawn by packaging/windows/make-installer-sidebar.ps1
+    installerSidebar: 'packaging/windows/installerSidebar.bmp',
+    uninstallerSidebar: 'packaging/windows/installerSidebar.bmp',
   },
   portable: {
     artifactName: `${BINARY_PREFIX}-\${version}-portable.\${ext}`,
