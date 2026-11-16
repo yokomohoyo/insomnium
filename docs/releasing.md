@@ -39,7 +39,10 @@ installer `Insomnium.Core-X.Y.Z.exe` and the portable `.exe` for Windows;
 
 **winget.** The **winget Manifest** workflow writes the manifest files for a
 published release from the Windows installer's URL and SHA-256, and uploads
-them as an artifact; it submits nothing:
+them as an artifact; it submits nothing. It then installs and uninstalls from
+them with winget on a Windows runner, for this user and for everyone. The
+installer is unsigned, so Windows asks before running what winget downloaded;
+the runner has that prompt switched off, a desktop user answers it:
 
 ```bash
 gh workflow run winget-manifest.yml --ref main -f tag=X.Y.Z
