@@ -1,5 +1,4 @@
 import { type ElectronApplication, expect, type Page, test as baseTest } from '@playwright/test';
-import type { Server } from 'http';
 import path from 'path';
 
 import { importIntoProject } from '../../playwright/import';
@@ -47,7 +46,7 @@ const test = baseTest.extend<{ app: ElectronApplication; page: Page }>({
   },
 });
 
-let bookshop: Server;
+let bookshop: { close: () => void };
 test.beforeAll(async () => {
   bookshop = await startBookshop();
 });
@@ -172,6 +171,14 @@ test('graphql', async ({ page }) => {
   await page.locator('.graphql-explorer a', { hasText: /^Book$/ }).first().click();
   await expect(page.locator('.graphql-explorer')).toContainText('A book the shop sells.');
   await shot(page, 'graphql');
+});
+
+test('grpc', async ({ page }) => {
+  await openRequest(page, 'Watch stock');
+  await page.getByRole('button', { name: 'Start' }).click();
+  await expect(page.locator('[data-testid="response-status-tag"]:visible')).toContainText('0 OK');
+  await expect(page.getByText('Received at:')).toHaveCount(6);
+  await shot(page, 'grpc');
 });
 
 test('websocket', async ({ page }) => {

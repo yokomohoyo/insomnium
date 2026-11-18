@@ -1,7 +1,10 @@
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { buildSchema, graphql } from 'graphql';
 import http from 'http';
+import protobuf from 'protobufjs';
 import { WebSocketServer } from 'ws';
 import { z } from 'zod';
 
@@ -9,6 +12,7 @@ import { z } from 'zod';
 // send to, and the collection that goes with it.
 
 export const bookshopPort = 4020;
+export const bookshopGrpcPort = 4021;
 const baseUrl = `http://127.0.0.1:${bookshopPort}/v1`;
 
 const books = [
@@ -69,6 +73,87 @@ const rootValue = {
   book: ({ id }: { id: string }) => graphqlBook(books.find(book => String(book.id) === id) || books[0]),
   orders: () => orders.map(order => ({ ...order, status: order.status.toUpperCase(), book: graphqlBook(books[0]) })),
   placeOrder: ({ quantity }: { quantity: number }) => ({ id: 1003, quantity, status: 'PAID', book: graphqlBook(books[0]) }),
+};
+
+// the shop's stock, over gRPC
+const bookshopProto = `syntax = "proto3";
+
+package bookshop.v1;
+
+// What the shop has on its shelves.
+service Inventory {
+  // One book, by its id.
+  rpc GetBook (GetBookRequest) returns (Book);
+  // The stock of a book, each time it changes.
+  rpc WatchStock (WatchStockRequest) returns (stream StockEvent);
+  // Counts a delivery, a box at a time.
+  rpc ReceiveDelivery (stream Box) returns (DeliverySummary);
+}
+
+message GetBookRequest {
+  int32 id = 1;
+}
+
+message Book {
+  int32 id = 1;
+  string title = 2;
+  string author = 3;
+  int32 year = 4;
+  int32 stock = 5;
+}
+
+message WatchStockRequest {
+  int32 book_id = 1;
+  // Only changes that leave fewer copies than this.
+  int32 below = 2;
+}
+
+message StockEvent {
+  int32 book_id = 1;
+  int32 stock = 2;
+  Reason reason = 3;
+  string at = 4;
+
+  enum Reason {
+    REASON_UNSPECIFIED = 0;
+    SOLD = 1;
+    RETURNED = 2;
+    DELIVERED = 3;
+  }
+}
+
+message Box {
+  int32 book_id = 1;
+  int32 copies = 2;
+}
+
+message DeliverySummary {
+  int32 boxes = 1;
+  int32 copies = 2;
+}
+`;
+
+const startInventory = () => {
+  const definition = protoLoader.fromJSON(protobuf.parse(bookshopProto, { keepCase: true }).root.toJSON(), { keepCase: true, enums: String, defaults: true });
+  const { Inventory } = (grpc.loadPackageDefinition(definition).bookshop as grpc.GrpcObject).v1 as { Inventory: grpc.ServiceClientConstructor };
+  const server = new grpc.Server();
+  server.addService(Inventory.service, {
+    GetBook: (call: grpc.ServerUnaryCall<{ id: number }, unknown>, callback: grpc.sendUnaryData<unknown>) => callback(null, books.find(({ id }) => id === call.request.id) || books[0]),
+    WatchStock: (call: grpc.ServerWritableStream<{ book_id: number }, unknown>) => {
+      const changes = [[11, 'SOLD'], [10, 'SOLD'], [11, 'RETURNED'], [9, 'SOLD'], [33, 'DELIVERED'], [32, 'SOLD']] as const;
+      changes.forEach(([stock, reason], index) => call.write({ book_id: call.request.book_id, stock, reason, at: `2026-11-08T14:3${index}:07Z` }));
+      call.end();
+    },
+    ReceiveDelivery: (call: grpc.ServerReadableStream<{ copies: number }, unknown>, callback: grpc.sendUnaryData<unknown>) => {
+      const summary = { boxes: 0, copies: 0 };
+      call.on('data', box => {
+        summary.boxes++;
+        summary.copies += box.copies;
+      });
+      call.on('end', () => callback(null, summary));
+    },
+  });
+  return new Promise<grpc.Server>((resolve, reject) => server.bindAsync(`127.0.0.1:${bookshopGrpcPort}`, grpc.ServerCredentials.createInsecure(), error => error ? reject(error) : resolve(server)));
 };
 
 // what an agent can do in the shop, over MCP
@@ -190,7 +275,16 @@ export function startBookshop() {
     });
   });
 
-  return new Promise<http.Server>(resolve => server.listen(bookshopPort, '127.0.0.1', () => resolve(server)));
+  const inventory = startInventory();
+  return new Promise<{ close: () => void }>(resolve => server.listen(bookshopPort, '127.0.0.1', async () => {
+    const grpcServer = await inventory;
+    resolve({
+      close: () => {
+        server.close();
+        grpcServer.forceShutdown();
+      },
+    });
+  }));
 }
 
 const json = (body: unknown) => ({ mimeType: 'application/json', text: JSON.stringify(body, null, 2) });
@@ -506,6 +600,19 @@ export const bookshopCollection = JSON.stringify({
         }),
       },
       metaSortKey: 510,
+    },
+    { _id: 'pf_bookshop', _type: 'proto_file', parentId: 'wrk_bookshop', name: 'bookshop.proto', protoText: bookshopProto },
+    {
+      _id: 'greq_stock',
+      _type: 'grpc_request',
+      parentId: 'fld_more',
+      name: 'Watch stock',
+      url: `grpc://127.0.0.1:${bookshopGrpcPort}`,
+      protoFileId: 'pf_bookshop',
+      protoMethodName: '/bookshop.v1.Inventory/WatchStock',
+      metadata: [{ name: 'x-shop', value: 'lisbon' }],
+      body: { text: JSON.stringify({ book_id: 42, below: 50 }, null, 2) },
+      metaSortKey: 515,
     },
     { _id: 'ws-req_orders', _type: 'websocket_request', parentId: 'fld_more', name: 'Order events', url: `ws://127.0.0.1:${bookshopPort}/v1/orders/live`, metaSortKey: 520 },
     { _id: 'mcp-req_bookshop', _type: 'mcp_request', parentId: 'fld_more', name: 'Bookshop MCP server', transport: 'http', url: `http://127.0.0.1:${bookshopPort}/mcp`, headers: [], command: '', args: '', metaSortKey: 530 },
