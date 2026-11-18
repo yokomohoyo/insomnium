@@ -61,6 +61,12 @@ const send = async (page: Page, name: string, status: string) => {
   await expect(page.getByTestId('response-pane')).toContainText(status);
 };
 
+// the one at the top of the README, named after the version it shows
+test('overview', async ({ page }) => {
+  await send(page, 'Create book', '201 Created');
+  await shot(page, 'v0.9');
+});
+
 test('scripts and tests', async ({ page }) => {
   const requestPane = page.getByTestId('request-pane');
   const responsePane = page.getByTestId('response-pane');
