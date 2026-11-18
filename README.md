@@ -113,6 +113,8 @@ How to use it: [docs/mcp-requests.md](docs/mcp-requests.md). To let an agent use
 
 Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type to get started.
 
+![A server-streaming gRPC call, with the messages it received](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/grpc.png)
+
 - **All four method types** — unary, server-streaming, client-streaming, and bidirectional streaming. Responses stream into the response pane in real time.
 - **Two ways to load your API surface:**
   - **Import `.proto` files** — add a single file or import a whole directory tree (includes are resolved automatically, and the bundled `google/protobuf/*` well-known types are available).
