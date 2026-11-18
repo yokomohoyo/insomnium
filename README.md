@@ -64,6 +64,51 @@ and how to opt out.
 
 Alternatively, you can build Insomnium from source on your local machine using `npm run app-package`.
 
+## GraphQL
+
+A **GraphQL Request** completes fields and arguments from the server's schema as you type, underlines mistakes, and checks the query variables against the types the operation declares. The schema comes by introspection, with the request's own headers and auth, or from a file when introspection is off.
+
+![A GraphQL query, its response and the schema documentation](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/graphql.png)
+
+- **Documentation explorer:** browse and search the schema's types and fields, or click one in the query to open it.
+- **Still an HTTP request:** auth, headers, scripts, assertions and examples work, and the runner and flows send it like any other.
+- **Subscriptions** run over a WebSocket request.
+
+How to use it: [docs/graphql.md](docs/graphql.md).
+
+## WebSocket, Socket.IO and MQTT
+
+A **WebSocket Request** keeps a connection open to send messages and watch what comes back. It also speaks Socket.IO, MQTT and GraphQL subscriptions over that connection.
+
+![A WebSocket connection with the messages sent and received](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/websocket.png)
+
+- **Messages** as JSON or raw text, or binary frames written as hex or base64. Save the ones you send often with the request.
+- **Events:** everything sent and received, newest first, to filter, search and open in full.
+- **The opening request** takes query parameters, headers, auth, the proxy and client certificates, as an HTTP request does.
+
+How to use it: [docs/websockets.md](docs/websockets.md).
+
+## Event streams and model replies
+
+An **Event Stream Request** connects to a Server-Sent Events endpoint, with any method and body, and lists the events as they arrive. Each connection is kept in the response history.
+
+When the stream is a language model's reply, the **LLM** tab puts the reply together as it streams, with the model, the tokens used, the time to the first token, tokens a second and why it stopped. It reads OpenAI-compatible chat completions, OpenAI's Responses API and Anthropic's Messages API. **LLM Request**, in a collection's **+** menu, starts one.
+
+![A model's streamed reply with its tokens and timing](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/llm.png)
+
+How to use it: [docs/event-streams.md](docs/event-streams.md).
+
+## MCP requests
+
+An **MCP Request** tries out a Model Context Protocol server the way an AI agent would use it: connect over HTTP or start it as a command, see what it offers, and call its tools, prompts and resources by hand. It's for checking a server you're building, or one you're about to give an agent.
+
+![An MCP server's tools, with one called and its result](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/mcp-request.png)
+
+- **Tools, prompts and resources:** each tool's arguments start from its input schema, and the ones you last used are kept with the request.
+- **A command asks first:** before a STDIO server runs, Insomnium shows the exact command and asks.
+
+How to use it: [docs/mcp-requests.md](docs/mcp-requests.md). To let an agent use *your collections* instead, see the [MCP automation server](#mcp-automation-server).
+
 ## gRPC
 
 Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type to get started.
@@ -80,16 +125,93 @@ Insomnium is a full gRPC client. Create a new request and pick the **gRPC** type
 
 How to use all of it: [docs/grpc.md](docs/grpc.md).
 
+## Scripts and tests
+
+Check a response without code, with code, or both.
+
+![A request's scripts, and its test results after a send](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/scripts.png)
+
+- **Assertions:** checks on the status code, a header, the body, a JSON path or the response time, picked from menus. A body can also be checked against a JSON Schema, or against the response schema in the collection's API spec.
+- **Scripts:** a pre-request and an after-response script in JavaScript, to change the request, keep a token or an id for the next one, and test the response with `insomnia.test` and `insomnia.expect`. `pm` is the same API, so common Postman scripts work as written.
+- **A sandbox:** scripts run in QuickJS, apart from the app, with no network, files or Node. A script in a collection someone shared can change that collection's request and environment, and nothing else.
+- **Results:** the response's **Tests** tab lists each assertion and script test, with what was found when one fails, and what the scripts logged.
+
+More: [docs/testing.md](docs/testing.md) and [docs/scripts.md](docs/scripts.md).
+
 ## Runner, reports and load tests
 
 **Run Collection** (in a collection's menu, or a folder's) sends its requests in order and checks their assertions, once or over many iterations, with a CSV or JSON data file for a row of variables per iteration.
+
+![A collection run, with each request's latency and where its time went](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/runner.png)
 
 - **Numbers per request:** p50, p95, max and standard deviation, the first iteration's time against the rest (the cold start), response size, and a bar of where the time goes: DNS, connecting, TLS, waiting for the first byte, and download.
 - **Reports to keep or share:** save the run as HTML (one page, no scripts), CSV, JSON or JUnit XML.
 - **Compare with an earlier run:** choose a saved JSON report and each request's p95 shows its change, red when slower and green when faster.
 - **Load test mode:** virtual users send the requests again and again for a set time, with ramp-up and think time. A chart shows each second's requests, failures and latency, and thresholds (p95, p99, error rate) say whether the API held up.
 
+![A load test, with its chart, thresholds and numbers per request](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/load-test.png)
+
 The same runner works in CI from the container: `insomnium-server run` (with `--baseline last.json` to fail when a request got slower) and `insomnium-server load`. Every option: [Run a collection in CI](packages/insomnium-server/README.md#run-a-collection-in-ci) and [Load test a collection](packages/insomnium-server/README.md#load-test-a-collection).
+
+## Flows
+
+A flow sends a collection's requests in the order you draw them on a canvas. Between them it can check a response and go one way or the other, take a value from a response for the requests after, or wait: log in, keep the token, then fetch with it; poll until a job is done.
+
+![A flow of requests, a condition and a variable, after a run](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/flows.png)
+
+- **Steps:** a request, a condition on the last response (with a **Yes** and a **No** way out), a variable set from text or from part of the response, and a delay.
+- **Runs:** each step is outlined as it runs, and **Last Run** lists them with each request's status, time and size, then the variables the flow set.
+- **Part of the collection:** a flow is exported, imported and committed with its requests.
+
+How to use them: [docs/flows.md](docs/flows.md).
+
+## Mock server
+
+A collection's mock server answers as its requests would, with their saved examples: for a front end to develop against before the API exists, or for tests that shouldn't reach a real service.
+
+![A mock server, its routes and the requests it answered](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/mock-server.png)
+
+- **Matching:** by method and path, where `:id` parameters and `{{ variables }}` match anything. The `x-mock-response-name` and `x-mock-response-code` headers choose between a request's examples.
+- **Live answers:** template tags in an example are rendered on each answer, and an edited example changes the next one.
+- **On this computer only:** it listens on `127.0.0.1`, and the dialog shows each request it gets.
+- **Without the app:** `insomnium-server mock` runs the same mock from an exported collection, in a container or CI.
+
+How to use it: [docs/mock-server.md](docs/mock-server.md).
+
+## Design documents
+
+A design document is a collection with an API spec at its heart: OpenAPI 3, Swagger 2.0, or AsyncAPI 2 or 3.
+
+![An OpenAPI spec with its lint warnings and documentation preview](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/design-document.png)
+
+- **Linting as you type**, with Spectral's rules or a ruleset file of your own. Click a problem to go to its line.
+- **Preview** the spec as API documentation, beside the editor.
+- **Generate Request Collection** makes a request for each operation, in folders by tag. Generate again after changing the spec and the requests follow it, keeping the bodies, auth, scripts and assertions you've added.
+- **Check responses against it:** an assertion can require that a response matches the spec's schema for it.
+
+How to use them: [docs/design-documents.md](docs/design-documents.md).
+
+## Git Sync and Folder Sync
+
+**Git Sync** keeps a collection or design document in a Git repository you host anywhere: GitHub, GitLab, Bitbucket, Gitea, a [team server](#team-server) or your own. It connects over HTTPS with a token or over SSH with your keys, and has branches, commits, history, pulls and pushes. With no URL, the repository stays on this computer.
+
+![The commit dialog, listing the changed requests and what changed in each](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/git-sync.png)
+
+The commit dialog lists what changed, request by request and field by field, so you choose what goes in.
+
+**Folder Sync** keeps a collection in a folder as readable YAML, a file per request, and keeps the two in step: edit a request in the app and its file changes, edit the file and the request changes. Use it to review a collection in pull requests, or to keep it next to the code of the API it tests. The folder gets a JSON Schema too, so your editor completes and checks the files.
+
+More: [docs/git-sync.md](docs/git-sync.md), [docs/folder-sync.md](docs/folder-sync.md) and [docs/editors.md](docs/editors.md).
+
+## AI assistant
+
+The AI assistant writes a request from a description, and a commit message from your changes, with a model you choose: one on your computer (Ollama, LM Studio, llama.cpp) or any OpenAI-compatible API with your own key. Insomnium has no AI service of its own, and sends nothing until you ask for a suggestion. What it sends are names: the variables' names for a request, the changed requests and fields for a commit message. Not their values.
+
+How to set it up: [docs/ai-assistant.md](docs/ai-assistant.md).
+
+## Import and export
+
+Import Postman collections and environments, Insomnia, Bruno, Hoppscotch, OpenAPI and Swagger, HAR, cURL and WSDL, from a file, a URL or the clipboard: Insomnium works out the format and shows what it found first. Postman's scripts, saved responses and dynamic variables come across as scripts, examples and template tags. **Capture Traffic…** records the requests an app or a script sends through a proxy on this computer, to keep as requests. Every format, and what can be exported: [docs/import-export.md](docs/import-export.md).
 
 ## MCP automation server
 
