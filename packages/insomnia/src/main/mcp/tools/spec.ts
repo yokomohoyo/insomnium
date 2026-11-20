@@ -21,19 +21,21 @@ async function specOf(workspaceId: string) {
   return spec.contents.trim() ? { spec } : { error: 'the spec is empty: set it with set_spec' };
 }
 
-// The Spec tab's lint results, with the ruleset it uses, line numbers from 1
-async function lint(workspaceId: string, contents: string) {
-  const { rulesetPath, source } = await spectralRulesetFor(workspaceId);
+// The Spec tab's lint results, with the ruleset it uses, line numbers from 1.
+// The OWASP API Security rules are as the document has them, unless said.
+async function lint(workspaceId: string, contents: string, withOwasp?: boolean) {
+  const { rulesetPath, source, owasp: forDocument } = await spectralRulesetFor(workspaceId);
+  const owasp = withOwasp ?? forDocument;
   // (loaded when first used: see ipc/main.ts)
   const { lintSpec } = await import('../../spectral-lint');
-  const problems = (await lintSpec({ contents, rulesetPath })).map(({ severity, code, message, path, range }) => ({
+  const problems = (await lintSpec({ contents, rulesetPath, owasp })).map(({ severity, code, message, path, range }) => ({
     severity: SEVERITIES[severity] ?? 'info',
     code,
     message,
     line: range.start.line + 1,
     path: path.join('.'),
   }));
-  return { ruleset: source, errors: problems.filter(problem => problem.severity === 'error').length, problems };
+  return { ruleset: source, owasp, errors: problems.filter(problem => problem.severity === 'error').length, problems };
 }
 
 // What the Spec tab does with a design document's spec beyond reading and
@@ -41,20 +43,20 @@ async function lint(workspaceId: string, contents: string) {
 export function registerSpecTools(server: McpServer) {
   server.tool(
     'lint_spec',
-    "Lint a design document's API spec as the Spec tab does, with Spectral: its chosen ruleset, its git repository's .spectral.yaml, or the built-in OpenAPI or AsyncAPI rules. Returns each problem's severity (error, warning, info, hint), rule code, message, line and path.",
-    { workspaceId: z.string() },
-    async ({ workspaceId }) => {
+    "Lint a design document's API spec as the Spec tab does, with Spectral: its chosen ruleset, its git repository's .spectral.yaml, or the built-in OpenAPI or AsyncAPI rules. The OWASP API Security Top 10 rules (codes starting owasp:) are added when the document has them on in the Spec tab, or as owasp says. Returns each problem's severity (error, warning, info, hint), rule code, message, line and path.",
+    { workspaceId: z.string(), owasp: z.boolean().optional().describe('Also check the OWASP API Security Top 10 rules, or not; by default, as the document is set') },
+    async ({ workspaceId, owasp }) => {
       const found = await specOf(workspaceId);
       if (!found.spec) {
         return text({ error: found.error }, true);
       }
-      return text(await lint(workspaceId, found.spec.contents));
+      return text(await lint(workspaceId, found.spec.contents, owasp));
     },
   );
 
   server.tool(
     'generate_requests_from_spec',
-    "Make a design document's requests from its OpenAPI or Swagger spec, as the Spec tab's Generate Request Collection does: a request for each operation, in folders by tag. Requests made from it before are updated rather than copied, and ones whose operations are gone are kept. Refuses a spec with lint errors (see lint_spec) or an AsyncAPI one.",
+    "Make a design document's requests from its OpenAPI or Swagger spec, as the Spec tab's Generate Request Collection does: a request for each operation, in folders by tag. Requests made from it before are updated rather than copied, and ones whose operations are gone are kept. Refuses a spec with lint errors (see lint_spec; OWASP findings don't count) or an AsyncAPI one.",
     { workspaceId: z.string() },
     async ({ workspaceId }) => {
       const found = await specOf(workspaceId);
@@ -69,7 +71,7 @@ export function registerSpecTools(server: McpServer) {
       } catch {
         // the lint says what's wrong with it
       }
-      const linted = await lint(workspaceId, contents);
+      const linted = await lint(workspaceId, contents, false);
       if (linted.errors) {
         return text({ error: `the spec has ${linted.errors} lint error(s): fix them first`, problems: linted.problems.filter(problem => problem.severity === 'error') }, true);
       }

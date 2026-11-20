@@ -36,6 +36,12 @@ rules:
 
 A ruleset can come from a repository that others can write to, or from a file someone sent you, so it has to be plain data: custom functions, and extending a ruleset from npm, a file or a URL, aren't supported. When a ruleset can't be used, the first problem listed says why, and the built-in rules apply.
 
+### OWASP API Security rules
+
+**OWASP API Security Rules**, in the same **Ruleset** menu, also checks an OpenAPI or Swagger spec against the [OWASP API Security Top 10](https://owasp.org/API-Security/editions/2023/en/0x11-t10/), with [Spectral's OWASP ruleset](https://github.com/stoplightio/spectral-owasp-ruleset). It's off to begin with, set for each document and kept on this computer, and its findings are added to those of whichever ruleset the document uses. Their rule names start with `owasp:`, such as `owasp:api8:2023-no-server-http` for a server that isn't served over https.
+
+They look at what the spec says, not at the API itself: operations with no security, ids that can be guessed, strings and arrays with no limits, responses with no rate limiting. They advise on the design, so even the ones listed as errors don't stop you generating requests.
+
 ## Generate requests
 
 **Generate Request Collection**, in the Spec tab, makes a request for each of the spec's operations, in folders by tag. Their URLs start with `{{ _.base_url }}`, set in the environment from the spec's servers.

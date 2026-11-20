@@ -31,7 +31,7 @@ export interface MainBridgeAPI {
   openInBrowser: (url: string) => void;
   restart: () => void;
   halfSecondAfterAppStart: () => void;
-  spectralRun: (options: { contents: string; rulesetPath: string }) => Promise<ISpectralDiagnostic[]>;
+  spectralRun: (options: { contents: string; rulesetPath: string; owasp?: boolean }) => Promise<ISpectralDiagnostic[]>;
   // scripting/sandbox.ts
   runScript: (options: { code: string; input: object; timeoutMs: number }) => Promise<SandboxResult<unknown>>;
   authorizeUserInWindow: typeof authorizeUserInWindow;
@@ -171,5 +171,5 @@ export function registerMainHandlers() {
 
   // Spectral (and its rulesets, ajv...) loads when a spec is first linted, not
   // as the app starts: it was a third of the main process's start
-  ipcMain.handle('spectralRun', async (_, options: { contents: string; rulesetPath?: string }) => (await import('../spectral-lint')).lintSpec(options));
+  ipcMain.handle('spectralRun', async (_, options: { contents: string; rulesetPath?: string; owasp?: boolean }) => (await import('../spectral-lint')).lintSpec(options));
 }

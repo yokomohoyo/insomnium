@@ -8,8 +8,9 @@ import type { SpectralJob, SpectralReply, SpectralWorkerLog } from './spectral-w
 // A spec's lint results, with the ruleset at rulesetPath (a file chosen for the
 // document, or its git repository's .spectral.yaml) or the built-in OpenAPI or
 // AsyncAPI rules. A ruleset that can't be used is said first, as a warning, rather than
-// quietly linting with the built-in rules instead.
-export async function lintSpec(options: { contents: string; rulesetPath?: string }): Promise<ISpectralDiagnostic[]> {
+// quietly linting with the built-in rules instead. With owasp, the OWASP API
+// Security Top 10 rules' findings (codes starting owasp:) are among them too.
+export async function lintSpec(options: LintOptions): Promise<ISpectralDiagnostic[]> {
   const key = await lintKey(options);
   let result = recentLints.get(key);
   if (!result) {
@@ -25,6 +26,12 @@ export async function lintSpec(options: { contents: string; rulesetPath?: string
   return result;
 }
 
+interface LintOptions {
+  contents: string;
+  rulesetPath?: string;
+  owasp?: boolean;
+}
+
 // The last few results, by the text and the ruleset's: after an edit the Spec
 // tab's loader and its editor each lint the same text, and the loader again on
 // every revalidation (any request saved), each taking seconds on a large spec
@@ -32,13 +39,13 @@ export async function lintSpec(options: { contents: string; rulesetPath?: string
 const recentLints = new Map<string, Promise<ISpectralDiagnostic[]>>();
 const RECENT_LINTS = 4;
 
-const lintKey = async ({ contents, rulesetPath }: { contents: string; rulesetPath?: string }) => {
+const lintKey = async ({ contents, rulesetPath, owasp }: LintOptions) => {
   let ruleset = '';
   if (rulesetPath) {
     // (one that can be used extends only built-in rulesets, so it's all in this file)
     ruleset = await fs.promises.readFile(rulesetPath, 'utf8').then(source => `${rulesetPath}\n${source}`, () => `${rulesetPath} unreadable`);
   }
-  return `${ruleset}\0${contents}`;
+  return `${owasp ? 'owasp' : ''}\0${ruleset}\0${contents}`;
 };
 
 // One worker, started by the first lint and ended after a minute without one,
@@ -97,11 +104,11 @@ const startWorker = () => {
   return w;
 };
 
-const lintOnWorker = (options: { contents: string; rulesetPath?: string }) => new Promise<ISpectralDiagnostic[]>((resolve, reject) => {
+const lintOnWorker = (options: LintOptions) => new Promise<ISpectralDiagnostic[]>((resolve, reject) => {
   const w = worker = worker || startWorker();
   clearTimeout(w.idle);
   const id = nextJobId++;
   w.pending.set(id, { resolve, reject });
-  const job: SpectralJob = { id, contents: options.contents, rulesetPath: options.rulesetPath };
+  const job: SpectralJob = { id, contents: options.contents, rulesetPath: options.rulesetPath, owasp: options.owasp };
   w.thread.postMessage(job);
 });
