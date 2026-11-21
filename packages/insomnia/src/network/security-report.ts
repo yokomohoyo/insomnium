@@ -24,6 +24,7 @@ export const securityJsonReport = (summary: SecurityRunSummary, name: string, ge
   findings: summary.findings,
   requests: summary.requests,
   stopped: summary.stopped,
+  ...(summary.inventory ? { inventory: summary.inventory } : {}),
   items: summary.items,
 }, null, 2);
 
@@ -56,6 +57,14 @@ export const securityMarkdownReport = (summary: SecurityRunSummary, name: string
         seen.add(finding.id);
         lines.push(`- **${cell(finding.title)}.** ${cell(finding.detail)}`);
       }
+    }
+  }
+
+  if (summary.inventory) {
+    const { operations, uncovered } = summary.inventory;
+    lines.push('', '## Against the spec', '', `The spec has ${operations} ${operations === 1 ? 'operation' : 'operations'}; ${uncovered.length ? `${uncovered.length} ${uncovered.length === 1 ? 'has' : 'have'} no request, so the checks didn't reach ${uncovered.length === 1 ? 'it' : 'them'}:` : 'each has a request.'}`);
+    if (uncovered.length) {
+      lines.push('', ...uncovered.map(operation => `- \`${cell(operation)}\``));
     }
   }
 

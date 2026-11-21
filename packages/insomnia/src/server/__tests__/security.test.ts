@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from '@jest/globals';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
 import type { SecurityRunItem, SecurityRunSummary } from '../../network/security-run';
-import { ALLOW_FLAG, failsRun, findOtherEnvironment, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, untested } from '../security';
+import { ALLOW_FLAG, failsRun, findOtherEnvironment, formatInventory, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, untested } from '../security';
 
 const HOSTS = { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com, staging.example.com' };
 const ARGS = ['--collection', 'a.yaml', ALLOW_FLAG];
@@ -116,6 +116,16 @@ describe('the console output', () => {
     expect(formatItem(item())).toBe('  ✓ Orders / List  GET https://api.example.com/orders');
     expect(formatItem(item({ outcome: 'skipped', method: 'POST', note: "A POST isn't sent again, and it has no response to look at: send it first." })))
       .toBe("  - Orders / List  POST https://api.example.com/orders\n      A POST isn't sent again, and it has no response to look at: send it first.");
+  });
+
+  it("says which of the spec's operations the run didn't reach", () => {
+    expect(formatInventory({ operations: 5, uncovered: ['GET /orders/{id}', 'DELETE /orders/{id}'] })).toBe([
+      "Against the spec: 2 of 5 operations have no request, so they weren't checked",
+      '  - GET /orders/{id}',
+      '  - DELETE /orders/{id}',
+    ].join('\n'));
+    expect(formatInventory({ operations: 5, uncovered: ['GET /health'] }).split('\n')[0]).toBe("Against the spec: 1 of 5 operations has no request, so it wasn't checked");
+    expect(formatInventory({ operations: 3, uncovered: [] })).toBe('Against the spec: each of its 3 operations has a request');
   });
 
   it('sums up, and says whether the run failed', () => {

@@ -9,6 +9,7 @@ import { version } from '../../package.json';
 import { ignoredRules } from '../common/security-rules';
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
+import * as models from '../models';
 import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../network/load-report';
 import { brokenThresholds } from '../network/load-stats';
 import { runLoadTest } from '../network/load-test';
@@ -23,7 +24,7 @@ import { formatLoadSummary, LOAD_USAGE, type LoadConfig, parseLoadConfig } from 
 import { MOCK_USAGE, type MockConfig, parseMockConfig } from './mock';
 import { formatComparison, formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, type RunConfig, selectRequests } from './run';
-import { failsRun, findOtherEnvironment, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, type SecurityConfig } from './security';
+import { failsRun, findOtherEnvironment, formatInventory, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, type SecurityConfig } from './security';
 import { loadWorkspaces, startServer } from './server';
 import { team } from './team';
 
@@ -126,13 +127,16 @@ async function security(argv: string[]) {
     const lowerEnvironmentId = config.lowerEnvironment ? await findOtherEnvironment(workspaces, config.lowerEnvironment, '--as-lower') : null;
     // the rules the collections themselves ignore, as the app's Security tab does
     const ignoredByCollection = ignoredRules(workspaces.flatMap(workspace => workspace.securityIgnoredRules || []));
-    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, name: workspaces.map(workspace => workspace.name).join(', ') };
+    // a design document's spec, to compare its requests with (one document: specs don't add up)
+    const [design] = workspaces.length === 1 ? workspaces.filter(workspace => workspace.scope === 'design') : [];
+    const spec = design ? (await models.apiSpec.getByParentId(design._id))?.contents || undefined : undefined;
+    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, name: workspaces.map(workspace => workspace.name).join(', ') };
   } catch (err) {
     console.error(`[security] ${(err as Error).message}`);
     return 2;
   }
 
-  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, name } = prepared;
+  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, name } = prepared;
   print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.join(', ')}`);
   // said, not just done: a collection's file shouldn't be able to quiet a pipeline unseen
   if (ignoredByCollection.length) {
@@ -142,8 +146,12 @@ async function security(argv: string[]) {
     otherEnvironmentId,
     lowerEnvironmentId,
     ignored: ignoredRules([...ignoredByCollection, ...config.ignore]),
+    spec,
     onItem: item => print(formatItem(item)),
   });
+  if (summary.inventory) {
+    print(`\n${formatInventory(summary.inventory)}`);
+  }
   print(`\n${formatSecuritySummary(summary, config.failOn)}`);
   if (config.markdown) {
     await fs.promises.writeFile(config.markdown, securityMarkdownReport(summary, name));

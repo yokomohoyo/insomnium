@@ -6,6 +6,7 @@
 import { type AuditFinding, type AuditSeverity, auditStoredResponse, mostSevereFirst } from '../common/response-audit';
 import { withoutIgnored } from '../common/security-rules';
 import { isSafeToRepeat, SECURITY_TEST_MAX_REQUESTS, type SecurityCheck } from '../common/security-tests';
+import { compareWithSpec, notInSpecFinding } from '../common/spec-inventory';
 import * as models from '../models';
 import { isEventStreamRequest } from '../models/request';
 import type { RunnableRequest } from './runner';
@@ -42,11 +43,16 @@ export interface SecurityRunSummary {
   requests: number;
   // stopped by its signal
   stopped: boolean;
+  // the requests against the design document's spec, when it has one: how
+  // many operations the spec has, and those no request covers
+  inventory?: { operations: number; uncovered: string[] };
 }
 
 export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environmentId' | 'otherEnvironmentId' | 'lowerEnvironmentId' | 'signal' | 'checkUrl'> {
   // the rules the collection ignores (common/security-rules.ts)
   ignored?: string[];
+  // the design document's spec, to compare the requests with (common/spec-inventory.ts)
+  spec?: string;
   onItem?: (item: SecurityRunItem) => void;
   // (the tests': replaced in tests)
   test?: (requestId: string, options: SecurityTestOptions) => Promise<SecurityTestRun>;
@@ -75,8 +81,12 @@ const count = (items: SecurityRunItem[]) => {
   return findings;
 };
 
-export async function runSecurityChecks(requests: RunnableRequest[], { ignored = [], onItem, signal, test = runRequestSecurityTests, ...options }: SecurityRunOptions = {}): Promise<SecurityRunSummary> {
+export async function runSecurityChecks(requests: RunnableRequest[], { ignored = [], spec, onItem, signal, test = runRequestSecurityTests, ...options }: SecurityRunOptions = {}): Promise<SecurityRunSummary> {
   const items: SecurityRunItem[] = [];
+  // which requests the spec doesn't describe: nothing is sent to find out, so
+  // it covers the requests that are never sent as well
+  const inventory = spec ? compareWithSpec(spec, requests.map(({ request }) => ({ requestId: request._id, method: request.method, url: request.url }))) : null;
+  const notInSpec = new Map((inventory?.undocumented || []).map(({ requestId, operation }) => [requestId, operation]));
   for (const { request, folders } of requests) {
     if (signal?.aborted) {
       break;
@@ -118,6 +128,10 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
         item.note = `A ${request.method} isn't sent again, and it has no response to look at: send it first.`;
       }
     }
+    const operation = notInSpec.get(request._id);
+    if (operation) {
+      item.findings = mostSevereFirst([...item.findings, ...withoutIgnored([notInSpecFinding(operation)], ignored)]);
+    }
     items.push(item);
     onItem?.(item);
   }
@@ -126,5 +140,6 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
     findings: count(items),
     requests: items.reduce((sent, item) => sent + item.requests, 0),
     stopped: Boolean(signal?.aborted),
+    ...(inventory ? { inventory: { operations: inventory.operations, uncovered: inventory.uncovered } } : {}),
   };
 }

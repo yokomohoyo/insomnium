@@ -124,6 +124,19 @@ describe('<SecurityRunModal />', () => {
     expect(run).toHaveBeenCalledWith(REQUESTS, expect.objectContaining({ lowerEnvironmentId: 'env_ben', otherEnvironmentId: null }));
   });
 
+  it("shows which of the spec's operations have no request, for a run that compared them", async () => {
+    const run = jest.fn<typeof runSecurityChecks>(async (_requests, options) => {
+      SUMMARY.items.forEach(done => options?.onItem?.(done));
+      return { ...SUMMARY, inventory: { operations: 4, uncovered: ['GET /orders/{id}'] } };
+    });
+    const { findByRole, findByTestId, getByLabelText } = open(run);
+
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
+
+    expect((await findByTestId('security-run-inventory')).textContent).toContain("1 of the spec's 4 operations has no request, so the checks didn't reach it");
+    expect(getByLabelText('Operations with no request').textContent).toBe('GET /orders/{id}');
+  });
+
   it('stops the run from its Stop button, and when it is closed', async () => {
     let signal: AbortSignal | undefined;
     const run = jest.fn<typeof runSecurityChecks>((_requests, options) => new Promise(() => {

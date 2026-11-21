@@ -85,7 +85,7 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
 
   server.tool(
     'run_security_checks',
-    `Run the security checks over every HTTP request in a workspace or folder (parentId), as the app's Security Checks does. Each GET or HEAD is tested as run_security_tests does (up to ${SECURITY_TEST_MAX_REQUESTS} requests each) and its answer audited as audit_response does; any other request is never sent, and gets what its last response showed. Nothing sent is stored. The app asks the user to allow each run, saying how many requests it may send; a declined run returns an error and sends nothing. Returns each request with its outcome (tested, audited, skipped), findings and tests, the count of findings by severity, and how many requests were sent. Rules the collection ignores are left out.`,
+    `Run the security checks over every HTTP request in a workspace or folder (parentId), as the app's Security Checks does. Each GET or HEAD is tested as run_security_tests does (up to ${SECURITY_TEST_MAX_REQUESTS} requests each) and its answer audited as audit_response does; any other request is never sent, and gets what its last response showed. Nothing sent is stored. The app asks the user to allow each run, saying how many requests it may send; a declined run returns an error and sends nothing. Returns each request with its outcome (tested, audited, skipped), findings and tests, the count of findings by severity, and how many requests were sent. For a design document the requests are also compared with its spec: a request the spec doesn't describe is a finding, and inventory lists the spec's operations no request covers. Rules the collection ignores are left out.`,
     {
       parentId: z.string().describe('a workspace or folder id'),
       otherEnvironmentId: z.string().optional().describe("An environment holding another user's credentials: each tested request is also sent once with them."),
@@ -118,7 +118,9 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
         return fail('the user declined to run the security checks');
       }
       const ignored = ignoredRules(workspace?.securityIgnoredRules);
-      const summary = await runSecurityChecks(requests, { otherEnvironmentId, lowerEnvironmentId, ignored, signal, checkUrl: assertSafeRequestUrl });
+      // a design document's requests are also compared with its spec
+      const spec = workspace?.scope === 'design' ? (await models.apiSpec.getByParentId(workspace._id))?.contents : undefined;
+      const summary = await runSecurityChecks(requests, { otherEnvironmentId, lowerEnvironmentId, ignored, spec, signal, checkUrl: assertSafeRequestUrl });
       return json({ parentId, ...summary, ...(ignored.length ? { ignoredRules: ignored } : {}) });
     },
   );

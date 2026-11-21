@@ -7,6 +7,7 @@ import path from 'node:path';
 import { describe, expect, it } from '@jest/globals';
 
 import { ignoredRules, SECURITY_RULES, securityRuleName, withoutIgnored } from '../security-rules';
+import { notInSpecFinding } from '../spec-inventory';
 
 const source = (file: string) => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
@@ -25,8 +26,12 @@ describe('SECURITY_RULES', () => {
     expect(ids.filter(id => !(id in SECURITY_RULES))).toEqual([]);
   });
 
+  it("names the spec inventory's rule", () => {
+    expect(notInSpecFinding('GET /x').id in SECURITY_RULES).toBe(true);
+  });
+
   it("has no rule that isn't one of those", () => {
-    const sources = source('response-audit.ts') + source('security-tests.ts');
+    const sources = source('response-audit.ts') + source('security-tests.ts') + source('spec-inventory.ts');
 
     expect(Object.keys(SECURITY_RULES).filter(id => !sources.includes(`'${id}'`))).toEqual([]);
   });
