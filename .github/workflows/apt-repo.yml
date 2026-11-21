@@ -41,6 +41,8 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  # to see that the site artifact is listed before it's deployed
+  actions: read
 
 jobs:
   publish:
@@ -181,6 +183,26 @@ jobs:
         uses: actions/upload-pages-artifact@v5
         with:
           path: _site
+
+      # The deploy looks the artifact up by name, and a large one can take a
+      # while to be listed after its upload finishes: the deploy then finds
+      # none and fails (0.10.0, twice). Rerunning the job is no way out, since
+      # it uploads a second artifact and the deploy refuses two.
+      - name: Wait for the site artifact to be listed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 36); do
+            count=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?name=github-pages" --jq .total_count || echo 0)
+            if [ "$count" = "1" ]; then
+              echo "The site artifact is listed (attempt $attempt)."
+              exit 0
+            fi
+            echo "Listed: ${count:-0}. Waiting (attempt $attempt of 36)."
+            sleep 5
+          done
+          echo "::error::The site artifact was not listed after 3 minutes."
+          exit 1
 
       - name: Deploy to GitHub Pages
         id: deployment

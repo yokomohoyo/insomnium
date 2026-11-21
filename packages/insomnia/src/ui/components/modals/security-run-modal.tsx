@@ -171,26 +171,29 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
   };
 
   const found = summary ? SEVERITIES.filter(severity => summary.findings[severity]) : [];
+  const started = running || items.length > 0;
 
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
       <Modal ref={modalRef} onHide={hide} wide tall>
         <ModalHeader>{t('Security Checks: {name}', { name })}</ModalHeader>
         <ModalBody className="pad">
-          <p className="faint txt-sm no-margin-top">
-            {t('Checks each of these requests as its Security tab does, with the {environment} environment. A GET or HEAD is sent again, changed a little each time, and its answer looked at. Any other request is never sent: it gets what its last response showed. Nothing sent is kept.', { environment: activeEnvironment.name })}
-          </p>
-          <p className="notice warning txt-sm">
-            {t("Run it only against an API you're allowed to test.")}
-          </p>
-          {requests && (
-            <p data-testid="security-run-plan">
+          {/* what it will do, until it's doing it: the results want the room */}
+          {!started && (
+            <p className="faint txt-sm no-margin-top" data-testid="security-run-intro">
+              {t('Checks each of these requests as its Security tab does, with the {environment} environment. A GET or HEAD is sent again, changed a little each time, and its answer looked at. Any other request is never sent: it gets what its last response showed. Nothing sent is kept.', { environment: activeEnvironment.name })}
+              {' '}
+              <strong className="warning">{t("Run it only against an API you're allowed to test.")}</strong>
+            </p>
+          )}
+          {requests && !started && (
+            <p data-testid="security-run-plan" className="no-margin-top">
               {t('{count, plural, one {# request} other {# requests}}', { count: requests.length })}
               {': '}
               {t('up to {max} requests will be sent.', { max: maxRequests })}
             </p>
           )}
-          {others.length ? (
+          {others.length && !started ? (
             <label className="flex items-center gap-2 txt-sm">
               {t('As another user:')}
               <select className="input-box" disabled={running} value={otherEnvironmentId} onChange={event => setOtherEnvironmentId(event.currentTarget.value)}>
@@ -200,8 +203,8 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
             </label>
           ) : null}
           {error && <p className="notice error">{error}</p>}
-          {(running || items.length > 0) && (
-            <section className="margin-top">
+          {started && (
+            <section>
               <p data-testid="security-run-summary" className={summary ? (summary.findings.high ? 'danger' : summary.findings.medium ? 'warning' : 'success') : 'faint'}>
                 {summary
                   ? `${found.length ? found.map(severity => `${summary.findings[severity]} ${severityLabel(severity)}`).join(', ') : t('Nothing found')} · ${t('{count, plural, one {# request sent} other {# requests sent}}', { count: summary.requests })}${summary.stopped ? ` · ${t('stopped')}` : ''}`
@@ -228,7 +231,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
             ? <button className="btn" onClick={() => controller.current?.abort()}>{t('Stop')}</button>
             : (
               <button className="btn" disabled={!requests?.length} onClick={start}>
-                {t('Run the Checks (up to {max} requests)', { max: maxRequests })}
+                {started ? t('Run Again (up to {max} requests)', { max: maxRequests }) : t('Run the Checks (up to {max} requests)', { max: maxRequests })}
               </button>
             )}
         </ModalFooter>
