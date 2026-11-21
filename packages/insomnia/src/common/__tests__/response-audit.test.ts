@@ -89,6 +89,19 @@ describe('auditResponse()', () => {
       expect(JSON.stringify(finding)).not.toMatch(/s3cret|hunter2|abc/);
     });
 
+    it('reads them from the URL as it was sent, which the response no longer has', () => {
+      const preparing = (url: string) => [{ name: 'Text', value: `Preparing request to ${url}` }, ...sent('Authorization: Basic abc')];
+
+      // (curl's effective URL has no user name and password)
+      const [finding] = audit({ url: 'https://api.example.com/orders', timeline: preparing('https://user:hunter2@api.example.com/orders') });
+      expect(finding).toMatchObject({ id: 'secret-in-url', evidence: 'user name and password' });
+      expect(JSON.stringify(finding)).not.toMatch(/hunter2/);
+
+      // (and a redirect leaves the last URL, not the one that had the token)
+      expect(audit({ url: 'https://api.example.com/v2/orders', timeline: preparing('http://api.example.com/orders?token=abc') }).map(({ id, evidence }) => [id, evidence]))
+        .toEqual([['plain-http', undefined], ['secret-in-url', 'token']]);
+    });
+
     it('finds an unsigned token, sent or returned', () => {
       const unsigned = jwt({ alg: 'none' }, { sub: '7', exp: 1 }).replace(/\.[^.]*$/, '.');
 

@@ -261,7 +261,7 @@ export const ResponsePane: FC<Props> = ({
         >
           <PanelContainer className="pad">
             <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
-              <ResponseSecurityViewer findings={securityFindings} />
+              <ResponseSecurityViewer findings={securityFindings} noResponse={Boolean(activeResponse.error) || !activeResponse.statusCode} />
             </ErrorBoundary>
           </PanelContainer>
         </TabItem>,

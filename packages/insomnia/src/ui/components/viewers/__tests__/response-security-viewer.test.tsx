@@ -40,6 +40,12 @@ describe('<ResponseSecurityViewer />', () => {
     expect(container.textContent).toContain('Nothing more is sent to find them');
   });
 
+  it('says when the request got no response, rather than that nothing was found', () => {
+    const { container } = render(<ResponseSecurityViewer findings={[]} noResponse />);
+
+    expect(container.textContent).toBe('The request got no response to check.');
+  });
+
   it('shows nothing until the response has been looked at', () => {
     expect(render(<ResponseSecurityViewer />).container.textContent).toBe('');
   });

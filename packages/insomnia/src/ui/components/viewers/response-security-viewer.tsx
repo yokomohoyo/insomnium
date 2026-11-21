@@ -41,7 +41,11 @@ export const useResponseAudit = (response?: Response | null) => {
   return response && audit?.responseId === response._id ? audit.findings : undefined;
 };
 
-export const ResponseSecurityViewer: FC<{ findings?: AuditFinding[] }> = ({ findings }) => {
+// noResponse: the request failed, so there was nothing to look at
+export const ResponseSecurityViewer: FC<{ findings?: AuditFinding[]; noResponse?: boolean }> = ({ findings, noResponse }) => {
+  if (noResponse) {
+    return <p className="faint">{t('The request got no response to check.')}</p>;
+  }
   if (!findings) {
     return null;
   }

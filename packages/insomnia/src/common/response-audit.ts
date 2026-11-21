@@ -54,7 +54,13 @@ const isLocalHost = (hostname: string) => {
 const sentRequest = (timeline: AuditInput['timeline']) => {
   const headers = new Map<string, string>();
   let method = '';
+  // (the URL as sent: the one kept with the response has lost its user name
+  // and password, and is the last one when redirects were followed)
+  let url = '';
   for (const { name, value } of timeline || []) {
+    if (name === 'Text' && !url) {
+      url = /^Preparing request to (\S+)/.exec(value)?.[1] || '';
+    }
     if (name !== 'HeaderOut') {
       continue;
     }
@@ -68,7 +74,7 @@ const sentRequest = (timeline: AuditInput['timeline']) => {
       }
     }
   }
-  return { method: method.toUpperCase(), headers };
+  return { method: method.toUpperCase(), headers, url };
 };
 
 const SECRET_PARAM = /^(access_?token|id_?token|refresh_?token|token|jwt|api_?key|key|password|passwd|pwd|secret|client_?secret|auth|session(_?id)?)$/i;
@@ -119,17 +125,21 @@ export function auditResponse({ url, statusCode, headers, contentType, body, tim
   const authenticated = sent.headers.has('authorization') || sent.headers.has('cookie') || sent.headers.has('x-api-key');
   const type = (contentType || header('content-type')).toLowerCase();
 
-  let parsed: URL | null = null;
-  try {
-    parsed = new URL(url);
-  } catch {
-    // audited without what its URL would say
-  }
+  const parseUrl = (value: string) => {
+    try {
+      return new URL(value);
+    } catch {
+      // audited without what its URL would say
+      return null;
+    }
+  };
+  const parsed = parseUrl(url);
+  const sentUrl = sent.url ? parseUrl(sent.url) : null;
   const https = parsed?.protocol === 'https:';
   const local = !parsed || isLocalHost(parsed.hostname);
 
   // in transit
-  if (parsed?.protocol === 'http:' && !local) {
+  if ([sentUrl, parsed].some(u => u?.protocol === 'http:' && !isLocalHost(u.hostname))) {
     add({
       id: 'plain-http',
       severity: authenticated ? 'high' : 'medium',
@@ -162,9 +172,10 @@ export function auditResponse({ url, statusCode, headers, contentType, body, tim
   }
 
   // credentials
-  if (parsed) {
-    const secretParams = unique([...parsed.searchParams].filter(([name, value]) => value && SECRET_PARAM.test(name)).map(([name]) => name));
-    if (parsed.username || parsed.password) {
+  const urls = [sentUrl, parsed].flatMap(u => u ? [u] : []);
+  if (urls.length) {
+    const secretParams = unique(urls.flatMap(u => [...u.searchParams]).filter(([name, value]) => value && SECRET_PARAM.test(name)).map(([name]) => name));
+    if (urls.some(u => u.username || u.password)) {
       secretParams.unshift('user name and password');
     }
     if (secretParams.length) {
