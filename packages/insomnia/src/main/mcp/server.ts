@@ -21,6 +21,7 @@ import { webSockets } from '../network/websocket';
 import { restrictRenders } from '../restricted-renders';
 import { confirmMcpCommand } from './confirm-command';
 import { confirmGitAction } from './confirm-git';
+import { confirmSecurityTests } from './confirm-security-tests';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
@@ -28,6 +29,7 @@ import { filterTools, MINIMAL_TOOLS, registerTools } from './tools';
 import { registerGitTools } from './tools/git';
 import { registerMcpRequestTools } from './tools/mcp-requests';
 import { registerMockTools } from './tools/mocks';
+import { registerSecurityTestTools } from './tools/security-tests';
 import { registerSpecTools } from './tools/spec';
 import { registerStreamTools } from './tools/streams';
 import { registerTestRunTools } from './tools/test-run';
@@ -200,6 +202,7 @@ function buildMcpServer(minimal = false): McpServer {
   registerSpecTools(server);
   // the app's only too: it asks the user before each run
   registerTestRunTools(server, confirmTestRun);
+  registerSecurityTestTools(server, confirmSecurityTests);
   // and the collections' mock servers, which run in the app
   registerMockTools(server, {
     start: (workspaceId, port) => startCollectionMock(workspaceId, port),

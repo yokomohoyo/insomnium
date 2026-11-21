@@ -17,7 +17,7 @@ Working with them:
 - [Template tags](template-tags.md): `{{ variables }}` and `{% tags %}` for timestamps, hashes, signatures, fake data, other responses and more.
 - [Scripts](scripts.md): pre-request and after-response JavaScript, with the `insomnia` (or `pm`) API.
 - [Tests and the runner](testing.md): assertions, script tests, running a collection or folder, and running it in CI.
-- [Security checks](security-checks.md): what a response says about the API's security, by the OWASP API Security Top 10.
+- [Security checks](security-checks.md): what a response says about the API's security, and tests that try the API, by the OWASP API Security Top 10.
 - [Flows](flows.md): requests in an order you draw, with conditions on their responses, variables from them, and delays.
 - [Mock server](mock-server.md): answer as a collection's requests would, with their examples.
 - [Git Sync](git-sync.md): keep a collection in a Git repository, with branches, commits, pulls and pushes.

@@ -15,6 +15,7 @@ import { jsonPrettify } from '../../../utils/prettify/json';
 import { useRequestMetaPatcher } from '../../hooks/use-request';
 import type { RequestLoaderData } from '../../routes/request';
 import type { RootLoaderData } from '../../routes/root';
+import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { PreviewModeDropdown } from '../dropdowns/preview-mode-dropdown';
 import { ResponseHistoryDropdown } from '../dropdowns/response-history-dropdown';
@@ -31,6 +32,7 @@ import { ResponseSecurityViewer, useResponseAudit } from '../viewers/response-se
 import { ResponseTimelineViewer } from '../viewers/response-timeline-viewer';
 import { ResponseViewer } from '../viewers/response-viewer';
 import { ResponseVisualizer } from '../viewers/response-visualizer';
+import { SecurityTestsPanel } from '../viewers/security-tests-panel';
 import { BlankPane } from './blank-pane';
 import { Pane, PaneHeader } from './pane';
 import { PlaceholderResponsePane } from './placeholder-response-pane';
@@ -50,6 +52,7 @@ export const ResponsePane: FC<Props> = ({
   } = useRouteLoaderData('root') as RootLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
   const securityFindings = useResponseAudit(activeResponse);
+  const { activeEnvironment, subEnvironments } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   const handleSetFilter = async (responseFilter: string) => {
     if (!activeResponse) {
       return;
@@ -262,6 +265,9 @@ export const ResponsePane: FC<Props> = ({
           <PanelContainer className="pad">
             <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
               <ResponseSecurityViewer findings={securityFindings} noResponse={Boolean(activeResponse.error) || !activeResponse.statusCode} />
+            </ErrorBoundary>
+            <ErrorBoundary errorClassName="font-error pad text-center">
+              <SecurityTestsPanel request={activeRequest} environments={subEnvironments.filter(({ _id }) => _id !== activeEnvironment._id)} />
             </ErrorBoundary>
           </PanelContainer>
         </TabItem>,
