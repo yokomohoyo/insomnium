@@ -62,7 +62,7 @@ describe('run_security_tests', () => {
       ['token-unsigned', 'skipped'],
       ['other-user', 'skipped'],
       ['cors-any-origin', 'passed'],
-      ['plain-http', 'skipped'],
+      ['answers-plain-http', 'skipped'],
       ['quote-in-parameter', 'skipped'],
       ['rate-limit', 'found'],
     ]);
@@ -70,6 +70,20 @@ describe('run_security_tests', () => {
     expect(body.requests).toBe(17);
     // and nothing it sent is in the history
     expect(await models.response.all()).toEqual([]);
+    expect(body.ignoredRules).toBeUndefined();
+  });
+
+  it('leaves out what the collection ignores in the Security tab, and says so', async () => {
+    confirm.mockResolvedValue(true);
+    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.updateByParentId(workspaceId, { securityIgnoredRules: ['rate-limit'] });
+
+    const { body } = await call({ requestId });
+
+    expect(body.findings).toEqual([]);
+    expect(body.ignoredRules).toEqual(['rate-limit']);
+    // (the test still ran, and is still listed)
+    expect(body.checks).toContainEqual(expect.objectContaining({ id: 'rate-limit', outcome: 'found' }));
   });
 
   it('refuses a request that changes things, a missing one, and an environment from another workspace, without asking', async () => {

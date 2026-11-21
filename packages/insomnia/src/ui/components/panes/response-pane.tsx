@@ -1,18 +1,20 @@
 import { text } from 'node:stream/consumers';
 
 import { extension as mimeExtension } from 'mime-types';
-import React, { type FC, useCallback } from 'react';
-import { useRouteLoaderData } from 'react-router-dom';
+import React, { type FC, useCallback, useState } from 'react';
+import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { PREVIEW_MODE_SOURCE } from '../../../common/constants';
 import { t } from '../../../common/i18n';
 import { getSetCookieHeaders } from '../../../common/misc';
 import { worstSeverity } from '../../../common/response-audit';
+import { ignoredRules, withoutIgnored } from '../../../common/security-rules';
 import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
 import { cancelRequestById } from '../../../network/cancellation';
 import { jsonPrettify } from '../../../utils/prettify/json';
 import { useRequestMetaPatcher } from '../../hooks/use-request';
+import { workspacePath } from '../../routes/paths';
 import type { RequestLoaderData } from '../../routes/request';
 import type { RootLoaderData } from '../../routes/root';
 import type { WorkspaceLoaderData } from '../../routes/workspace';
@@ -28,11 +30,11 @@ import { TimeTag } from '../tags/time-tag';
 import { AssertionResultsViewer } from '../viewers/assertion-results-viewer';
 import { ResponseCookiesViewer } from '../viewers/response-cookies-viewer';
 import { ResponseHeadersViewer } from '../viewers/response-headers-viewer';
-import { ResponseSecurityViewer, useResponseAudit } from '../viewers/response-security-viewer';
+import { IgnoredSecurityRules, ResponseSecurityViewer, useResponseAudit } from '../viewers/response-security-viewer';
 import { ResponseTimelineViewer } from '../viewers/response-timeline-viewer';
 import { ResponseViewer } from '../viewers/response-viewer';
 import { ResponseVisualizer } from '../viewers/response-visualizer';
-import { SecurityTestsPanel } from '../viewers/security-tests-panel';
+import { securityTestFindings, SecurityTestsPanel } from '../viewers/security-tests-panel';
 import { BlankPane } from './blank-pane';
 import { Pane, PaneHeader } from './pane';
 import { PlaceholderResponsePane } from './placeholder-response-pane';
@@ -51,8 +53,20 @@ export const ResponsePane: FC<Props> = ({
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
-  const securityFindings = useResponseAudit(activeResponse);
-  const { activeEnvironment, subEnvironments } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const { activeEnvironment, subEnvironments, activeWorkspaceMeta } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  // the Security tab's rules this collection ignores, kept with its settings
+  const ignoredSecurityRules = ignoredRules(activeWorkspaceMeta?.securityIgnoredRules);
+  const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
+  const ignoredFetcher = useFetcher();
+  const setIgnoredSecurityRules = (securityIgnoredRules: string[]) => ignoredFetcher.submit(
+    { securityIgnoredRules },
+    { action: workspacePath({ organizationId, projectId, workspaceId }, 'update-meta'), method: 'post', encType: 'application/json' },
+  );
+  const audited = useResponseAudit(activeResponse);
+  const securityFindings = audited && withoutIgnored(audited, ignoredSecurityRules);
+  // (what the tests found is the panel's: this redraws the tab's count after a run)
+  const [, countAgain] = useState(0);
+  const testFindings = activeRequest ? withoutIgnored(securityTestFindings(activeRequest), ignoredSecurityRules) : [];
   const handleSetFilter = async (responseFilter: string) => {
     if (!activeResponse) {
       return;
@@ -140,7 +154,8 @@ export const ResponsePane: FC<Props> = ({
   const timeline = models.response.getTimeline(activeResponse);
   const cookieHeaders = getSetCookieHeaders(activeResponse.headers);
   const assertionResults = activeResponse.assertionResults || [];
-  const worstFinding = worstSeverity(securityFindings || []);
+  const countedFindings = [...securityFindings || [], ...testFindings];
+  const worstFinding = worstSeverity(countedFindings);
   return (
     <Pane type="response">
       {!activeResponse ? null : (
@@ -256,18 +271,29 @@ export const ResponsePane: FC<Props> = ({
           title={
             <>
               {t('Security')}
-              {securityFindings?.length ? (
-                <span className={`bubble ${worstFinding === 'high' ? 'danger' : worstFinding === 'medium' ? 'warning' : ''}`}>{securityFindings.length}</span>
+              {countedFindings.length ? (
+                <span className={`bubble ${worstFinding === 'high' ? 'danger' : worstFinding === 'medium' ? 'warning' : ''}`}>{countedFindings.length}</span>
               ) : null}
             </>
           }
         >
           <PanelContainer className="pad">
             <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
-              <ResponseSecurityViewer findings={securityFindings} noResponse={Boolean(activeResponse.error) || !activeResponse.statusCode} />
+              <ResponseSecurityViewer
+                findings={securityFindings}
+                noResponse={Boolean(activeResponse.error) || !activeResponse.statusCode}
+                onIgnore={id => setIgnoredSecurityRules([...ignoredSecurityRules, id])}
+              />
             </ErrorBoundary>
             <ErrorBoundary errorClassName="font-error pad text-center">
-              <SecurityTestsPanel request={activeRequest} environments={subEnvironments.filter(({ _id }) => _id !== activeEnvironment._id)} />
+              <SecurityTestsPanel
+                request={activeRequest}
+                environments={subEnvironments.filter(({ _id }) => _id !== activeEnvironment._id)}
+                ignored={ignoredSecurityRules}
+                onIgnore={id => setIgnoredSecurityRules([...ignoredSecurityRules, id])}
+                onResult={() => countAgain(count => count + 1)}
+              />
+              <IgnoredSecurityRules ignored={ignoredSecurityRules} onRestore={id => setIgnoredSecurityRules(ignoredSecurityRules.filter(rule => rule !== id))} />
             </ErrorBoundary>
           </PanelContainer>
         </TabItem>,

@@ -11,7 +11,7 @@ import * as requestOperations from '../../../models/helpers/request-operations';
 import type { McpRequest } from '../../../models/mcp-request';
 import type { Request } from '../../../models/request';
 import type { WebSocketRequest } from '../../../models/websocket-request';
-import { fail, json, notFound, redactSecrets, redactUrl, requestTypeLabel } from './util';
+import { fail, json, notFound, redactSecrets, redactUrl, requestTypeLabel, withoutIgnoredSecurityRules } from './util';
 
 // Byte-capped decode that drops a trailing split multibyte sequence.
 function truncateUtf8(body: string | Buffer | null | undefined, maxBytes: number): string {
@@ -132,7 +132,7 @@ export function registerRequestTools(server: McpServer) {
 
   server.tool(
     'audit_response',
-    "What a response says about the security of the API that sent it, as the response pane's Security tab shows: plain http, weak TLS, credentials in the URL, unsigned or unexpiring JWTs, missing security headers, cookie flags, CORS, version headers, stack traces and sensitive-looking fields. Each finding has a severity (high, medium, low, info) and the OWASP API Security Top 10 risk it comes under. It reads the stored exchange and sends nothing, so it can't show what takes trying the API (authorization between users, rate limits). Give a responseId, or a requestId for its most recent response.",
+    "What a response says about the security of the API that sent it, as the response pane's Security tab shows: plain http, weak TLS, credentials in the URL, unsigned or unexpiring JWTs, missing security headers, cookie flags, CORS, version headers, stack traces and sensitive-looking fields. Each finding has a severity (high, medium, low, info) and the OWASP API Security Top 10 risk it comes under. It reads the stored exchange and sends nothing, so it can't show what takes trying the API (authorization between users, rate limits). Rules the collection ignores in the Security tab are left out, and named in ignoredRules. Give a responseId, or a requestId for its most recent response.",
     { responseId: z.string().optional(), requestId: z.string().optional() },
     async ({ responseId, requestId }) => {
       if (!responseId && !requestId) {
@@ -147,8 +147,8 @@ export function registerRequestTools(server: McpServer) {
       if (response.error || !response.statusCode) {
         return fail('the request got no response to audit');
       }
-      const findings = await auditStoredResponse(response);
-      return json({ responseId: response._id, url: redactUrl(response.url), statusCode: response.statusCode, findings });
+      const shown = await withoutIgnoredSecurityRules(response.parentId, await auditStoredResponse(response));
+      return json({ responseId: response._id, url: redactUrl(response.url), statusCode: response.statusCode, ...shown });
     },
   );
 }

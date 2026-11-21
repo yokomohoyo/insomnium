@@ -49,6 +49,9 @@ export interface BaseWorkspaceMeta {
   // also lint the spec with the OWASP API Security Top 10 rules, on top of
   // whichever ruleset applies
   spectralOwasp: boolean;
+  // the Security tab's rules this collection doesn't want to hear about, by
+  // their ids (common/security-rules.ts)
+  securityIgnoredRules: string[];
 }
 
 export type WorkspaceMeta = BaseWorkspaceMeta & BaseModel;
@@ -83,6 +86,7 @@ export function init(): BaseWorkspaceMeta {
     openRequestIds: [],
     spectralRulesetPath: '',
     spectralOwasp: false,
+    securityIgnoredRules: [],
   };
 }
 

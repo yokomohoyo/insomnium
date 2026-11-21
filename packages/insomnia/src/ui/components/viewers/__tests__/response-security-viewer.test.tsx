@@ -1,9 +1,9 @@
-import { describe, expect, it } from '@jest/globals';
-import { render } from '@testing-library/react';
+import { describe, expect, it, jest } from '@jest/globals';
+import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 
 import type { AuditFinding } from '../../../../common/response-audit';
-import { ResponseSecurityViewer } from '../response-security-viewer';
+import { IgnoredSecurityRules, ResponseSecurityViewer } from '../response-security-viewer';
 
 const finding = (patch: Partial<AuditFinding>): AuditFinding => ({
   id: 'plain-http',
@@ -46,7 +46,32 @@ describe('<ResponseSecurityViewer />', () => {
     expect(container.textContent).toBe('The request got no response to check.');
   });
 
+  it("lets a rule be ignored, by the finding's id", () => {
+    const onIgnore = jest.fn();
+    const { getByRole } = render(<ResponseSecurityViewer findings={[finding({ id: 'nosniff-missing', title: 'No X-Content-Type-Options: nosniff' })]} onIgnore={onIgnore} />);
+
+    fireEvent.click(getByRole('button', { name: 'Ignore No X-Content-Type-Options: nosniff' }));
+
+    expect(onIgnore).toHaveBeenCalledWith('nosniff-missing');
+  });
+
   it('shows nothing until the response has been looked at', () => {
     expect(render(<ResponseSecurityViewer />).container.textContent).toBe('');
+  });
+});
+
+describe('<IgnoredSecurityRules />', () => {
+  it('names the rules a collection ignores, each with a way back', () => {
+    const onRestore = jest.fn();
+    const { getByLabelText, getByRole } = render(<IgnoredSecurityRules ignored={['nosniff-missing', 'rate-limit']} onRestore={onRestore} />);
+
+    expect(getByLabelText('Ignored security rules').textContent).toContain('No X-Content-Type-Options: nosniff');
+    fireEvent.click(getByRole('button', { name: 'Show No sign of a rate limit again' }));
+
+    expect(onRestore).toHaveBeenCalledWith('rate-limit');
+  });
+
+  it('is nothing when nothing is ignored', () => {
+    expect(render(<IgnoredSecurityRules ignored={[]} onRestore={jest.fn()} />).container.textContent).toBe('');
   });
 });

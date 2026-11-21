@@ -286,7 +286,7 @@ export async function runSecurityTests({ method, url, credentialInQuery, hasOthe
     };
   });
 
-  await test('plain-http', 'Over plain http', async () => {
+  await test('answers-plain-http', 'Over plain http', async () => {
     if (bare.protocol !== 'https:') {
       return skipped('The request is not sent over https.');
     }
