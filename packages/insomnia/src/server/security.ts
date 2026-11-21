@@ -203,6 +203,11 @@ export const formatItem = (item: SecurityRunItem) => {
   return lines.join('\n');
 };
 
+// the requests against the spec: the operations the run didn't reach
+export const formatInventory = ({ operations, uncovered }: NonNullable<SecurityRunSummary['inventory']>) => uncovered.length
+  ? [`Against the spec: ${uncovered.length} of ${operations} ${operations === 1 ? 'operation' : 'operations'} ${uncovered.length === 1 ? "has no request, so it wasn't" : "have no request, so they weren't"} checked`, ...uncovered.map(operation => `  - ${operation}`)].join('\n')
+  : `Against the spec: each of its ${operations} ${operations === 1 ? 'operation has' : 'operations has'} a request`;
+
 export const formatSecuritySummary = (summary: SecurityRunSummary, failOn: FailOn) => {
   const found = SEVERITIES.filter(severity => summary.findings[severity]).map(severity => `${summary.findings[severity]} ${severity}`).join(', ') || 'nothing found';
   const tested = summary.items.filter(({ outcome }) => outcome === 'tested').length;

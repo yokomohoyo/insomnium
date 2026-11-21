@@ -167,6 +167,8 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 Failed: a finding is high or worse (--fail-on high)
 ```
 
+When the collection is one design document, its requests are also compared with its spec: a request the spec doesn't describe is a low finding (`not-in-spec`), and the operations no request covers are listed before the summary.
+
 It exits 1 when a finding is as severe as `--fail-on`, or when a request that should have been tested couldn't be (a host that isn't allowed, a script that failed); 2 when it can't start; 0 otherwise.
 
 | Option | |

@@ -85,6 +85,13 @@ The dialog says how many requests it may send before it starts (26 for each GET 
 
 Each request is listed with what was found; its name opens it. The rules the collection ignores are left out.
 
+For a design document, the requests are also compared with its spec, which sends nothing:
+
+- A request the spec doesn't describe (its path, or its method on that path) is a finding, under API9 Improper Inventory Management. An endpoint that isn't in the spec isn't reviewed or linted with the rest; add it, or retire it if it's left over.
+- The spec's operations that no request covers are listed under the results. The checks didn't reach those.
+
+A request is matched to an operation by its method and path. Variables in the URL stand for anything, the spec's servers (or `basePath`) may come before the path, and so may a prefix the spec doesn't name, such as a gateway's.
+
 A finished run saves as:
 
 | Format | For |

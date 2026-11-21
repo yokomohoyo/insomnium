@@ -117,6 +117,54 @@ describe('runSecurityChecks()', () => {
     expect(summary.stopped).toBe(true);
   });
 
+  describe('with the design document\'s spec', () => {
+    const SPEC = `
+openapi: 3.0.0
+info: { title: Shop, version: 1.0.0 }
+paths:
+  /orders:
+    get: {}
+    post: {}
+  /orders/{id}:
+    get: {}
+`;
+
+    it("flags the requests the spec doesn't describe, sent or not, and lists the operations no request covers", async () => {
+      const { requests } = await collection();
+      test.mockResolvedValue(tested({ findings: [], responseFindings: [] }));
+
+      const { items, inventory, findings } = await runSecurityChecks(requests, { test, spec: SPEC });
+
+      // GET /orders and POST /orders are the spec's; DELETE /orders/7 and GET /events are not
+      expect(items.map(({ name, findings: found }) => [name, found.map(({ id, evidence }) => `${id}: ${evidence}`)])).toEqual([
+        ['List', []],
+        ['Create', []],
+        ['Delete', ['not-in-spec: DELETE /orders/7']],
+        ['Events', ['not-in-spec: GET /events']],
+      ]);
+      expect(items[2]).toMatchObject({ outcome: 'skipped', requests: 0 });
+      expect(inventory).toEqual({ operations: 3, uncovered: ['GET /orders/{id}'] });
+      expect(findings.low).toBe(2);
+    });
+
+    it('leaves the rule out when the collection ignores it, and still lists what has no request', async () => {
+      const { requests } = await collection();
+      test.mockResolvedValue(tested({ findings: [], responseFindings: [] }));
+
+      const { items, inventory } = await runSecurityChecks(requests, { test, spec: SPEC, ignored: ['not-in-spec'] });
+
+      expect(items.flatMap(item => item.findings)).toEqual([]);
+      expect(inventory?.uncovered).toEqual(['GET /orders/{id}']);
+    });
+
+    it('has no inventory without a spec, or with something that is not one', async () => {
+      const { requests } = await collection();
+
+      expect((await runSecurityChecks(requests, { test })).inventory).toBeUndefined();
+      expect((await runSecurityChecks(requests, { test, spec: 'not: a spec' })).inventory).toBeUndefined();
+    });
+  });
+
   it('says beforehand the most it may send: the tests of each GET and HEAD', async () => {
     const { requests } = await collection();
 
@@ -172,6 +220,17 @@ describe('the reports', () => {
     expect(report).toContain('| Without its credentials | found | It answered 200. The answer was the same \\| as with credentials. |');
     expect(report).toContain("### Orders / Create (POST https://shop.example.com/orders)\n\nA POST isn't sent again");
     expect(report.endsWith('\n')).toBe(true);
+  });
+
+  it("as Markdown and JSON, has what the spec's operations lack for requests", () => {
+    const withInventory = { ...summary, inventory: { operations: 4, uncovered: ['GET /orders/{id}', 'DELETE /orders/{id}'] } };
+    const report = securityMarkdownReport(withInventory, 'Shop', at);
+
+    expect(report).toContain("## Against the spec\n\nThe spec has 4 operations; 2 have no request, so the checks didn't reach them:\n\n- `GET /orders/{id}`\n- `DELETE /orders/{id}`");
+    expect(report.indexOf('## Against the spec')).toBeLessThan(report.indexOf('## Requests'));
+    expect(securityMarkdownReport({ ...summary, inventory: { operations: 1, uncovered: [] } }, 'Shop', at)).toContain('The spec has 1 operation; each has a request.');
+    expect(securityMarkdownReport(summary, 'Shop', at)).not.toContain('## Against the spec');
+    expect(JSON.parse(securityJsonReport(withInventory, 'Shop', at)).inventory).toEqual(withInventory.inventory);
   });
 
   it('as Markdown, says so when nothing was found', () => {

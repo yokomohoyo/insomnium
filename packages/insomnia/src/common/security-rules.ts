@@ -32,6 +32,8 @@ export const SECURITY_RULES: Record<string, string> = {
   'answers-plain-http': 'It also answers over plain http',
   'quote-in-parameter': 'A quote in a parameter breaks the server',
   'rate-limit': 'No sign of a rate limit',
+  // what the spec shows (spec-inventory.ts)
+  'not-in-spec': "A request the spec doesn't describe",
 };
 
 // a rule's name, for the list of those ignored

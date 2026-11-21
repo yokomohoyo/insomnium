@@ -105,7 +105,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
   const modalRef = useRef<ModalHandle>(null);
   const navigate = useNavigate();
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
-  const { activeEnvironment, subEnvironments, activeWorkspace } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const { activeEnvironment, subEnvironments, activeWorkspace, activeApiSpec } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   const [requests, setRequests] = useState<RunnableRequest[]>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
   const [lowerEnvironmentId, setLowerEnvironmentId] = useState('');
@@ -136,6 +136,8 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
         otherEnvironmentId: otherEnvironmentId || null,
         lowerEnvironmentId: lowerEnvironmentId || null,
         ignored: ignoredRules(activeWorkspace?.securityIgnoredRules),
+        // a design document's requests are also compared with its spec
+        ...(activeWorkspace?.scope === 'design' && activeApiSpec?.contents ? { spec: activeApiSpec.contents } : {}),
         signal: controller.current.signal,
         onItem: item => setItems(done => [...done, item]),
       }));
@@ -224,6 +226,20 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
               <ul aria-label={t('Security check results')} className="list-none m-0 p-0">
                 {items.map(item => <ItemRow key={item.requestId} item={item} onOpen={openRequest} />)}
               </ul>
+              {summary?.inventory ? (
+                <details className="margin-top-sm txt-sm" data-testid="security-run-inventory">
+                  <summary className="cursor-pointer">
+                    {summary.inventory.uncovered.length === 1
+                      ? t('1 of the spec\'s {total} operations has no request, so the checks didn\'t reach it', { total: summary.inventory.operations })
+                      : summary.inventory.uncovered.length
+                        ? t('{count} of the spec\'s {total} operations have no request, so the checks didn\'t reach them', { count: summary.inventory.uncovered.length, total: summary.inventory.operations })
+                        : t('Each of the spec\'s {total} operations has a request', { total: summary.inventory.operations })}
+                  </summary>
+                  <ul aria-label={t('Operations with no request')} className="pad-left selectable">
+                    {summary.inventory.uncovered.map(operation => <li key={operation}><code>{operation}</code></li>)}
+                  </ul>
+                </details>
+              ) : null}
               {summary ? (
                 <p className="faint txt-sm margin-top-sm">
                   {t('A request with nothing found had none of these problems this once; that does not show the API is secure.')}
