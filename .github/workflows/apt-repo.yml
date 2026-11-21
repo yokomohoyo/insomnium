@@ -184,26 +184,60 @@ jobs:
         with:
           path: _site
 
-      # The deploy looks the artifact up by name, and a large one can take a
-      # while to be listed after its upload finishes: the deploy then finds
-      # none and fails (0.10.0, twice). Rerunning the job is no way out, since
-      # it uploads a second artifact and the deploy refuses two.
-      - name: Wait for the site artifact to be listed
+      # The deploy looks the artifact up by name, and GitHub's listing of a
+      # just-uploaded artifact isn't the same from one request to the next for
+      # a while: 0.10.0 found none twice, and on 0.11.0 a check a second before
+      # the deploy saw it listed and the deploy still found none. So the
+      # listing has to hold, several times running, before the deploy; and the
+      # deploy itself is tried up to three times. Rerunning the job is no way
+      # out, since it uploads a second artifact and the deploy refuses two.
+      - name: Wait for the site artifact to be listed, and to stay listed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for attempt in $(seq 1 36); do
+          seen=0
+          for attempt in $(seq 1 60); do
             count=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?name=github-pages" --jq .total_count || echo 0)
             if [ "$count" = "1" ]; then
-              echo "The site artifact is listed (attempt $attempt)."
-              exit 0
+              seen=$((seen + 1))
+              echo "Listed, $seen running (attempt $attempt)."
+              if [ "$seen" -ge 6 ]; then
+                exit 0
+              fi
+            else
+              seen=0
+              echo "Listed: ${count:-0}. Waiting (attempt $attempt of 60)."
             fi
-            echo "Listed: ${count:-0}. Waiting (attempt $attempt of 36)."
             sleep 5
           done
-          echo "::error::The site artifact was not listed after 3 minutes."
+          echo "::error::The site artifact was not listed six times running within 5 minutes."
           exit 1
 
       - name: Deploy to GitHub Pages
-        id: deployment
+        id: first
+        continue-on-error: true
         uses: actions/deploy-pages@v5
+
+      - name: Wait before a second try
+        if: steps.first.outcome == 'failure'
+        run: sleep 60
+
+      - name: Deploy to GitHub Pages (second try)
+        id: second
+        if: steps.first.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@v5
+
+      - name: Wait before a third try
+        if: steps.second.outcome == 'failure'
+        run: sleep 120
+
+      - name: Deploy to GitHub Pages (third try)
+        id: third
+        if: steps.second.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+
+      # the page's address, from whichever try deployed it
+      - name: Deployed
+        id: deployment
+        run: echo "page_url=${{ steps.first.outputs.page_url || steps.second.outputs.page_url || steps.third.outputs.page_url }}" >> "$GITHUB_OUTPUT"
