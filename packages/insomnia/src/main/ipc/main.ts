@@ -64,6 +64,9 @@ export interface MainBridgeAPI {
   showContextMenu: (options: { key: string }) => void;
   webUtilsGetPathForFile: (file: File) => string;
   getMcpStatus: () => Promise<{ running: boolean; port: number | null }>;
+  // an MCP client's question to the user (main/mcp/ask-in-app.ts): on show, and answered
+  mcpConfirmShown: (id: string) => void;
+  answerMcpConfirm: (id: string, allowed: boolean) => void;
   checkForNewRelease: () => Promise<ToastNotification | null>;
   // asked for now, opted in to the daily check or not
   checkForUpdatesNow: () => Promise<UpdateCheckResult>;

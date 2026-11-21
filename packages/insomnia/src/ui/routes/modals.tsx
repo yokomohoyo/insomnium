@@ -15,6 +15,7 @@ import { ErrorModal } from '../components/modals/error-modal';
 import { FilterHelpModal } from '../components/modals/filter-help-modal';
 import { GenerateCodeModal } from '../components/modals/generate-code-modal';
 import { GenerateConfigModal } from '../components/modals/generate-config-modal';
+import { McpConfirmModal } from '../components/modals/mcp-confirm-modal';
 import { NunjucksModal } from '../components/modals/nunjucks-modal';
 import { PromptModal } from '../components/modals/prompt-modal';
 import { RequestRenderErrorModal } from '../components/modals/request-render-error-modal';
@@ -44,6 +45,7 @@ const Modals: FC = () => {
         />
 
         <AskModal ref={instance => registerModal(instance, 'AskModal')} />
+        <McpConfirmModal />
         <SelectModal
           ref={instance => registerModal(instance, 'SelectModal')}
         />
