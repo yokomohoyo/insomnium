@@ -157,6 +157,21 @@ paths:
       expect(inventory?.uncovered).toEqual(['GET /orders/{id}']);
     });
 
+    it("counts the rest of the document's requests as covering operations, when the run is over one folder", async () => {
+      const { create, requests } = await collection();
+      test.mockResolvedValue(tested({ findings: [], responseFindings: [] }));
+      // the run is the POST alone; the GET in the same document covers GET /orders
+      const folder = requests.filter(({ request }) => request._id === create._id);
+
+      const alone = await runSecurityChecks(folder, { test, spec: SPEC });
+      expect(alone.inventory?.uncovered).toEqual(['GET /orders', 'GET /orders/{id}']);
+
+      const within = await runSecurityChecks(folder, { test, spec: SPEC, covering: requests });
+      expect(within.inventory).toEqual({ operations: 3, uncovered: ['GET /orders/{id}'] });
+      // (and only the run's requests are checked, or flagged)
+      expect(within.items.map(({ name }) => name)).toEqual(['Create']);
+    });
+
     it('has no inventory without a spec, or with something that is not one', async () => {
       const { requests } = await collection();
 
