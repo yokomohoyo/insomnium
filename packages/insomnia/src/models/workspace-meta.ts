@@ -46,6 +46,9 @@ export interface BaseWorkspaceMeta {
   // (common/spectral-ruleset-path.ts); empty uses its git repository's or the
   // built-in rules
   spectralRulesetPath: string;
+  // also lint the spec with the OWASP API Security Top 10 rules, on top of
+  // whichever ruleset applies
+  spectralOwasp: boolean;
 }
 
 export type WorkspaceMeta = BaseWorkspaceMeta & BaseModel;
@@ -79,6 +82,7 @@ export function init(): BaseWorkspaceMeta {
     folderSyncIds: [],
     openRequestIds: [],
     spectralRulesetPath: '',
+    spectralOwasp: false,
   };
 }
 

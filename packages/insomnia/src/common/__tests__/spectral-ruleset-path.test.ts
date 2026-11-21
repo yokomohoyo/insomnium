@@ -34,17 +34,23 @@ describe('spectralRulesetFor()', () => {
   };
 
   it('uses the built-in rules when there is nothing else', async () => {
-    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: '', source: 'built-in' });
+    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: '', source: 'built-in', owasp: false });
+  });
+
+  it('says when the document has the OWASP rules on', async () => {
+    await models.workspaceMeta.updateByParentId(workspaceId, { spectralOwasp: true });
+
+    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: '', source: 'built-in', owasp: true });
   });
 
   it("uses the git repository's .spectral.yaml when it has one", async () => {
     const file = inRepository('git_1');
     await models.workspaceMeta.updateByParentId(workspaceId, { gitRepositoryId: 'git_1' });
 
-    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: file, source: 'git' });
+    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: file, source: 'git', owasp: false });
 
     await models.workspaceMeta.updateByParentId(workspaceId, { gitRepositoryId: 'git_2' });
-    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: '', source: 'built-in' });
+    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: '', source: 'built-in', owasp: false });
   });
 
   it("uses a chosen file over the repository's, even when it's gone, so the lint says so", async () => {
@@ -52,6 +58,6 @@ describe('spectralRulesetFor()', () => {
     const chosen = path.join(dataPath, 'mine.yaml');
     await models.workspaceMeta.updateByParentId(workspaceId, { gitRepositoryId: 'git_1', spectralRulesetPath: chosen });
 
-    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: chosen, source: 'chosen' });
+    expect(await spectralRulesetFor(workspaceId)).toEqual({ rulesetPath: chosen, source: 'chosen', owasp: false });
   });
 });

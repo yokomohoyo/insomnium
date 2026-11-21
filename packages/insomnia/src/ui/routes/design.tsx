@@ -16,7 +16,7 @@ import { SwaggerUIBundle } from 'swagger-ui-dist';
 import { parseApiSpec } from '../../common/api-specs';
 import { debounce } from '../../common/misc';
 import { selectFileOrFolder } from '../../common/select-file-or-folder';
-import { type RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
+import { isOwaspCode, type RulesetSource, spectralRulesetFor } from '../../common/spectral-ruleset-path';
 import type { ApiSpec } from '../../models/api-spec';
 import * as models from '../../models/index';
 import { guard } from '../../utils/guard';
@@ -81,6 +81,7 @@ interface LoaderData {
   apiSpec: ApiSpec;
   rulesetPath: string;
   rulesetSource: RulesetSource;
+  owasp: boolean;
 }
 
 export const loader: LoaderFunction = async ({
@@ -94,18 +95,20 @@ export const loader: LoaderFunction = async ({
   const apiSpec = await models.apiSpec.getOrCreateForParentId(workspaceId);
 
   let lintMessages: LintMessage[] = [];
-  const { rulesetPath, source: rulesetSource } = await spectralRulesetFor(workspaceId);
+  const { rulesetPath, source: rulesetSource, owasp } = await spectralRulesetFor(workspaceId);
 
   if (apiSpec.contents?.trim()) {
     try {
       lintMessages = (await window.main.spectralRun({
         contents: apiSpec.contents,
         rulesetPath,
+        owasp,
       }))
         .map(({ severity, code, message, range }) => ({
           type: (['error', 'warning'][severity] ?? 'info') as Notice['type'],
           message: `${code} ${message}`,
           line: range.start.line,
+          owasp: isOwaspCode(code),
           // Attach range that will be returned to our click handler
           range,
         }));
@@ -119,6 +122,7 @@ export const loader: LoaderFunction = async ({
     apiSpec,
     rulesetPath,
     rulesetSource,
+    owasp,
   };
 };
 
@@ -157,6 +161,8 @@ const SpecPreview = ({ text }: { text: string }) => {
 
 interface LintMessage extends Notice {
   range: IRuleResult['range'];
+  // an OWASP rule's finding, which doesn't hold up generating requests
+  owasp: boolean;
 }
 
 const Design: FC = () => {
@@ -165,17 +171,18 @@ const Design: FC = () => {
     projectId: string;
     workspaceId: string;
   };
-  const { apiSpec, lintMessages, rulesetPath, rulesetSource } = useLoaderData() as LoaderData;
+  const { apiSpec, lintMessages, rulesetPath, rulesetSource, owasp } = useLoaderData() as LoaderData;
   const editor = createRef<CodeEditorHandle>();
 
   const updateApiSpecFetcher = useFetcher();
   const generateRequestCollectionFetcher = useFetcher();
   // a ruleset file for this document, kept on this computer
   const rulesetFetcher = useFetcher();
-  const setRulesetPath = (spectralRulesetPath: string) => rulesetFetcher.submit(
-    { spectralRulesetPath },
+  const updateRuleset = (patch: { spectralRulesetPath: string } | { spectralOwasp: boolean }) => rulesetFetcher.submit(
+    patch,
     { action: workspacePath({ organizationId, projectId, workspaceId }, 'update-meta'), method: 'post', encType: 'application/json' },
   );
+  const setRulesetPath = (spectralRulesetPath: string) => updateRuleset({ spectralRulesetPath });
   const chooseRuleset = async () => {
     const { canceled, filePath } = await selectFileOrFolder({ itemTypes: ['file'], extensions: ['yaml', 'yml', 'json'] });
     if (!canceled && filePath) {
@@ -212,6 +219,7 @@ const Design: FC = () => {
       const diagnostics = await window.main.spectralRun({
         contents,
         rulesetPath,
+        owasp,
       });
 
       return diagnostics.map(result => ({
@@ -224,7 +232,7 @@ const Design: FC = () => {
     // CodeMirror keeps its helpers for good: this one, left, kept the page
     // (the spec's text and all) once it had gone
     return () => CodeMirror.registerHelper('lint', 'openapi', () => []);
-  }, [rulesetPath]);
+  }, [rulesetPath, owasp]);
 
   const onCodeEditorChange = useMemo(() => {
     const handler = async (contents: string) => {
@@ -365,9 +373,10 @@ const Design: FC = () => {
                   aria-label="Ruleset"
                   triggerButton={
                     <DropdownButton>
-                      <RulesetLabel title={rulesetPath || 'The built-in OpenAPI rules'}>
+                      <RulesetLabel title={`${rulesetPath || 'The built-in OpenAPI rules'}${owasp ? ', with the OWASP API Security Top 10 rules' : ''}`}>
                         <i className={rulesetSource === 'built-in' ? 'fa fa-file-circle-xmark' : 'fa fa-file-circle-check'} />
                         {rulesetSource === 'built-in' ? 'Ruleset: built-in' : `Ruleset: ${path.basename(rulesetPath)}${rulesetSource === 'git' ? ' (git)' : ''}`}
+                        {owasp ? ' + OWASP' : ''}
                       </RulesetLabel>
                     </DropdownButton>
                   }
@@ -383,9 +392,17 @@ const Design: FC = () => {
                       onClick={() => setRulesetPath('')}
                     />
                   </DropdownItem>
+                  <DropdownItem aria-label="OWASP API Security Rules">
+                    <ItemContent
+                      icon="shield-halved"
+                      label="OWASP API Security Rules"
+                      isSelected={owasp}
+                      onClick={() => updateRuleset({ spectralOwasp: !owasp })}
+                    />
+                  </DropdownItem>
                 </Dropdown>
                 <button
-                  disabled={isAsyncApi || lintMessages.filter(message => message.type === 'error').length > 0 || generateRequestCollectionFetcher.state !== 'idle'}
+                  disabled={isAsyncApi || lintMessages.some(message => message.type === 'error' && !message.owasp) || generateRequestCollectionFetcher.state !== 'idle'}
                   title={isAsyncApi ? 'Requests are generated from OpenAPI and Swagger documents' : undefined}
                   className="btn btn--compact"
                   onClick={() => {

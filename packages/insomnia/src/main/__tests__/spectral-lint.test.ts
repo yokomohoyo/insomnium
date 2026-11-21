@@ -110,6 +110,59 @@ describe('lintSpec()', () => {
     expect(codes(rest)).toContain('info-contact');
   });
 
+  describe('with the OWASP rules', () => {
+    // served over http, with nothing to say who may call it
+    const open = `${spec.replace('paths: {}\n', '')}servers:
+  - url: http://api.example.com
+paths:
+  /pets/{id}:
+    get:
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: integer}}
+      responses:
+        '200': {description: OK}
+`;
+    const owaspCodes = (diagnostics: { code: string | number }[]) => codes(diagnostics).filter(code => String(code).startsWith('owasp:'));
+
+    it('leaves them out unless asked', async () => {
+      expect(owaspCodes(await lintSpec({ contents: open }))).toEqual([]);
+    });
+
+    it("adds their findings to the built-in rules', in the order of the document", async () => {
+      const diagnostics = await lintSpec({ contents: open, owasp: true });
+
+      expect(owaspCodes(diagnostics)).toEqual(expect.arrayContaining([
+        'owasp:api1:2023-no-numeric-ids',
+        'owasp:api8:2023-no-server-http',
+      ]));
+      expect(codes(diagnostics)).toContain('info-contact');
+      const lines = diagnostics.map(({ range }) => range.start.line);
+      expect(lines).toEqual([...lines].sort((a, b) => a - b));
+    });
+
+    it("adds them to a ruleset file's rules too", async () => {
+      const rulesetPath = ruleset('.spectral.yaml', 'extends: spectral:oas\nrules:\n  info-contact: off\n');
+
+      const diagnostics = await lintSpec({ contents: open, rulesetPath, owasp: true });
+
+      expect(codes(diagnostics)).not.toContain('info-contact');
+      expect(owaspCodes(diagnostics)).toContain('owasp:api8:2023-no-server-http');
+    });
+
+    it('still says so when the ruleset file is no use', async () => {
+      const [first, ...rest] = await lintSpec({ contents: open, rulesetPath: path.join(dir, 'gone.yaml'), owasp: true });
+
+      expect(first.code).toBe('ruleset');
+      expect(owaspCodes(rest)).toContain('owasp:api8:2023-no-server-http');
+    });
+
+    it('has nothing to say about an AsyncAPI document', async () => {
+      const asyncApi = 'asyncapi: 2.6.0\ninfo:\n  title: Lights\n  version: 1.0.0\nchannels: {}\n';
+
+      expect(await lintSpec({ contents: asyncApi, owasp: true })).toEqual(await lintSpec({ contents: asyncApi }));
+    });
+  });
+
   it('lints off the main thread, which keeps turning meanwhile', async () => {
     const contents = largeOpenApi(300, 'yaml');
 

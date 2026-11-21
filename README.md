@@ -186,7 +186,7 @@ A design document is a collection with an API spec at its heart: OpenAPI 3, Swag
 
 ![An OpenAPI spec with its lint warnings and documentation preview](https://raw.githubusercontent.com/yokomohoyo/insomnium/main/screenshots/design-document.png)
 
-- **Linting as you type**, with Spectral's rules or a ruleset file of your own. Click a problem to go to its line.
+- **Linting as you type**, with Spectral's rules or a ruleset file of your own, and the OWASP API Security Top 10 rules when you turn them on. Click a problem to go to its line.
 - **Preview** the spec as API documentation, beside the editor.
 - **Generate Request Collection** makes a request for each operation, in folders by tag. Generate again after changing the spec and the requests follow it, keeping the bodies, auth, scripts and assertions you've added.
 - **Check responses against it:** an assertion can require that a response matches the spec's schema for it.

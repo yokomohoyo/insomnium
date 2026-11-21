@@ -14,6 +14,7 @@ export interface SpectralJob {
   id: number;
   contents: string;
   rulesetPath?: string;
+  owasp?: boolean;
 }
 export type SpectralReply = { id: number; diagnostics: ISpectralDiagnostic[] } | { id: number; error: string };
 export interface SpectralWorkerLog {
@@ -28,10 +29,10 @@ if (!isMainThread && parentPort) {
   for (const level of ['log', 'info', 'warn', 'error', 'debug'] as const) {
     console[level] = (...args: unknown[]) => port.postMessage({ log: level, text: format(...args) } satisfies SpectralWorkerLog);
   }
-  port.on('message', async ({ id, contents, rulesetPath }: SpectralJob) => {
+  port.on('message', async ({ id, contents, rulesetPath, owasp }: SpectralJob) => {
     let reply: SpectralReply;
     try {
-      reply = { id, diagnostics: await runSpectral({ contents, rulesetPath }) };
+      reply = { id, diagnostics: await runSpectral({ contents, rulesetPath, owasp }) };
     } catch (err) {
       reply = { id, error: err instanceof Error ? err.message : String(err) };
     }

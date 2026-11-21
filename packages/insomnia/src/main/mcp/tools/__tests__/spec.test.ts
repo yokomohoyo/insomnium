@@ -25,6 +25,9 @@ const call = async (name: string, args: Record<string, unknown>) => {
 
 const WITHOUT_CONTACT = 'openapi: 3.0.3\ninfo:\n  title: Shop\n  version: 1.0.0\npaths: {}\n';
 const WITHOUT_INFO = 'openapi: 3.0.3\npaths: {}\n';
+// fine by the built-in rules, but served over http: an error by OWASP's
+const OVER_HTTP = petstoreExample.replace(/https:/g, 'http:');
+const owaspCodes = (body: { problems: { code: string }[] }) => body.problems.map(({ code }) => code).filter(code => code.startsWith('owasp:'));
 
 describe('the spec tools', () => {
   let workspaceId: string;
@@ -44,6 +47,35 @@ describe('the spec tools', () => {
 
     await setSpec(WITHOUT_INFO);
     expect((await call('lint_spec', { workspaceId })).body.errors).toBeGreaterThan(0);
+  });
+
+  it('lint with the OWASP rules when the document has them on, or when asked', async () => {
+    await setSpec(OVER_HTTP);
+
+    const without = (await call('lint_spec', { workspaceId })).body;
+    expect(without.owasp).toBe(false);
+    expect(owaspCodes(without)).toEqual([]);
+
+    const asked = (await call('lint_spec', { workspaceId, owasp: true })).body;
+    expect(asked.owasp).toBe(true);
+    expect(owaspCodes(asked)).toContain('owasp:api8:2023-no-server-http');
+
+    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.updateByParentId(workspaceId, { spectralOwasp: true });
+    expect(owaspCodes((await call('lint_spec', { workspaceId })).body)).toContain('owasp:api8:2023-no-server-http');
+    expect(owaspCodes((await call('lint_spec', { workspaceId, owasp: false })).body)).toEqual([]);
+  });
+
+  it("make requests from a spec that only OWASP's rules find errors in", async () => {
+    await setSpec(OVER_HTTP);
+    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.updateByParentId(workspaceId, { spectralOwasp: true });
+    expect((await call('lint_spec', { workspaceId })).body.errors).toBeGreaterThan(0);
+
+    const made = await call('generate_requests_from_spec', { workspaceId });
+
+    expect(made.isError).toBe(false);
+    expect(made.body.added.length).toBeGreaterThan(0);
   });
 
   it("refuse a collection's or an empty spec", async () => {
