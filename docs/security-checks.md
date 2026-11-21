@@ -68,6 +68,28 @@ Things to know before running them:
 
 For the API's design, a [design document](design-documents.md#owasp-api-security-rules) can be checked against the OWASP API Security rules.
 
+## A whole collection
+
+**Security Checks**, in a collection's menu and in a folder's, does this for every HTTP request in it, in the sidebar's order:
+
+- A GET or HEAD is tested, and its answer looked at as the Security tab would.
+- Any other request is never sent. It gets what its last response showed, or a note that it has none yet: send it once first.
+- An event stream isn't sent.
+
+The dialog says how many requests it may send before it starts (25 for each GET and HEAD at most), and its Run button is the go-ahead. **As another user** works as it does for one request. Closing the dialog, or **Stop**, ends the run where it is.
+
+Each request is listed with what was found; its name opens it. The rules the collection ignores are left out.
+
+A finished run saves as:
+
+| Format | For |
+| --- | --- |
+| Markdown | reading and passing on: the findings most severe first, what each means, and every request with its tests |
+| JSON | the run as it is |
+| SARIF | tools that take code scanning results. An API has no file to point at, so each result is located at its request |
+
+A report names where a credential was, never the credential, and shows URLs without their query's values.
+
 ## Ignoring a rule
 
 Not every finding is a problem for every API: one that no browser calls has little use for `nosniff`, and a public one answers the same to everyone. **Ignore**, beside a finding, stops that rule's findings being shown in the collection, for every request in it. They no longer count on the tab.

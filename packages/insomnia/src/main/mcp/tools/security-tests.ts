@@ -59,14 +59,14 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
         return fail('the user declined to run the security tests');
       }
       try {
-        const result = await runRequestSecurityTests(requestId, {
+        const { checks, findings, requests } = await runRequestSecurityTests(requestId, {
           ...(environmentId === undefined ? {} : { environmentId }),
           otherEnvironmentId,
           signal,
           // each URL the tests send to, as send_http_request checks its own
           checkUrl: assertSafeRequestUrl,
         });
-        return json({ requestId, ...result, ...await withoutIgnoredSecurityRules(requestId, result.findings) });
+        return json({ requestId, checks, requests, ...await withoutIgnoredSecurityRules(requestId, findings) });
       } catch (err) {
         return fail(`the security tests could not run: ${(err as Error).message}`);
       }
