@@ -11,7 +11,7 @@ const ARGS = ['--collection', 'a.yaml', ALLOW_FLAG];
 describe('parseSecurityConfig()', () => {
   it('reads the options', () => {
     expect(parseSecurityConfig(
-      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
+      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
       { ...HOSTS, INSOMNIUM_VAR_token: 't', INSOMNIUM_VALIDATE_SSL: 'false' },
     )).toEqual({
       collections: ['a.yaml'],
@@ -20,6 +20,7 @@ describe('parseSecurityConfig()', () => {
       folder: 'Users/Admin',
       environment: 'ci',
       otherEnvironment: 'other user',
+      lowerEnvironment: 'viewer',
       failOn: 'medium',
       ignore: ['nosniff-missing', 'rate-limit', 'hsts-missing'],
       markdown: 'report.md',
@@ -142,5 +143,6 @@ describe('findOtherEnvironment()', () => {
 
     expect(await findOtherEnvironment([workspace], 'Ben')).toBe(ben._id);
     await expect(findOtherEnvironment([workspace], 'Carl')).rejects.toThrow("No environment named 'Carl' for --as. The collections have: Ben, staging");
+    await expect(findOtherEnvironment([workspace], 'Carl', '--as-lower')).rejects.toThrow("No environment named 'Carl' for --as-lower.");
   });
 });

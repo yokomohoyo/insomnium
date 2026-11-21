@@ -26,16 +26,16 @@ const answer = (statusCode: number, body = '', headers: [string, string][] = [])
 // headers the app would send for it
 const run = async (
   api: (variant: ProbeVariant, sent: Map<string, string>) => Omit<ProbeExchange, 'sent'>,
-  input: Partial<SecurityTestInput> & { sends?: Record<string, string>; otherSends?: Record<string, string> } = {},
+  input: Partial<SecurityTestInput> & { sends?: Record<string, string>; otherSends?: Record<string, string>; lowerSends?: Record<string, string> } = {},
 ) => {
-  const { sends = { authorization: `Bearer ${TOKEN}` }, otherSends = { authorization: 'Bearer other' }, ...rest } = input;
+  const { sends = { authorization: `Bearer ${TOKEN}` }, otherSends = { authorization: 'Bearer other' }, lowerSends = { authorization: 'Bearer lower' }, ...rest } = input;
   const variants: ProbeVariant[] = [];
   const result = await runSecurityTests({
     method: 'GET',
     url: 'https://api.example.com/orders',
     send: async variant => {
       variants.push(variant);
-      const sent = new Map(Object.entries(variant.withoutCredentials ? {} : variant.asOther ? otherSends : sends));
+      const sent = new Map(Object.entries(variant.withoutCredentials ? {} : variant.asOther ? otherSends : variant.asLower ? lowerSends : sends));
       Object.entries(variant.headers || {}).forEach(([name, value]) => sent.set(name.toLowerCase(), value));
       return { ...api(variant, sent), sent };
     },
@@ -78,7 +78,7 @@ describe('sameAnswer()', () => {
 
 describe('runSecurityTests()', () => {
   it('finds nothing in a careful API, and says what each test saw', async () => {
-    const { findings, outcomes, requests, checks } = await run(careful, { hasOther: true });
+    const { findings, outcomes, requests, checks } = await run(careful, { hasOther: true, hasLower: true });
 
     expect(findings).toEqual([]);
     expect(outcomes).toEqual({
@@ -87,6 +87,7 @@ describe('runSecurityTests()', () => {
       'token-signature': 'passed',
       'token-unsigned': 'passed',
       'other-user': 'passed',
+      'lower-privilege': 'passed',
       'cors-any-origin': 'passed',
       'answers-plain-http': 'passed',
       'quote-in-parameter': 'skipped',
@@ -95,11 +96,11 @@ describe('runSecurityTests()', () => {
     expect(checks.find(({ id }) => id === 'no-credentials')?.note).toBe('It answered 401.');
     expect(checks.find(({ id }) => id === 'answers-plain-http')?.note).toBe('It answered 301. It sends the caller on to somewhere else.');
     // (the request, then one for each test that sent)
-    expect(requests).toBe(7);
+    expect(requests).toBe(8);
   });
 
   it('never sends more than it says it may', async () => {
-    const { requests } = await run(() => answer(200, ORDERS), { hasOther: true, url: 'https://api.example.com/orders?a=1&b=2&c=3&d=4' });
+    const { requests } = await run(() => answer(200, ORDERS), { hasOther: true, hasLower: true, url: 'https://api.example.com/orders?a=1&b=2&c=3&d=4' });
 
     expect(requests).toBe(SECURITY_TEST_MAX_REQUESTS);
   });
@@ -177,6 +178,44 @@ describe('runSecurityTests()', () => {
 
       expect(outcomes['token-signature']).toBe('skipped');
       expect(outcomes['token-unsigned']).toBe('skipped');
+    });
+  });
+
+  describe('with less privilege', () => {
+    const forAdmins = (callable: (sent: Map<string, string>) => Omit<ProbeExchange, 'sent'>) => (variant: ProbeVariant, sent: Map<string, string>) =>
+      variant.asLower ? callable(sent) : careful(variant, sent);
+
+    it('says when the request is done all the same', async () => {
+      const { findings, variants } = await run(forAdmins(() => answer(200, ORDERS)), { hasLower: true });
+
+      expect(variants).toContainEqual({ asLower: true });
+      expect(findings).toEqual([expect.objectContaining({
+        id: 'lower-privilege',
+        severity: 'high',
+        owasp: 'API5:2023 Broken Function Level Authorization',
+        title: 'A user with less privilege can make this request',
+      })]);
+    });
+
+    it("says when it's answered rather than refused, even with another answer", async () => {
+      const { findings, checks } = await run(forAdmins(() => answer(200, '{"orders":[]}')), { hasLower: true });
+
+      expect(findings).toEqual([expect.objectContaining({ id: 'lower-privilege', severity: 'medium' })]);
+      expect(checks.find(({ id }) => id === 'lower-privilege')?.note).toBe('It answered 200. The answer was different from the one with full privilege, but it was not refused.');
+    });
+
+    it('passes when it is refused', async () => {
+      for (const status of [401, 403, 404]) {
+        const { outcomes, findings } = await run(forAdmins(() => answer(status, '{"error":"no"}')), { hasLower: true });
+        expect(outcomes['lower-privilege']).toBe('passed');
+        expect(findings).toEqual([]);
+      }
+    });
+
+    it("isn't tried without an environment chosen, or with one that sends the same credentials", async () => {
+      expect((await run(careful)).outcomes['lower-privilege']).toBe('skipped');
+      const same = await run(careful, { hasLower: true, lowerSends: { authorization: `Bearer ${TOKEN}` } });
+      expect(same.checks.find(({ id }) => id === 'lower-privilege')).toMatchObject({ outcome: 'skipped', note: 'The environment with less privilege sends the same credentials as this one.' });
     });
   });
 

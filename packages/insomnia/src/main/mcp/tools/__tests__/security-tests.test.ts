@@ -38,7 +38,7 @@ describe('run_security_tests', () => {
     confirm.mockResolvedValue(false);
 
     expect(await call({ requestId })).toEqual({ body: { error: 'the user declined to run the security tests' }, isError: true });
-    expect(confirm).toHaveBeenCalledWith({ request: 'Orders', method: 'GET', url: 'http://localhost/orders', workspace: 'Shop', requests: 25 }, signal);
+    expect(confirm).toHaveBeenCalledWith({ request: 'Orders', method: 'GET', url: 'http://localhost/orders', workspace: 'Shop', requests: 26 }, signal);
   });
 
   it('takes only a plain yes for one', async () => {
@@ -61,6 +61,7 @@ describe('run_security_tests', () => {
       ['token-signature', 'skipped'],
       ['token-unsigned', 'skipped'],
       ['other-user', 'skipped'],
+      ['lower-privilege', 'skipped'],
       ['cors-any-origin', 'passed'],
       ['answers-plain-http', 'skipped'],
       ['quote-in-parameter', 'skipped'],
@@ -127,7 +128,7 @@ describe('run_security_checks', () => {
     confirm.mockResolvedValue(false);
 
     expect(await callChecks({ parentId: folderId })).toEqual({ body: { error: 'the user declined to run the security checks' }, isError: true });
-    expect(confirm).toHaveBeenCalledWith({ request: 'Orders', count: 2, workspace: 'Shop', requests: 25 }, signal);
+    expect(confirm).toHaveBeenCalledWith({ request: 'Orders', count: 2, workspace: 'Shop', requests: 26 }, signal);
     expect(await models.response.all()).toEqual([]);
   });
 

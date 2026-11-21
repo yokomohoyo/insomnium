@@ -108,6 +108,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
   const { activeEnvironment, subEnvironments, activeWorkspaceMeta } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   const [requests, setRequests] = useState<RunnableRequest[]>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
+  const [lowerEnvironmentId, setLowerEnvironmentId] = useState('');
   const [items, setItems] = useState<SecurityRunItem[]>([]);
   const [summary, setSummary] = useState<SecurityRunSummary>();
   const [running, setRunning] = useState(false);
@@ -133,6 +134,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
     try {
       setSummary(await run(requests || [], {
         otherEnvironmentId: otherEnvironmentId || null,
+        lowerEnvironmentId: lowerEnvironmentId || null,
         ignored: ignoredRules(activeWorkspaceMeta?.securityIgnoredRules),
         signal: controller.current.signal,
         onItem: item => setItems(done => [...done, item]),
@@ -197,6 +199,15 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
             <label className="flex items-center gap-2 txt-sm">
               {t('As another user:')}
               <select className="input-box" disabled={running} value={otherEnvironmentId} onChange={event => setOtherEnvironmentId(event.currentTarget.value)}>
+                <option value="">{t('Not tested')}</option>
+                {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {others.length && !started ? (
+            <label className="flex items-center gap-2 txt-sm margin-top-sm" title={t('For requests only some users may make, such as a folder of admin requests: an environment whose user may not')}>
+              {t('With less privilege:')}
+              <select className="input-box" disabled={running} value={lowerEnvironmentId} onChange={event => setLowerEnvironmentId(event.currentTarget.value)}>
                 <option value="">{t('Not tested')}</option>
                 {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
               </select>

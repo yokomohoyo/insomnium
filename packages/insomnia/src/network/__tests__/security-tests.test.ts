@@ -94,6 +94,17 @@ describe('runRequestSecurityTests()', () => {
     expect(engine).toHaveBeenLastCalledWith(expect.objectContaining({ hasOther: true }));
   });
 
+  it("sends it with less privilege: that environment's credentials, for the first user's URL", async () => {
+    const base = await models.environment.getOrCreateForParentId(workspaceId);
+    const viewer = await models.environment.create({ parentId: base._id, name: 'Viewer', data: { token: 'viewer-token', user: 'vic' } });
+
+    const { url, headers } = await sentFor(requestId, { asLower: true }, { lowerEnvironmentId: viewer._id });
+
+    expect(url).toBe('http://localhost/users/ana/orders?page=2');
+    expect(headers).toContain('Authorization: Bearer viewer-token');
+    expect(engine).toHaveBeenLastCalledWith(expect.objectContaining({ hasLower: true, hasOther: false }));
+  });
+
   it('keeps nothing of what it sends', async () => {
     const responsesDir = `${process.env['INSOMNIA_DATA_PATH'] || electron.app.getPath('userData')}/responses`;
     // (where each answer's body and timeline are written, before they're removed)

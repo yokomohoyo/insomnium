@@ -67,12 +67,14 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored =
   const [, redraw] = useState(0);
   const [running, setRunning] = useState<AbortController>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
+  const [lowerEnvironmentId, setLowerEnvironmentId] = useState('');
   const requestId = useRef(request._id);
   requestId.current = request._id;
   // a run doesn't outlive the request being looked at
   useEffect(() => () => running?.abort(), [running]);
   useEffect(() => {
     setOtherEnvironmentId('');
+    setLowerEnvironmentId('');
     setRunning(undefined);
   }, [request._id]);
 
@@ -89,7 +91,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored =
     setRunning(controller);
     let outcome: Run;
     try {
-      outcome = { result: await run(id, { otherEnvironmentId: otherEnvironmentId || null, signal: controller.signal }) };
+      outcome = { result: await run(id, { otherEnvironmentId: otherEnvironmentId || null, lowerEnvironmentId: lowerEnvironmentId || null, signal: controller.signal }) };
     } catch (err) {
       outcome = { error: err instanceof Error ? err.message : String(err) };
     }
@@ -107,7 +109,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored =
       <h3 className="txt-md margin-top-sm">{t('Tests')}</h3>
       <p className="txt-sm faint">
         {safe
-          ? t("Sends this request again, changed a little each time, to see what the API does: without its credentials, with a token it shouldn't accept, as another user, from another site, over plain http, with a quote in a parameter, and several times in a row. Nothing they send is kept.")
+          ? t("Sends this request again, changed a little each time, to see what the API does: without its credentials, with a token it shouldn't accept, as another user, with less privilege, from another site, over plain http, with a quote in a parameter, and several times in a row. Nothing they send is kept.")
           : t('Only a GET or HEAD request is tested: a {method} would change things once more for every test.', { method: request.method })}
       </p>
       {safe ? (
@@ -124,6 +126,20 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored =
                 disabled={Boolean(running)}
                 value={otherEnvironmentId}
                 onChange={event => setOtherEnvironmentId(event.currentTarget.value)}
+              >
+                <option value="">{t('Not tested')}</option>
+                {environments.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {environments.length ? (
+            <label className="flex items-center gap-2 txt-sm" title={t('For a request only some users may make: an environment whose user may not')}>
+              {t('With less privilege:')}
+              <select
+                className="input-box"
+                disabled={Boolean(running)}
+                value={lowerEnvironmentId}
+                onChange={event => setLowerEnvironmentId(event.currentTarget.value)}
               >
                 <option value="">{t('Not tested')}</option>
                 {environments.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}

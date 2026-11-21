@@ -137,7 +137,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 ## Security checks in CI
 
-`security` is the app's [Security Checks](../../docs/security-checks.md#a-whole-collection) for a pipeline, by the OWASP API Security Top 10. It tests each GET and HEAD in the collection (sent again up to 25 times, changed a little each time) and looks at their answers. Any other request is never sent. Nothing sent is kept.
+`security` is the app's [Security Checks](../../docs/security-checks.md#a-whole-collection) for a pipeline, by the OWASP API Security Top 10. It tests each GET and HEAD in the collection (sent again up to 26 times, changed a little each time) and looks at their answers. Any other request is never sent. Nothing sent is kept.
 
 The app asks before it sends anything. A pipeline has nobody to ask, so the go-ahead is on the command line, and both parts are required every time:
 
@@ -174,11 +174,12 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--folder` | only the requests in this folder, by name or path |
 | `--env` | the sub environment to send with, by name |
 | `--as` | a sub environment holding another user's credentials: each request is also sent once as them |
+| `--as-lower` | for requests only some users may make (use it with `--folder`): a sub environment whose user may not. Anything but a refusal is a finding |
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
 | `--ignore` | rules to leave out, by id, comma-separated. The ids are the bracketed names in the output |
 | `--markdown`, `--json`, `--sarif` | write a report to this file |
 
-`--as` takes its credentials from the collection: a sub environment whose values can come from `{% env 'NAME' %}` (allowed with `INSOMNIUM_ALLOWED_ENV`). `INSOMNIUM_VAR_<name>` sets a variable in the environment chosen with `--env` only.
+`--as` and `--as-lower` take their credentials from the collection: a sub environment whose values can come from `{% env 'NAME' %}` (allowed with `INSOMNIUM_ALLOWED_ENV`). `INSOMNIUM_VAR_<name>` sets a variable in the environment chosen with `--env` only.
 
 ## Load test a collection
 

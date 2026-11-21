@@ -121,7 +121,7 @@ describe('runSecurityChecks()', () => {
     const { requests } = await collection();
 
     // (the event stream is a GET too, and isn't sent)
-    expect(securityRunMaxRequests(requests)).toBe(25);
+    expect(securityRunMaxRequests(requests)).toBe(26);
     expect(securityRunMaxRequests([])).toBe(0);
   });
 });
