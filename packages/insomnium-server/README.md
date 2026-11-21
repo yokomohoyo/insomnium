@@ -176,7 +176,7 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--folder` | only the requests in this folder, by name or path |
 | `--env` | the sub environment to send with, by name |
 | `--as` | a sub environment holding another user's credentials: each request is also sent once as them |
-| `--as-lower` | for requests only some users may make (use it with `--folder`): a sub environment whose user may not. Anything but a refusal is a finding |
+| `--as-lower` | for requests only some users may make: a sub environment whose user may not. Anything but a refusal is a finding. Tried on the requests the collection marks as restricted (shown as `(restricted)`); when it marks none, on every request, so use it with `--folder` |
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
 | `--ignore` | rules to leave out, by id, comma-separated, on top of those the collection itself ignores (named at the start of the output). The ids are the bracketed names in the output |
 | `--markdown`, `--json`, `--sarif` | write a report to this file |

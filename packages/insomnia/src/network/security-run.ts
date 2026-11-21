@@ -27,6 +27,8 @@ export interface SecurityRunItem {
   // it should have been tested, and couldn't be (note says why): not the same
   // as a request that is never sent
   failed?: boolean;
+  // marked as for some users only: the one the less-privilege test is for
+  restricted?: boolean;
   // what the response showed, then what the tests found, most severe first
   findings: AuditFinding[];
   // each test and what it saw, for a request that was tested
@@ -43,6 +45,9 @@ export interface SecurityRunSummary {
   requests: number;
   // stopped by its signal
   stopped: boolean;
+  // requests marked as for some users only that were tested without the
+  // less-privilege test, no environment having been chosen for it
+  restrictedUntried: number;
   // the requests against the design document's spec, when it has one: how
   // many operations the spec has, and those no request covers
   inventory?: { operations: number; uncovered: string[] };
@@ -86,13 +91,17 @@ const count = (items: SecurityRunItem[]) => {
 
 export async function runSecurityChecks(requests: RunnableRequest[], { ignored = [], spec, covering, onItem, signal, test = runRequestSecurityTests, ...options }: SecurityRunOptions = {}): Promise<SecurityRunSummary> {
   const items: SecurityRunItem[] = [];
+  // With requests marked as for some users only, the less-privilege test is
+  // theirs alone; with none marked, choosing the environment is what says the
+  // run's requests are restricted, as before there was a marker
+  const marked = requests.some(({ restricted }) => restricted);
   // which requests the spec doesn't describe: nothing is sent to find out, so
   // it covers the requests that are never sent as well
   const forSpec = (list: RunnableRequest[]) => list.map(({ request }) => ({ requestId: request._id, method: request.method, url: request.url }));
   const inventory = spec ? compareWithSpec(spec, forSpec(requests)) : null;
   const uncovered = spec && covering ? compareWithSpec(spec, forSpec(covering))?.uncovered : inventory?.uncovered;
   const notInSpec = new Map((inventory?.undocumented || []).map(({ requestId, operation }) => [requestId, operation]));
-  for (const { request, folders } of requests) {
+  for (const { request, folders, restricted } of requests) {
     if (signal?.aborted) {
       break;
     }
@@ -103,6 +112,7 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
       method: request.method,
       url: request.url,
       outcome: 'skipped',
+      ...(restricted ? { restricted: true } : {}),
       findings: [],
       checks: [],
       requests: 0,
@@ -111,7 +121,7 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
       item.note = "An event stream never ends, so it isn't sent.";
     } else if (isSafeToRepeat(request.method)) {
       try {
-        const run = await test(request._id, { ...options, signal });
+        const run = await test(request._id, { ...options, ...(marked && !restricted ? { lowerEnvironmentId: null } : {}), signal });
         item.outcome = 'tested';
         item.url = shown(run.url);
         item.checks = run.checks;
@@ -145,6 +155,7 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
     findings: count(items),
     requests: items.reduce((sent, item) => sent + item.requests, 0),
     stopped: Boolean(signal?.aborted),
+    restrictedUntried: options.lowerEnvironmentId ? 0 : items.filter(item => item.restricted && item.outcome === 'tested').length,
     ...(inventory ? { inventory: { operations: inventory.operations, uncovered: uncovered || [] } } : {}),
   };
 }

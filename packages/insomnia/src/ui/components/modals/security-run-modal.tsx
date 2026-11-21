@@ -65,6 +65,7 @@ const ItemRow: FC<{ item: SecurityRunItem; onOpen: (requestId: string) => void }
           >
             {item.name || item.url}
           </button>
+          {item.restricted ? <i className="fa fa-lock warning margin-left-sm" title={t('Restricted to some users')} aria-label={t('Restricted to some users')} /> : null}
           <span className="txt-sm faint margin-left-sm">{item.method} {item.url}</span>
           <span className={`txt-sm margin-left-sm ${worst ? SEVERITY_CLASSES[worst] : item.outcome === 'skipped' ? 'faint' : 'success'}`}>
             {item.outcome === 'skipped'
@@ -194,6 +195,13 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
               <strong className="warning">{t("Run it only against an API you're allowed to test.")}</strong>
             </p>
           )}
+          {requests && !started && requests.some(({ restricted }) => restricted) && (
+            <p className="txt-sm" data-testid="security-run-marked">
+              <i className="fa fa-lock warning" aria-hidden />
+              {' '}
+              {t('{count, plural, one {# request is} other {# requests are}} marked as restricted to some users. With less privilege is tried on those alone.', { count: requests.filter(({ restricted }) => restricted).length })}
+            </p>
+          )}
           {requests && !started && (
             <p data-testid="security-run-plan" className="no-margin-top">
               {t('{count, plural, one {# request} other {# requests}}', { count: requests.length })}
@@ -230,6 +238,13 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
               <ul aria-label={t('Security check results')} className="list-none m-0 p-0">
                 {items.map(item => <ItemRow key={item.requestId} item={item} onOpen={openRequest} />)}
               </ul>
+              {summary?.restrictedUntried ? (
+                <p className="notice warning txt-sm margin-top-sm" data-testid="security-run-restricted">
+                  <i className="fa fa-lock" aria-hidden />
+                  {' '}
+                  {t('{count, plural, one {# request marked as restricted was} other {# requests marked as restricted were}} not tried with less privilege: no environment was chosen for it.', { count: summary.restrictedUntried })}
+                </p>
+              ) : null}
               {summary?.inventory ? (
                 <details className="margin-top-sm txt-sm" data-testid="security-run-inventory">
                   <summary className="cursor-pointer">

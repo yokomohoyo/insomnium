@@ -22,6 +22,8 @@ export interface RunnableRequest {
   request: Request;
   // the folders it's in, outermost first
   folders: string[];
+  // marked as for some users only, itself or by a folder it's in
+  restricted?: boolean;
 }
 
 export interface RunResult {
@@ -73,7 +75,26 @@ export interface RunSummary {
 }
 
 // The HTTP requests under a workspace or folder, in the sidebar's (manual) order
-export async function listRunnableRequests(parentId: string, folders: string[] = []): Promise<RunnableRequest[]> {
+// whether a folder, or one above it, is marked as for some users only
+const restrictedFolder = async (folderId: string): Promise<boolean> => {
+  const seen = new Set<string>();
+  for (let id: string | null = folderId; id && !seen.has(id);) {
+    seen.add(id);
+    const folder: models.BaseModel & { securityRestricted?: boolean } | null = await models.requestGroup.getById(id);
+    if (!folder) {
+      return false;
+    }
+    if (folder.securityRestricted) {
+      return true;
+    }
+    id = folder.parentId;
+  }
+  return false;
+};
+
+// (restricted: whether what's above parentId is marked; found out when not given)
+export async function listRunnableRequests(parentId: string, folders: string[] = [], restricted?: boolean): Promise<RunnableRequest[]> {
+  const inherited = restricted ?? await restrictedFolder(parentId);
   const children = [
     ...await models.requestGroup.findByParentId(parentId),
     ...await models.request.findByParentId(parentId),
@@ -81,9 +102,10 @@ export async function listRunnableRequests(parentId: string, folders: string[] =
   const runnable: RunnableRequest[] = [];
   for (const child of children) {
     if (models.requestGroup.isRequestGroup(child)) {
-      runnable.push(...await listRunnableRequests(child._id, [...folders, child.name]));
+      runnable.push(...await listRunnableRequests(child._id, [...folders, child.name], inherited || Boolean(child.securityRestricted)));
     } else {
-      runnable.push({ request: child as Request, folders });
+      const request = child as Request;
+      runnable.push({ request, folders, ...(inherited || request.securityRestricted ? { restricted: true } : {}) });
     }
   }
   return runnable;

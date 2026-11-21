@@ -102,6 +102,23 @@ describe('<SecurityTestsPanel />', () => {
     expect(run).toHaveBeenCalledWith(request._id, expect.objectContaining({ lowerEnvironmentId: 'env_ben', otherEnvironmentId: null }));
   });
 
+  it('says when the request is marked as restricted, and what to choose for it', () => {
+    const { getByTestId, getByLabelText, queryByTestId, rerender, request, run, confirm } = panel({ restricted: true });
+
+    expect(getByTestId('security-restricted-note').textContent).toContain('Choose an environment under With less privilege');
+    fireEvent.change(getByLabelText('With less privilege:'), { target: { value: 'env_ben' } });
+    expect(getByTestId('security-restricted-note').textContent).toContain('it will be tried with less privilege');
+
+    rerender(<SecurityTestsPanel request={request} environments={ENVIRONMENTS} run={run} confirm={confirm} />);
+    expect(queryByTestId('security-restricted-note')).toBeNull();
+  });
+
+  it('says to add an environment when a restricted request has none to be tried with', () => {
+    const { getByTestId } = panel({ restricted: true, environments: [] });
+
+    expect(getByTestId('security-restricted-note').textContent).toContain('Add an environment');
+  });
+
   it('stops a run when asked to', async () => {
     let signal: AbortSignal | undefined;
     const run = jest.fn<RunTests>((_id, options) => new Promise<SecurityTestResult>(() => {

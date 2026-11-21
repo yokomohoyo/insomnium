@@ -14,7 +14,7 @@ export const canDuplicate = true;
 export const canSync = true;
 
 // kept on the folders that set them, without a default
-export const optionalKeys = ['authentication', 'headers'];
+export const optionalKeys = ['authentication', 'headers', 'securityRestricted'];
 
 interface BaseRequestGroup {
   name: string;
@@ -25,6 +25,9 @@ interface BaseRequestGroup {
   // what the requests in it inherit; unset unless the folder has them
   authentication?: RequestAuthenticationStrategy[];
   headers?: RequestHeader[];
+  // only some users may make the requests in it (an admin's, say): the
+  // security checks try them with less privilege (common/security-tests.ts)
+  securityRestricted?: boolean;
 }
 
 export type RequestGroup = BaseModel & BaseRequestGroup;

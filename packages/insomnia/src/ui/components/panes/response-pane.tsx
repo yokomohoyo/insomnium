@@ -18,6 +18,7 @@ import { projectPath } from '../../routes/paths';
 import type { RequestLoaderData } from '../../routes/request';
 import type { RootLoaderData } from '../../routes/root';
 import type { WorkspaceLoaderData } from '../../routes/workspace';
+import { restrictedIds } from '../../utils/restricted';
 import { PanelContainer, TabItem, Tabs } from '../base/tabs';
 import { PreviewModeDropdown } from '../dropdowns/preview-mode-dropdown';
 import { ResponseHistoryDropdown } from '../dropdowns/response-history-dropdown';
@@ -53,7 +54,9 @@ export const ResponsePane: FC<Props> = ({
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
-  const { activeEnvironment, subEnvironments, activeWorkspace } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const { activeEnvironment, subEnvironments, activeWorkspace, collection } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  // marked as for some users only, itself or by a folder it's in
+  const requestIsRestricted = Boolean(activeRequest && restrictedIds(collection || []).has(activeRequest._id));
   // the Security tab's rules this collection ignores: the collection's own, so
   // its exports and its team have them
   const ignoredSecurityRules = ignoredRules(activeWorkspace?.securityIgnoredRules);
@@ -291,6 +294,7 @@ export const ResponsePane: FC<Props> = ({
                 request={activeRequest}
                 environments={subEnvironments.filter(({ _id }) => _id !== activeEnvironment._id)}
                 ignored={ignoredSecurityRules}
+                restricted={requestIsRestricted}
                 onIgnore={id => setIgnoredSecurityRules([...ignoredSecurityRules, id])}
                 onResult={() => countAgain(count => count + 1)}
               />

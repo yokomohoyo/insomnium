@@ -40,6 +40,9 @@ export const securityTestFindings = (request: TestedRequest) => lastRun(request)
 
 interface Props {
   request: TestedRequest;
+  // marked as for some users only, itself or by a folder it's in: the
+  // less-privilege test is the one that matters for it
+  restricted?: boolean;
   // the rules this collection ignores, and the way to ignore another
   ignored?: string[];
   onIgnore?: (id: string) => void;
@@ -63,7 +66,7 @@ const askFirst = (requests: number) => new Promise<boolean>(resolve => showModal
 
 // Tries the API for what one response can't show (common/security-tests.ts),
 // when the user asks, and after they've agreed to what it sends
-export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored = [], onIgnore, onResult, run = runRequestSecurityTests, confirm = askFirst }) => {
+export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environments, ignored = [], onIgnore, onResult, run = runRequestSecurityTests, confirm = askFirst }) => {
   const [, redraw] = useState(0);
   const [running, setRunning] = useState<AbortController>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
@@ -112,6 +115,17 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored =
           ? t("Sends this request again, changed a little each time, to see what the API does: without its credentials, with a token it shouldn't accept, as another user, with less privilege, from another site, over plain http, with a quote in a parameter, and several times in a row. Nothing they send is kept.")
           : t('Only a GET or HEAD request is tested: a {method} would change things once more for every test.', { method: request.method })}
       </p>
+      {safe && restricted ? (
+        <p className="txt-sm notice warning" data-testid="security-restricted-note">
+          <i className="fa fa-lock" aria-hidden />
+          {' '}
+          {lowerEnvironmentId
+            ? t('This request is marked as restricted to some users: it will be tried with less privilege.')
+            : environments.length
+              ? t('This request is marked as restricted to some users. Choose an environment under With less privilege whose user should not be able to make it.')
+              : t('This request is marked as restricted to some users. Add an environment whose user should not be able to make it, to try it with less privilege.')}
+        </p>
+      ) : null}
       {safe ? (
         <div className="flex items-center gap-2 margin-top-sm">
           <button className="btn btn--clicky" disabled={Boolean(running)} onClick={start}>
