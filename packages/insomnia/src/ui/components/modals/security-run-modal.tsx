@@ -132,12 +132,16 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
     setError('');
     setRunning(true);
     try {
+      const spec = activeWorkspace?.scope === 'design' && activeApiSpec?.contents ? activeApiSpec.contents : undefined;
+      // a folder's run: the rest of the document's requests cover operations too
+      const covering = spec && activeWorkspace && parentId !== activeWorkspace._id ? await list(activeWorkspace._id) : undefined;
       setSummary(await run(requests || [], {
         otherEnvironmentId: otherEnvironmentId || null,
         lowerEnvironmentId: lowerEnvironmentId || null,
         ignored: ignoredRules(activeWorkspace?.securityIgnoredRules),
         // a design document's requests are also compared with its spec
-        ...(activeWorkspace?.scope === 'design' && activeApiSpec?.contents ? { spec: activeApiSpec.contents } : {}),
+        ...(spec ? { spec } : {}),
+        ...(covering ? { covering } : {}),
         signal: controller.current.signal,
         onItem: item => setItems(done => [...done, item]),
       }));

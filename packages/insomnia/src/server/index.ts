@@ -130,13 +130,15 @@ async function security(argv: string[]) {
     // a design document's spec, to compare its requests with (one document: specs don't add up)
     const [design] = workspaces.length === 1 ? workspaces.filter(workspace => workspace.scope === 'design') : [];
     const spec = design ? (await models.apiSpec.getByParentId(design._id))?.contents || undefined : undefined;
-    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, name: workspaces.map(workspace => workspace.name).join(', ') };
+    // (with --folder: the rest of the document's requests cover operations too)
+    const covering = spec && config.folder ? await selectRequests(workspaces) : undefined;
+    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, name: workspaces.map(workspace => workspace.name).join(', ') };
   } catch (err) {
     console.error(`[security] ${(err as Error).message}`);
     return 2;
   }
 
-  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, name } = prepared;
+  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, name } = prepared;
   print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.join(', ')}`);
   // said, not just done: a collection's file shouldn't be able to quiet a pipeline unseen
   if (ignoredByCollection.length) {
@@ -147,6 +149,7 @@ async function security(argv: string[]) {
     lowerEnvironmentId,
     ignored: ignoredRules([...ignoredByCollection, ...config.ignore]),
     spec,
+    covering,
     onItem: item => print(formatItem(item)),
   });
   if (summary.inventory) {

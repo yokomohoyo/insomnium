@@ -53,6 +53,9 @@ export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environme
   ignored?: string[];
   // the design document's spec, to compare the requests with (common/spec-inventory.ts)
   spec?: string;
+  // all the document's requests, when the run is over one folder of them: an
+  // operation another folder's request covers isn't one with no request
+  covering?: RunnableRequest[];
   onItem?: (item: SecurityRunItem) => void;
   // (the tests': replaced in tests)
   test?: (requestId: string, options: SecurityTestOptions) => Promise<SecurityTestRun>;
@@ -81,11 +84,13 @@ const count = (items: SecurityRunItem[]) => {
   return findings;
 };
 
-export async function runSecurityChecks(requests: RunnableRequest[], { ignored = [], spec, onItem, signal, test = runRequestSecurityTests, ...options }: SecurityRunOptions = {}): Promise<SecurityRunSummary> {
+export async function runSecurityChecks(requests: RunnableRequest[], { ignored = [], spec, covering, onItem, signal, test = runRequestSecurityTests, ...options }: SecurityRunOptions = {}): Promise<SecurityRunSummary> {
   const items: SecurityRunItem[] = [];
   // which requests the spec doesn't describe: nothing is sent to find out, so
   // it covers the requests that are never sent as well
-  const inventory = spec ? compareWithSpec(spec, requests.map(({ request }) => ({ requestId: request._id, method: request.method, url: request.url }))) : null;
+  const forSpec = (list: RunnableRequest[]) => list.map(({ request }) => ({ requestId: request._id, method: request.method, url: request.url }));
+  const inventory = spec ? compareWithSpec(spec, forSpec(requests)) : null;
+  const uncovered = spec && covering ? compareWithSpec(spec, forSpec(covering))?.uncovered : inventory?.uncovered;
   const notInSpec = new Map((inventory?.undocumented || []).map(({ requestId, operation }) => [requestId, operation]));
   for (const { request, folders } of requests) {
     if (signal?.aborted) {
@@ -140,6 +145,6 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
     findings: count(items),
     requests: items.reduce((sent, item) => sent + item.requests, 0),
     stopped: Boolean(signal?.aborted),
-    ...(inventory ? { inventory: { operations: inventory.operations, uncovered: inventory.uncovered } } : {}),
+    ...(inventory ? { inventory: { operations: inventory.operations, uncovered: uncovered || [] } } : {}),
   };
 }

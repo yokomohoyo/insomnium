@@ -120,7 +120,9 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
       const ignored = ignoredRules(workspace?.securityIgnoredRules);
       // a design document's requests are also compared with its spec
       const spec = workspace?.scope === 'design' ? (await models.apiSpec.getByParentId(workspace._id))?.contents : undefined;
-      const summary = await runSecurityChecks(requests, { otherEnvironmentId, lowerEnvironmentId, ignored, spec, signal, checkUrl: assertSafeRequestUrl });
+      // (a folder's run: the rest of the document's requests cover operations too)
+      const covering = spec && workspace && workspace._id !== parent._id ? await listRunnableRequests(workspace._id) : undefined;
+      const summary = await runSecurityChecks(requests, { otherEnvironmentId, lowerEnvironmentId, ignored, spec, covering, signal, checkUrl: assertSafeRequestUrl });
       return json({ parentId, ...summary, ...(ignored.length ? { ignoredRules: ignored } : {}) });
     },
   );
