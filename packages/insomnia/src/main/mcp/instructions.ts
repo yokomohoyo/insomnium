@@ -22,6 +22,7 @@ Everything here works on the user's own collections, on their computer. Changes 
 
 ## Send and check
 - \`send_http_request\` sends one request as the Send button does: pre-request script, rendering, auth, cookies, after-response script and assertions. It returns the status, time, assertion results and what the scripts logged. Read the body with \`get_last_response\` or \`get_response\`.
+- \`audit_response\` lists what a kept response says about the API's security (plain http, weak TLS, credentials in the URL, token, header, cookie and CORS problems, stack traces, sensitive-looking fields), each with its severity and OWASP API Security Top 10 risk. It sends nothing, so it can't show what takes trying the API.
 - \`send_grpc_request\` calls a gRPC method (see \`get_proto_methods\`).
 - \`run_requests\` runs a workspace's or folder's HTTP requests in order, with iterations, and returns each result with its time and phases (DNS, connect, TLS, waiting, download) and each request's latency percentiles.
 - \`run_flow\` runs a flow: requests joined with conditions and variables.
@@ -70,6 +71,7 @@ It serves the collections it was started with (files or Git repositories), read-
 
 ## Send and check
 - \`send_http_request\` sends one request with its scripts and assertions; read the body with \`get_last_response\` or \`get_response\`.
+- \`audit_response\` lists what a kept response says about the API's security (plain http, weak TLS, credentials in the URL, token, header, cookie and CORS problems, stack traces, sensitive-looking fields), each with its severity and OWASP API Security Top 10 risk. It sends nothing, so it can't show what takes trying the API.
 - \`send_grpc_request\` calls a gRPC method (see \`get_proto_methods\`).
 - \`run_requests\` runs a workspace's or folder's requests, with iterations, and returns each result with its time and phases and each request's latency percentiles. \`run_flow\` runs a flow.
 `;

@@ -26,6 +26,7 @@ Match the user's words against request names and URLs. If two fit, ask which one
 - `send_http_request` with a `requestId` sends it as the app would: variables, auth, the pre-request script, cookies. The result has the status, timing, the body (cut short when large) and any assertion results.
 - `send_grpc_request` for gRPC; streaming calls need a `messages` list.
 - `get_last_response` or `list_responses` shows what an earlier send got.
+- `audit_response` lists what a response says about the API's security (plain http, token, header and cookie problems, stack traces), without sending anything.
 
 Don't send requests that change data (POST, PUT, PATCH, DELETE) to a production environment unless the user asked for exactly that.
 

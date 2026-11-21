@@ -31,7 +31,7 @@ An HTTP request's tabs:
 
 `:name` segments in a URL are path parameters, filled in below the query parameters. Request settings (the request's dropdown, then **Settings**) cover redirects, URL encoding, cookies, a timeout, certificate validation and the HTTP version for that request.
 
-Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows the body, headers, cookies, the timeline (the raw exchange), and **Tests**, which lists the results of the request's assertions and script tests, and what its scripts logged.
+Send with **Send** or Ctrl+Enter (⌘+Enter on macOS). The response pane shows the body, headers, cookies, the timeline (the raw exchange), and **Tests**, which lists the results of the request's assertions and script tests, and what its scripts logged. **Security** lists what the response says about the API's security: see [Security checks](security-checks.md).
 
 Hover the response time to see how it was spent: the DNS lookup, connecting, the TLS handshake, waiting for the first byte, and the download.
 
