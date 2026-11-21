@@ -15,7 +15,8 @@ const titleOf = ({ folders, name, method, url }: SecurityRunItem) => `${[...fold
 const counts = ({ findings }: SecurityRunSummary) => SEVERITIES.filter(severity => findings[severity]).map(severity => `${findings[severity]} ${LABELS[severity].toLowerCase()}`).join(', ') || 'none';
 
 // one line of a Markdown table or list: no pipes or line breaks to break it
-const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ');
+// (backslashes first, or one before a pipe would undo its escape)
+const cell = (text: string) => text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ');
 
 export const securityJsonReport = (summary: SecurityRunSummary, name: string, generated = new Date()) => JSON.stringify({
   name,
