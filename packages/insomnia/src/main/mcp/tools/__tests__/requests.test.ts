@@ -71,4 +71,35 @@ describe('the request tools', () => {
     expect(await call('duplicate_request', { requestId: 'req_nope' })).toEqual({ body: { error: 'not found' }, isError: true });
     expect(await call('duplicate_request', { requestId: original._id, parentId: 'fld_nope' })).toEqual({ body: { error: 'parentId is not a workspace or folder' }, isError: true });
   });
+
+  it("audit a request's latest response, or one by id, and send nothing", async () => {
+    const request = await models.request.create({ parentId: workspaceId, name: 'List', url: 'http://shop.example.com/orders' });
+    const kept = (patch: object) => models.response.create({
+      parentId: request._id,
+      statusCode: 200,
+      contentType: 'application/json',
+      headers: [{ name: 'Content-Type', value: 'application/json' }, { name: 'X-Content-Type-Options', value: 'nosniff' }],
+      ...patch,
+    });
+    const earlier = await kept({ url: 'http://shop.example.com/orders?api_key=s3cret', created: 1 });
+    const latest = await kept({ url: 'https://localhost:8443/orders', created: 2 });
+
+    expect((await call('audit_response', { requestId: request._id })).body).toEqual({ responseId: latest._id, url: 'https://localhost:8443/orders', statusCode: 200, findings: [] });
+
+    const { body, isError } = await call('audit_response', { responseId: earlier._id });
+    expect(isError).toBe(false);
+    expect(body.findings.map((finding: { id: string }) => finding.id)).toEqual(['plain-http', 'secret-in-url']);
+    expect(body.findings[0]).toEqual({ id: 'plain-http', severity: 'medium', owasp: 'API8:2023 Security Misconfiguration', title: 'Sent over plain HTTP', detail: expect.any(String) });
+    expect(JSON.stringify(body)).not.toContain('s3cret');
+  });
+
+  it('refuse to audit what has no response', async () => {
+    const request = await models.request.create({ parentId: workspaceId, name: 'List', url: 'https://shop.example.com/orders' });
+    expect(await call('audit_response', {})).toEqual({ body: { error: 'give a responseId or a requestId' }, isError: true });
+    expect(await call('audit_response', { requestId: request._id })).toEqual({ body: { error: 'no responses' }, isError: true });
+    expect(await call('audit_response', { responseId: 'res_nope' })).toEqual({ body: { error: 'not found' }, isError: true });
+
+    const failed = await models.response.create({ parentId: request._id, error: 'Could not resolve host', statusCode: 0 });
+    expect(await call('audit_response', { responseId: failed._id })).toEqual({ body: { error: 'the request got no response to audit' }, isError: true });
+  });
 });

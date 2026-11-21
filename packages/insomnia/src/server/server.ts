@@ -35,6 +35,7 @@ const SERVER_TOOLS = new Set([
   'list_responses',
   'get_response',
   'get_last_response',
+  'audit_response',
   'list_response_examples',
   'get_spec',
   'list_test_suites',

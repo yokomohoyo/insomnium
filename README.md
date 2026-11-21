@@ -137,6 +137,7 @@ Check a response without code, with code, or both.
 - **Scripts:** a pre-request and an after-response script in JavaScript, to change the request, keep a token or an id for the next one, and test the response with `insomnia.test` and `insomnia.expect`. `pm` is the same API, so common Postman scripts work as written.
 - **A sandbox:** scripts run in QuickJS, apart from the app, with no network, files or Node. A script in a collection someone shared can change that collection's request and environment, and nothing else.
 - **Results:** the response's **Tests** tab lists each assertion and script test, with what was found when one fails, and what the scripts logged.
+- **Security checks:** the response's **Security** tab lists what it says about the API's security, by the OWASP API Security Top 10: plain http, credentials in the URL, unsigned tokens, missing headers, cookie flags, stack traces. [More](docs/security-checks.md).
 
 More: [docs/testing.md](docs/testing.md) and [docs/scripts.md](docs/scripts.md).
 
@@ -234,7 +235,7 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 
 - **Projects & workspaces** — list/create projects, workspaces (collections or design docs), and folders.
 - **Organizing** — rename, move, convert and copy workspaces (`update_workspace`, `duplicate_workspace`); rename projects and delete empty ones; rename, move, copy and delete folders.
-- **Request introspection** — list HTTP, Event Stream, gRPC, WebSocket and MCP requests, read full request details, and read recent responses (including the last response body).
+- **Request introspection** — list HTTP, Event Stream, gRPC, WebSocket and MCP requests, read full request details, read recent responses (including the last response body), and list what a response says about the API's security (`audit_response`).
 - **Execution** — `send_http_request` and `send_grpc_request` (all four gRPC method types), with optional environment and timeout overrides.
 - **Mutation** — create requests of every type the app makes (HTTP, GraphQL, Event Stream, gRPC, WebSocket, MCP), update, copy and delete them; create folders.
 - **Collections** — run a workspace's or folder's requests with their assertions (`run_requests`), import any format the app imports (`import_collection`), export as Insomnium, Postman or OpenAPI (`export_workspace`), and list, set and delete cookies (values only on request).

@@ -7,6 +7,7 @@ import { useRouteLoaderData } from 'react-router-dom';
 import { PREVIEW_MODE_SOURCE } from '../../../common/constants';
 import { t } from '../../../common/i18n';
 import { getSetCookieHeaders } from '../../../common/misc';
+import { worstSeverity } from '../../../common/response-audit';
 import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
 import { cancelRequestById } from '../../../network/cancellation';
@@ -26,6 +27,7 @@ import { TimeTag } from '../tags/time-tag';
 import { AssertionResultsViewer } from '../viewers/assertion-results-viewer';
 import { ResponseCookiesViewer } from '../viewers/response-cookies-viewer';
 import { ResponseHeadersViewer } from '../viewers/response-headers-viewer';
+import { ResponseSecurityViewer, useResponseAudit } from '../viewers/response-security-viewer';
 import { ResponseTimelineViewer } from '../viewers/response-timeline-viewer';
 import { ResponseViewer } from '../viewers/response-viewer';
 import { ResponseVisualizer } from '../viewers/response-visualizer';
@@ -47,6 +49,7 @@ export const ResponsePane: FC<Props> = ({
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
+  const securityFindings = useResponseAudit(activeResponse);
   const handleSetFilter = async (responseFilter: string) => {
     if (!activeResponse) {
       return;
@@ -134,6 +137,7 @@ export const ResponsePane: FC<Props> = ({
   const timeline = models.response.getTimeline(activeResponse);
   const cookieHeaders = getSetCookieHeaders(activeResponse.headers);
   const assertionResults = activeResponse.assertionResults || [];
+  const worstFinding = worstSeverity(securityFindings || []);
   return (
     <Pane type="response">
       {!activeResponse ? null : (
@@ -244,6 +248,23 @@ export const ResponsePane: FC<Props> = ({
             </ErrorBoundary>
           </TabItem>,
         ] : []),
+        <TabItem
+          key="security"
+          title={
+            <>
+              {t('Security')}
+              {securityFindings?.length ? (
+                <span className={`bubble ${worstFinding === 'high' ? 'danger' : worstFinding === 'medium' ? 'warning' : ''}`}>{securityFindings.length}</span>
+              ) : null}
+            </>
+          }
+        >
+          <PanelContainer className="pad">
+            <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
+              <ResponseSecurityViewer findings={securityFindings} />
+            </ErrorBoundary>
+          </PanelContainer>
+        </TabItem>,
         <TabItem key="timeline" title={t('Timeline')}>
           <ErrorBoundary key={activeResponse._id} errorClassName="font-error pad text-center">
             <ResponseTimelineViewer
