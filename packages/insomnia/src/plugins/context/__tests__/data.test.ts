@@ -200,6 +200,7 @@ describe('app.export.*', () => {
           modified: 222,
           name: 'New Collection',
           parentId: null,
+          securityIgnoredRules: [],
           scope: WorkspaceScopeKeys.collection,
         },
       ]),
