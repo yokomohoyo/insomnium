@@ -76,8 +76,7 @@ describe('run_security_tests', () => {
 
   it('leaves out what the collection ignores in the Security tab, and says so', async () => {
     confirm.mockResolvedValue(true);
-    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-    await models.workspaceMeta.updateByParentId(workspaceId, { securityIgnoredRules: ['rate-limit'] });
+    await models.workspace.update((await models.workspace.getById(workspaceId))!, { securityIgnoredRules: ['rate-limit'] });
 
     const { body } = await call({ requestId });
 
@@ -148,8 +147,7 @@ describe('run_security_checks', () => {
 
   it('leaves out the rules the collection ignores, and names them', async () => {
     confirm.mockResolvedValue(true);
-    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-    await models.workspaceMeta.updateByParentId(workspaceId, { securityIgnoredRules: ['rate-limit'] });
+    await models.workspace.update((await models.workspace.getById(workspaceId))!, { securityIgnoredRules: ['rate-limit'] });
 
     const { body } = await callChecks({ parentId: folderId });
 

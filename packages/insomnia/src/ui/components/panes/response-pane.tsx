@@ -14,7 +14,7 @@ import * as models from '../../../models';
 import { cancelRequestById } from '../../../network/cancellation';
 import { jsonPrettify } from '../../../utils/prettify/json';
 import { useRequestMetaPatcher } from '../../hooks/use-request';
-import { workspacePath } from '../../routes/paths';
+import { projectPath } from '../../routes/paths';
 import type { RequestLoaderData } from '../../routes/request';
 import type { RootLoaderData } from '../../routes/root';
 import type { WorkspaceLoaderData } from '../../routes/workspace';
@@ -53,14 +53,15 @@ export const ResponsePane: FC<Props> = ({
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
-  const { activeEnvironment, subEnvironments, activeWorkspaceMeta } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
-  // the Security tab's rules this collection ignores, kept with its settings
-  const ignoredSecurityRules = ignoredRules(activeWorkspaceMeta?.securityIgnoredRules);
+  const { activeEnvironment, subEnvironments, activeWorkspace } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  // the Security tab's rules this collection ignores: the collection's own, so
+  // its exports and its team have them
+  const ignoredSecurityRules = ignoredRules(activeWorkspace?.securityIgnoredRules);
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
   const ignoredFetcher = useFetcher();
   const setIgnoredSecurityRules = (securityIgnoredRules: string[]) => ignoredFetcher.submit(
-    { securityIgnoredRules },
-    { action: workspacePath({ organizationId, projectId, workspaceId }, 'update-meta'), method: 'post', encType: 'application/json' },
+    { workspaceId, securityIgnoredRules },
+    { action: projectPath({ organizationId, projectId }, 'workspace/update'), method: 'post', encType: 'application/json' },
   );
   const audited = useResponseAudit(activeResponse);
   const securityFindings = audited && withoutIgnored(audited, ignoredSecurityRules);

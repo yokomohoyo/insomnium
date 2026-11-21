@@ -10,6 +10,7 @@ import { guard } from '../utils/guard';
 import { database as db } from './database';
 import { isApiSpecImport, isSubEnvironmentResource, remapTemplateIds, ResourceCache, sortKeyer } from './import';
 import { generateId } from './misc';
+import { ignoredRules } from './security-rules';
 
 export const importResourcesToNewWorkspace = async (projectId: string, _resources?: BaseModel[], workspaceToImport?: Workspace) => {
 
@@ -37,6 +38,8 @@ export const importResourcesToNewWorkspace = async (projectId: string, _resource
     name: workspaceToImport?.name || 'Imported Workspace',
     scope: workspaceToImport?.scope || 'collection',
     parentId: projectId,
+    // the Security tab's rules the collection ignores come with it
+    securityIgnoredRules: ignoredRules(workspaceToImport?.securityIgnoredRules),
   });
   const apiSpec = resources.find(r => r.type === 'ApiSpec' && r.parentId === workspaceToImport?._id) as ApiSpec;
   const hasApiSpec = newWorkspace.scope === 'design' && isApiSpec(apiSpec);

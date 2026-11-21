@@ -1,7 +1,8 @@
 // The rules behind the Security tab's findings, by the id each finding has:
 // what a response shows (response-audit.ts) and what the tests find
 // (security-tests.ts). A collection can ignore a rule, by its id, kept with
-// the collection's settings on this computer (WorkspaceMeta.securityIgnoredRules).
+// the collection (Workspace.securityIgnoredRules): exported and synced with it,
+// so a team ignores the same rules.
 import type { AuditFinding } from './response-audit';
 
 export const SECURITY_RULES: Record<string, string> = {

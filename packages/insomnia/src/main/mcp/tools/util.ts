@@ -177,8 +177,7 @@ export async function foreignEnvironment(workspaceId: string | undefined, enviro
 export async function withoutIgnoredSecurityRules<T extends { id: string }>(requestId: string, findings: T[]) {
   const request = await models.request.getById(requestId);
   const workspace = request ? await findWorkspaceForRequest(request.parentId) : null;
-  const meta = workspace ? await models.workspaceMeta.getByParentId(workspace._id) : null;
-  const ignored = ignoredRules(meta?.securityIgnoredRules);
+  const ignored = ignoredRules(workspace?.securityIgnoredRules);
   return { findings: withoutIgnored(findings, ignored), ...(ignored.length ? { ignoredRules: ignored } : {}) };
 }
 

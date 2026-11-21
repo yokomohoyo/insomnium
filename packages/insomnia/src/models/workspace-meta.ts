@@ -49,8 +49,9 @@ export interface BaseWorkspaceMeta {
   // also lint the spec with the OWASP API Security Top 10 rules, on top of
   // whichever ruleset applies
   spectralOwasp: boolean;
-  // the Security tab's rules this collection doesn't want to hear about, by
-  // their ids (common/security-rules.ts)
+  // where the Security tab's ignored rules were kept in 0.10 and 0.11, on
+  // this computer only: they are the collection's now (Workspace), and what's
+  // here is moved there when the collection is opened (routes/workspace.tsx)
   securityIgnoredRules: string[];
 }
 

@@ -14,7 +14,7 @@ jest.mock('react-router-dom', () => ({
   useRouteLoaderData: () => ({
     activeEnvironment: { _id: 'env_base', name: 'Base Environment' },
     subEnvironments: [{ _id: 'env_ben', name: 'Ben' }],
-    activeWorkspaceMeta: { securityIgnoredRules: ['nosniff-missing'] },
+    activeWorkspace: { securityIgnoredRules: ['nosniff-missing'] },
   }),
 }));
 jest.mock('react-aria', () => ({

@@ -176,7 +176,7 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--as` | a sub environment holding another user's credentials: each request is also sent once as them |
 | `--as-lower` | for requests only some users may make (use it with `--folder`): a sub environment whose user may not. Anything but a refusal is a finding |
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
-| `--ignore` | rules to leave out, by id, comma-separated. The ids are the bracketed names in the output |
+| `--ignore` | rules to leave out, by id, comma-separated, on top of those the collection itself ignores (named at the start of the output). The ids are the bracketed names in the output |
 | `--markdown`, `--json`, `--sarif` | write a report to this file |
 
 `--as` and `--as-lower` take their credentials from the collection: a sub environment whose values can come from `{% env 'NAME' %}` (allowed with `INSOMNIUM_ALLOWED_ENV`). `INSOMNIUM_VAR_<name>` sets a variable in the environment chosen with `--env` only.
