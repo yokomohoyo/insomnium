@@ -87,6 +87,21 @@ describe('<SecurityRunModal />', () => {
     expect(getByTestId('security-run-item-Create').textContent).toContain("A POST isn't sent again");
   });
 
+  it('gives the results the room once a run has started, and offers to run again', async () => {
+    const { findByRole, findByTestId, getByTestId, queryByTestId, queryByLabelText } = open();
+    await findByTestId('security-run-plan');
+    expect(getByTestId('security-run-intro').textContent).toContain("Run it only against an API you're allowed to test.");
+
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
+
+    expect(queryByTestId('security-run-intro')).toBeNull();
+    expect(queryByTestId('security-run-plan')).toBeNull();
+    expect(queryByLabelText('As another user:')).toBeNull();
+    // (the button still says how many it may send)
+    expect(await findByRole('button', { name: 'Run Again (up to 50 requests)' })).toBeTruthy();
+  });
+
   it('tests as another user when an environment is chosen', async () => {
     const { findByRole, findByTestId, getByLabelText, run } = open();
     await findByTestId('security-run-plan');
