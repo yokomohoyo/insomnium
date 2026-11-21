@@ -122,16 +122,18 @@ async function security(argv: string[]) {
       throw new Error(`No HTTP requests to check${config.folder ? ` in '${config.folder}'` : ''}`);
     }
     const otherEnvironmentId = config.otherEnvironment ? await findOtherEnvironment(workspaces, config.otherEnvironment) : null;
-    prepared = { requests, otherEnvironmentId, name: workspaces.map(workspace => workspace.name).join(', ') };
+    const lowerEnvironmentId = config.lowerEnvironment ? await findOtherEnvironment(workspaces, config.lowerEnvironment, '--as-lower') : null;
+    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, name: workspaces.map(workspace => workspace.name).join(', ') };
   } catch (err) {
     console.error(`[security] ${(err as Error).message}`);
     return 2;
   }
 
-  const { requests, otherEnvironmentId, name } = prepared;
+  const { requests, otherEnvironmentId, lowerEnvironmentId, name } = prepared;
   print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.join(', ')}`);
   const summary = await runSecurityChecks(requests, {
     otherEnvironmentId,
+    lowerEnvironmentId,
     ignored: config.ignore,
     onItem: item => print(formatItem(item)),
   });

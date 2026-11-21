@@ -66,15 +66,15 @@ describe('<SecurityRunModal />', () => {
   it('says how many requests it may send before anything is sent, on the button that starts it', async () => {
     const { findByTestId, getByRole, run } = open();
 
-    expect((await findByTestId('security-run-plan')).textContent).toBe('3 requests: up to 50 requests will be sent.');
-    expect(getByRole('button', { name: 'Run the Checks (up to 50 requests)' })).toBeTruthy();
+    expect((await findByTestId('security-run-plan')).textContent).toBe('3 requests: up to 52 requests will be sent.');
+    expect(getByRole('button', { name: 'Run the Checks (up to 52 requests)' })).toBeTruthy();
     expect(run).not.toHaveBeenCalled();
   });
 
   it('runs the checks with the collection\'s ignored rules, and shows each request with what was found', async () => {
     const { findByRole, findByTestId, getByTestId, getByLabelText, run } = open();
 
-    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
 
     const summary = await findByTestId('security-run-summary');
     await waitFor(() => expect(summary.textContent).toBe('1 high, 1 low · 18 requests sent'));
@@ -92,14 +92,14 @@ describe('<SecurityRunModal />', () => {
     await findByTestId('security-run-plan');
     expect(getByTestId('security-run-intro').textContent).toContain("Run it only against an API you're allowed to test.");
 
-    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
     await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
 
     expect(queryByTestId('security-run-intro')).toBeNull();
     expect(queryByTestId('security-run-plan')).toBeNull();
     expect(queryByLabelText('As another user:')).toBeNull();
     // (the button still says how many it may send)
-    expect(await findByRole('button', { name: 'Run Again (up to 50 requests)' })).toBeTruthy();
+    expect(await findByRole('button', { name: 'Run Again (up to 52 requests)' })).toBeTruthy();
   });
 
   it('tests as another user when an environment is chosen', async () => {
@@ -107,10 +107,21 @@ describe('<SecurityRunModal />', () => {
     await findByTestId('security-run-plan');
 
     fireEvent.change(getByLabelText('As another user:'), { target: { value: 'env_ben' } });
-    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
     await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
 
     expect(run).toHaveBeenCalledWith(REQUESTS, expect.objectContaining({ otherEnvironmentId: 'env_ben' }));
+  });
+
+  it('tests with less privilege when that environment is chosen', async () => {
+    const { findByRole, findByTestId, getByLabelText, run } = open();
+    await findByTestId('security-run-plan');
+
+    fireEvent.change(getByLabelText('With less privilege:'), { target: { value: 'env_ben' } });
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
+    await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
+
+    expect(run).toHaveBeenCalledWith(REQUESTS, expect.objectContaining({ lowerEnvironmentId: 'env_ben', otherEnvironmentId: null }));
   });
 
   it('stops the run from its Stop button, and when it is closed', async () => {
@@ -120,7 +131,7 @@ describe('<SecurityRunModal />', () => {
     }));
     const { findByRole } = open(run);
 
-    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
     fireEvent.click(await findByRole('button', { name: 'Stop' }));
 
     expect(signal?.aborted).toBe(true);
@@ -129,7 +140,7 @@ describe('<SecurityRunModal />', () => {
   it('saves the report in the format chosen', async () => {
     showSaveDialog.mockResolvedValue({ canceled: false, filePath: '/tmp/Shop-security.md' });
     const { findByRole, findByTestId } = open();
-    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
     await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
 
     fireEvent.click(await findByRole('button', { name: 'Save Markdown' }));
@@ -142,7 +153,7 @@ describe('<SecurityRunModal />', () => {
 
   it('opens a request from its name', async () => {
     const { findByRole, findByTestId, getByRole } = open();
-    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 50 requests)' }));
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
     await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
 
     fireEvent.click(getByRole('button', { name: 'Create' }));

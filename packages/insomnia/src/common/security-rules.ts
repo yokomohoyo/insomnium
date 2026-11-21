@@ -26,6 +26,7 @@ export const SECURITY_RULES: Record<string, string> = {
   'token-signature': 'It accepts a token whose signature is wrong',
   'token-unsigned': 'It accepts an unsigned token',
   'other-user': 'Another user gets the same answer',
+  'lower-privilege': 'A user with less privilege can make this request',
   'cors-any-origin': 'CORS trusts whichever site asks, with credentials',
   'answers-plain-http': 'It also answers over plain http',
   'quote-in-parameter': 'A quote in a parameter breaks the server',

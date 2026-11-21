@@ -44,7 +44,7 @@ export interface SecurityRunSummary {
   stopped: boolean;
 }
 
-export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environmentId' | 'otherEnvironmentId' | 'signal' | 'checkUrl'> {
+export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environmentId' | 'otherEnvironmentId' | 'lowerEnvironmentId' | 'signal' | 'checkUrl'> {
   // the rules the collection ignores (common/security-rules.ts)
   ignored?: string[];
   onItem?: (item: SecurityRunItem) => void;

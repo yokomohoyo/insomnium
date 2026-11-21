@@ -32,13 +32,14 @@ export type ConfirmSecurityTests = (run: SecurityTestRequest, signal?: AbortSign
 export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSecurityTests) {
   server.tool(
     'run_security_tests',
-    `Try an HTTP request's API for what one response can't show, as the Security tab's Run Security Tests does. Sends the request again up to ${SECURITY_TEST_MAX_REQUESTS} times, changed a little each time: without its credentials, with a token whose signature is wrong, with an unsigned token, as another user (otherEnvironmentId), from another origin, over plain http, with a quote in a query parameter, and several times in a row. Only a GET or HEAD request is tested, and nothing sent is stored. The app asks the user to allow each run; a declined run returns an error and sends nothing. Returns each test's outcome (found, passed, skipped, unclear) with a note, and the findings with their severity and OWASP API Security Top 10 risk. Findings of rules the collection ignores in the Security tab are left out, and named in ignoredRules. A test that passed found nothing this once; it does not show the API is secure.`,
+    `Try an HTTP request's API for what one response can't show, as the Security tab's Run Security Tests does. Sends the request again up to ${SECURITY_TEST_MAX_REQUESTS} times, changed a little each time: without its credentials, with a token whose signature is wrong, with an unsigned token, as another user (otherEnvironmentId), as a user with less privilege (lowerEnvironmentId), from another origin, over plain http, with a quote in a query parameter, and several times in a row. Only a GET or HEAD request is tested, and nothing sent is stored. The app asks the user to allow each run; a declined run returns an error and sends nothing. Returns each test's outcome (found, passed, skipped, unclear) with a note, and the findings with their severity and OWASP API Security Top 10 risk. Findings of rules the collection ignores in the Security tab are left out, and named in ignoredRules. A test that passed found nothing this once; it does not show the API is secure.`,
     {
       requestId: z.string(),
       environmentId: z.string().nullable().optional().describe('Override the active environment for this call. Null = no environment overrides; omit = use workspace active environment.'),
       otherEnvironmentId: z.string().optional().describe("An environment holding another user's credentials: the request is sent once with them, to see whether that user gets the first user's data."),
+      lowerEnvironmentId: z.string().optional().describe('For a request only some users may make (an admin function): an environment whose user may not. The request is sent once with their credentials, and anything but a refusal is a finding.'),
     },
-    async ({ requestId, environmentId, otherEnvironmentId }, { signal }) => {
+    async ({ requestId, environmentId, otherEnvironmentId, lowerEnvironmentId }, { signal }) => {
       const request = await models.request.getById(requestId);
       if (!request || !isRequest(request)) {
         return notFound('HTTP request');
@@ -47,7 +48,7 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
         return fail(`only a GET or HEAD request is tested: a ${request.method} would change things once more for every test`);
       }
       const workspace = await findWorkspaceForRequest(request.parentId);
-      for (const id of [environmentId, otherEnvironmentId]) {
+      for (const id of [environmentId, otherEnvironmentId, lowerEnvironmentId]) {
         const foreign = await foreignEnvironment(workspace?._id, id);
         if (foreign) {
           return fail(foreign);
@@ -70,6 +71,7 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
         const { checks, findings, requests } = await runRequestSecurityTests(requestId, {
           ...(environmentId === undefined ? {} : { environmentId }),
           otherEnvironmentId,
+          lowerEnvironmentId,
           signal,
           // each URL the tests send to, as send_http_request checks its own
           checkUrl: assertSafeRequestUrl,
@@ -87,8 +89,9 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
     {
       parentId: z.string().describe('a workspace or folder id'),
       otherEnvironmentId: z.string().optional().describe("An environment holding another user's credentials: each tested request is also sent once with them."),
+      lowerEnvironmentId: z.string().optional().describe('For a folder of requests only some users may make: an environment whose user may not. Each tested request is also sent once with their credentials, and anything but a refusal is a finding.'),
     },
-    async ({ parentId, otherEnvironmentId }, { signal }) => {
+    async ({ parentId, otherEnvironmentId, lowerEnvironmentId }, { signal }) => {
       const parent = await models.workspace.getById(parentId) || await models.requestGroup.getById(parentId);
       if (!parent) {
         return notFound('workspace or folder');
@@ -98,9 +101,11 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
         return fail('no HTTP requests under parentId');
       }
       const workspace = await findWorkspaceForRequest(parentId);
-      const foreign = await foreignEnvironment(workspace?._id, otherEnvironmentId);
-      if (foreign) {
-        return fail(foreign);
+      for (const id of [otherEnvironmentId, lowerEnvironmentId]) {
+        const foreign = await foreignEnvironment(workspace?._id, id);
+        if (foreign) {
+          return fail(foreign);
+        }
       }
       const allowed = await confirm({
         request: parent.name,
@@ -114,7 +119,7 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
       }
       const meta = workspace ? await models.workspaceMeta.getByParentId(workspace._id) : null;
       const ignored = ignoredRules(meta?.securityIgnoredRules);
-      const summary = await runSecurityChecks(requests, { otherEnvironmentId, ignored, signal, checkUrl: assertSafeRequestUrl });
+      const summary = await runSecurityChecks(requests, { otherEnvironmentId, lowerEnvironmentId, ignored, signal, checkUrl: assertSafeRequestUrl });
       return json({ parentId, ...summary, ...(ignored.length ? { ignoredRules: ignored } : {}) });
     },
   );

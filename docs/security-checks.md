@@ -49,6 +49,7 @@ Under the findings, **Run Security Tests** tries the API. It sends the request a
 | With its JSON Web Token's signature changed | the answer is the same | API2 Broken Authentication |
 | With its JSON Web Token made unsigned (`alg` set to `none`) | the answer is the same | API2 Broken Authentication |
 | As another user | they get the same answer | API1 Broken Object Level Authorization |
+| With less privilege | it's answered rather than refused | API5 Broken Function Level Authorization |
 | With an `Origin` of another site | the answer allows that origin, with credentials | API8 Security Misconfiguration |
 | Over plain http, without credentials | it answers rather than refusing or redirecting | API8 Security Misconfiguration |
 | With a quote added to a query parameter (the first 3) | the answer shows a database error or a stack trace, or is a 5xx | API8 Security Misconfiguration |
@@ -58,9 +59,13 @@ Each test is listed with what was sent and what came back: found, passed, not ru
 
 To test as another user, choose an environment in **As another user** that holds that user's credentials. The request is sent to the same URL as before, with the other environment's auth and headers: the first user's data, asked for by the second.
 
+**With less privilege** is for a request that only some users may make: an admin's report, say. Choose an environment whose user may *not* make it. Choosing one is what says the request is restricted, so anything but a refusal is a finding: high when the answer is the same as with full privilege, medium when it's another answer. Leave it at **Not tested** for a request every user may make.
+
+For a whole collection, run **Security Checks** on the folder that holds the restricted requests, and choose the environment there.
+
 Things to know before running them:
 
-- **Only test an API you're allowed to test.** The app asks before each run, and says how many requests it may send (25 at most).
+- **Only test an API you're allowed to test.** The app asks before each run, and says how many requests it may send (26 at most).
 - **Only a GET or HEAD request is tested.** Anything else would change things once more for every test.
 - **Nothing they send is kept:** no response in the history, no cookie in the jar. The results stay until the app closes.
 - **A test that passes found nothing this once.** It doesn't show the API is secure, and 15 requests are too few to reach most rate limits.
@@ -76,7 +81,7 @@ For the API's design, a [design document](design-documents.md#owasp-api-security
 - Any other request is never sent. It gets what its last response showed, or a note that it has none yet: send it once first.
 - An event stream isn't sent.
 
-The dialog says how many requests it may send before it starts (25 for each GET and HEAD at most), and its Run button is the go-ahead. **As another user** works as it does for one request. Closing the dialog, or **Stop**, ends the run where it is.
+The dialog says how many requests it may send before it starts (26 for each GET and HEAD at most), and its Run button is the go-ahead. **As another user** and **With less privilege** work as they do for one request. Closing the dialog, or **Stop**, ends the run where it is.
 
 Each request is listed with what was found; its name opens it. The rules the collection ignores are left out.
 

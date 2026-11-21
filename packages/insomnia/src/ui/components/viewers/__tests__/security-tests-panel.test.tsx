@@ -35,7 +35,7 @@ describe('<SecurityTestsPanel />', () => {
 
     fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
 
-    await waitFor(() => expect(confirm).toHaveBeenCalledWith(25));
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith(26));
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -45,7 +45,7 @@ describe('<SecurityTestsPanel />', () => {
     fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
 
     expect((await findByLabelText('Security tests run')).children).toHaveLength(3);
-    expect(run).toHaveBeenCalledWith(request._id, { otherEnvironmentId: null, signal: expect.any(AbortSignal) });
+    expect(run).toHaveBeenCalledWith(request._id, { otherEnvironmentId: null, lowerEnvironmentId: null, signal: expect.any(AbortSignal) });
     expect(getByLabelText('Security test findings').textContent).toContain('It answers the same without credentials');
     expect(getByTestId('security-check-no-credentials').textContent).toContain('Found');
     expect(getByTestId('security-check-other-user').textContent).toContain('Not run');
@@ -90,6 +90,16 @@ describe('<SecurityTestsPanel />', () => {
     await findByLabelText('Security tests run');
 
     expect(run).toHaveBeenCalledWith(request._id, expect.objectContaining({ otherEnvironmentId: 'env_ben' }));
+  });
+
+  it('sends it with less privilege when that environment is chosen', async () => {
+    const { getByRole, getByLabelText, findByLabelText, run, request } = panel();
+
+    fireEvent.change(getByLabelText('With less privilege:'), { target: { value: 'env_ben' } });
+    fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
+    await findByLabelText('Security tests run');
+
+    expect(run).toHaveBeenCalledWith(request._id, expect.objectContaining({ lowerEnvironmentId: 'env_ben', otherEnvironmentId: null }));
   });
 
   it('stops a run when asked to', async () => {

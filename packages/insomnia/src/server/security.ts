@@ -26,6 +26,8 @@ export interface SecurityConfig extends Sources {
   environment?: string;
   // a sub environment with another user's credentials, by name
   otherEnvironment?: string;
+  // a sub environment whose user has less privilege than the requests need, by name
+  lowerEnvironment?: string;
   folder?: string;
   // the least severe finding that fails the run
   failOn: FailOn;
@@ -44,7 +46,7 @@ export interface SecurityConfig extends Sources {
 export const SECURITY_USAGE = `Usage: insomnium-server security (--collection <file> | --repo <url or directory>) ${ALLOW_FLAG} [--folder <name>] [--env <name>] [options]
 
 Checks the collection's HTTP requests as the app's Security Checks does, by the
-OWASP API Security Top 10. A GET or HEAD is sent again up to 25 times, changed a
+OWASP API Security Top 10. A GET or HEAD is sent again up to 26 times, changed a
 little each time (without its credentials, with a forged token, from another
 site, with a quote in a parameter, 15 times in a row), and its answer looked
 at. Any other request is never sent. Nothing sent is kept.
@@ -63,6 +65,9 @@ ${SOURCES_USAGE}
   --as          a sub environment holding another user's credentials, by name: each
                 request is also sent once as them, to see whether they get the first
                 user's data
+  --as-lower    for requests only some users may make (use it with --folder): a sub
+                environment whose user may not, by name. Each request is also sent
+                once as them, and anything but a refusal is a finding
   --fail-on     the least severe finding that fails the run: high (the default),
                 medium, low, info, or none to never fail
   --ignore      rules to leave out, by id, comma-separated (the ids are in a JSON report)
@@ -111,6 +116,9 @@ export const parseSecurityConfig = (argv: string[], env: Record<string, string |
       case '--as':
         config.otherEnvironment = value();
         break;
+      case '--as-lower':
+        config.lowerEnvironment = value();
+        break;
       case '--folder':
         config.folder = value();
         break;
@@ -157,7 +165,7 @@ export const parseSecurityConfig = (argv: string[], env: Record<string, string |
 };
 
 // the other user's environment, by name: one of the collections' sub environments
-export async function findOtherEnvironment(workspaces: Workspace[], name: string) {
+export async function findOtherEnvironment(workspaces: Workspace[], name: string, option = '--as') {
   const names = new Set<string>();
   for (const workspace of workspaces) {
     const base = await models.environment.getOrCreateForParentId(workspace._id);
@@ -168,7 +176,7 @@ export async function findOtherEnvironment(workspaces: Workspace[], name: string
       names.add(environment.name);
     }
   }
-  throw new Error(`No environment named '${name}' for --as. The collections have: ${[...names].join(', ') || 'no sub environments'}`);
+  throw new Error(`No environment named '${name}' for ${option}. The collections have: ${[...names].join(', ') || 'no sub environments'}`);
 }
 
 // the requests that should have been tested and couldn't be: a host that isn't

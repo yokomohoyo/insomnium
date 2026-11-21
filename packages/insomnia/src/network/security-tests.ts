@@ -23,6 +23,9 @@ export interface SecurityTestOptions {
   environmentId?: string | null;
   // an environment with another user's credentials, to send the request as
   otherEnvironmentId?: string | null;
+  // an environment with less privilege than the request needs: choosing it
+  // says the request is for some users only
+  lowerEnvironmentId?: string | null;
   signal?: AbortSignal;
   // throws for a URL that mustn't be sent to (the MCP server's guard)
   checkUrl?: (url: string) => void;
@@ -39,7 +42,7 @@ export interface SecurityTestRun extends SecurityTestResult {
 
 const remove = (path?: string) => path ? fs.promises.rm(path, { force: true }).catch(() => undefined) : undefined;
 
-export async function runRequestSecurityTests(requestId: string, { environmentId, otherEnvironmentId, signal, checkUrl }: SecurityTestOptions = {}): Promise<SecurityTestRun> {
+export async function runRequestSecurityTests(requestId: string, { environmentId, otherEnvironmentId, lowerEnvironmentId, signal, checkUrl }: SecurityTestOptions = {}): Promise<SecurityTestRun> {
   const { request, environment, settings, clientCertificates, caCert } = await fetchRequestData(requestId);
   if (!isRequest(request)) {
     throw new Error('Only an HTTP request has security tests');
@@ -50,6 +53,7 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
   const render = async (id: string) => (await getRenderedRequestAndContext({ request: scripted.request, environmentId: id, iterationData: scripted.variables })).request;
   const base = await render(envId);
   const other = otherEnvironmentId ? await render(otherEnvironmentId) : null;
+  const lower = lowerEnvironmentId ? await render(lowerEnvironmentId) : null;
 
   // the URL every variant starts from: the request's own, before its auth adds to it
   const { finalUrl: url, socketPath } = transformUrl(base.url, base.parameters, base.segmentParams, [], base.settingEncodeUrl);
@@ -60,7 +64,8 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
   // what the request's own answer shows, from the first time it's sent as it is
   let responseFindings: AuditFinding[] | undefined;
   const send = async (variant: ProbeVariant): Promise<ProbeExchange> => {
-    const probe: RenderedRequest = clone(variant.asOther && other ? other : base);
+    // (another identity's credentials, for the first one's URL)
+    const probe: RenderedRequest = clone(variant.asOther && other ? other : variant.asLower && lower ? lower : base);
     probe.url = variant.url || url;
     probe.parameters = [];
     probe.segmentParams = [];
@@ -132,6 +137,7 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
       url,
       credentialInQuery: getAuthQueryParamsList(base.authentication).length > 0,
       hasOther: Boolean(other),
+      hasLower: Boolean(lower),
       send,
       signal,
     });

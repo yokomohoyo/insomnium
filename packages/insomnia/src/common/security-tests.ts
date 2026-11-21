@@ -1,7 +1,8 @@
 // What takes trying an API to find (response-audit.ts is what one exchange
 // shows): the request is sent again, changed a little each time, and the
 // answers compared with its own. Without its credentials, with a token that
-// shouldn't be accepted, as another user, from another site, over plain http,
+// shouldn't be accepted, as another user, as a user with less privilege, from
+// another site, over plain http,
 // with a quote in a parameter, and several times in a row.
 //
 // Only a GET or HEAD is sent again, since a request that changes things would
@@ -16,6 +17,8 @@ export interface ProbeVariant {
   withoutCredentials?: boolean;
   // with the other environment's credentials in place of the request's
   asOther?: boolean;
+  // with the lower-privileged environment's credentials in place of the request's
+  asLower?: boolean;
   // headers sent in place of the request's of the same name, or as well
   headers?: Record<string, string>;
 }
@@ -58,12 +61,15 @@ export interface SecurityTestInput {
   credentialInQuery?: boolean;
   // another environment was chosen to send it as
   hasOther?: boolean;
+  // an environment with less privilege than the request needs was chosen
+  hasLower?: boolean;
   send: SendProbe;
   signal?: AbortSignal;
 }
 
 const OBJECT_AUTHORIZATION = 'API1:2023 Broken Object Level Authorization';
 const AUTHENTICATION = 'API2:2023 Broken Authentication';
+const FUNCTION_AUTHORIZATION = 'API5:2023 Broken Function Level Authorization';
 const CONSUMPTION = 'API4:2023 Unrestricted Resource Consumption';
 const MISCONFIGURATION = 'API8:2023 Security Misconfiguration';
 
@@ -74,8 +80,9 @@ export const RATE_LIMIT_REQUESTS = 15;
 // how many parameters get a quote
 const QUOTED_PARAMS = 3;
 // the most a run sends: the request itself, without credentials, two tokens,
-// as another user, from another origin, over http, the quotes, the burst
-export const SECURITY_TEST_MAX_REQUESTS = 7 + QUOTED_PARAMS + RATE_LIMIT_REQUESTS;
+// as another user, with less privilege, from another origin, over http, the
+// quotes, the burst
+export const SECURITY_TEST_MAX_REQUESTS = 8 + QUOTED_PARAMS + RATE_LIMIT_REQUESTS;
 
 export const isSafeToRepeat = (method: string) => ['GET', 'HEAD'].includes(method.toUpperCase());
 
@@ -125,7 +132,7 @@ const withoutUrlCredentials = (url: URL) => {
 
 const answered = ({ statusCode, error }: ProbeExchange) => statusCode ? `It answered ${statusCode}.` : `Nothing came back${error ? ` (${error})` : ''}.`;
 
-export async function runSecurityTests({ method, url, credentialInQuery, hasOther, send, signal }: SecurityTestInput): Promise<SecurityTestResult> {
+export async function runSecurityTests({ method, url, credentialInQuery, hasOther, hasLower, send, signal }: SecurityTestInput): Promise<SecurityTestResult> {
   const checks: SecurityCheck[] = [];
   const findings: AuditFinding[] = [];
   let requests = 0;
@@ -262,6 +269,34 @@ export async function runSecurityTests({ method, url, credentialInQuery, hasOthe
     return ok(answer.statusCode)
       ? { outcome: 'unclear', note: `${answered(answer)} The answer was different from the first user's: look at whether it is the other user's own.` }
       : { outcome: 'passed', note: answered(answer) };
+  });
+
+  // Choosing the environment is what says the request needs more privilege
+  // than it has: so any answer that isn't a refusal is one too many
+  await test('lower-privilege', 'With less privilege', async () => {
+    if (!hasLower) {
+      return skipped('No environment with less privilege was chosen. Choose one for a request that only some users may make: an admin\'s, say.');
+    }
+    const answer = await sendOne({ asLower: true });
+    if (credentialsSent(answer) === credentialsSent(baseline)) {
+      return skipped('The environment with less privilege sends the same credentials as this one.');
+    }
+    if (!ok(answer.statusCode)) {
+      return { outcome: 'passed', note: answered(answer) };
+    }
+    const same = sameAnswer(answer, baseline);
+    return {
+      outcome: 'found',
+      note: `${answered(answer)} ${same ? 'The answer was the same as with full privilege.' : 'The answer was different from the one with full privilege, but it was not refused.'}`,
+      finding: {
+        severity: same ? 'high' : 'medium',
+        owasp: FUNCTION_AUTHORIZATION,
+        title: 'A user with less privilege can make this request',
+        detail: same
+          ? "The server does what's asked without checking that the caller may ask it. Check the caller's role on the server for every function, not only in what the client shows."
+          : "The server answers where it should refuse. Look at what it gave: if this is for some users only, check the caller's role on the server and answer 403.",
+      },
+    };
   });
 
   await test('cors-any-origin', 'From another site', async () => {
