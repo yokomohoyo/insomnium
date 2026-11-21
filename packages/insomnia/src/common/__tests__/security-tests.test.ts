@@ -60,7 +60,8 @@ describe('sameAnswer()', () => {
 
   it('is the same body, or one that differs by a timestamp', () => {
     expect(sameAnswer(exchange(200, ORDERS), exchange(200, ORDERS))).toBe(true);
-    expect(sameAnswer(exchange(200, ORDERS.replace('}', ',"at":"2026-11-21T10:00:00Z"}')), exchange(200, ORDERS.replace('}', ',"at":"2026-11-21T10:00:07Z"}')))).toBe(true);
+    const at = (time: string) => exchange(200, JSON.stringify({ ...JSON.parse(ORDERS), at: time }));
+    expect(sameAnswer(at('2026-11-21T10:00:00Z'), at('2026-11-21T10:00:07Z'))).toBe(true);
   });
 
   it("isn't another record, an error, or a short body that differs", () => {
