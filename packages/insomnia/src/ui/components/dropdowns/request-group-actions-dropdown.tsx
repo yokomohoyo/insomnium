@@ -24,6 +24,7 @@ import { EnvironmentEditModal } from '../modals/environment-edit-modal';
 import { PasteCurlModal } from '../modals/paste-curl-modal';
 import { RequestGroupSettingsModal } from '../modals/request-group-settings-modal';
 import { RunnerModal } from '../modals/runner-modal';
+import { SecurityRunModal } from '../modals/security-run-modal';
 interface Props extends Partial<DropdownProps> {
   requestGroup: RequestGroup;
 }
@@ -131,6 +132,7 @@ export const RequestGroupActionsDropdown = ({
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
+  const [isSecurityRunOpen, setIsSecurityRunOpen] = useState(false);
   const [isPasteCurlModalOpen, setPasteCurlModalOpen] = useState(false);
 
   const requestGroupActionItems: ({
@@ -236,6 +238,12 @@ export const RequestGroupActionsDropdown = ({
         action: () => setIsRunnerOpen(true),
       },
       {
+        id: 'SecurityChecks',
+        name: t('Security Checks'),
+        icon: 'shield-halved',
+        action: () => setIsSecurityRunOpen(true),
+      },
+      {
         id: 'Duplicate',
         name: t('Duplicate'),
         icon: 'copy',
@@ -321,6 +329,14 @@ export const RequestGroupActionsDropdown = ({
         name={requestGroup.name}
         folders={[requestGroup.name]}
         onHide={() => setIsRunnerOpen(false)}
+      />
+    )}
+    {isSecurityRunOpen && (
+      <SecurityRunModal
+        parentId={requestGroup._id}
+        name={requestGroup.name}
+        folders={[requestGroup.name]}
+        onHide={() => setIsSecurityRunOpen(false)}
       />
     )}
     {isSettingsModalOpen && (

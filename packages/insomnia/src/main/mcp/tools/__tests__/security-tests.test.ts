@@ -101,5 +101,66 @@ describe('run_security_tests', () => {
     registerTools({ tool: (name: string) => names.push(name) } as any);
 
     expect(names).not.toContain('run_security_tests');
+    expect(names).not.toContain('run_security_checks');
+  });
+});
+
+describe('run_security_checks', () => {
+  let workspaceId: string;
+  let folderId: string;
+  const callChecks = async (args: Record<string, unknown>) => {
+    const result = await handlers.run_security_checks(args, { signal });
+    return { body: JSON.parse(result.content[0].text), isError: !!result.isError };
+  };
+
+  beforeEach(async () => {
+    await globalBeforeEach();
+    await models.project.all();
+    confirm.mockReset();
+    workspaceId = (await models.workspace.create({ name: 'Shop' }))._id;
+    folderId = (await models.requestGroup.create({ parentId: workspaceId, name: 'Orders' }))._id;
+    await models.request.create({ parentId: folderId, name: 'List', url: 'http://localhost/orders', metaSortKey: 1 });
+    await models.request.create({ parentId: folderId, name: 'Create', method: 'POST', url: 'http://localhost/orders', metaSortKey: 2 });
+  });
+
+  it('asks first, saying how many requests it may send, and sends nothing on a no', async () => {
+    confirm.mockResolvedValue(false);
+
+    expect(await callChecks({ parentId: folderId })).toEqual({ body: { error: 'the user declined to run the security checks' }, isError: true });
+    expect(confirm).toHaveBeenCalledWith({ request: 'Orders', count: 2, workspace: 'Shop', requests: 25 }, signal);
+    expect(await models.response.all()).toEqual([]);
+  });
+
+  it('checks each request once allowed: the GET tested, the POST never sent', async () => {
+    confirm.mockResolvedValue(true);
+
+    const { body, isError } = await callChecks({ parentId: workspaceId });
+
+    expect(isError).toBe(false);
+    // (the collection itself: no workspace to name beside it)
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ request: 'Shop', workspace: '' }), signal);
+    expect(body.items.map(({ name, outcome }: { name: string; outcome: string }) => [name, outcome])).toEqual([['List', 'tested'], ['Create', 'skipped']]);
+    expect(body.items[0].findings.map(({ id }: { id: string }) => id)).toContain('rate-limit');
+    expect(body.requests).toBe(17);
+    expect(await models.response.all()).toEqual([]);
+  });
+
+  it('leaves out the rules the collection ignores, and names them', async () => {
+    confirm.mockResolvedValue(true);
+    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.updateByParentId(workspaceId, { securityIgnoredRules: ['rate-limit'] });
+
+    const { body } = await callChecks({ parentId: folderId });
+
+    expect(body.items[0].findings.map(({ id }: { id: string }) => id)).not.toContain('rate-limit');
+    expect(body.ignoredRules).toEqual(['rate-limit']);
+  });
+
+  it('refuses a parent that is not there, or has no requests, without asking', async () => {
+    const empty = await models.requestGroup.create({ parentId: workspaceId, name: 'Empty' });
+
+    expect((await callChecks({ parentId: 'fld_missing' })).isError).toBe(true);
+    expect((await callChecks({ parentId: empty._id })).body).toEqual({ error: 'no HTTP requests under parentId' });
+    expect(confirm).not.toHaveBeenCalled();
   });
 });

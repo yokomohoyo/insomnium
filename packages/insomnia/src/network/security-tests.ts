@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import clone from 'clone';
 
 import { getRenderedRequestAndContext, type RenderedRequest } from '../common/render';
-import { sentRequest } from '../common/response-audit';
+import { type AuditFinding, auditResponse, sentRequest } from '../common/response-audit';
 import { CREDENTIAL_HEADER, type ProbeExchange, type ProbeVariant, runSecurityTests, type SecurityTestResult } from '../common/security-tests';
 import { isRequest } from '../models/request';
 import { getBoundedBodyBuffer } from '../models/response';
@@ -28,9 +28,18 @@ export interface SecurityTestOptions {
   checkUrl?: (url: string) => void;
 }
 
+// A request's tests, with what its own answer showed (response-audit.ts) while
+// it was there to look at: a run over a collection reports both
+export interface SecurityTestRun extends SecurityTestResult {
+  // empty when the request itself got no answer
+  responseFindings: AuditFinding[];
+  // the request's URL as sent, without what its auth adds to the query
+  url: string;
+}
+
 const remove = (path?: string) => path ? fs.promises.rm(path, { force: true }).catch(() => undefined) : undefined;
 
-export async function runRequestSecurityTests(requestId: string, { environmentId, otherEnvironmentId, signal, checkUrl }: SecurityTestOptions = {}): Promise<SecurityTestResult> {
+export async function runRequestSecurityTests(requestId: string, { environmentId, otherEnvironmentId, signal, checkUrl }: SecurityTestOptions = {}): Promise<SecurityTestRun> {
   const { request, environment, settings, clientCertificates, caCert } = await fetchRequestData(requestId);
   if (!isRequest(request)) {
     throw new Error('Only an HTTP request has security tests');
@@ -48,6 +57,8 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
     throw new Error("A request to a unix socket isn't tested");
   }
 
+  // what the request's own answer shows, from the first time it's sent as it is
+  let responseFindings: AuditFinding[] | undefined;
   const send = async (variant: ProbeVariant): Promise<ProbeExchange> => {
     const probe: RenderedRequest = clone(variant.asOther && other ? other : base);
     probe.url = variant.url || url;
@@ -94,6 +105,16 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
       }
       const answer = response as { statusCode?: number; headers?: { name: string; value: string }[]; bodyPath?: string; bodyCompression?: 'zip' | null };
       const body = answer.bodyPath ? (await getBoundedBodyBuffer(answer, BODY_BYTES)).buffer.toString('utf8') : '';
+      if (!responseFindings && !Object.keys(variant).length) {
+        responseFindings = auditResponse({
+          url: ('url' in response && response.url) || url,
+          statusCode: answer.statusCode || 0,
+          headers: answer.headers || [],
+          contentType: 'contentType' in response ? response.contentType : undefined,
+          body,
+          timeline,
+        });
+      }
       return { statusCode: answer.statusCode || 0, headers: answer.headers || [], body, sent };
     } finally {
       await remove(response.timelinePath);
@@ -106,7 +127,7 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
   };
   signal?.addEventListener('abort', stop);
   try {
-    return await runSecurityTests({
+    const result = await runSecurityTests({
       method: base.method,
       url,
       credentialInQuery: getAuthQueryParamsList(base.authentication).length > 0,
@@ -114,6 +135,7 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
       send,
       signal,
     });
+    return { ...result, responseFindings: responseFindings || [], url };
   } finally {
     signal?.removeEventListener('abort', stop);
   }

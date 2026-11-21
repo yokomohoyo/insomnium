@@ -4,7 +4,7 @@ import {
   faAdd, faArrowRightToFile, faCancel, faCaretDown, faCheck, faChildren, faCircle, faClipboard, faClockFour,
   faCode, faCodeBranch, faCodeFork, faCog, faCookieBite, faCopy, faEdit, faExchange, faFile, faFileText, faFilter,
   faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop, faMagicWandSparkles, faNavicon,
-  faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faSync, faTerminal, faThumbTack, faTimes, faTrash,
+  faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
   faUnsorted, faWrench,
 } from '@fortawesome/free-solid-svg-icons';
 import {
@@ -20,7 +20,7 @@ library.add(
   faAdd, faArrowRightToFile, faCancel, faCaretDown, faCheck, faChildren, faCircle, faClipboard, faClockFour,
   faCode, faCodeBranch, faCodeFork, faCog, faCookieBite, faCopy, faEdit, faExchange, faFile, faFileText, faFilter,
   faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop, faMagicWandSparkles, faNavicon,
-  faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faSync, faTerminal, faThumbTack, faTimes, faTrash,
+  faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
   faUnsorted, faWrench,
   faGithub,
 );

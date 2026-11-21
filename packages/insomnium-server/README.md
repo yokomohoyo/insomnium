@@ -135,6 +135,51 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 `INSOMNIUM_VAR_<name>`, `INSOMNIUM_VALIDATE_SSL`, `INSOMNIUM_ALLOWED_ENV` and the proxy variables work as they do for the server. `INSOMNIUM_ALLOWED_HOSTS` is optional here: a run sends to any host by default, but still refuses cloud metadata addresses unless they're listed. The `file` template tag is off here too.
 
+## Security checks in CI
+
+`security` is the app's [Security Checks](../../docs/security-checks.md#a-whole-collection) for a pipeline, by the OWASP API Security Top 10. It tests each GET and HEAD in the collection (sent again up to 25 times, changed a little each time) and looks at their answers. Any other request is never sent. Nothing sent is kept.
+
+The app asks before it sends anything. A pipeline has nobody to ask, so the go-ahead is on the command line, and both parts are required every time:
+
+- `--i-may-test-this-api`. It has no default, no other spelling, and isn't read from the environment or a collection.
+- `INSOMNIUM_ALLOWED_HOSTS`, naming the hosts it may send to. `*` is refused.
+
+Run it only against an API you're allowed to test.
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
+  -e INSOMNIUM_ALLOWED_HOSTS=staging.example.com \
+  -e INSOMNIUM_VAR_apiKey="$API_KEY" \
+  ghcr.io/yokomohoyo/insomnium-server security --collection api.yaml --env staging \
+  --i-may-test-this-api --sarif security.sarif
+```
+
+```text
+[security] Shop: 3 requests, sending to staging.example.com
+  ✗ Orders / List orders  GET https://staging.example.com/orders?status=…
+      HIGH   It accepts an unsigned token (the request's Authorization header)  [token-unsigned]
+      LOW    No sign of a rate limit (15 requests in a row)  [rate-limit]
+  ✓ Orders / Get order  GET https://staging.example.com/orders/7
+  - Orders / Create order  POST https://staging.example.com/orders
+      A POST isn't sent again, and it has no response to look at: send it first.
+
+3 requests, 2 tested · 1 high, 1 low · 31 sent
+Failed: a finding is high or worse (--fail-on high)
+```
+
+It exits 1 when a finding is as severe as `--fail-on`, or when a request that should have been tested couldn't be (a host that isn't allowed, a script that failed); 2 when it can't start; 0 otherwise.
+
+| Option | |
+| --- | --- |
+| `--folder` | only the requests in this folder, by name or path |
+| `--env` | the sub environment to send with, by name |
+| `--as` | a sub environment holding another user's credentials: each request is also sent once as them |
+| `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
+| `--ignore` | rules to leave out, by id, comma-separated. The ids are the bracketed names in the output |
+| `--markdown`, `--json`, `--sarif` | write a report to this file |
+
+`--as` takes its credentials from the collection: a sub environment whose values can come from `{% env 'NAME' %}` (allowed with `INSOMNIUM_ALLOWED_ENV`). `INSOMNIUM_VAR_<name>` sets a variable in the environment chosen with `--env` only.
+
 ## Load test a collection
 
 `load` load tests a collection's HTTP requests: each virtual user sends them in order, again and again, until the time is up, as the app's runner does in **Load test** mode. It prints the latency percentiles, throughput and failures, and exits 1 when a threshold is broken (2 when the test can't start). A request fails when it can't be sent, answers 400 or above (unless it has its own status assertion, as a test of a 404 does), or fails an assertion. Responses aren't kept.

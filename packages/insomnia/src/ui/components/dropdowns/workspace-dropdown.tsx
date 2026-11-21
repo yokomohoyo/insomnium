@@ -26,6 +26,7 @@ import { configGenerators } from '../modals/generate-config-modal';
 import { ImportModal } from '../modals/import-modal';
 import { MockServerModal } from '../modals/mock-server-modal';
 import { RunnerModal } from '../modals/runner-modal';
+import { SecurityRunModal } from '../modals/security-run-modal';
 import { WorkspaceDuplicateModal } from '../modals/workspace-duplicate-modal';
 import { WorkspaceSettingsModal } from '../modals/workspace-settings-modal';
 
@@ -48,6 +49,7 @@ export const WorkspaceDropdown: FC = () => {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isRunnerOpen, setIsRunnerOpen] = useState(false);
+  const [isSecurityRunOpen, setIsSecurityRunOpen] = useState(false);
   const [isMockServerOpen, setIsMockServerOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const workspaceName = activeWorkspace.name;
@@ -213,6 +215,14 @@ export const WorkspaceDropdown: FC = () => {
             />
           </DropdownItem>
 
+          <DropdownItem aria-label={t('Security Checks')}>
+            <ItemContent
+              icon="shield-halved"
+              label={t('Security Checks')}
+              onClick={() => setIsSecurityRunOpen(true)}
+            />
+          </DropdownItem>
+
           <DropdownItem aria-label={t('Mock Server')}>
             <ItemContent
               icon="server"
@@ -323,6 +333,13 @@ export const WorkspaceDropdown: FC = () => {
           parentId={activeWorkspace._id}
           name={activeWorkspaceName}
           onHide={() => setIsRunnerOpen(false)}
+        />
+      )}
+      {isSecurityRunOpen && (
+        <SecurityRunModal
+          parentId={activeWorkspace._id}
+          name={activeWorkspaceName}
+          onHide={() => setIsSecurityRunOpen(false)}
         />
       )}
       {isDuplicateModalOpen && (

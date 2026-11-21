@@ -1,9 +1,12 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+import { ignoredRules } from '../../../common/security-rules';
 import { isSafeToRepeat, SECURITY_TEST_MAX_REQUESTS } from '../../../common/security-tests';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
+import { listRunnableRequests } from '../../../network/runner';
+import { runSecurityChecks, securityRunMaxRequests } from '../../../network/security-run';
 import { runRequestSecurityTests } from '../../../network/security-tests';
 import { assertSafeRequestUrl, fail, findWorkspaceForRequest, foreignEnvironment, json, notFound, withoutIgnoredSecurityRules } from './util';
 
@@ -11,10 +14,15 @@ import { assertSafeRequestUrl, fail, findWorkspaceForRequest, foreignEnvironment
 // to `requests` times, each changed to see what the API lets through, and a
 // client mustn't point that at an API on the user's behalf unasked
 export interface SecurityTestRequest {
+  // the request's name, or the folder's or collection's when it's all of theirs
   request: string;
-  method: string;
-  url: string;
+  // one request's
+  method?: string;
+  url?: string;
+  // how many requests are checked, for a folder or collection
+  count?: number;
   workspace: string;
+  // the most that may be sent
   requests: number;
 }
 // the signal is the MCP request's: a run the client gives up on is a no
@@ -59,17 +67,55 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
         return fail('the user declined to run the security tests');
       }
       try {
-        const result = await runRequestSecurityTests(requestId, {
+        const { checks, findings, requests } = await runRequestSecurityTests(requestId, {
           ...(environmentId === undefined ? {} : { environmentId }),
           otherEnvironmentId,
           signal,
           // each URL the tests send to, as send_http_request checks its own
           checkUrl: assertSafeRequestUrl,
         });
-        return json({ requestId, ...result, ...await withoutIgnoredSecurityRules(requestId, result.findings) });
+        return json({ requestId, checks, requests, ...await withoutIgnoredSecurityRules(requestId, findings) });
       } catch (err) {
         return fail(`the security tests could not run: ${(err as Error).message}`);
       }
+    },
+  );
+
+  server.tool(
+    'run_security_checks',
+    `Run the security checks over every HTTP request in a workspace or folder (parentId), as the app's Security Checks does. Each GET or HEAD is tested as run_security_tests does (up to ${SECURITY_TEST_MAX_REQUESTS} requests each) and its answer audited as audit_response does; any other request is never sent, and gets what its last response showed. Nothing sent is stored. The app asks the user to allow each run, saying how many requests it may send; a declined run returns an error and sends nothing. Returns each request with its outcome (tested, audited, skipped), findings and tests, the count of findings by severity, and how many requests were sent. Rules the collection ignores are left out.`,
+    {
+      parentId: z.string().describe('a workspace or folder id'),
+      otherEnvironmentId: z.string().optional().describe("An environment holding another user's credentials: each tested request is also sent once with them."),
+    },
+    async ({ parentId, otherEnvironmentId }, { signal }) => {
+      const parent = await models.workspace.getById(parentId) || await models.requestGroup.getById(parentId);
+      if (!parent) {
+        return notFound('workspace or folder');
+      }
+      const requests = await listRunnableRequests(parentId);
+      if (!requests.length) {
+        return fail('no HTTP requests under parentId');
+      }
+      const workspace = await findWorkspaceForRequest(parentId);
+      const foreign = await foreignEnvironment(workspace?._id, otherEnvironmentId);
+      if (foreign) {
+        return fail(foreign);
+      }
+      const allowed = await confirm({
+        request: parent.name,
+        count: requests.length,
+        workspace: workspace && workspace._id !== parent._id ? workspace.name : '',
+        requests: securityRunMaxRequests(requests),
+      }, signal);
+      console.log(`[mcp] run_security_checks ${parentId}: the user ${allowed === true ? 'allowed' : 'declined'} the run`);
+      if (allowed !== true) {
+        return fail('the user declined to run the security checks');
+      }
+      const meta = workspace ? await models.workspaceMeta.getByParentId(workspace._id) : null;
+      const ignored = ignoredRules(meta?.securityIgnoredRules);
+      const summary = await runSecurityChecks(requests, { otherEnvironmentId, ignored, signal, checkUrl: assertSafeRequestUrl });
+      return json({ parentId, ...summary, ...(ignored.length ? { ignoredRules: ignored } : {}) });
     },
   );
 }
