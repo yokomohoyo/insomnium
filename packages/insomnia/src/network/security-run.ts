@@ -23,6 +23,9 @@ export interface SecurityRunItem {
   // kept response looked at, nothing sent; skipped: neither, and note says why
   outcome: 'tested' | 'audited' | 'skipped';
   note?: string;
+  // it should have been tested, and couldn't be (note says why): not the same
+  // as a request that is never sent
+  failed?: boolean;
   // what the response showed, then what the tests found, most severe first
   findings: AuditFinding[];
   // each test and what it saw, for a request that was tested
@@ -100,6 +103,7 @@ export async function runSecurityChecks(requests: RunnableRequest[], { ignored =
         item.requests = run.requests;
         item.findings = mostSevereFirst(withoutIgnored([...run.responseFindings, ...run.findings], ignored));
       } catch (err) {
+        item.failed = true;
         item.note = `It could not be tested: ${err instanceof Error ? err.message : String(err)}`;
       }
     } else {

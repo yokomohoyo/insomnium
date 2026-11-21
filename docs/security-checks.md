@@ -90,6 +90,10 @@ A finished run saves as:
 
 A report names where a credential was, never the credential, and shows URLs without their query's values.
 
+## In CI
+
+[`insomnium-server security`](../packages/insomnium-server/README.md#security-checks-in-ci) is the same run without the app, for a pipeline: it exits 1 when it finds something as severe as `--fail-on`, and writes the same reports. With nobody to ask, the go-ahead is on its command line: `--i-may-test-this-api`, and the hosts it may send to, by name.
+
 ## Ignoring a rule
 
 Not every finding is a problem for every API: one that no browser calls has little use for `nosniff`, and a public one answers the same to everyone. **Ignore**, beside a finding, stops that rule's findings being shown in the collection, for every request in it. They no longer count on the tab.
@@ -104,4 +108,4 @@ The MCP tool `audit_response` gives the same findings for a response, by its id 
 
 `audit_response` and `run_security_tests` leave out the rules the collection ignores, and name them in `ignoredRules`.
 
-`run_security_tests` runs the security tests on a request, and takes `otherEnvironmentId` for the other user. The app asks you to allow each run, with **Don't Run** the default. The headless server doesn't have it, having nobody to ask.
+`run_security_checks` runs them over a workspace or folder. `run_security_tests` runs the security tests on a request, and takes `otherEnvironmentId` for the other user. The app asks you to allow each run, with **Don't Run** the default. The headless server doesn't have it, having nobody to ask.

@@ -75,7 +75,9 @@ describe('runSecurityChecks()', () => {
 
     const { items } = await runSecurityChecks(requests, { test });
 
-    expect(items[0]).toMatchObject({ outcome: 'skipped', note: 'It could not be tested: The pre-request script failed: boom' });
+    expect(items[0]).toMatchObject({ outcome: 'skipped', failed: true, note: 'It could not be tested: The pre-request script failed: boom' });
+    // (never sent by design isn't a failure)
+    expect(items[1].failed).toBeUndefined();
     expect(items[3]).toMatchObject({ name: 'Events', outcome: 'skipped', note: "An event stream never ends, so it isn't sent." });
     expect(test).toHaveBeenCalledTimes(1);
   });

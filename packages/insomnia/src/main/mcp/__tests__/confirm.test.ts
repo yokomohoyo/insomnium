@@ -37,6 +37,7 @@ const confirms = {
   confirmGitAction: (signal?: AbortSignal) => confirmGitAction({ action: 'push', workspace: 'Shop', branch: 'main', remote: 'https://example.com/shop.git', details: [] }, signal),
   confirmMcpCommand: (signal?: AbortSignal) => confirmMcpCommand({ request: 'Local', command: 'npx', args: ['server'] }, signal),
   confirmSecurityTests: (signal?: AbortSignal) => confirmSecurityTests({ request: 'Orders', method: 'GET', url: 'https://shop.example.com/orders', workspace: 'Shop', requests: 25 }, signal),
+  confirmSecurityChecks: (signal?: AbortSignal) => confirmSecurityTests({ request: 'Orders', count: 12, workspace: 'Shop', requests: 200 }, signal),
 };
 
 beforeEach(() => {

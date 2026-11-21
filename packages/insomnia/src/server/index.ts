@@ -1,9 +1,11 @@
 // insomnium-server: Insomnium's MCP tools without the app, for a container
 // deployed next to the APIs an agent should test; `run`, the collection
-// runner for CI; and `mock`, a collection's mock server. See
+// runner for CI; `security`, its security checks; and `mock`, a collection's
+// mock server. See
 // packages/insomnium-server.
 import fs from 'node:fs';
 
+import { version } from '../../package.json';
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
 import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../network/load-report';
@@ -13,11 +15,14 @@ import { compareRuns, parseBaseline } from '../network/run-compare';
 import { csvReport, htmlReport, jsonReport, junitReport, resultName } from '../network/run-files';
 import { requestRunStats } from '../network/run-stats';
 import { runRequests } from '../network/runner';
+import { securityJsonReport, securityMarkdownReport, securitySarifReport } from '../network/security-report';
+import { runSecurityChecks } from '../network/security-run';
 import { parseConfig, type ServerConfig, USAGE } from './config';
 import { formatLoadSummary, LOAD_USAGE, type LoadConfig, parseLoadConfig } from './load-test';
 import { MOCK_USAGE, type MockConfig, parseMockConfig } from './mock';
 import { formatComparison, formatResult, formatSummary } from './report';
 import { parseRunConfig, readDataFile, RUN_USAGE, type RunConfig, selectRequests } from './run';
+import { failsRun, findOtherEnvironment, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, type SecurityConfig } from './security';
 import { loadWorkspaces, startServer } from './server';
 import { team } from './team';
 
@@ -91,6 +96,56 @@ async function run(argv: string[]) {
     await fs.promises.writeFile(config.csv, csvReport(summary));
   }
   return summary.requests.failed || comparison?.slower ? 1 : 0;
+}
+
+// 0 when nothing as severe as --fail-on was found, 1 when something was, 2
+// when the checks couldn't start (the go-ahead not given, for one)
+async function security(argv: string[]) {
+  if (argv.includes('--help')) {
+    console.log(SECURITY_USAGE);
+    return 0;
+  }
+  let config: SecurityConfig;
+  try {
+    config = parseSecurityConfig(argv, process.env);
+  } catch (err) {
+    console.error(`${(err as Error).message}\n\n${SECURITY_USAGE}`);
+    return 2;
+  }
+
+  console.log = console.info = console.debug = () => {};
+  let prepared;
+  try {
+    const workspaces = await loadWorkspaces(config);
+    const requests = await selectRequests(workspaces, config.folder);
+    if (!requests.length) {
+      throw new Error(`No HTTP requests to check${config.folder ? ` in '${config.folder}'` : ''}`);
+    }
+    const otherEnvironmentId = config.otherEnvironment ? await findOtherEnvironment(workspaces, config.otherEnvironment) : null;
+    prepared = { requests, otherEnvironmentId, name: workspaces.map(workspace => workspace.name).join(', ') };
+  } catch (err) {
+    console.error(`[security] ${(err as Error).message}`);
+    return 2;
+  }
+
+  const { requests, otherEnvironmentId, name } = prepared;
+  print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.join(', ')}`);
+  const summary = await runSecurityChecks(requests, {
+    otherEnvironmentId,
+    ignored: config.ignore,
+    onItem: item => print(formatItem(item)),
+  });
+  print(`\n${formatSecuritySummary(summary, config.failOn)}`);
+  if (config.markdown) {
+    await fs.promises.writeFile(config.markdown, securityMarkdownReport(summary, name));
+  }
+  if (config.json) {
+    await fs.promises.writeFile(config.json, securityJsonReport(summary, name));
+  }
+  if (config.sarif) {
+    await fs.promises.writeFile(config.sarif, securitySarifReport(summary, name, version));
+  }
+  return failsRun(summary, config.failOn) ? 1 : 0;
 }
 
 // 0 when the thresholds held, 1 when one broke, 2 when the test couldn't start
@@ -225,6 +280,9 @@ async function main() {
   const argv = process.argv.slice(2);
   if (argv[0] === 'run') {
     process.exit(await run(argv.slice(1)));
+  }
+  if (argv[0] === 'security') {
+    process.exit(await security(argv.slice(1)));
   }
   if (argv[0] === 'mock') {
     return mock(argv.slice(1));
