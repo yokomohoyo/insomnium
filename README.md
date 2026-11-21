@@ -137,7 +137,7 @@ Check a response without code, with code, or both.
 - **Scripts:** a pre-request and an after-response script in JavaScript, to change the request, keep a token or an id for the next one, and test the response with `insomnia.test` and `insomnia.expect`. `pm` is the same API, so common Postman scripts work as written.
 - **A sandbox:** scripts run in QuickJS, apart from the app, with no network, files or Node. A script in a collection someone shared can change that collection's request and environment, and nothing else.
 - **Results:** the response's **Tests** tab lists each assertion and script test, with what was found when one fails, and what the scripts logged.
-- **Security checks:** the response's **Security** tab lists what it says about the API's security, by the OWASP API Security Top 10: plain http, credentials in the URL, unsigned tokens, missing headers, cookie flags, stack traces. [More](docs/security-checks.md).
+- **Security checks:** the response's **Security** tab lists what it says about the API's security, by the OWASP API Security Top 10: plain http, credentials in the URL, unsigned tokens, missing headers, cookie flags, stack traces. See [docs/security-checks.md](docs/security-checks.md).
 
 More: [docs/testing.md](docs/testing.md) and [docs/scripts.md](docs/scripts.md).
 
