@@ -1,6 +1,7 @@
 import React, { type FC, useEffect, useRef, useState } from 'react';
 
 import { t } from '../../../common/i18n';
+import { withoutIgnored } from '../../../common/security-rules';
 import { isSafeToRepeat, SECURITY_TEST_MAX_REQUESTS, type SecurityCheckOutcome, type SecurityTestResult } from '../../../common/security-tests';
 import { runRequestSecurityTests, type SecurityTestOptions } from '../../../network/security-tests';
 import { showModal } from '../modals';
@@ -23,8 +24,27 @@ interface Run {
 // as it was: nothing sent by the tests is kept, so neither is what they found
 const runs = new Map<string, Run & { modified?: number }>();
 
+interface TestedRequest {
+  _id: string;
+  method: string;
+  modified?: number;
+}
+
+// what a request's last run found, if it has been run as it is now
+const lastRun = (request: TestedRequest) => {
+  // (what an edited request's tests found was about another request)
+  const kept = runs.get(request._id);
+  return kept && kept.modified === request.modified ? kept : undefined;
+};
+export const securityTestFindings = (request: TestedRequest) => lastRun(request)?.result?.findings || [];
+
 interface Props {
-  request: { _id: string; method: string; modified?: number };
+  request: TestedRequest;
+  // the rules this collection ignores, and the way to ignore another
+  ignored?: string[];
+  onIgnore?: (id: string) => void;
+  // a run has finished: what securityTestFindings gives has changed
+  onResult?: () => void;
   // the workspace's other environments, to send the request as another user
   environments: { _id: string; name: string }[];
   // (the tests': replaced in tests)
@@ -43,7 +63,7 @@ const askFirst = (requests: number) => new Promise<boolean>(resolve => showModal
 
 // Tries the API for what one response can't show (common/security-tests.ts),
 // when the user asks, and after they've agreed to what it sends
-export const SecurityTestsPanel: FC<Props> = ({ request, environments, run = runRequestSecurityTests, confirm = askFirst }) => {
+export const SecurityTestsPanel: FC<Props> = ({ request, environments, ignored = [], onIgnore, onResult, run = runRequestSecurityTests, confirm = askFirst }) => {
   const [, redraw] = useState(0);
   const [running, setRunning] = useState<AbortController>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
@@ -57,9 +77,8 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, run = run
   }, [request._id]);
 
   const safe = isSafeToRepeat(request.method);
-  // (what an edited request's tests found was about another request)
-  const kept = runs.get(request._id);
-  const last = kept && kept.modified === request.modified ? kept : undefined;
+  const last = lastRun(request);
+  const findings = withoutIgnored(last?.result?.findings || [], ignored);
 
   const start = async () => {
     if (!await confirm(SECURITY_TEST_MAX_REQUESTS)) {
@@ -79,6 +98,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, run = run
       setRunning(current => current === controller ? undefined : current);
       redraw(count => count + 1);
     }
+    onResult?.();
   };
 
   return (
@@ -115,7 +135,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, environments, run = run
       {!running && last?.error ? <p className="danger txt-sm margin-top-sm">{t('The tests could not run: {error}', { error: last.error })}</p> : null}
       {!running && last?.result ? (
         <div className="margin-top-sm">
-          {last.result.findings.length ? <SecurityFindingList findings={last.result.findings} label={t('Security test findings')} /> : null}
+          {findings.length ? <SecurityFindingList findings={findings} label={t('Security test findings')} onIgnore={onIgnore} /> : null}
           <ul aria-label={t('Security tests run')} className="list-none m-0 p-0">
             {last.result.checks.map(check => (
               <li key={check.id} className="flex items-start gap-2 py-1 txt-sm" data-testid={`security-check-${check.id}`}>

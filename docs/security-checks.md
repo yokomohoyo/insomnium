@@ -1,6 +1,6 @@
 # Security checks
 
-The response pane's **Security** tab lists what a response says about the security of the API that sent it. The number on the tab is how many things it found; it's red when one of them is high, and orange when one is medium.
+The response pane's **Security** tab lists what a response says about the security of the API that sent it. The number on the tab is how many things it found, with what the [tests](#security-tests) found once they've been run; it's red when one of them is high, and orange when one is medium.
 
 Each finding has a severity (high, medium, low or info), what it was found in, why it matters, and the risk it comes under in the [OWASP API Security Top 10](https://owasp.org/API-Security/editions/2023/en/0x11-t10/).
 
@@ -68,8 +68,18 @@ Things to know before running them:
 
 For the API's design, a [design document](design-documents.md#owasp-api-security-rules) can be checked against the OWASP API Security rules.
 
+## Ignoring a rule
+
+Not every finding is a problem for every API: one that no browser calls has little use for `nosniff`, and a public one answers the same to everyone. **Ignore**, beside a finding, stops that rule's findings being shown in the collection, for every request in it. They no longer count on the tab.
+
+The rules a collection ignores are listed at the bottom of the tab, each with **Show Again**. The list is kept with the collection's settings on this computer, so it isn't exported or synced with the collection.
+
+An ignored test still runs and is still listed with what came back; only its finding is left out.
+
 ## From an AI agent
 
 The MCP tool `audit_response` gives the same findings for a response, by its id or as a request's most recent.
+
+`audit_response` and `run_security_tests` leave out the rules the collection ignores, and name them in `ignoredRules`.
 
 `run_security_tests` runs the security tests on a request, and takes `otherEnvironmentId` for the other user. The app asks you to allow each run, with **Don't Run** the default. The headless server doesn't have it, having nobody to ask.

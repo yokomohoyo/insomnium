@@ -88,12 +88,12 @@ describe('runSecurityTests()', () => {
       'token-unsigned': 'passed',
       'other-user': 'passed',
       'cors-any-origin': 'passed',
-      'plain-http': 'passed',
+      'answers-plain-http': 'passed',
       'quote-in-parameter': 'skipped',
       'rate-limit': 'passed',
     });
     expect(checks.find(({ id }) => id === 'no-credentials')?.note).toBe('It answered 401.');
-    expect(checks.find(({ id }) => id === 'plain-http')?.note).toBe('It answered 301. It sends the caller on to somewhere else.');
+    expect(checks.find(({ id }) => id === 'answers-plain-http')?.note).toBe('It answered 301. It sends the caller on to somewhere else.');
     // (the request, then one for each test that sent)
     expect(requests).toBe(7);
   });
@@ -223,13 +223,13 @@ describe('runSecurityTests()', () => {
     it('says when it answers, and sends no credentials to find out', async () => {
       const { findings, variants } = await run(both);
 
-      expect(findings).toEqual([expect.objectContaining({ id: 'plain-http', severity: 'medium' })]);
+      expect(findings).toEqual([expect.objectContaining({ id: 'answers-plain-http', severity: 'medium' })]);
       expect(variants).toContainEqual({ url: 'http://api.example.com/orders', withoutCredentials: true });
     });
 
     it("isn't tried on this computer, on a named port, or for a request already over http", async () => {
       for (const url of ['https://localhost/orders', 'https://api.example.com:8443/orders', 'http://api.example.com/orders']) {
-        expect((await run(both, { url })).outcomes['plain-http']).toBe('skipped');
+        expect((await run(both, { url })).outcomes['answers-plain-http']).toBe('skipped');
       }
     });
   });
@@ -291,7 +291,7 @@ describe('runSecurityTests()', () => {
       return careful(variant, sent);
     });
     expect(failing.checks.find(({ id }) => id === 'cors-any-origin')).toMatchObject({ outcome: 'unclear', note: 'It could not be sent: refused by the request policy' });
-    expect(failing.outcomes['plain-http']).toBe('passed');
+    expect(failing.outcomes['answers-plain-http']).toBe('passed');
 
     const controller = new AbortController();
     const stopped = await run((variant, sent) => {

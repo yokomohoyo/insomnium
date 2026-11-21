@@ -1,3 +1,4 @@
+import { ignoredRules, withoutIgnored } from '../../../common/security-rules';
 import type { BaseModel } from '../../../models';
 import * as models from '../../../models';
 import { isGrpcRequest } from '../../../models/grpc-request';
@@ -171,6 +172,16 @@ export async function foreignEnvironment(workspaceId: string | undefined, enviro
 }
 
 // Walk parentId links up through folders to the owning workspace; cycle-safe.
+// The Security tab's rules a request's collection ignores (common/security-rules.ts),
+// and a set of findings without them: what a tool reports is what the tab shows
+export async function withoutIgnoredSecurityRules<T extends { id: string }>(requestId: string, findings: T[]) {
+  const request = await models.request.getById(requestId);
+  const workspace = request ? await findWorkspaceForRequest(request.parentId) : null;
+  const meta = workspace ? await models.workspaceMeta.getByParentId(workspace._id) : null;
+  const ignored = ignoredRules(meta?.securityIgnoredRules);
+  return { findings: withoutIgnored(findings, ignored), ...(ignored.length ? { ignoredRules: ignored } : {}) };
+}
+
 export async function findWorkspaceForRequest(parentId: string): Promise<Workspace | null> {
   let cur: string | null = parentId;
   const seen = new Set<string>();

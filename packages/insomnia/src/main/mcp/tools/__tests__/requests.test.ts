@@ -91,6 +91,13 @@ describe('the request tools', () => {
     expect(body.findings.map((finding: { id: string }) => finding.id)).toEqual(['plain-http', 'secret-in-url']);
     expect(body.findings[0]).toEqual({ id: 'plain-http', severity: 'medium', owasp: 'API8:2023 Security Misconfiguration', title: 'Sent over plain HTTP', detail: expect.any(String) });
     expect(JSON.stringify(body)).not.toContain('s3cret');
+
+    // without the rules the collection ignores in the Security tab, which it names
+    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
+    await models.workspaceMeta.updateByParentId(workspaceId, { securityIgnoredRules: ['plain-http', 'not-a-rule'] });
+    const quieter = (await call('audit_response', { responseId: earlier._id })).body;
+    expect(quieter.findings.map((finding: { id: string }) => finding.id)).toEqual(['secret-in-url']);
+    expect(quieter.ignoredRules).toEqual(['plain-http']);
   });
 
   it('refuse to audit what has no response', async () => {

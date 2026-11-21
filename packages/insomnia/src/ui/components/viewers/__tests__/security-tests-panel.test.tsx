@@ -4,7 +4,7 @@ import React from 'react';
 
 import type { SecurityTestResult } from '../../../../common/security-tests';
 import type { SecurityTestOptions } from '../../../../network/security-tests';
-import { SecurityTestsPanel } from '../security-tests-panel';
+import { securityTestFindings, SecurityTestsPanel } from '../security-tests-panel';
 
 const RESULT: SecurityTestResult = {
   requests: 9,
@@ -60,6 +60,26 @@ describe('<SecurityTestsPanel />', () => {
     rerender(<SecurityTestsPanel request={{ ...request, modified: 2 }} environments={ENVIRONMENTS} run={run} confirm={confirm} />);
 
     expect(queryByLabelText('Security tests run')).toBeNull();
+  });
+
+  it('says when a run has finished, for the count on the tab, and leaves out what the collection ignores', async () => {
+    const onResult = jest.fn();
+    const onIgnore = jest.fn();
+    const { getByRole, findByLabelText, queryByLabelText, rerender, run, confirm, request } = panel({ onResult, onIgnore });
+    expect(securityTestFindings(request)).toEqual([]);
+
+    fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
+    await findByLabelText('Security tests run');
+
+    expect(onResult).toHaveBeenCalledTimes(1);
+    expect(securityTestFindings(request)).toEqual(RESULT.findings);
+    fireEvent.click(getByRole('button', { name: 'Ignore It answers the same without credentials' }));
+    expect(onIgnore).toHaveBeenCalledWith('no-credentials');
+
+    rerender(<SecurityTestsPanel request={request} environments={ENVIRONMENTS} run={run} confirm={confirm} ignored={['no-credentials']} />);
+    expect(queryByLabelText('Security test findings')).toBeNull();
+    // (the test itself is still listed)
+    expect((await findByLabelText('Security tests run')).children).toHaveLength(3);
   });
 
   it('sends it as another user when an environment is chosen', async () => {

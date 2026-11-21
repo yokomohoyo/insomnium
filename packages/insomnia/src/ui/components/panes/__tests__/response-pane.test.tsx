@@ -12,6 +12,8 @@ import { ResponsePane } from '../response-pane';
 jest.mock('react-router-dom', () => ({
   ...(jest.requireActual('react-router-dom') as object),
   useRouteLoaderData: jest.fn(),
+  useParams: () => ({ organizationId: 'org_1', projectId: 'proj_1', workspaceId: 'wrk_1' }),
+  useFetcher: () => ({ submit: jest.fn() }),
 }));
 jest.mock('../../../hooks/use-request', () => ({
   useRequestMetaPatcher: () => jest.fn(),
