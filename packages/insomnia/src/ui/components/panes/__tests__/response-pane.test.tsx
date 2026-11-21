@@ -66,9 +66,12 @@ describe('<ResponsePane /> Save Response Body', () => {
     useRouteLoaderData.mockImplementation((id: string) => id === 'root'
       ? { settings: { editorFontSize: 12 } }
       : {
-        activeRequest: { _id: 'req_1', type: 'Request', name: 'My Request' },
+        activeRequest: { _id: 'req_1', type: 'Request', name: 'My Request', method: 'GET' },
         activeRequestMeta: {},
         activeResponse,
+        // (the workspace's, for the Security tab's tests)
+        activeEnvironment: { _id: 'env_base' },
+        subEnvironments: [],
       });
     showError.mockClear();
   });

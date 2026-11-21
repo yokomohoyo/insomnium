@@ -38,7 +38,7 @@ const MISCONFIGURATION = 'API8:2023 Security Misconfiguration';
 const SEVERITIES: AuditSeverity[] = ['high', 'medium', 'low', 'info'];
 
 // a host on this computer or a private network, where plain http is usual
-const isLocalHost = (hostname: string) => {
+export const isLocalHost = (hostname: string) => {
   const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
   return host === 'localhost'
     || host === '::1'
@@ -51,7 +51,7 @@ const isLocalHost = (hostname: string) => {
 };
 
 // the request as it was sent: its method, and its headers by lower-case name
-const sentRequest = (timeline: AuditInput['timeline']) => {
+export const sentRequest = (timeline: AuditInput['timeline']) => {
   const headers = new Map<string, string>();
   let method = '';
   // (the URL as sent: the one kept with the response has lost its user name
@@ -77,7 +77,7 @@ const sentRequest = (timeline: AuditInput['timeline']) => {
   return { method: method.toUpperCase(), headers, url };
 };
 
-const SECRET_PARAM = /^(access_?token|id_?token|refresh_?token|token|jwt|api_?key|key|password|passwd|pwd|secret|client_?secret|auth|session(_?id)?)$/i;
+export const SECRET_PARAM = /^(access_?token|id_?token|refresh_?token|token|jwt|api_?key|key|password|passwd|pwd|secret|client_?secret|auth|session(_?id)?)$/i;
 
 // what a server shows when it fails and says too much: a stack trace's frames,
 // a database's error
@@ -91,12 +91,15 @@ const ERROR_DETAILS: [RegExp, string][] = [
   [/SQLSTATE\[|\bORA-\d{5}\b|You have an error in your SQL syntax|\bPG::\w+Error\b|\bpsycopg2\.|\bSQLITE_ERROR\b|SqlException\b/, 'a database error'],
 ];
 
+// what a body shows of them, if anything: 'a Python traceback'
+export const errorDetailsIn = (body: string) => ERROR_DETAILS.find(([pattern]) => pattern.test(body))?.[1];
+
 // a JSON field that shouldn't be in a response, with a value
 const SENSITIVE_FIELD = /"(password|passwd|pass_?word_?hash|password_?digest|pwd_?hash|secret|client_?secret|private_?key|ssn|social_?security_?number|credit_?card(_?number)?|card_?number|cvv|cvc)"\s*:\s*(?!null\b|""|"\*+"|false\b|true\b)/gi;
 
-const JWT = /\beyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
+export const JWT = /\beyJ[A-Za-z0-9_-]{4,}\.eyJ[A-Za-z0-9_-]{4,}\.[A-Za-z0-9_-]*/g;
 
-const jwtPart = (part: string): Record<string, unknown> | null => {
+export const jwtPart = (part: string): Record<string, unknown> | null => {
   try {
     const parsed = JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
     return parsed && typeof parsed === 'object' ? parsed : null;
@@ -322,7 +325,7 @@ export function auditResponse({ url, statusCode, headers, contentType, body, tim
 
   // the body
   if (body) {
-    const said = ERROR_DETAILS.find(([pattern]) => pattern.test(body))?.[1];
+    const said = errorDetailsIn(body);
     if (said) {
       add({
         id: 'error-details',
@@ -347,11 +350,14 @@ export function auditResponse({ url, statusCode, headers, contentType, body, tim
     }
   }
 
-  return findings
-    .map((finding, index) => ({ finding, index }))
-    .sort((a, b) => SEVERITIES.indexOf(a.finding.severity) - SEVERITIES.indexOf(b.finding.severity) || a.index - b.index)
-    .map(({ finding }) => finding);
+  return mostSevereFirst(findings);
 }
+
+// (in the order found, within a severity)
+export const mostSevereFirst = (findings: AuditFinding[]) => findings
+  .map((finding, index) => ({ finding, index }))
+  .sort((a, b) => SEVERITIES.indexOf(a.finding.severity) - SEVERITIES.indexOf(b.finding.severity) || a.index - b.index)
+  .map(({ finding }) => finding);
 
 // the most severe of the findings, for the tab's count
 export const worstSeverity = (findings: AuditFinding[]): AuditSeverity | undefined =>

@@ -41,6 +41,25 @@ export const useResponseAudit = (response?: Response | null) => {
   return response && audit?.responseId === response._id ? audit.findings : undefined;
 };
 
+export const SecurityFindingList: FC<{ findings: AuditFinding[]; label: string }> = ({ findings, label }) => (
+  <ul aria-label={label} className="list-none m-0 p-0">
+    {findings.map(finding => (
+      <li key={`${finding.id} ${finding.evidence || ''}`} className="flex items-start gap-2 py-2" data-testid={`security-finding-${finding.id}`}>
+        <i className={`fa ${SEVERITY_ICONS[finding.severity]} ${SEVERITY_CLASSES[finding.severity]}`} aria-hidden />
+        <div className="selectable">
+          <div>
+            <strong>{finding.title}</strong>
+            <span className={`txt-sm margin-left-sm ${SEVERITY_CLASSES[finding.severity]}`}>{severityLabel(finding.severity)}</span>
+          </div>
+          {finding.evidence ? <code className="txt-sm">{finding.evidence}</code> : null}
+          <div className="txt-sm">{finding.detail}</div>
+          <div className="txt-sm faint">{finding.owasp}</div>
+        </div>
+      </li>
+    ))}
+  </ul>
+);
+
 // noResponse: the request failed, so there was nothing to look at
 export const ResponseSecurityViewer: FC<{ findings?: AuditFinding[]; noResponse?: boolean }> = ({ findings, noResponse }) => {
   if (noResponse) {
@@ -52,22 +71,7 @@ export const ResponseSecurityViewer: FC<{ findings?: AuditFinding[]; noResponse?
   return (
     <>
       {findings.length ? (
-        <ul aria-label={t('Security findings')} className="list-none m-0 p-0">
-          {findings.map(finding => (
-            <li key={`${finding.id} ${finding.evidence || ''}`} className="flex items-start gap-2 py-2" data-testid={`security-finding-${finding.id}`}>
-              <i className={`fa ${SEVERITY_ICONS[finding.severity]} ${SEVERITY_CLASSES[finding.severity]}`} aria-hidden />
-              <div className="selectable">
-                <div>
-                  <strong>{finding.title}</strong>
-                  <span className={`txt-sm margin-left-sm ${SEVERITY_CLASSES[finding.severity]}`}>{severityLabel(finding.severity)}</span>
-                </div>
-                {finding.evidence ? <code className="txt-sm">{finding.evidence}</code> : null}
-                <div className="txt-sm">{finding.detail}</div>
-                <div className="txt-sm faint">{finding.owasp}</div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <SecurityFindingList findings={findings} label={t('Security findings')} />
       ) : (
         <p className="faint">{t('Nothing found in this response.')}</p>
       )}

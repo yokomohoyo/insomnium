@@ -137,7 +137,7 @@ Check a response without code, with code, or both.
 - **Scripts:** a pre-request and an after-response script in JavaScript, to change the request, keep a token or an id for the next one, and test the response with `insomnia.test` and `insomnia.expect`. `pm` is the same API, so common Postman scripts work as written.
 - **A sandbox:** scripts run in QuickJS, apart from the app, with no network, files or Node. A script in a collection someone shared can change that collection's request and environment, and nothing else.
 - **Results:** the response's **Tests** tab lists each assertion and script test, with what was found when one fails, and what the scripts logged.
-- **Security checks:** the response's **Security** tab lists what it says about the API's security, by the OWASP API Security Top 10: plain http, credentials in the URL, unsigned tokens, missing headers, cookie flags, stack traces. See [docs/security-checks.md](docs/security-checks.md).
+- **Security checks:** the response's **Security** tab lists what it says about the API's security, by the OWASP API Security Top 10: plain http, credentials in the URL, unsigned tokens, missing headers, cookie flags, stack traces. **Run Security Tests** then tries the API: without its credentials, with a forged token, as another user, from another site, with a quote in a parameter. See [docs/security-checks.md](docs/security-checks.md).
 
 More: [docs/testing.md](docs/testing.md) and [docs/scripts.md](docs/scripts.md).
 
@@ -247,7 +247,7 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Search and code** — find requests, folders and environments by name or URL across workspaces (`search`), and turn a request into code in any language Generate Code offers, such as cURL, fetch or Python requests (`generate_code`).
 - **Live connections** — open a WebSocket, Socket.IO, MQTT or GraphQL subscription and send and read its messages; open an event stream (Server-Sent Events) and read what it received; connect an MCP request to its server and call its tools. The app's window shows the same connection.
 - **Mock servers** — start and stop a collection's mock server and read the requests it got.
-- **Asks you first** — running a design document's unit tests (`run_test_suite`), Git commit, pull and push, and an MCP request that runs a command each open a confirmation in the app, with **Cancel** the default.
+- **Asks you first** — running a design document's unit tests (`run_test_suite`), a request's security tests (`run_security_tests`), Git commit, pull and push, and an MCP request that runs a command each open a confirmation in the app, with **Cancel** the default.
 
 Connected tools also get an `insomnium://instructions` resource: how to find, send and check requests with these tools. For clients that do better with fewer tools, `npx insomnium-mcp --minimal` (or `…/sse?tools=minimal`) offers just the core ones: search, read and edit requests, environments, send, run, and generate code.
 

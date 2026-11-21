@@ -9,6 +9,7 @@ import { registerGitTools } from '../git';
 import { registerTools } from '../index';
 import { registerMcpRequestTools } from '../mcp-requests';
 import { registerMockTools } from '../mocks';
+import { registerSecurityTestTools } from '../security-tests';
 import { registerStreamTools } from '../streams';
 import { registerTestRunTools } from '../test-run';
 import { registerWebSocketTools } from '../websockets';
@@ -98,6 +99,7 @@ describe('the instructions', () => {
     registerTools({ tool: (name: string) => tools.add(name) } as any);
     // and the app's own, which the app's server adds
     registerTestRunTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
+    registerSecurityTestTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
     registerWebSocketTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerMcpRequestTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerMockTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
