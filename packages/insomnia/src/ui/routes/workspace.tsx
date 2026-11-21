@@ -5,6 +5,7 @@ import type { SortOrder } from '../../common/constants';
 import { database } from '../../common/database';
 import { getGlobalEnvironments } from '../../common/global-environments';
 import { fuzzyMatchAll } from '../../common/misc';
+import { moveIgnoredSecurityRules } from '../../common/security-rules-moved';
 import { sortMethodMap } from '../../common/sorting';
 import type { StoreStamp, StoreWrite } from '../../common/sqlite-store';
 import type { BaseModel } from '../../models';
@@ -70,7 +71,7 @@ export const workspaceLoader: LoaderFunction = async ({
   guard(workspaceId, 'Workspace ID is required');
   guard(projectId, 'Project ID is required');
 
-  const activeWorkspace = await models.workspace.getById(workspaceId);
+  let activeWorkspace = await models.workspace.getById(workspaceId);
   guard(activeWorkspace, 'Workspace not found');
 
   // I don't know what to say man, this is just how it is
@@ -80,10 +81,13 @@ export const workspaceLoader: LoaderFunction = async ({
   const activeProject = await models.project.getById(projectId);
   guard(activeProject, 'Project not found');
 
-  const activeWorkspaceMeta = await models.workspaceMeta.getOrCreateByParentId(
+  let activeWorkspaceMeta = await models.workspaceMeta.getOrCreateByParentId(
     workspaceId,
   );
   guard(activeWorkspaceMeta, 'Workspace meta not found');
+  // the Security tab's ignored rules, kept on this computer by 0.10 and 0.11:
+  // moved to the collection, where its exports and its team get them
+  ({ workspace: activeWorkspace, meta: activeWorkspaceMeta } = await moveIgnoredSecurityRules(activeWorkspace, activeWorkspaceMeta));
   const gitRepository = await models.gitRepository.getById(
     activeWorkspaceMeta.gitRepositoryId || '',
   );

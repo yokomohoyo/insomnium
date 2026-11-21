@@ -103,7 +103,7 @@ A report names where a credential was, never the credential, and shows URLs with
 
 Not every finding is a problem for every API: one that no browser calls has little use for `nosniff`, and a public one answers the same to everyone. **Ignore**, beside a finding, stops that rule's findings being shown in the collection, for every request in it. They no longer count on the tab.
 
-The rules a collection ignores are listed at the bottom of the tab, each with **Show Again**. The list is kept with the collection's settings on this computer, so it isn't exported or synced with the collection.
+The rules a collection ignores are listed at the bottom of the tab, each with **Show Again**. The list is the collection's own: it's in an export, and with Git Sync or a team server everyone working on the collection ignores the same rules. `insomnium-server security` leaves them out too, and says which they are before it starts.
 
 An ignored test still runs and is still listed with what came back; only its finding is left out.
 

@@ -74,6 +74,7 @@ describe('<ResponsePane /> Save Response Body', () => {
         // (the workspace's, for the Security tab's tests)
         activeEnvironment: { _id: 'env_base' },
         subEnvironments: [],
+        activeWorkspace: { _id: 'wrk_1', securityIgnoredRules: [] },
       });
     showError.mockClear();
   });

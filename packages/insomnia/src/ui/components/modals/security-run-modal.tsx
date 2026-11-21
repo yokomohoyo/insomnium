@@ -105,7 +105,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
   const modalRef = useRef<ModalHandle>(null);
   const navigate = useNavigate();
   const { organizationId, projectId, workspaceId } = useParams() as { organizationId: string; projectId: string; workspaceId: string };
-  const { activeEnvironment, subEnvironments, activeWorkspaceMeta } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const { activeEnvironment, subEnvironments, activeWorkspace } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   const [requests, setRequests] = useState<RunnableRequest[]>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
   const [lowerEnvironmentId, setLowerEnvironmentId] = useState('');
@@ -135,7 +135,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
       setSummary(await run(requests || [], {
         otherEnvironmentId: otherEnvironmentId || null,
         lowerEnvironmentId: lowerEnvironmentId || null,
-        ignored: ignoredRules(activeWorkspaceMeta?.securityIgnoredRules),
+        ignored: ignoredRules(activeWorkspace?.securityIgnoredRules),
         signal: controller.current.signal,
         onItem: item => setItems(done => [...done, item]),
       }));

@@ -117,8 +117,7 @@ export function registerSecurityTestTools(server: McpServer, confirm: ConfirmSec
       if (allowed !== true) {
         return fail('the user declined to run the security checks');
       }
-      const meta = workspace ? await models.workspaceMeta.getByParentId(workspace._id) : null;
-      const ignored = ignoredRules(meta?.securityIgnoredRules);
+      const ignored = ignoredRules(workspace?.securityIgnoredRules);
       const summary = await runSecurityChecks(requests, { otherEnvironmentId, lowerEnvironmentId, ignored, signal, checkUrl: assertSafeRequestUrl });
       return json({ parentId, ...summary, ...(ignored.length ? { ignoredRules: ignored } : {}) });
     },

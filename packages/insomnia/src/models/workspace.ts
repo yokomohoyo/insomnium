@@ -17,6 +17,10 @@ export interface BaseWorkspace {
   description: string;
   certificates?: any; // deprecated
   scope: 'design' | 'collection';
+  // the Security tab's rules this collection doesn't want to hear about, by
+  // their ids (common/security-rules.ts): the collection's, so they go where
+  // it goes, in an export and to a team
+  securityIgnoredRules: string[];
 }
 
 export type WorkspaceScope = BaseWorkspace['scope'];
@@ -44,6 +48,7 @@ export const init = (): BaseWorkspace => ({
   name: `New ${strings.collection.singular}`,
   description: '',
   scope: WorkspaceScopeKeys.collection,
+  securityIgnoredRules: [],
 });
 
 export function migrate(doc: Workspace) {

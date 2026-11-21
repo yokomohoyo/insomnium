@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 
 import { version } from '../../package.json';
+import { ignoredRules } from '../common/security-rules';
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
 import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../network/load-report';
@@ -123,18 +124,24 @@ async function security(argv: string[]) {
     }
     const otherEnvironmentId = config.otherEnvironment ? await findOtherEnvironment(workspaces, config.otherEnvironment) : null;
     const lowerEnvironmentId = config.lowerEnvironment ? await findOtherEnvironment(workspaces, config.lowerEnvironment, '--as-lower') : null;
-    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, name: workspaces.map(workspace => workspace.name).join(', ') };
+    // the rules the collections themselves ignore, as the app's Security tab does
+    const ignoredByCollection = ignoredRules(workspaces.flatMap(workspace => workspace.securityIgnoredRules || []));
+    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, name: workspaces.map(workspace => workspace.name).join(', ') };
   } catch (err) {
     console.error(`[security] ${(err as Error).message}`);
     return 2;
   }
 
-  const { requests, otherEnvironmentId, lowerEnvironmentId, name } = prepared;
+  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, name } = prepared;
   print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.join(', ')}`);
+  // said, not just done: a collection's file shouldn't be able to quiet a pipeline unseen
+  if (ignoredByCollection.length) {
+    print(`[security] ignored by the collection: ${ignoredByCollection.join(', ')}`);
+  }
   const summary = await runSecurityChecks(requests, {
     otherEnvironmentId,
     lowerEnvironmentId,
-    ignored: config.ignore,
+    ignored: ignoredRules([...ignoredByCollection, ...config.ignore]),
     onItem: item => print(formatItem(item)),
   });
   print(`\n${formatSecuritySummary(summary, config.failOn)}`);

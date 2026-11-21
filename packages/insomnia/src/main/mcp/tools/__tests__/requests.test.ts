@@ -93,8 +93,7 @@ describe('the request tools', () => {
     expect(JSON.stringify(body)).not.toContain('s3cret');
 
     // without the rules the collection ignores in the Security tab, which it names
-    await models.workspaceMeta.getOrCreateByParentId(workspaceId);
-    await models.workspaceMeta.updateByParentId(workspaceId, { securityIgnoredRules: ['plain-http', 'not-a-rule'] });
+    await models.workspace.update((await models.workspace.getById(workspaceId))!, { securityIgnoredRules: ['plain-http', 'not-a-rule'] });
     const quieter = (await call('audit_response', { responseId: earlier._id })).body;
     expect(quieter.findings.map((finding: { id: string }) => finding.id)).toEqual(['secret-in-url']);
     expect(quieter.ignoredRules).toEqual(['plain-http']);
