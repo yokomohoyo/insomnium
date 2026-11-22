@@ -87,7 +87,7 @@ describe('<FuzzModal />', () => {
     // 24 x 24 x 15, of which a run makes the first 2000
     expect(getByTestId('fuzz-plan').textContent).toBe('2,000 attempts, and the request once as it is. A run sends 2000 at most.');
 
-    fireEvent.click(await findByRole('button', { name: 'Send 2001 Requests' }));
+    fireEvent.click(await findByRole('button', { name: 'Send 2,001 Requests' }));
     await waitFor(() => expect(run).toHaveBeenCalledWith('req_1', expect.objectContaining({ mode: 'combinations', pointIds: ['query:p0', 'json-new', 'path:1'] })));
   });
 

@@ -152,7 +152,7 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
 
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
-      <Modal ref={modalRef} onHide={hide} wide tall>
+      <Modal ref={modalRef} onHide={hide} wide tall={started}>
         <ModalHeader>{t('Fuzz: {name}', { name: request.name })}</ModalHeader>
         <ModalBody className="pad">
           {/* clear of the scroll bar */}
@@ -197,21 +197,23 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
                     {t('Your own, one a line (name=value adds a field to a JSON body)')}
                     <textarea className="input-box w-full font-mono txt-sm p-2 m-0" rows={3} value={custom} onChange={event => setCustom(event.currentTarget.value)} />
                   </label>
-                  <label className="flex items-center gap-3 txt-sm mt-4" title={t('One at a time shows which input is at fault. All at once puts each payload in every position together. Every combination tries each mix of payloads over the positions, and grows fast.')}>
-                    {t('Positions:')}
-                    <select className="input-box m-0" value={mode} onChange={event => setMode(event.currentTarget.value as FuzzMode)}>
-                      <option value="one">{t('One at a time')}</option>
-                      <option value="together">{t('All at once')}</option>
-                      <option value="combinations">{t('Every combination')}</option>
-                    </select>
-                  </label>
-                  <label className="flex items-center gap-3 txt-sm mt-4">
-                    {t('Milliseconds between attempts')}
-                    <input type="number" className="input-box w-24 m-0 px-2 py-1" min={0} value={delay} onChange={event => setDelay(Math.max(0, Number(event.currentTarget.value) || 0))} />
-                  </label>
+                  <div className="grid grid-cols-[max-content_12rem] items-center gap-x-3 gap-y-3 txt-sm mt-5">
+                    <label className="contents" title={t('One at a time shows which input is at fault. All at once puts each payload in every position together. Every combination tries each mix of payloads over the positions, and grows fast.')}>
+                      <span>{t('Positions:')}</span>
+                      <select className="input-box m-0 w-full" value={mode} onChange={event => setMode(event.currentTarget.value as FuzzMode)}>
+                        <option value="one">{t('One at a time')}</option>
+                        <option value="together">{t('All at once')}</option>
+                        <option value="combinations">{t('Every combination')}</option>
+                      </select>
+                    </label>
+                    <label className="contents">
+                      <span>{t('Milliseconds between attempts:')}</span>
+                      <input type="number" className="input-box m-0 w-full" min={0} value={delay} onChange={event => setDelay(Math.max(0, Number(event.currentTarget.value) || 0))} />
+                    </label>
+                  </div>
                 </fieldset>
               </div>
-              <p data-testid="fuzz-plan" className="mt-6 mb-3">
+              <p data-testid="fuzz-plan" className="txt-sm font-bold mt-6 mb-3">
                 {t('{count, plural, one {# attempt} other {# attempts}}, and the request once as it is.', { count: planned })}
                 {planned >= FUZZ_MAX_ATTEMPTS ? ` ${t('A run sends {max} at most.', { max: FUZZ_MAX_ATTEMPTS })}` : ''}
               </p>
@@ -281,7 +283,7 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
             ? <button className="btn" onClick={() => controller.current?.abort()}>{t('Stop')}</button>
             : (
               <button className="btn" disabled={!planned || (writes && !allowed)} onClick={start}>
-                {t('Send {count} Requests', { count: planned + 1 })}
+                {t('{count, plural, one {Send # Request} other {Send # Requests}}', { count: planned + 1 })}
               </button>
             )}
         </ModalFooter>

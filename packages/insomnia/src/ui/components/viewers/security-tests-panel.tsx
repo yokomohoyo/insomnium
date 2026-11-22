@@ -128,52 +128,56 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
         </p>
       ) : null}
       {safe ? (
-        <div className="flex items-center flex-wrap gap-x-4 gap-y-2 margin-top-sm">
-          <button className="btn btn--clicky" disabled={Boolean(running)} onClick={start}>
-            {running ? <><i className="fa fa-spinner fa-spin" aria-hidden /> {t('Running…')}</> : t('Run Security Tests')}
-          </button>
-          {running ? <button className="btn btn--clicky" onClick={() => running.abort()}>{t('Stop')}</button> : null}
-          {environments.length ? (
-            <label className="flex items-center gap-2 txt-sm">
-              {t('As another user:')}
-              <select
-                className="input-box"
+        <>
+          <div className="grid grid-cols-[max-content_12rem] items-center gap-x-3 gap-y-3 txt-sm mt-4">
+            {environments.length ? (
+              <label className="contents">
+                <span>{t('As another user:')}</span>
+                <select
+                  className="input-box m-0 w-full"
+                  disabled={Boolean(running)}
+                  value={otherEnvironmentId}
+                  onChange={event => setOtherEnvironmentId(event.currentTarget.value)}
+                >
+                  <option value="">{t('Not tested')}</option>
+                  {environments.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}
+                </select>
+              </label>
+            ) : null}
+            {environments.length ? (
+              <label className="contents" title={t('For a request only some users may make: an environment whose user may not')}>
+                <span>{t('With less privilege:')}</span>
+                <select
+                  className="input-box m-0 w-full"
+                  disabled={Boolean(running)}
+                  value={lowerEnvironmentId}
+                  onChange={event => setLowerEnvironmentId(event.currentTarget.value)}
+                >
+                  <option value="">{t('Not tested')}</option>
+                  {environments.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}
+                </select>
+              </label>
+            ) : null}
+            <label className="contents" title={t('How many times in a row the request is sent, looking for a rate limit. A limit above this number would not show; 0 leaves the test out.')}>
+              <span>{t('Rate limit burst:')}</span>
+              <input
+                type="number"
+                className="input-box m-0 w-full"
+                min={0}
+                max={RATE_LIMIT_MOST}
                 disabled={Boolean(running)}
-                value={otherEnvironmentId}
-                onChange={event => setOtherEnvironmentId(event.currentTarget.value)}
-              >
-                <option value="">{t('Not tested')}</option>
-                {environments.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}
-              </select>
+                value={rateLimitRequests}
+                onChange={event => setRateLimitRequests(rateLimitBurst(event.currentTarget.value === '' ? 0 : Number(event.currentTarget.value)))}
+              />
             </label>
-          ) : null}
-          {environments.length ? (
-            <label className="flex items-center gap-2 txt-sm" title={t('For a request only some users may make: an environment whose user may not')}>
-              {t('With less privilege:')}
-              <select
-                className="input-box"
-                disabled={Boolean(running)}
-                value={lowerEnvironmentId}
-                onChange={event => setLowerEnvironmentId(event.currentTarget.value)}
-              >
-                <option value="">{t('Not tested')}</option>
-                {environments.map(({ _id, name }) => <option key={_id} value={_id}>{name}</option>)}
-              </select>
-            </label>
-          ) : null}
-          <label className="flex items-center gap-2 txt-sm" title={t('How many times in a row the request is sent, looking for a rate limit. A limit above this number would not show; 0 leaves the test out.')}>
-            {t('Rate limit burst:')}
-            <input
-              type="number"
-              className="input-box w-24 m-0 px-2 py-1"
-              min={0}
-              max={RATE_LIMIT_MOST}
-              disabled={Boolean(running)}
-              value={rateLimitRequests}
-              onChange={event => setRateLimitRequests(rateLimitBurst(event.currentTarget.value === '' ? 0 : Number(event.currentTarget.value)))}
-            />
-          </label>
-        </div>
+          </div>
+          <div className="flex items-center gap-3 mt-4">
+            <button className="btn btn--clicky" disabled={Boolean(running)} onClick={start}>
+              {running ? <><i className="fa fa-spinner fa-spin" aria-hidden /> {t('Running…')}</> : t('Run Security Tests')}
+            </button>
+            {running ? <button className="btn btn--clicky" onClick={() => running.abort()}>{t('Stop')}</button> : null}
+          </div>
+        </>
       ) : null}
       {!running && last?.error ? <p className="danger txt-sm margin-top-sm">{t('The tests could not run: {error}', { error: last.error })}</p> : null}
       {!running && last?.result ? (

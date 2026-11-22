@@ -45,7 +45,7 @@ export const DecoderModal: FC<ModalProps & { text?: string }> = ({ text = '', on
 
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
-      <Modal ref={modalRef} onHide={onHide} wide tall>
+      <Modal ref={modalRef} onHide={onHide} wide>
         <ModalHeader>{t('Decoder')}</ModalHeader>
         <ModalBody className="pad">
           {/* clear of the scroll bar */}
@@ -72,7 +72,7 @@ export const DecoderModal: FC<ModalProps & { text?: string }> = ({ text = '', on
                   <button
                     key={conversion.id}
                     // what the value looks like it is stands out
-                    className={`btn btn--compact ${likely.includes(conversion.id) ? 'btn--clicky' : 'btn--outlined'}`}
+                    className={`btn btn--compact btn--outlined ${likely.includes(conversion.id) ? '!border-[--color-surprise] !text-[--color-surprise] font-bold' : ''}`}
                     title={likely.includes(conversion.id) ? t('The value looks like this') : undefined}
                     disabled={!input}
                     onClick={() => run(conversion)}
