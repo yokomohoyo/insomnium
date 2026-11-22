@@ -8,7 +8,13 @@ const some = (items: string[], most = 6) => items.length > most ? `${items.slice
 // for an API the user may test, and a request that changes data changes it
 // every time. Declining is the default, and so is a request the client gives
 // up on.
-export async function confirmFuzz({ request, method, url, workspace, requests, positions, lists, changesData }: FuzzRequest, signal?: AbortSignal): Promise<boolean> {
+const SPREAD = {
+  one: 'once for each payload in each position',
+  together: 'once for each payload, put in every position at once',
+  combinations: 'once for each combination of payloads over the positions',
+};
+
+export async function confirmFuzz({ request, method, url, workspace, requests, positions, lists, mode, changesData }: FuzzRequest, signal?: AbortSignal): Promise<boolean> {
   return askInApp({
     type: 'warning',
     title: 'Fuzz this request?',
@@ -16,7 +22,7 @@ export async function confirmFuzz({ request, method, url, workspace, requests, p
     detail: [
       `${method} ${url}`,
       '',
-      `${requests} requests are sent: the request as it is, then once for each payload in each position.`,
+      `${requests} requests are sent: the request as it is, then ${SPREAD[mode]}.`,
       `Positions: ${some(positions)}`,
       `Payloads: ${lists.length ? some(lists) : 'none'}`,
       '',

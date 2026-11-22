@@ -21,6 +21,8 @@ export interface FuzzRequest {
   // the positions and lists chosen, as the dialog would name them
   positions: string[];
   lists: string[];
+  // how the payloads are spread over the positions
+  mode: FuzzMode;
   // not a GET or HEAD: every attempt the server accepts changes something
   changesData: boolean;
 }
@@ -31,6 +33,14 @@ export type ConfirmFuzz = (run: FuzzRequest, signal?: AbortSignal) => Promise<bo
 const SNIPPET_CHARS = 600;
 const QUIET_ATTEMPTS = 100;
 
+// A position's current value, for a client to see what it's replacing. The
+// request is rendered, so a value may be a credential from the environment:
+// one whose name or shape says so is not handed over
+const CREDENTIAL_NAME = /auth|token|key|secret|passw|cookie|session|credential|signature/i;
+const CREDENTIAL_VALUE = /^(bearer|basic)\s|^eyJ[\w-]+\.[\w-]+\./i;
+const shownValue = ({ label, original }: { label: string; original: string }) =>
+  CREDENTIAL_NAME.test(label) || CREDENTIAL_VALUE.test(original) ? '(hidden: it looks like a credential)' : original.length > 200 ? `${original.slice(0, 200)}…` : original;
+
 const brief = ({ index, position, payload, statusCode, bytes, elapsed, error, flags }: FuzzAttemptResult) =>
   ({ attempt: index, position, payload: payload.length > 200 ? `${payload.slice(0, 200)}… (${payload.length} characters)` : payload, statusCode, bytes, ms: Math.round(elapsed), ...(error ? { error } : {}), flags: flags.map(({ label }) => label) });
 
@@ -38,7 +48,7 @@ const brief = ({ index, position, payload, statusCode, bytes, elapsed, error, fl
 export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { list = listFuzzPoints, run = runFuzz }: { list?: typeof listFuzzPoints; run?: typeof runFuzz } = {}) {
   server.tool(
     'list_fuzz_points',
-    "List where fuzz_request can put payloads in an HTTP request, as the app's Fuzz dialog does: each query parameter, part of the path, header, value in a JSON body or form field, and a new field of a JSON body. The request is rendered with its environment and nothing is sent. Returns each position's id, label, current value and whether it's a likely place for input (suggested), and the payload lists there are, with how many payloads each has.",
+    "List where fuzz_request can put payloads in an HTTP request, as the app's Fuzz dialog does: each query parameter, part of the path, header, value in a JSON body or form field, and a new field of a JSON body. The request is rendered with its environment and nothing is sent. Returns each position's id, label, current value (hidden when it looks like a credential) and whether it's a likely place for input (suggested), and the payload lists there are, with how many payloads each has.",
     {
       requestId: z.string(),
       environmentId: z.string().nullable().optional().describe('Override the active environment for this call. Null = no environment overrides; omit = use workspace active environment.'),
@@ -58,7 +68,7 @@ export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { lis
           requestId,
           method,
           url,
-          positions: points.map(({ id, label, original, suggested }) => ({ id, label, value: original.length > 200 ? `${original.slice(0, 200)}…` : original, suggested })),
+          positions: points.map(({ id, label, original, suggested }) => ({ id, label, value: shownValue({ label, original }), suggested })),
           lists: FUZZ_LISTS.map(({ id, name, about, payloads }) => ({ id, name, about, payloads: payloads.length })),
         });
       } catch (err) {
@@ -110,6 +120,7 @@ export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { lis
         requests: attempts + 1,
         positions: chosen.points.map(({ label }) => label),
         lists: chosen.lists,
+        mode: (mode as FuzzMode | undefined) || 'one',
         changesData: !isSafeToRepeat(request.method),
       }, signal);
       console.log(`[mcp] fuzz_request ${requestId}: the user ${allowed === true ? 'allowed' : 'declined'} the run`);
