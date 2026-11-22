@@ -80,22 +80,29 @@ export const requestPath = (url: string) => {
 const same = (request: (string | null)[], template: (string | null)[]) =>
   request.length === template.length && request.every((part, index) => part === null || template[index] === null || part === template[index]);
 
-// whether a request's path is the operation's: as it is, under one of the
-// spec's base paths, or under whatever a variable in front of it adds
-const matches = (path: string, operation: SpecOperation, basePaths: string[]) => {
-  const template = segments(operation.path);
+// The operations that describe a request's path: as it is or under one of the
+// spec's base paths; failing those, under a prefix the spec doesn't name, such
+// as a gateway's, where the path's end is the operation's. Of those, only the
+// longest: a variable at a path's end stands for anything, so /api/orders/{{id}}
+// ends like /orders/{id} and like /health too, and it's the first it means
+const operationsFor = (method: string, path: string, { operations, basePaths }: { operations: SpecOperation[]; basePaths: string[] }) => {
   const request = segments(path);
-  if (same(request, template)) {
-    return true;
+  const candidates = operations.filter(operation => operation.method === method.toUpperCase());
+  const direct = candidates.filter(operation => {
+    const template = segments(operation.path);
+    return same(request, template) || basePaths.some(base => {
+      const prefix = segments(base);
+      return request.length === prefix.length + template.length && same(request.slice(0, prefix.length), prefix) && same(request.slice(prefix.length), template);
+    });
+  });
+  if (direct.length) {
+    return direct;
   }
-  if (basePaths.some(base => {
-    const prefix = segments(base);
-    return request.length === prefix.length + template.length && same(request.slice(0, prefix.length), prefix) && same(request.slice(prefix.length), template);
-  })) {
-    return true;
-  }
-  // (a prefix the spec doesn't name, such as a gateway's: the path's end is the operation's)
-  return template.length > 0 && request.length > template.length && same(request.slice(request.length - template.length), template);
+  const behind = candidates
+    .map(operation => ({ operation, template: segments(operation.path) }))
+    .filter(({ template }) => template.length > 0 && request.length > template.length && same(request.slice(request.length - template.length), template));
+  const longest = Math.max(0, ...behind.map(({ template }) => template.length));
+  return behind.filter(({ template }) => template.length === longest).map(({ operation }) => operation);
 };
 
 export const compareWithSpec = (contents: string, requests: InventoryRequest[]): SpecInventory | null => {
@@ -107,7 +114,7 @@ export const compareWithSpec = (contents: string, requests: InventoryRequest[]):
   const undocumented: SpecInventory['undocumented'] = [];
   for (const { requestId, method, url } of requests) {
     const path = requestPath(url);
-    const found = spec.operations.filter(operation => operation.method === method.toUpperCase() && matches(path, operation, spec.basePaths));
+    const found = operationsFor(method, path, spec);
     found.forEach(operation => covered.add(operation));
     if (!found.length) {
       undocumented.push({ requestId, operation: `${method.toUpperCase()} ${path}` });
@@ -117,6 +124,21 @@ export const compareWithSpec = (contents: string, requests: InventoryRequest[]):
     operations: spec.operations.length,
     uncovered: spec.operations.filter(operation => !covered.has(operation)).map(({ method, path }) => `${method} ${path}`),
     undocumented,
+  };
+};
+
+// One request against the spec: the operations that describe it ("GET
+// /orders/{id}"), or what it asks for when none does. null for what isn't a
+// spec with paths
+export const requestAgainstSpec = (contents: string, { method, url }: Pick<InventoryRequest, 'method' | 'url'>): { described: string[]; operation: string } | null => {
+  const spec = specOperations(contents);
+  if (!spec) {
+    return null;
+  }
+  const path = requestPath(url);
+  return {
+    described: operationsFor(method, path, spec).map(operation => `${operation.method} ${operation.path}`),
+    operation: `${method.toUpperCase()} ${path}`,
   };
 };
 

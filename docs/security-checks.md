@@ -39,6 +39,8 @@ It looks at the one request and response, and sends nothing more to find out. So
 
 Some of that the tests below can show.
 
+In a design document, the tab also compares the request with the spec, under **Against the spec**: it names the operation that describes the request, or reports the request as one the spec doesn't describe (API9 Improper Inventory Management). Nothing is sent to tell.
+
 ## Security tests
 
 Under the findings, **Run Security Tests** tries the API. It sends the request again, changed a little each time, and compares each answer with the request's own:
