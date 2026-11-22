@@ -3,7 +3,7 @@
 // answers compared with its own. Without its credentials, with a token that
 // shouldn't be accepted, as another user, as a user with less privilege, from
 // another site, over plain http,
-// with a quote in a parameter, and several times in a row.
+// with a quote in a parameter, and many times in a row.
 //
 // Only a GET or HEAD is sent again, since a request that changes things would
 // change them once more for every test. This file decides what to send and

@@ -14,7 +14,7 @@ export async function confirmSecurityTests({ request, method, url, count, worksp
     detail: [
       all ? `${count} ${count === 1 ? 'request' : 'requests'}: each GET and HEAD is tested, the others are never sent.` : `${method} ${url}`,
       '',
-      `${all ? 'Up to' : 'The request is sent again up to'} ${requests} ${all ? 'requests are sent' : 'times'}, changed a little each time: without its credentials, with a quote in a parameter, several times in a row. Allow it only for an API you're allowed to test.`,
+      `${all ? 'Up to' : 'The request is sent again up to'} ${requests} ${all ? 'requests are sent' : 'times'}, changed a little each time: without its credentials, with a quote in a parameter, many times in a row. Allow it only for an API you're allowed to test.`,
     ].join('\n'),
     buttons: ['Run the Tests', "Don't Run"],
     defaultId: 1,
