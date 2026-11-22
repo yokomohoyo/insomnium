@@ -2,7 +2,7 @@ import React, { type FC, useEffect, useRef, useState } from 'react';
 
 import { t } from '../../../common/i18n';
 import { withoutIgnored } from '../../../common/security-rules';
-import { isSafeToRepeat, SECURITY_TEST_MAX_REQUESTS, type SecurityCheckOutcome, type SecurityTestResult } from '../../../common/security-tests';
+import { isSafeToRepeat, RATE_LIMIT_MOST, RATE_LIMIT_REQUESTS, rateLimitBurst, type SecurityCheckOutcome, securityTestMaxRequests, type SecurityTestResult } from '../../../common/security-tests';
 import { runRequestSecurityTests, type SecurityTestOptions } from '../../../network/security-tests';
 import { showModal } from '../modals';
 import { AskModal } from '../modals/ask-modal';
@@ -71,6 +71,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
   const [running, setRunning] = useState<AbortController>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
   const [lowerEnvironmentId, setLowerEnvironmentId] = useState('');
+  const [rateLimitRequests, setRateLimitRequests] = useState(RATE_LIMIT_REQUESTS);
   const requestId = useRef(request._id);
   requestId.current = request._id;
   // a run doesn't outlive the request being looked at
@@ -86,7 +87,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
   const findings = withoutIgnored(last?.result?.findings || [], ignored);
 
   const start = async () => {
-    if (!await confirm(SECURITY_TEST_MAX_REQUESTS)) {
+    if (!await confirm(securityTestMaxRequests(rateLimitRequests))) {
       return;
     }
     const { _id: id, modified } = request;
@@ -94,7 +95,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
     setRunning(controller);
     let outcome: Run;
     try {
-      outcome = { result: await run(id, { otherEnvironmentId: otherEnvironmentId || null, lowerEnvironmentId: lowerEnvironmentId || null, signal: controller.signal }) };
+      outcome = { result: await run(id, { otherEnvironmentId: otherEnvironmentId || null, lowerEnvironmentId: lowerEnvironmentId || null, rateLimitRequests, signal: controller.signal }) };
     } catch (err) {
       outcome = { error: err instanceof Error ? err.message : String(err) };
     }
@@ -127,7 +128,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
         </p>
       ) : null}
       {safe ? (
-        <div className="flex items-center gap-2 margin-top-sm">
+        <div className="flex items-center flex-wrap gap-x-4 gap-y-2 margin-top-sm">
           <button className="btn btn--clicky" disabled={Boolean(running)} onClick={start}>
             {running ? <><i className="fa fa-spinner fa-spin" aria-hidden /> {t('Running…')}</> : t('Run Security Tests')}
           </button>
@@ -160,6 +161,18 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
               </select>
             </label>
           ) : null}
+          <label className="flex items-center gap-2 txt-sm" title={t('How many times in a row the request is sent, looking for a rate limit. A limit above this number would not show; 0 leaves the test out.')}>
+            {t('Rate limit burst:')}
+            <input
+              type="number"
+              className="input-box w-24 m-0 px-2 py-1"
+              min={0}
+              max={RATE_LIMIT_MOST}
+              disabled={Boolean(running)}
+              value={rateLimitRequests}
+              onChange={event => setRateLimitRequests(rateLimitBurst(event.currentTarget.value === '' ? 0 : Number(event.currentTarget.value)))}
+            />
+          </label>
         </div>
       ) : null}
       {!running && last?.error ? <p className="danger txt-sm margin-top-sm">{t('The tests could not run: {error}', { error: last.error })}</p> : null}

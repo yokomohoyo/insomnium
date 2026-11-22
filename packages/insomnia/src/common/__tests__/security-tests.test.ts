@@ -8,10 +8,11 @@ import {
   type ProbeExchange,
   type ProbeVariant,
   RATE_LIMIT_REQUESTS,
+  rateLimitBurst,
   runSecurityTests,
   sameAnswer,
-  SECURITY_TEST_MAX_REQUESTS,
   type SecurityTestInput,
+  securityTestMaxRequests,
 } from '../security-tests';
 
 const jwt = (header: object, payload: object, signature = 'c2lnbmF0dXJlLXNpZ25hdHVyZQ') =>
@@ -102,7 +103,7 @@ describe('runSecurityTests()', () => {
   it('never sends more than it says it may', async () => {
     const { requests } = await run(() => answer(200, ORDERS), { hasOther: true, hasLower: true, url: 'https://api.example.com/orders?a=1&b=2&c=3&d=4' });
 
-    expect(requests).toBe(SECURITY_TEST_MAX_REQUESTS);
+    expect(requests).toBe(securityTestMaxRequests());
   });
 
   it('only sends a GET or HEAD again', async () => {
@@ -306,6 +307,47 @@ describe('runSecurityTests()', () => {
 
       expect(findings).toEqual([expect.objectContaining({ id: 'rate-limit', severity: 'low', owasp: 'API4:2023 Unrestricted Resource Consumption' })]);
       expect(requests).toBe(6 + RATE_LIMIT_REQUESTS);
+    });
+
+    it('sends as many as asked for, and says how fast they went', async () => {
+      const unlimited = (variant: ProbeVariant, sent: Map<string, string>) => sent.get('authorization') === `Bearer ${TOKEN}` && !variant.url ? answer(200, ORDERS) : answer(401);
+      const { findings, requests, checks } = await run(unlimited, { rateLimitRequests: 250 });
+
+      expect(requests).toBe(6 + 250);
+      expect(checks.find(({ id }) => id === 'rate-limit')).toMatchObject({ title: '250 times in a row', note: expect.stringMatching(/^It answered all 250, with no 429 and no rate limit headers \(250 requests in [\d.]+ s\)\.$/) });
+      expect(findings[0]).toMatchObject({ id: 'rate-limit', evidence: '250 requests in a row', detail: expect.stringContaining("A limit above 250 requests, or one counted over a longer time, wouldn't show here") });
+    });
+
+    it('finds a limit that a smaller burst would have missed', async () => {
+      // 60 a minute: the 61st is refused
+      let plain = 0;
+      const limited = (variant: ProbeVariant, sent: Map<string, string>) => {
+        if (Object.keys(variant).length) {
+          return careful(variant, sent).statusCode === 200 ? answer(200, ORDERS) : careful(variant, sent);
+        }
+        return ++plain > 61 ? answer(429) : answer(200, ORDERS);
+      };
+
+      const usual = await run(limited);
+      expect(usual.checks.find(({ id }) => id === 'rate-limit')).toMatchObject({ outcome: 'passed', note: 'It answered 429 to request 61.' });
+
+      plain = 0;
+      const small = await run(limited, { rateLimitRequests: 15 });
+      expect(small.outcomes['rate-limit']).toBe('found');
+    });
+
+    it('is left out at 0, and keeps to the most that can be asked for', async () => {
+      const none = await run(() => answer(200, ORDERS), { rateLimitRequests: 0 });
+      expect(none.checks.find(({ id }) => id === 'rate-limit')).toMatchObject({ outcome: 'skipped', title: 'Many times in a row', note: 'Set to send none.' });
+      expect(none.requests).toBeLessThan(10);
+
+      expect(rateLimitBurst(5000)).toBe(1000);
+      expect(rateLimitBurst(-3)).toBe(0);
+      expect(rateLimitBurst(12.9)).toBe(12);
+      expect(rateLimitBurst(undefined)).toBe(100);
+      expect(rateLimitBurst(NaN)).toBe(100);
+      expect(securityTestMaxRequests()).toBe(111);
+      expect(securityTestMaxRequests(0)).toBe(11);
     });
 
     it('stops at the first 429', async () => {

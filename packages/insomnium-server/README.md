@@ -137,7 +137,7 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 ## Security checks in CI
 
-`security` is the app's [Security Checks](../../docs/security-checks.md#a-whole-collection) for a pipeline, by the OWASP API Security Top 10. It tests each GET and HEAD in the collection (sent again up to 26 times, changed a little each time) and looks at their answers. Any other request is never sent. Nothing sent is kept.
+`security` is the app's [Security Checks](../../docs/security-checks.md#a-whole-collection) for a pipeline, by the OWASP API Security Top 10. It tests each GET and HEAD in the collection (sent again up to 111 times, changed a little each time; 100 of those are in a row, looking for a rate limit) and looks at their answers. Any other request is never sent. Nothing sent is kept.
 
 The app asks before it sends anything. A pipeline has nobody to ask, so the go-ahead is on the command line, and both parts are required every time:
 
@@ -158,12 +158,12 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 [security] Shop: 3 requests, sending to staging.example.com
   ✗ Orders / List orders  GET https://staging.example.com/orders?status=…
       HIGH   It accepts an unsigned token (the request's Authorization header)  [token-unsigned]
-      LOW    No sign of a rate limit (15 requests in a row)  [rate-limit]
+      LOW    No sign of a rate limit (100 requests in a row)  [rate-limit]
   ✓ Orders / Get order  GET https://staging.example.com/orders/7
   - Orders / Create order  POST https://staging.example.com/orders
       A POST isn't sent again, and it has no response to look at: send it first.
 
-3 requests, 2 tested · 1 high, 1 low · 31 sent
+3 requests, 2 tested · 1 high, 1 low · 216 sent
 Failed: a finding is high or worse (--fail-on high)
 ```
 
@@ -177,6 +177,7 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--env` | the sub environment to send with, by name |
 | `--as` | a sub environment holding another user's credentials: each request is also sent once as them |
 | `--as-lower` | for requests only some users may make: a sub environment whose user may not. Anything but a refusal is a finding. Tried on the requests the collection marks as restricted (shown as `(restricted)`); when it marks none, on every request, so use it with `--folder` |
+| `--rate-limit-requests` | how many times in a row a request is sent, looking for a rate limit: 100 by default, 1000 at most. A limit above this number doesn't show, so set it past the limit you expect; `0` leaves that test out |
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
 | `--ignore` | rules to leave out, by id, comma-separated, on top of those the collection itself ignores (named at the start of the output). The ids are the bracketed names in the output |
 | `--markdown`, `--json`, `--sarif` | write a report to this file |

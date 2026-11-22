@@ -18,7 +18,7 @@ registerSecurityTestTools({ tool: (name: string, _description: string, _schema: 
 } } as any, confirm);
 
 const call = async (args: Record<string, unknown>) => {
-  const result = await handlers.run_security_tests(args, { signal });
+  const result = await handlers.run_security_tests({ rateLimitRequests: 15, ...args }, { signal });
   return { body: JSON.parse(result.content[0].text), isError: !!result.isError };
 };
 
@@ -39,6 +39,15 @@ describe('run_security_tests', () => {
 
     expect(await call({ requestId })).toEqual({ body: { error: 'the user declined to run the security tests' }, isError: true });
     expect(confirm).toHaveBeenCalledWith({ request: 'Orders', method: 'GET', url: 'http://localhost/orders', workspace: 'Shop', requests: 26 }, signal);
+  });
+
+  it('says how many requests it may send with the burst asked for, and with the usual one', async () => {
+    confirm.mockResolvedValue(false);
+
+    await handlers.run_security_tests({ requestId }, { signal });
+    await call({ requestId, rateLimitRequests: 0 });
+
+    expect(confirm.mock.calls.map(([run]) => run.requests)).toEqual([111, 11]);
   });
 
   it('takes only a plain yes for one', async () => {
@@ -109,7 +118,7 @@ describe('run_security_checks', () => {
   let workspaceId: string;
   let folderId: string;
   const callChecks = async (args: Record<string, unknown>) => {
-    const result = await handlers.run_security_checks(args, { signal });
+    const result = await handlers.run_security_checks({ rateLimitRequests: 15, ...args }, { signal });
     return { body: JSON.parse(result.content[0].text), isError: !!result.isError };
   };
 

@@ -7,7 +7,7 @@ import { getAppVersion } from '../../../common/constants';
 import { t } from '../../../common/i18n';
 import type { AuditSeverity } from '../../../common/response-audit';
 import { ignoredRules } from '../../../common/security-rules';
-import type { SecurityCheckOutcome } from '../../../common/security-tests';
+import { RATE_LIMIT_MOST, RATE_LIMIT_REQUESTS, rateLimitBurst, type SecurityCheckOutcome } from '../../../common/security-tests';
 import { listRunnableRequests, type RunnableRequest } from '../../../network/runner';
 import { securityJsonReport, securityMarkdownReport, securitySarifReport } from '../../../network/security-report';
 import { runSecurityChecks, type SecurityRunItem, securityRunMaxRequests, type SecurityRunSummary } from '../../../network/security-run';
@@ -110,6 +110,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
   const [requests, setRequests] = useState<RunnableRequest[]>();
   const [otherEnvironmentId, setOtherEnvironmentId] = useState('');
   const [lowerEnvironmentId, setLowerEnvironmentId] = useState('');
+  const [rateLimitRequests, setRateLimitRequests] = useState(RATE_LIMIT_REQUESTS);
   const [items, setItems] = useState<SecurityRunItem[]>([]);
   const [summary, setSummary] = useState<SecurityRunSummary>();
   const [running, setRunning] = useState(false);
@@ -123,7 +124,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
     list(parentId, JSON.parse(folderKey)).then(setRequests);
   }, [parentId, folderKey, list]);
 
-  const maxRequests = securityRunMaxRequests(requests || []);
+  const maxRequests = securityRunMaxRequests(requests || [], rateLimitRequests);
   const others = subEnvironments.filter(({ _id }) => _id !== activeEnvironment._id);
 
   const start = async () => {
@@ -139,6 +140,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
       setSummary(await run(requests || [], {
         otherEnvironmentId: otherEnvironmentId || null,
         lowerEnvironmentId: lowerEnvironmentId || null,
+        rateLimitRequests,
         ignored: ignoredRules(activeWorkspace?.securityIgnoredRules),
         // a design document's requests are also compared with its spec
         ...(spec ? { spec } : {}),
@@ -228,6 +230,22 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
                 {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
               </select>
             </label>
+          ) : null}
+          {!started ? (
+            <div className="margin-top-sm">
+              <label className="flex items-center gap-2 txt-sm" title={t('How many times in a row the request is sent, looking for a rate limit. A limit above this number would not show; 0 leaves the test out.')}>
+                {t('Rate limit burst:')}
+                <input
+                  type="number"
+                  className="input-box w-24 m-0 px-2 py-1"
+                  min={0}
+                  max={RATE_LIMIT_MOST}
+                  disabled={running}
+                  value={rateLimitRequests}
+                  onChange={event => setRateLimitRequests(rateLimitBurst(event.currentTarget.value === '' ? 0 : Number(event.currentTarget.value)))}
+                />
+              </label>
+            </div>
           ) : null}
           {error && <p className="notice error">{error}</p>}
           {started && (

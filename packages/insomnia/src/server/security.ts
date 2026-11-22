@@ -1,5 +1,6 @@
 import type { AuditSeverity } from '../common/response-audit';
 import { SECURITY_RULES } from '../common/security-rules';
+import { RATE_LIMIT_MOST, RATE_LIMIT_REQUESTS, securityTestMaxRequests } from '../common/security-tests';
 import * as models from '../models';
 import type { Workspace } from '../models/workspace';
 import type { SecurityRunItem, SecurityRunSummary } from '../network/security-run';
@@ -28,6 +29,8 @@ export interface SecurityConfig extends Sources {
   otherEnvironment?: string;
   // a sub environment whose user has less privilege than the requests need, by name
   lowerEnvironment?: string;
+  // how many times in a row a request is sent, looking for a rate limit
+  rateLimitRequests?: number;
   folder?: string;
   // the least severe finding that fails the run
   failOn: FailOn;
@@ -46,9 +49,9 @@ export interface SecurityConfig extends Sources {
 export const SECURITY_USAGE = `Usage: insomnium-server security (--collection <file> | --repo <url or directory>) ${ALLOW_FLAG} [--folder <name>] [--env <name>] [options]
 
 Checks the collection's HTTP requests as the app's Security Checks does, by the
-OWASP API Security Top 10. A GET or HEAD is sent again up to 26 times, changed a
+OWASP API Security Top 10. A GET or HEAD is sent again up to ${securityTestMaxRequests()} times, changed a
 little each time (without its credentials, with a forged token, from another
-site, with a quote in a parameter, 15 times in a row), and its answer looked
+site, with a quote in a parameter, ${RATE_LIMIT_REQUESTS} times in a row), and its answer looked
 at. Any other request is never sent. Nothing sent is kept.
 
 Exits 1 when a finding is as severe as --fail-on, or a request that should have
@@ -69,6 +72,9 @@ ${SOURCES_USAGE}
                 may not, by name. Each is also sent once as them, and anything but a
                 refusal is a finding. It is tried on the requests the collection marks
                 as restricted; when it marks none, on every request (use --folder)
+  --rate-limit-requests  how many times in a row a request is sent, looking for a
+                rate limit (default ${RATE_LIMIT_REQUESTS}; 0 leaves that test out). A limit
+                above this number wouldn't show
   --fail-on     the least severe finding that fails the run: high (the default),
                 medium, low, info, or none to never fail
   --ignore      rules to leave out, by id, comma-separated (the ids are in a JSON report)
@@ -120,6 +126,14 @@ export const parseSecurityConfig = (argv: string[], env: Record<string, string |
       case '--as-lower':
         config.lowerEnvironment = value();
         break;
+      case '--rate-limit-requests': {
+        const count = Number(value());
+        if (!Number.isInteger(count) || count < 0 || count > RATE_LIMIT_MOST) {
+          throw new Error(`${option} must be a whole number from 0 to ${RATE_LIMIT_MOST}`);
+        }
+        config.rateLimitRequests = count;
+        break;
+      }
       case '--folder':
         config.folder = value();
         break;
