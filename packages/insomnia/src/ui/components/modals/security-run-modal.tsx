@@ -10,6 +10,7 @@ import { ignoredRules } from '../../../common/security-rules';
 import { RATE_LIMIT_MOST, RATE_LIMIT_REQUESTS, rateLimitBurst, type SecurityCheckOutcome } from '../../../common/security-tests';
 import { listRunnableRequests, type RunnableRequest } from '../../../network/runner';
 import { securityJsonReport, securityMarkdownReport, securitySarifReport } from '../../../network/security-report';
+import { securityHtmlReport } from '../../../network/security-report-html';
 import { runSecurityChecks, type SecurityRunItem, securityRunMaxRequests, type SecurityRunSummary } from '../../../network/security-run';
 import { requestPath } from '../../routes/paths';
 import type { WorkspaceLoaderData } from '../../routes/workspace';
@@ -22,6 +23,7 @@ import { SecurityFindingList } from '../viewers/response-security-viewer';
 // what a finished run saves as: a page to read, the run as it is, or results
 // for a tool that takes code scanning's
 const REPORTS = {
+  html: { button: 'Save HTML', label: 'HTML report', extension: 'html', write: (summary: SecurityRunSummary, name: string) => securityHtmlReport(summary, name) },
   markdown: { button: 'Save Markdown', label: 'Markdown report', extension: 'md', write: (summary: SecurityRunSummary, name: string) => securityMarkdownReport(summary, name) },
   json: { button: 'Save JSON', label: 'JSON report', extension: 'json', write: (summary: SecurityRunSummary, name: string) => securityJsonReport(summary, name) },
   sarif: { button: 'Save SARIF', label: 'SARIF report', extension: 'sarif', write: (summary: SecurityRunSummary, name: string) => securitySarifReport(summary, name, getAppVersion()) },

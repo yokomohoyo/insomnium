@@ -112,6 +112,7 @@ A finished run saves as:
 
 | Format | For |
 | --- | --- |
+| HTML | opening in a browser or attaching to a ticket: the same as the Markdown report, as one page that stands alone |
 | Markdown | reading and passing on: the findings most severe first, what each means, and every request with its tests |
 | JSON | the run as it is |
 | SARIF | tools that take code scanning results. An API has no file to point at, so each result is located at its request |
