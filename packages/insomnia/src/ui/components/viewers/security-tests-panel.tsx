@@ -118,13 +118,13 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
       </p>
       {safe && restricted ? (
         <p className="txt-sm notice warning" data-testid="security-restricted-note">
-          <i className="fa fa-lock" aria-hidden />
+          <i className="fa fa-user-shield" aria-hidden />
           {' '}
           {lowerEnvironmentId
-            ? t('This request is marked as restricted to some users: it will be tried with less privilege.')
+            ? t('This request is marked as only for some API users: it will be tried with less privilege.')
             : environments.length
-              ? t('This request is marked as restricted to some users. Choose an environment under With less privilege whose user should not be able to make it.')
-              : t('This request is marked as restricted to some users. Add an environment whose user should not be able to make it, to try it with less privilege.')}
+              ? t('This request is marked as only for some API users. Choose an environment under With less privilege whose user should not be able to make it.')
+              : t('This request is marked as only for some API users. Add an environment whose user should not be able to make it, to try it with less privilege.')}
         </p>
       ) : null}
       {safe ? (

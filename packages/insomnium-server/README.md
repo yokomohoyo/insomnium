@@ -174,7 +174,7 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--folder` | only the requests in this folder, by name or path |
 | `--env` | the sub environment to send with, by name |
 | `--as` | a sub environment holding another user's credentials: each request is also sent once as them |
-| `--as-lower` | for requests only some users may make: a sub environment whose user may not. Anything but a refusal is a finding. Tried on the requests the collection marks as restricted (shown as `(restricted)`); when it marks none, on every request, so use it with `--folder` |
+| `--as-lower` | for requests only some users may make: a sub environment whose user may not. Anything but a refusal is a finding. Tried on the requests the collection marks as only for some API users (shown as `(some users only)`); when it marks none, on every request, so use it with `--folder` |
 | `--rate-limit-requests` | how many times in a row a request is sent, looking for a rate limit: 100 by default, 1000 at most. A limit above this number doesn't show, so set it past the limit you expect; `0` leaves that test out |
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
 | `--ignore` | rules to leave out, by id, comma-separated, on top of those the collection itself ignores (named at the start of the output). The ids are the bracketed names in the output |

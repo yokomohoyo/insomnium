@@ -127,7 +127,7 @@ export const securityHtmlReport = (summary: SecurityRunSummary, name: string, ge
           ? `<span class="badge ${worst}">${plural(item.findings.length, 'finding')}</span>`
           : '<span class="badge ok">Nothing found</span>';
     // the ones with something to read start open
-    parts.push(`<details${item.findings.length || item.failed ? ' open' : ''}>`, `<summary><strong>${text(nameOf(item))}</strong>${item.restricted ? ' <span class="badge info">Restricted</span>' : ''} ${state} <span class="url">${text(item.method)} ${text(item.url)}</span></summary>`, '<div>');
+    parts.push(`<details${item.findings.length || item.failed ? ' open' : ''}>`, `<summary><strong>${text(nameOf(item))}</strong>${item.restricted ? ' <span class="badge info">Some users only</span>' : ''} ${state} <span class="url">${text(item.method)} ${text(item.url)}</span></summary>`, '<div>');
     if (item.note) {
       parts.push(`<p class="faint">${text(item.note)}</p>`);
     }

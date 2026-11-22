@@ -172,9 +172,9 @@ describe('the console output', () => {
   });
 
   it('marks a restricted request, and says when they went untried with less privilege', () => {
-    expect(formatItem(item({ restricted: true }))).toBe('  ✓ Orders / List (restricted)  GET https://api.example.com/orders');
-    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 2 }, 'high')).toContain('2 requests marked as restricted were not tried with less privilege: pass --as-lower');
-    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 1 }, 'high')).toContain('1 request marked as restricted was not tried');
+    expect(formatItem(item({ restricted: true }))).toBe('  ✓ Orders / List (some users only)  GET https://api.example.com/orders');
+    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 2 }, 'high')).toContain('2 requests marked as only for some API users were not tried with less privilege: pass --as-lower');
+    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 1 }, 'high')).toContain('1 request marked as only for some API users was not tried');
     expect(formatSecuritySummary(summary({}), 'high')).not.toContain('restricted');
   });
 

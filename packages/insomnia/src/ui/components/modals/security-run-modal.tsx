@@ -67,7 +67,7 @@ const ItemRow: FC<{ item: SecurityRunItem; onOpen: (requestId: string) => void }
           >
             {item.name || item.url}
           </button>
-          {item.restricted ? <i className="fa fa-lock warning margin-left-sm" title={t('Restricted to some users')} aria-label={t('Restricted to some users')} /> : null}
+          {item.restricted ? <i className="fa fa-user-shield warning margin-left-sm" title={t('Only some API users may call it')} aria-label={t('Only some API users may call it')} /> : null}
           <span className="txt-sm faint margin-left-sm">{item.method} {item.url}</span>
           <span className={`txt-sm margin-left-sm ${worst ? SEVERITY_CLASSES[worst] : item.outcome === 'skipped' ? 'faint' : 'success'}`}>
             {item.outcome === 'skipped'
@@ -203,9 +203,9 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
           )}
           {requests && !started && requests.some(({ restricted }) => restricted) && (
             <p className="txt-sm mt-3 mb-0" data-testid="security-run-marked">
-              <i className="fa fa-lock warning" aria-hidden />
+              <i className="fa fa-user-shield warning" aria-hidden />
               {' '}
-              {t('{count, plural, one {# request is} other {# requests are}} marked as restricted to some users. With less privilege is tried on those alone.', { count: requests.filter(({ restricted }) => restricted).length })}
+              {t('{count, plural, one {# request is} other {# requests are}} marked as only for some API users. With less privilege is tried on those alone.', { count: requests.filter(({ restricted }) => restricted).length })}
             </p>
           )}
           {requests && !started && (
@@ -263,9 +263,9 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
               </ul>
               {summary?.restrictedUntried ? (
                 <p className="notice warning txt-sm margin-top-sm" data-testid="security-run-restricted">
-                  <i className="fa fa-lock" aria-hidden />
+                  <i className="fa fa-user-shield" aria-hidden />
                   {' '}
-                  {t('{count, plural, one {# request marked as restricted was} other {# requests marked as restricted were}} not tried with less privilege: no environment was chosen for it.', { count: summary.restrictedUntried })}
+                  {t('{count, plural, one {# request marked as only for some API users was} other {# requests marked as only for some API users were}} not tried with less privilege: no environment was chosen for it.', { count: summary.restrictedUntried })}
                 </p>
               ) : null}
               {summary?.inventory ? (

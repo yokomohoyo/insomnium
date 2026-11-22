@@ -158,12 +158,12 @@ describe('<SecurityRunModal />', () => {
     const list = jest.fn(async () => [{ ...REQUESTS[0], restricted: true }, REQUESTS[1], REQUESTS[2]]);
     const { findByRole, findByTestId, getByTestId } = render(<SecurityRunModal parentId="wrk_1" name="Shop" run={run} list={list as any} />);
 
-    expect((await findByTestId('security-run-marked')).textContent).toContain('1 request is marked as restricted to some users');
+    expect((await findByTestId('security-run-marked')).textContent).toContain('1 request is marked as only for some API users');
     fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 222 requests)' }));
 
-    expect((await findByTestId('security-run-restricted')).textContent).toContain('1 request marked as restricted was not tried with less privilege');
-    expect(getByTestId('security-run-item-List').querySelector('[aria-label="Restricted to some users"]')).toBeTruthy();
-    expect(getByTestId('security-run-item-Create').querySelector('[aria-label="Restricted to some users"]')).toBeNull();
+    expect((await findByTestId('security-run-restricted')).textContent).toContain('1 request marked as only for some API users was not tried with less privilege');
+    expect(getByTestId('security-run-item-List').querySelector('[aria-label="Only some API users may call it"]')).toBeTruthy();
+    expect(getByTestId('security-run-item-Create').querySelector('[aria-label="Only some API users may call it"]')).toBeNull();
   });
 
   it('stops the run from its Stop button, and when it is closed', async () => {
