@@ -4,6 +4,7 @@
 // shown without its query's values, so a report is safe to pass on.
 import type { AuditFinding, AuditSeverity } from '../common/response-audit';
 import { securityRuleName } from '../common/security-rules';
+import { type BaselineComparison, requestKey } from './security-baseline';
 import type { SecurityRunItem, SecurityRunSummary } from './security-run';
 
 const SEVERITIES: AuditSeverity[] = ['high', 'medium', 'low', 'info'];
@@ -18,17 +19,19 @@ const counts = ({ findings }: SecurityRunSummary) => SEVERITIES.filter(severity 
 // (backslashes first, or one before a pipe would undo its escape)
 const cell = (text: string) => text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ');
 
-export const securityJsonReport = (summary: SecurityRunSummary, name: string, generated = new Date()) => JSON.stringify({
+// (a finding an earlier run had too says so itself: `known`)
+export const securityJsonReport = (summary: SecurityRunSummary, name: string, generated = new Date(), baseline?: BaselineComparison) => JSON.stringify({
   name,
   generated: generated.toISOString(),
   findings: summary.findings,
   requests: summary.requests,
   stopped: summary.stopped,
   ...(summary.inventory ? { inventory: summary.inventory } : {}),
+  ...(baseline ? { baseline: { new: baseline.fresh, known: baseline.known, fixed: baseline.fixed } } : {}),
   items: summary.items,
 }, null, 2);
 
-export const securityMarkdownReport = (summary: SecurityRunSummary, name: string, generated = new Date()) => {
+export const securityMarkdownReport = (summary: SecurityRunSummary, name: string, generated = new Date(), baseline?: BaselineComparison) => {
   const tested = summary.items.filter(({ outcome }) => outcome === 'tested').length;
   const audited = summary.items.filter(({ outcome }) => outcome === 'audited').length;
   const skipped = summary.items.filter(({ outcome }) => outcome === 'skipped');
@@ -42,12 +45,19 @@ export const securityMarkdownReport = (summary: SecurityRunSummary, name: string
     'By the [OWASP API Security Top 10](https://owasp.org/API-Security/editions/2023/en/0x11-t10/). A request with nothing found had none of these problems this once; that does not show the API is secure.',
   ];
 
+  if (baseline) {
+    const added = SEVERITIES.reduce((sum, severity) => sum + baseline.fresh[severity], 0);
+    lines.push('', `Against the baseline: ${added} new, ${baseline.known} known, ${baseline.fixed.length} no longer found.`);
+  }
+
   const all = summary.items.flatMap(item => item.findings.map(finding => ({ item, finding })));
   if (all.length) {
-    lines.push('', '## Findings', '', '| Severity | Finding | Where | Request | Risk |', '| --- | --- | --- | --- | --- |');
+    // against a baseline, the new ones first within each severity
+    lines.push('', '## Findings', '', `| Severity | ${baseline ? 'Baseline | ' : ''}Finding | Where | Request | Risk |`, `| --- | ${baseline ? '--- | ' : ''}--- | --- | --- | --- |`);
     for (const severity of SEVERITIES) {
-      for (const { item, finding } of all.filter(found => found.finding.severity === severity)) {
-        lines.push(`| ${LABELS[severity]} | ${cell(finding.title)} | ${finding.evidence ? `\`${cell(finding.evidence)}\`` : ''} | ${cell(titleOf(item))} | ${cell(finding.owasp)} |`);
+      const found = all.filter(({ finding }) => finding.severity === severity);
+      for (const { item, finding } of baseline ? [...found.filter(({ finding }) => !finding.known), ...found.filter(({ finding }) => finding.known)] : found) {
+        lines.push(`| ${LABELS[severity]} | ${baseline ? `${finding.known ? 'Known' : '**New**'} | ` : ''}${cell(finding.title)} | ${finding.evidence ? `\`${cell(finding.evidence)}\`` : ''} | ${cell(titleOf(item))} | ${cell(finding.owasp)} |`);
       }
     }
     lines.push('', '## What each means', '');
@@ -58,6 +68,10 @@ export const securityMarkdownReport = (summary: SecurityRunSummary, name: string
         lines.push(`- **${cell(finding.title)}.** ${cell(finding.detail)}`);
       }
     }
+  }
+
+  if (baseline?.fixed.length) {
+    lines.push('', '## No longer found', '', 'The baseline had these, and this run looked for them and found none:', '', ...baseline.fixed.map(({ title, evidence, request }) => `- ${cell(title)}${evidence ? ` (\`${cell(evidence)}\`)` : ''}: ${cell(request)}`));
   }
 
   if (summary.inventory) {
@@ -91,7 +105,7 @@ const LEVELS: Record<AuditSeverity, 'error' | 'warning' | 'note'> = { high: 'err
 // and the number GitHub's code scanning sorts by
 const SCORES: Record<AuditSeverity, string> = { high: '8.0', medium: '5.0', low: '3.0', info: '1.0' };
 
-export const securitySarifReport = (summary: SecurityRunSummary, name: string, version: string) => {
+export const securitySarifReport = (summary: SecurityRunSummary, name: string, version: string, baseline?: BaselineComparison) => {
   const rules = new Map<string, AuditFinding>();
   summary.items.forEach(item => item.findings.forEach(finding => rules.has(finding.id) || rules.set(finding.id, finding)));
   return JSON.stringify({
@@ -118,12 +132,15 @@ export const securitySarifReport = (summary: SecurityRunSummary, name: string, v
       results: summary.items.flatMap(item => item.findings.map(finding => ({
         ruleId: finding.id,
         level: LEVELS[finding.severity],
+        // against a baseline: whether an earlier run had it
+        ...(baseline ? { baselineState: finding.known ? 'unchanged' : 'new' } : {}),
         message: { text: `${finding.title}${finding.evidence ? ` (${finding.evidence})` : ''}: ${titleOf(item)}. ${finding.detail}` },
         // an API has no file to point at: the request is where it was found
         locations: [{
           logicalLocations: [{ name: `${item.method} ${item.url}`, fullyQualifiedName: [...item.folders, item.name].join('/'), kind: 'resource' }],
         }],
-        partialFingerprints: { 'insomnium/v1': `${finding.id}:${item.requestId}:${finding.evidence || ''}` },
+        // (by the request's place in the collection: its id doesn't outlive a run in a pipeline)
+        partialFingerprints: { 'insomnium/v2': `${finding.id}:${requestKey(item)}:${finding.evidence || ''}` },
         properties: { owasp: finding.owasp, severity: finding.severity, requestId: item.requestId },
       }))),
     }],

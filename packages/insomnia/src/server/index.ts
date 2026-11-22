@@ -17,6 +17,7 @@ import { compareRuns, parseBaseline } from '../network/run-compare';
 import { csvReport, htmlReport, jsonReport, junitReport, resultName } from '../network/run-files';
 import { requestRunStats } from '../network/run-stats';
 import { runRequests } from '../network/runner';
+import { baselineMatcher, readBaseline } from '../network/security-baseline';
 import { securityJsonReport, securityMarkdownReport, securitySarifReport } from '../network/security-report';
 import { runSecurityChecks } from '../network/security-run';
 import { parseConfig, type ServerConfig, USAGE } from './config';
@@ -132,13 +133,24 @@ async function security(argv: string[]) {
     const spec = design ? (await models.apiSpec.getByParentId(design._id))?.contents || undefined : undefined;
     // (with --folder: the rest of the document's requests cover operations too)
     const covering = spec && config.folder ? await selectRequests(workspaces) : undefined;
-    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, name: workspaces.map(workspace => workspace.name).join(', ') };
+    // an earlier run to compare with: one that can't be read stops the run,
+    // since passing for an empty one would call every finding new, and passing
+    // for none would fail a pipeline on what it had accepted
+    let matcher;
+    if (config.baseline) {
+      try {
+        matcher = baselineMatcher(readBaseline(await fs.promises.readFile(config.baseline, 'utf8')));
+      } catch (err) {
+        throw new Error(`Can't use the baseline ${config.baseline}: ${(err as NodeJS.ErrnoException).code === 'ENOENT' ? 'there is no such file' : (err as Error).message}`);
+      }
+    }
+    prepared = { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, matcher, name: workspaces.map(workspace => workspace.name).join(', ') };
   } catch (err) {
     console.error(`[security] ${(err as Error).message}`);
     return 2;
   }
 
-  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, name } = prepared;
+  const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, matcher, name } = prepared;
   print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.includes('*') ? 'any host' : config.allowedHosts.join(', ')}`);
   // said, not just done: a collection's file shouldn't be able to quiet a pipeline unseen
   if (ignoredByCollection.length) {
@@ -151,22 +163,26 @@ async function security(argv: string[]) {
     ignored: ignoredRules([...ignoredByCollection, ...config.ignore]),
     spec,
     covering,
-    onItem: item => print(formatItem(item)),
+    onItem: item => {
+      matcher?.mark(item);
+      print(formatItem(item));
+    },
   });
   if (summary.inventory) {
     print(`\n${formatInventory(summary.inventory)}`);
   }
-  print(`\n${formatSecuritySummary(summary, config.failOn)}`);
+  const baseline = matcher?.result();
+  print(`\n${formatSecuritySummary(summary, config.failOn, baseline)}`);
   if (config.markdown) {
-    await fs.promises.writeFile(config.markdown, securityMarkdownReport(summary, name));
+    await fs.promises.writeFile(config.markdown, securityMarkdownReport(summary, name, new Date(), baseline));
   }
   if (config.json) {
-    await fs.promises.writeFile(config.json, securityJsonReport(summary, name));
+    await fs.promises.writeFile(config.json, securityJsonReport(summary, name, new Date(), baseline));
   }
   if (config.sarif) {
-    await fs.promises.writeFile(config.sarif, securitySarifReport(summary, name, version));
+    await fs.promises.writeFile(config.sarif, securitySarifReport(summary, name, version, baseline));
   }
-  return failsRun(summary, config.failOn) ? 1 : 0;
+  return failsRun(summary, config.failOn, baseline) ? 1 : 0;
 }
 
 // 0 when the thresholds held, 1 when one broke, 2 when the test couldn't start

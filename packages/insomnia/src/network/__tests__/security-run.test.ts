@@ -326,7 +326,7 @@ describe('the reports', () => {
       ruleId: 'secret-in-url',
       level: 'warning',
       locations: [{ logicalLocations: [{ name: 'GET https://shop.example.com/orders?token=…', fullyQualifiedName: 'Orders/List', kind: 'resource' }] }],
-      partialFingerprints: { 'insomnium/v1': 'secret-in-url:req_1:token' },
+      partialFingerprints: { 'insomnium/v2': 'secret-in-url:GET Orders / List:token' },
     });
     expect(run.results[1].message.text).toContain('A credential in the URL (token)');
   });
