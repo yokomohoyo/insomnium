@@ -71,7 +71,7 @@ describe('parseSecurityConfig()', () => {
 const item = (patch: Partial<SecurityRunItem> = {}): SecurityRunItem =>
   ({ requestId: 'req_1', name: 'List', folders: ['Orders'], method: 'GET', url: 'https://api.example.com/orders', outcome: 'tested', findings: [], checks: [], requests: 9, ...patch });
 const summary = (findings: Partial<SecurityRunSummary['findings']>, items = [item()]): SecurityRunSummary =>
-  ({ items, requests: 9, stopped: false, findings: { high: 0, medium: 0, low: 0, info: 0, ...findings } });
+  ({ items, requests: 9, stopped: false, restrictedUntried: 0, findings: { high: 0, medium: 0, low: 0, info: 0, ...findings } });
 
 describe('failsRun()', () => {
   it('fails on a finding as severe as asked, or worse', () => {
@@ -126,6 +126,13 @@ describe('the console output', () => {
     ].join('\n'));
     expect(formatInventory({ operations: 5, uncovered: ['GET /health'] }).split('\n')[0]).toBe("Against the spec: 1 of 5 operations has no request, so it wasn't checked");
     expect(formatInventory({ operations: 3, uncovered: [] })).toBe('Against the spec: each of its 3 operations has a request');
+  });
+
+  it('marks a restricted request, and says when they went untried with less privilege', () => {
+    expect(formatItem(item({ restricted: true }))).toBe('  ✓ Orders / List (restricted)  GET https://api.example.com/orders');
+    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 2 }, 'high')).toContain('2 requests marked as restricted were not tried with less privilege: pass --as-lower');
+    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 1 }, 'high')).toContain('1 request marked as restricted was not tried');
+    expect(formatSecuritySummary(summary({}), 'high')).not.toContain('restricted');
   });
 
   it('sums up, and says whether the run failed', () => {

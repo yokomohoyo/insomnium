@@ -64,9 +64,10 @@ ${SOURCES_USAGE}
   --as          a sub environment holding another user's credentials, by name: each
                 request is also sent once as them, to see whether they get the first
                 user's data
-  --as-lower    for requests only some users may make (use it with --folder): a sub
-                environment whose user may not, by name. Each request is also sent
-                once as them, and anything but a refusal is a finding
+  --as-lower    for requests only some users may make: a sub environment whose user
+                may not, by name. Each is also sent once as them, and anything but a
+                refusal is a finding. It is tried on the requests the collection marks
+                as restricted; when it marks none, on every request (use --folder)
   --fail-on     the least severe finding that fails the run: high (the default),
                 medium, low, info, or none to never fail
   --ignore      rules to leave out, by id, comma-separated (the ids are in a JSON report)
@@ -190,7 +191,7 @@ export const failsRun = (summary: SecurityRunSummary, failOn: FailOn) =>
 export const formatItem = (item: SecurityRunItem) => {
   const name = [...item.folders, item.name].join(' / ');
   const mark = item.failed ? '!' : item.outcome === 'skipped' ? '-' : item.findings.length ? '✗' : '✓';
-  const lines = [`  ${mark} ${name}  ${item.method} ${item.url}`];
+  const lines = [`  ${mark} ${name}${item.restricted ? ' (restricted)' : ''}  ${item.method} ${item.url}`];
   if (item.note) {
     lines.push(`      ${item.note}`);
   }
@@ -213,6 +214,7 @@ export const formatSecuritySummary = (summary: SecurityRunSummary, failOn: FailO
   return [
     `${summary.items.length} ${summary.items.length === 1 ? 'request' : 'requests'}, ${tested} tested${missed ? `, ${missed} could not be tested` : ''} · ${found} · ${summary.requests} sent`,
     ...(missed ? [`Failed: ${missed} ${missed === 1 ? 'request' : 'requests'} could not be tested`] : []),
+    ...(summary.restrictedUntried ? [`${summary.restrictedUntried} ${summary.restrictedUntried === 1 ? 'request marked as restricted was' : 'requests marked as restricted were'} not tried with less privilege: pass --as-lower`] : []),
     severe ? `Failed: a finding is ${failOn} or worse (--fail-on ${failOn})` : failOn === 'none' ? 'Not failing on findings (--fail-on none)' : `Nothing ${failOn} or worse`,
     'A request with nothing found had none of these problems this once; that does not show the API is secure.',
   ].join('\n');
