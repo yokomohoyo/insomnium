@@ -19,6 +19,7 @@ Working with them:
 - [Tests and the runner](testing.md): assertions, script tests, running a collection or folder, and running it in CI.
 - [Security checks](security-checks.md): what a response says about the API's security, and tests that try the API, by the OWASP API Security Top 10.
 - [Fuzzing a request](fuzzing.md): the request sent many times, each with one value swapped for a payload.
+- [Comparing responses and decoding values](comparer-and-decoder.md): two of a request's responses against each other, and a value converted between encodings.
 - [Flows](flows.md): requests in an order you draw, with conditions on their responses, variables from them, and delays.
 - [Mock server](mock-server.md): answer as a collection's requests would, with their examples.
 - [Git Sync](git-sync.md): keep a collection in a Git repository, with branches, commits, pulls and pushes.
