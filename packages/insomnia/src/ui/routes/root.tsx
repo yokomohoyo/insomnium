@@ -41,6 +41,7 @@ import { Icon } from '../components/icon';
 import { showError, showModal } from '../components/modals';
 import { AlertModal } from '../components/modals/alert-modal';
 import { AskModal } from '../components/modals/ask-modal';
+import { DecoderModal } from '../components/modals/decoder-modal';
 import { ImportModal } from '../components/modals/import-modal';
 import {
   /**** ><> ↑ --------- Modal Components */
@@ -111,6 +112,7 @@ const Root = () => {
   ) as WorkspaceLoaderData | null;
   const [importUri, setImportUri] = useState('');
   const [isConsoleOpen, setConsoleOpen] = useState(false);
+  const [isDecoderOpen, setDecoderOpen] = useState(false);
   const patchSettings = useSettingsPatcher();
 
   useEffect(() => {
@@ -340,6 +342,17 @@ const Root = () => {
               </TooltipTrigger>
               <TooltipTrigger>
                 <Button
+                  data-testid="decoder-button"
+                  aria-label={t('Decoder')}
+                  className={RAIL_BUTTON}
+                  onPress={() => setDecoderOpen(true)}
+                >
+                  <Icon icon="code" />
+                </Button>
+                <Tooltip placement="right" offset={8} className={TOOLTIP}>{t('Decoder')}</Tooltip>
+              </TooltipTrigger>
+              <TooltipTrigger>
+                <Button
                   data-testid="settings-button"
                   aria-label={t('Preferences')}
                   className={RAIL_BUTTON}
@@ -355,6 +368,7 @@ const Root = () => {
             </nav>
             <Outlet />
             {isConsoleOpen && <ConsoleDrawer onClose={() => setConsoleOpen(false)} />}
+            {isDecoderOpen && <DecoderModal onHide={() => setDecoderOpen(false)} />}
           </div>
 
           <Toast checkForNewReleases={settings.checkForNewReleases} />

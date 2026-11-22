@@ -1,5 +1,5 @@
 import { differenceInHours, differenceInMinutes, isThisWeek, isToday } from 'date-fns';
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { useFetcher, useParams, useRevalidator, useRouteLoaderData  } from 'react-router-dom';
 
 import { t } from '../../../common/i18n';
@@ -16,6 +16,7 @@ import type { WorkspaceLoaderData } from '../../routes/workspace';
 import { tx } from '../../tx';
 import { Dropdown, DropdownButton, type DropdownHandle, DropdownItem, DropdownSection, ItemContent } from '../base/dropdown';
 import { useDocBodyKeyboardShortcuts } from '../keydown-binder';
+import { CompareResponsesModal } from '../modals/compare-responses-modal';
 import { SizeTag } from '../tags/size-tag';
 import { StatusTag } from '../tags/status-tag';
 import { TimeTag } from '../tags/time-tag';
@@ -27,6 +28,7 @@ export const ResponseHistoryDropdown = ({
 }: { activeResponse: Response | WebSocketResponse }) => {
   const { requestId } = useParams() as { requestId: string };
   const dropdownRef = useRef<DropdownHandle>(null);
+  const [isComparing, setIsComparing] = useState(false);
   const patchRequestMeta = useRequestMetaPatcher();
   const {
     activeEnvironment,
@@ -168,8 +170,14 @@ export const ResponseHistoryDropdown = ({
   });
 
   const environmentName = activeEnvironment ? activeEnvironment.name : t('Base');
+  // two answers to tell apart: HTTP ones, which have a status, headers and a body
+  const comparableResponses = responses.filter((response): response is Response => !isWebSocketResponse(response));
   const isLatestResponseActive = !responses.length || activeResponse._id === responses[0]._id;
   return (
+    <>
+    {isComparing && (
+      <CompareResponsesModal responses={comparableResponses} activeResponseId={activeResponse._id} onHide={() => setIsComparing(false)} />
+    )}
     <Dropdown
       ref={dropdownRef}
       aria-label={t('Response history dropdown')}
@@ -196,6 +204,17 @@ export const ResponseHistoryDropdown = ({
             icon="bookmark-o"
             label={t('Save as Example')}
             onClick={handleSaveAsExample}
+          />
+        </DropdownItem>
+        <DropdownItem aria-label={t('Compare Responses')}>
+          <ItemContent
+            icon="exchange"
+            label={t('Compare Responses')}
+            isDisabled={comparableResponses.length < 2}
+            onClick={() => {
+              dropdownRef.current?.hide();
+              setIsComparing(true);
+            }}
           />
         </DropdownItem>
         <DropdownItem aria-label={t('Delete Current Response')}>
@@ -249,5 +268,6 @@ export const ResponseHistoryDropdown = ({
         {categories.other.map(renderResponseRow)}
       </DropdownSection>
     </Dropdown>
+    </>
   );
 };
