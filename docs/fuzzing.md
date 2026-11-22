@@ -72,6 +72,19 @@ That makes the scripts the place for what's particular to your API:
 
 [Assertions](testing.md) count the same way: one that fails marks the attempt.
 
+## From an MCP client
+
+Two tools do what the dialog does, for a client connected to the app:
+
+- `list_fuzz_points` lists a request's positions and the payload lists. It sends nothing.
+- `fuzz_request` runs a fuzz: positions by id or label (the likely ones when left out), lists by id, and your own payloads. It returns the attempts that stood out with the start of each answer, and the rest in brief.
+
+The app asks you before each run, and says how many requests it sends, where the payloads go and whether the request changes data. A run you decline sends nothing.
+
+## In CI
+
+[`insomnium-server fuzz`](../packages/insomnium-server/README.md#fuzz-a-request-in-ci) fuzzes one request without the app, for a pipeline, and exits 1 when an attempt stood out. With nobody to ask, the go-aheads are on its command line: `--i-may-test-this-api`, and `--i-may-change-data` for a request that isn't a GET or HEAD.
+
 ## What to know before running it
 
 - **A request that changes data changes it once per attempt.** The dialog asks you to say that you're allowed to, and that what's made or changed can be put right, before it will send a request that isn't a GET or HEAD.

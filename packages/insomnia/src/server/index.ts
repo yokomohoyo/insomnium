@@ -6,10 +6,13 @@
 import fs from 'node:fs';
 
 import { version } from '../../package.json';
+import { chooseFuzz, fuzzAttempts } from '../common/fuzz';
 import { ignoredRules } from '../common/security-rules';
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
 import * as models from '../models';
+import { fuzzCsv, fuzzJson } from '../network/fuzz-report';
+import { FUZZ_MAX_ATTEMPTS, listFuzzPoints, runFuzz } from '../network/fuzz-run';
 import { loadCsvReport, loadHtmlReport, loadJsonReport } from '../network/load-report';
 import { brokenThresholds } from '../network/load-stats';
 import { runLoadTest } from '../network/load-test';
@@ -22,6 +25,7 @@ import { securityJsonReport, securityMarkdownReport, securitySarifReport } from 
 import { securityHtmlReport } from '../network/security-report-html';
 import { runSecurityChecks } from '../network/security-run';
 import { parseConfig, type ServerConfig, USAGE } from './config';
+import { assertMayFuzz, failsFuzz, findFuzzRequest, formatAttempt, formatFuzzSummary, FUZZ_USAGE, type FuzzConfig, parseFuzzConfig } from './fuzz';
 import { formatLoadSummary, LOAD_USAGE, type LoadConfig, parseLoadConfig } from './load-test';
 import { MOCK_USAGE, type MockConfig, parseMockConfig } from './mock';
 import { formatComparison, formatResult, formatSummary } from './report';
@@ -189,6 +193,74 @@ async function security(argv: string[]) {
   return failsRun(summary, config.failOn, baseline) ? 1 : 0;
 }
 
+// 0 when nothing stood out, 1 when an attempt did or couldn't be sent, 2 when
+// the fuzz couldn't start (a go-ahead not given, for one)
+async function fuzz(argv: string[]) {
+  if (argv.includes('--help')) {
+    console.log(FUZZ_USAGE);
+    return 0;
+  }
+  let config: FuzzConfig;
+  try {
+    config = parseFuzzConfig(argv, process.env);
+  } catch (err) {
+    console.error(`${(err as Error).message}\n\n${FUZZ_USAGE}`);
+    return 2;
+  }
+
+  console.log = console.info = console.debug = () => {};
+  let prepared;
+  try {
+    const own = config.payloadFile ? await fs.promises.readFile(config.payloadFile, 'utf8') : '';
+    const workspaces = await loadWorkspaces(config);
+    const found = findFuzzRequest(await selectRequests(workspaces), config.request!);
+    assertMayFuzz(found.request.method, config.mayChangeData);
+    const { points, url } = await listFuzzPoints(found.request._id);
+    const chosen = chooseFuzz(points, { positions: config.positions, lists: config.lists, payloads: own });
+    const attempts = Math.min(FUZZ_MAX_ATTEMPTS, fuzzAttempts(chosen.points, chosen.payloads).length);
+    if (!attempts) {
+      throw new Error('Nothing to try: none of the payloads fit the positions (fields to slip in go only in "Body: a new field", and nothing else goes there)');
+    }
+    prepared = { found, url, chosen, attempts };
+  } catch (err) {
+    const message = (err as Error).message;
+    console.error(`[fuzz] ${message.charAt(0).toUpperCase()}${message.slice(1)}`);
+    return 2;
+  }
+
+  const { found, url, chosen, attempts } = prepared;
+  const name = [...found.folders, found.request.name].join(' / ');
+  print(`[fuzz] ${name}: ${found.request.method} ${url}`);
+  print(`[fuzz] ${attempts} ${attempts === 1 ? 'attempt' : 'attempts'}, sending to ${config.allowedHosts.includes('*') ? 'any host' : config.allowedHosts.join(', ')}`);
+  print(`[fuzz] positions: ${chosen.points.map(({ label }) => label).join(', ')}`);
+  print(`[fuzz] payloads: ${chosen.lists.join(', ')}`);
+  let summary;
+  try {
+    summary = await runFuzz(found.request._id, {
+      pointIds: chosen.points.map(({ id }) => id),
+      payloads: chosen.payloads,
+      delay: config.delay,
+      // only what stood out or couldn't be sent: a run is hundreds of lines otherwise
+      onAttempt: attempt => {
+        if (attempt.notable || attempt.error) {
+          print(formatAttempt(attempt));
+        }
+      },
+    });
+  } catch (err) {
+    console.error(`[fuzz] The request could not be sent as it is: ${(err as Error).message}`);
+    return 1;
+  }
+  print(`\n${formatFuzzSummary(summary, config.noFail)}`);
+  if (config.csv) {
+    await fs.promises.writeFile(config.csv, fuzzCsv(summary));
+  }
+  if (config.json) {
+    await fs.promises.writeFile(config.json, fuzzJson(summary, name));
+  }
+  return failsFuzz(summary, config.noFail) ? 1 : 0;
+}
+
 // 0 when the thresholds held, 1 when one broke, 2 when the test couldn't start
 async function load(argv: string[]) {
   if (argv.includes('--help')) {
@@ -324,6 +396,9 @@ async function main() {
   }
   if (argv[0] === 'security') {
     process.exit(await security(argv.slice(1)));
+  }
+  if (argv[0] === 'fuzz') {
+    process.exit(await fuzz(argv.slice(1)));
   }
   if (argv[0] === 'mock') {
     return mock(argv.slice(1));

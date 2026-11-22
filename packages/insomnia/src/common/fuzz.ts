@@ -212,6 +212,49 @@ export function fuzzPoints(target: FuzzTarget): FuzzPoint[] {
   return points;
 }
 
+// What a run tries, from what was asked for by name (an MCP client, a
+// pipeline): positions by id or label, or "all", the suggested ones when none
+// are named; payload lists by id; and one's own payloads, one a line. Throws,
+// naming what there is, for a position or list that isn't there
+export const chooseFuzz = (all: FuzzPoint[], { positions = [], lists = [], payloads = '' }: { positions?: string[]; lists?: string[]; payloads?: string }) => {
+  let points: FuzzPoint[];
+  if (!positions.length) {
+    points = all.filter(({ suggested }) => suggested);
+  } else if (positions.some(position => position.trim().toLowerCase() === 'all')) {
+    points = all;
+  } else {
+    points = positions.map(wanted => {
+      const name = wanted.trim().toLowerCase();
+      const found = all.find(({ id }) => id === wanted.trim()) || all.find(({ label }) => label.toLowerCase() === name)
+        // "Path: 2nd part" for "Path: 2nd part (7)": the value in brackets changes
+        || all.find(({ label }) => label.toLowerCase().replace(/ \(.*\)$/, '') === name);
+      if (!found) {
+        throw new Error(`no position '${wanted}' in the request. It has: ${all.map(({ label }) => label).join(', ') || 'none'}`);
+      }
+      return found;
+    });
+    points = points.filter((point, index) => points.indexOf(point) === index);
+  }
+  if (!points.length) {
+    throw new Error(`the request has no ${positions.length ? '' : 'likely '}positions to put payloads in${all.length && !positions.length ? `. It has: ${all.map(({ label }) => label).join(', ')}` : ''}`);
+  }
+  const unknown = lists.filter(id => !FUZZ_LISTS.some(list => list.id === id));
+  if (unknown.length) {
+    throw new Error(`no payload list named ${unknown.join(', ')}. The lists are: ${FUZZ_LISTS.map(({ id }) => id).join(', ')}`);
+  }
+  const own = customPayloads(payloads);
+  if (!lists.length && !own.length) {
+    throw new Error(`nothing to try: name payload lists (${FUZZ_LISTS.map(({ id }) => id).join(', ')}) or give your own payloads`);
+  }
+  const chosen = FUZZ_LISTS.filter(({ id }) => lists.includes(id));
+  return {
+    points,
+    payloads: [...chosen.flatMap(list => list.payloads), ...own],
+    // as the dialog names them
+    lists: [...chosen.map(({ name }) => name), ...(own.length ? [`${own.length} of your own`] : [])],
+  };
+};
+
 // whether a payload goes in a position: a field to slip in goes in the body's
 // new field and nowhere else, and nothing else goes there
 export const payloadFits = (point: Pick<FuzzPoint, 'kind'>, payload: FuzzPayload) => (point.kind === 'json-new') === Boolean(payload.field);

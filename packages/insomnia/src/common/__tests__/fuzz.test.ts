@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from '@jest/globals';
 
-import { customPayloads, FUZZ_LISTS, fuzzAttempts, type FuzzExchange, fuzzPoints, type FuzzTarget, judgeAttempt, payloadFits, withPayload } from '../fuzz';
+import { chooseFuzz, customPayloads, FUZZ_LISTS, fuzzAttempts, type FuzzExchange, fuzzPoints, type FuzzTarget, judgeAttempt, payloadFits, withPayload } from '../fuzz';
 
 const target = (patch: Partial<FuzzTarget> = {}): FuzzTarget => ({
   url: 'https://shop.example.com/users/42/orders?status=open&page=2',
@@ -149,6 +149,36 @@ describe('the payloads', () => {
       { value: 'limit=10', field: 'limit', json: 10 },
       { value: " it's " },
     ]);
+  });
+});
+
+describe('chooseFuzz()', () => {
+  const points = fuzzPoints(target({ url: 'https://shop.example.com/orders/7?status=open', parameters: [], headers: [{ name: 'X-Trace', value: 'a' }], body: {} }));
+
+  it('takes the likely positions when none are named, and every one for all', () => {
+    expect(chooseFuzz(points, { lists: ['sql'] }).points.map(({ label }) => label)).toEqual(['Query: status', 'Path: 2nd part (7)']);
+    expect(chooseFuzz(points, { positions: ['ALL'], lists: ['sql'] }).points).toHaveLength(points.length);
+  });
+
+  it('finds a position by its id or its label, with or without the value in brackets, once each', () => {
+    expect(chooseFuzz(points, { positions: ['header:0', 'query: STATUS', 'Path: 1st part', 'Path: 1st part (orders)'], lists: ['sql'] }).points.map(({ label }) => label))
+      .toEqual(['Header: X-Trace', 'Query: status', 'Path: 1st part (orders)']);
+    expect(() => chooseFuzz(points, { positions: ['Query: page'], lists: ['sql'] })).toThrow("no position 'Query: page' in the request. It has: Query: status, Path: 1st part (orders), Path: 2nd part (7), Header: X-Trace");
+  });
+
+  it("gathers the lists' payloads and one's own, and names them as the dialog does", () => {
+    const { payloads, lists } = chooseFuzz(points, { lists: ['commands', 'ids'], payloads: 'mine\n{"$gt":""}\nrole=owner' });
+
+    expect(payloads).toHaveLength(6 + 9 + 3);
+    expect(payloads[payloads.length - 1]).toMatchObject({ field: 'role', json: 'owner' });
+    expect(lists).toEqual(['Commands', 'Other ids', '3 of your own']);
+  });
+
+  it('refuses a list that is not there, and a run with nothing to try or nowhere to put it', () => {
+    expect(() => chooseFuzz(points, { lists: ['made-up'] })).toThrow('no payload list named made-up. The lists are: sql, nosql,');
+    expect(() => chooseFuzz(points, {})).toThrow('nothing to try: name payload lists');
+    expect(() => chooseFuzz([], { lists: ['sql'] })).toThrow('the request has no likely positions to put payloads in');
+    expect(() => chooseFuzz(points.filter(({ suggested }) => !suggested), { lists: ['sql'] })).toThrow('It has: Path: 1st part (orders), Header: X-Trace');
   });
 });
 

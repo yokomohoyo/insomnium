@@ -5,6 +5,7 @@ import { globalBeforeEach } from '../../../../__jest__/before-each';
 import * as models from '../../../../models';
 import { INSTRUCTIONS, INSTRUCTIONS_URI, registerInstructions } from '../../instructions';
 import { registerDiscoveryTools } from '../discover';
+import { registerFuzzTools } from '../fuzz';
 import { registerGitTools } from '../git';
 import { registerTools } from '../index';
 import { registerMcpRequestTools } from '../mcp-requests';
@@ -100,6 +101,7 @@ describe('the instructions', () => {
     // and the app's own, which the app's server adds
     registerTestRunTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
     registerSecurityTestTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
+    registerFuzzTools({ tool: (name: string) => tools.add(name) } as any, async () => false);
     registerWebSocketTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerMcpRequestTools({ tool: (name: string) => tools.add(name) } as any, {} as any);
     registerMockTools({ tool: (name: string) => tools.add(name) } as any, {} as any);

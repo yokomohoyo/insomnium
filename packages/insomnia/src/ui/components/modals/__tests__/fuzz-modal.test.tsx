@@ -3,8 +3,9 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import type { FuzzPoint } from '../../../../common/fuzz';
+import { fuzzCsv } from '../../../../network/fuzz-report';
 import type { FuzzAttemptResult, FuzzRunSummary, listFuzzPoints, runFuzz } from '../../../../network/fuzz-run';
-import { fuzzCsv, FuzzModal } from '../fuzz-modal';
+import { FuzzModal } from '../fuzz-modal';
 
 jest.mock('react-aria', () => ({
   ...(jest.requireActual('react-aria') as object),

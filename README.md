@@ -248,7 +248,7 @@ Insomnium can expose **itself** as a [Model Context Protocol](https://modelconte
 - **Search and code** — find requests, folders and environments by name or URL across workspaces (`search`), and turn a request into code in any language Generate Code offers, such as cURL, fetch or Python requests (`generate_code`).
 - **Live connections** — open a WebSocket, Socket.IO, MQTT or GraphQL subscription and send and read its messages; open an event stream (Server-Sent Events) and read what it received; connect an MCP request to its server and call its tools. The app's window shows the same connection.
 - **Mock servers** — start and stop a collection's mock server and read the requests it got.
-- **Asks you first** — running a design document's unit tests (`run_test_suite`), a request's or collection's security tests (`run_security_tests`, `run_security_checks`), Git commit, pull and push, and an MCP request that runs a command each open a confirmation in the app, with **Cancel** the default.
+- **Asks you first** — running a design document's unit tests (`run_test_suite`), a request's or collection's security tests (`run_security_tests`, `run_security_checks`), fuzzing a request (`fuzz_request`), Git commit, pull and push, and an MCP request that runs a command each open a confirmation in the app, with **Cancel** the default.
 
 Connected tools also get an `insomnium://instructions` resource: how to find, send and check requests with these tools. For clients that do better with fewer tools, `npx insomnium-mcp --minimal` (or `…/sse?tools=minimal`) offers just the core ones: search, read and edit requests, environments, send, run, and generate code.
 

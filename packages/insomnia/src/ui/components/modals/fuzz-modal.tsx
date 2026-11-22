@@ -5,6 +5,7 @@ import { OverlayContainer } from 'react-aria';
 import { customPayloads, FUZZ_LISTS, fuzzAttempts, type FuzzPoint } from '../../../common/fuzz';
 import { t } from '../../../common/i18n';
 import { isSafeToRepeat } from '../../../common/security-tests';
+import { fuzzCsv, fuzzJson } from '../../../network/fuzz-report';
 import { FUZZ_MAX_ATTEMPTS, type FuzzAttemptResult, type FuzzRunSummary, listFuzzPoints, runFuzz } from '../../../network/fuzz-run';
 import { Modal, type ModalHandle, type ModalProps } from '../base/modal';
 import { ModalBody } from '../base/modal-body';
@@ -17,12 +18,6 @@ interface Props {
   list?: typeof listFuzzPoints;
   run?: typeof runFuzz;
 }
-
-const csvCell = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
-export const fuzzCsv = (summary: FuzzRunSummary) => [
-  ['attempt', 'position', 'payload', 'status', 'bytes', 'ms', 'worth a look', 'what it showed', 'error'],
-  ...summary.attempts.map(attempt => [attempt.index, attempt.position, attempt.payload, attempt.statusCode || '', attempt.bytes, Math.round(attempt.elapsed), attempt.notable ? 'yes' : '', attempt.flags.map(({ label }) => label).join('; '), attempt.error || '']),
-].map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 
 const shown = (payload: string) => payload.length > 80 ? `${payload.slice(0, 77)}… (${payload.length} characters)` : payload;
 
@@ -142,7 +137,7 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
     if (canceled || !filePath) {
       return;
     }
-    await fs.promises.writeFile(filePath, kind === 'csv' ? fuzzCsv(summary) : JSON.stringify({ name: request.name, generated: new Date().toISOString(), ...summary }, null, 2));
+    await fs.promises.writeFile(filePath, kind === 'csv' ? fuzzCsv(summary) : fuzzJson(summary, request.name));
   };
 
   // closing it stops the run
