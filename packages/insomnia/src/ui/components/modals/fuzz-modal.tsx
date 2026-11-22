@@ -158,13 +158,13 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
           {/* clear of the scroll bar */}
           <div className="pr-6">
           {!started && (
-            <>
-              <p className="faint txt-sm no-margin-top">
+            <div className="flex flex-col gap-5">
+              <p className="faint txt-sm m-0">
                 {t("Sends this request many times, each with one value swapped for a payload, and compares the answers with the request's own. Its scripts run for every attempt, with fuzzPayload, fuzzPosition and fuzzAttempt as variables: an after-response script's failed test marks an attempt, and it can clean up what an attempt made. Nothing sent is kept.")}
                 {' '}
                 <strong className="warning">{t("Run it only against an API you're allowed to test.")}</strong>
               </p>
-              <div className="flex gap-10 items-start mt-4">
+              <div className="flex gap-10 items-start">
                 <fieldset className="flex-1 border-0 p-0 m-0 min-w-0">
                   <legend className="font-bold p-0 mb-3">{t('Where')}</legend>
                   {!points && !error ? <p className="faint txt-sm">{t('Reading the request…')}</p> : null}
@@ -179,6 +179,20 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
                       </li>
                     ))}
                   </ul>
+                  <div className="grid grid-cols-[max-content_12rem] items-center gap-x-3 gap-y-3 txt-sm mt-5">
+                    <label className="contents" title={t('One at a time shows which input is at fault. All at once puts each payload in every position together. Every combination tries each mix of payloads over the positions, and grows fast.')}>
+                      <span>{t('Positions:')}</span>
+                      <select className="input-box m-0 w-full" value={mode} onChange={event => setMode(event.currentTarget.value as FuzzMode)}>
+                        <option value="one">{t('One at a time')}</option>
+                        <option value="together">{t('All at once')}</option>
+                        <option value="combinations">{t('Every combination')}</option>
+                      </select>
+                    </label>
+                    <label className="contents">
+                      <span>{t('Milliseconds between attempts:')}</span>
+                      <input type="number" className="input-box m-0 w-full" min={0} value={delay} onChange={event => setDelay(Math.max(0, Number(event.currentTarget.value) || 0))} />
+                    </label>
+                  </div>
                 </fieldset>
                 <fieldset className="flex-1 border-0 p-0 m-0 min-w-0">
                   <legend className="font-bold p-0 mb-3">{t('With')}</legend>
@@ -197,35 +211,21 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
                     {t('Your own, one a line (name=value adds a field to a JSON body)')}
                     <textarea className="input-box w-full font-mono txt-sm p-2 m-0" rows={3} value={custom} onChange={event => setCustom(event.currentTarget.value)} />
                   </label>
-                  <div className="grid grid-cols-[max-content_12rem] items-center gap-x-3 gap-y-3 txt-sm mt-5">
-                    <label className="contents" title={t('One at a time shows which input is at fault. All at once puts each payload in every position together. Every combination tries each mix of payloads over the positions, and grows fast.')}>
-                      <span>{t('Positions:')}</span>
-                      <select className="input-box m-0 w-full" value={mode} onChange={event => setMode(event.currentTarget.value as FuzzMode)}>
-                        <option value="one">{t('One at a time')}</option>
-                        <option value="together">{t('All at once')}</option>
-                        <option value="combinations">{t('Every combination')}</option>
-                      </select>
-                    </label>
-                    <label className="contents">
-                      <span>{t('Milliseconds between attempts:')}</span>
-                      <input type="number" className="input-box m-0 w-full" min={0} value={delay} onChange={event => setDelay(Math.max(0, Number(event.currentTarget.value) || 0))} />
-                    </label>
-                  </div>
                 </fieldset>
               </div>
-              <p data-testid="fuzz-plan" className="txt-sm font-bold mt-6 mb-3">
+              <p data-testid="fuzz-plan" className="txt-sm font-bold m-0">
                 {t('{count, plural, one {# attempt} other {# attempts}}, and the request once as it is.', { count: planned })}
                 {planned >= FUZZ_MAX_ATTEMPTS ? ` ${t('A run sends {max} at most.', { max: FUZZ_MAX_ATTEMPTS })}` : ''}
               </p>
               {writes ? (
-                <label className="notice warning flex items-start gap-3 txt-sm text-left p-3 cursor-pointer">
+                <label className="warning flex items-start gap-3 txt-sm text-left m-0 cursor-pointer">
                   <input type="checkbox" className="m-0 mt-1 flex-shrink-0" checked={allowed} onChange={event => setAllowed(event.currentTarget.checked)} />
                   <span>
                     {t('This is a {method}: every attempt may change data on the server. I am allowed to test this API, and what the attempts make or change can be put right.', { method: request.method })}
                   </span>
                 </label>
               ) : null}
-            </>
+            </div>
           )}
           {error && <p className="notice error">{error}</p>}
           {started && (
