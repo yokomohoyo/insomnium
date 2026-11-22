@@ -90,6 +90,26 @@ export const IgnoredSecurityRules: FC<{ ignored: string[]; onRestore: (id: strin
   </section>
 ) : null;
 
+// The request against its design document's spec: which operation describes
+// it, or a finding when none does. Nothing is sent to tell
+export const SpecSecurityNote: FC<{ described: string[]; finding?: AuditFinding; onIgnore?: (id: string) => void }> = ({ described, finding, onIgnore }) => (
+  <section aria-label={t('Against the spec')} className="margin-top">
+    <hr />
+    <h3 className="txt-md margin-top-sm">{t('Against the spec')}</h3>
+    {finding ? (
+      <SecurityFindingList findings={[finding]} label={t('Spec findings')} onIgnore={onIgnore} />
+    ) : described.length ? (
+      <p className="faint txt-sm selectable" data-testid="security-spec-described">
+        <i className="fa fa-circle-check success" aria-hidden />
+        {' '}
+        {t('The spec describes this request: {operation}', { operation: described.join(', ') })}
+      </p>
+    ) : (
+      <p className="faint txt-sm" data-testid="security-spec-ignored">{t("The spec doesn't describe this request, and the collection ignores that.")}</p>
+    )}
+  </section>
+);
+
 // noResponse: the request failed, so there was nothing to look at
 export const ResponseSecurityViewer: FC<{ findings?: AuditFinding[]; noResponse?: boolean; onIgnore?: (id: string) => void }> = ({ findings, noResponse, onIgnore }) => {
   if (noResponse) {

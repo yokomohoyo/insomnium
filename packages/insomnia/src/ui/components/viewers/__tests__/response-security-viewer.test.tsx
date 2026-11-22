@@ -3,7 +3,8 @@ import { fireEvent, render } from '@testing-library/react';
 import React from 'react';
 
 import type { AuditFinding } from '../../../../common/response-audit';
-import { IgnoredSecurityRules, ResponseSecurityViewer } from '../response-security-viewer';
+import { notInSpecFinding } from '../../../../common/spec-inventory';
+import { IgnoredSecurityRules, ResponseSecurityViewer, SpecSecurityNote } from '../response-security-viewer';
 
 const finding = (patch: Partial<AuditFinding>): AuditFinding => ({
   id: 'plain-http',
@@ -57,6 +58,31 @@ describe('<ResponseSecurityViewer />', () => {
 
   it('shows nothing until the response has been looked at', () => {
     expect(render(<ResponseSecurityViewer />).container.textContent).toBe('');
+  });
+});
+
+describe('<SpecSecurityNote />', () => {
+  it('names the operation that describes the request', () => {
+    const { getByTestId, queryByRole } = render(<SpecSecurityNote described={['GET /orders/{id}']} />);
+
+    expect(getByTestId('security-spec-described').textContent).toContain('The spec describes this request: GET /orders/{id}');
+    expect(queryByRole('list', { name: 'Spec findings' })).toBeNull();
+  });
+
+  it("shows a finding for a request the spec doesn't describe, which can be ignored", () => {
+    const onIgnore = jest.fn();
+    const { getByRole } = render(<SpecSecurityNote described={[]} finding={notInSpecFinding('GET /internal/users')} onIgnore={onIgnore} />);
+
+    expect(getByRole('list', { name: 'Spec findings' }).textContent).toContain("A request the spec doesn't describe");
+    expect(getByRole('list', { name: 'Spec findings' }).textContent).toContain('GET /internal/users');
+    fireEvent.click(getByRole('button', { name: "Ignore A request the spec doesn't describe" }));
+    expect(onIgnore).toHaveBeenCalledWith('not-in-spec');
+  });
+
+  it('says so when the collection ignores that rule', () => {
+    const { getByTestId } = render(<SpecSecurityNote described={[]} />);
+
+    expect(getByTestId('security-spec-ignored').textContent).toContain('the collection ignores that');
   });
 });
 

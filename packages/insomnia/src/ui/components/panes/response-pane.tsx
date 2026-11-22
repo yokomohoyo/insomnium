@@ -1,7 +1,7 @@
 import { text } from 'node:stream/consumers';
 
 import { extension as mimeExtension } from 'mime-types';
-import React, { type FC, useCallback, useState } from 'react';
+import React, { type FC, useCallback, useMemo, useState } from 'react';
 import { useFetcher, useParams, useRouteLoaderData } from 'react-router-dom';
 
 import { PREVIEW_MODE_SOURCE } from '../../../common/constants';
@@ -9,6 +9,7 @@ import { t } from '../../../common/i18n';
 import { getSetCookieHeaders } from '../../../common/misc';
 import { worstSeverity } from '../../../common/response-audit';
 import { ignoredRules, withoutIgnored } from '../../../common/security-rules';
+import { notInSpecFinding, requestAgainstSpec } from '../../../common/spec-inventory';
 import { writeToFile } from '../../../common/write-to-file';
 import * as models from '../../../models';
 import { cancelRequestById } from '../../../network/cancellation';
@@ -31,7 +32,7 @@ import { TimeTag } from '../tags/time-tag';
 import { AssertionResultsViewer } from '../viewers/assertion-results-viewer';
 import { ResponseCookiesViewer } from '../viewers/response-cookies-viewer';
 import { ResponseHeadersViewer } from '../viewers/response-headers-viewer';
-import { IgnoredSecurityRules, ResponseSecurityViewer, useResponseAudit } from '../viewers/response-security-viewer';
+import { IgnoredSecurityRules, ResponseSecurityViewer, SpecSecurityNote, useResponseAudit } from '../viewers/response-security-viewer';
 import { ResponseTimelineViewer } from '../viewers/response-timeline-viewer';
 import { ResponseViewer } from '../viewers/response-viewer';
 import { ResponseVisualizer } from '../viewers/response-visualizer';
@@ -54,7 +55,7 @@ export const ResponsePane: FC<Props> = ({
     settings,
   } = useRouteLoaderData('root') as RootLoaderData;
   const previewMode = activeRequestMeta.previewMode || PREVIEW_MODE_SOURCE;
-  const { activeEnvironment, subEnvironments, activeWorkspace, collection } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
+  const { activeEnvironment, subEnvironments, activeWorkspace, activeApiSpec, collection } = useRouteLoaderData(':workspaceId') as WorkspaceLoaderData;
   // marked as for some users only, itself or by a folder it's in
   const requestIsRestricted = Boolean(activeRequest && restrictedIds(collection || []).has(activeRequest._id));
   // the Security tab's rules this collection ignores: the collection's own, so
@@ -66,6 +67,16 @@ export const ResponsePane: FC<Props> = ({
     { workspaceId, securityIgnoredRules },
     { action: projectPath({ organizationId, projectId }, 'workspace/update'), method: 'post', encType: 'application/json' },
   );
+  // a design document's request against its spec, as Security Checks does
+  // for the whole document: nothing is sent to tell
+  const specContents = activeWorkspace?.scope === 'design' ? activeApiSpec?.contents : undefined;
+  const requestMethod = activeRequest?.method;
+  const requestUrl = activeRequest?.url;
+  const againstSpec = useMemo(
+    () => specContents && requestMethod !== undefined && requestUrl ? requestAgainstSpec(specContents, { method: requestMethod, url: requestUrl }) : null,
+    [specContents, requestMethod, requestUrl],
+  );
+  const specFindings = againstSpec && !againstSpec.described.length ? withoutIgnored([notInSpecFinding(againstSpec.operation)], ignoredSecurityRules) : [];
   const audited = useResponseAudit(activeResponse);
   const securityFindings = audited && withoutIgnored(audited, ignoredSecurityRules);
   // (what the tests found is the panel's: this redraws the tab's count after a run)
@@ -158,7 +169,7 @@ export const ResponsePane: FC<Props> = ({
   const timeline = models.response.getTimeline(activeResponse);
   const cookieHeaders = getSetCookieHeaders(activeResponse.headers);
   const assertionResults = activeResponse.assertionResults || [];
-  const countedFindings = [...securityFindings || [], ...testFindings];
+  const countedFindings = [...securityFindings || [], ...specFindings, ...testFindings];
   const worstFinding = worstSeverity(countedFindings);
   return (
     <Pane type="response">
@@ -290,6 +301,13 @@ export const ResponsePane: FC<Props> = ({
               />
             </ErrorBoundary>
             <ErrorBoundary errorClassName="font-error pad text-center">
+              {againstSpec ? (
+                <SpecSecurityNote
+                  described={againstSpec.described}
+                  finding={specFindings[0]}
+                  onIgnore={id => setIgnoredSecurityRules([...ignoredSecurityRules, id])}
+                />
+              ) : null}
               <SecurityTestsPanel
                 request={activeRequest}
                 environments={subEnvironments.filter(({ _id }) => _id !== activeEnvironment._id)}
