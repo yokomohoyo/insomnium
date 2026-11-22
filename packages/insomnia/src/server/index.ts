@@ -139,7 +139,7 @@ async function security(argv: string[]) {
   }
 
   const { requests, otherEnvironmentId, lowerEnvironmentId, ignoredByCollection, spec, covering, name } = prepared;
-  print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.join(', ')}`);
+  print(`[security] ${name}: ${requests.length} ${requests.length === 1 ? 'request' : 'requests'}, sending to ${config.allowedHosts.includes('*') ? 'any host' : config.allowedHosts.join(', ')}`);
   // said, not just done: a collection's file shouldn't be able to quiet a pipeline unseen
   if (ignoredByCollection.length) {
     print(`[security] ignored by the collection: ${ignoredByCollection.join(', ')}`);

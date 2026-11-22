@@ -139,23 +139,21 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
 
 `security` is the app's [Security Checks](../../docs/security-checks.md#a-whole-collection) for a pipeline, by the OWASP API Security Top 10. It tests each GET and HEAD in the collection (sent again up to 111 times, changed a little each time; 100 of those are in a row, looking for a rate limit) and looks at their answers. Any other request is never sent. Nothing sent is kept.
 
-The app asks before it sends anything. A pipeline has nobody to ask, so the go-ahead is on the command line, and both parts are required every time:
+The app asks before it sends anything. A pipeline has nobody to ask, so the go-ahead is on the command line, every time: `--i-may-test-this-api`. It has no default, no other spelling, and isn't read from the environment or a collection.
 
-- `--i-may-test-this-api`. It has no default, no other spelling, and isn't read from the environment or a collection.
-- `INSOMNIUM_ALLOWED_HOSTS`, naming the hosts it may send to. `*` is refused.
+`INSOMNIUM_ALLOWED_HOSTS` narrows where it may send, as it does for `run`; without it, any host is allowed.
 
 Run it only against an API you're allowed to test.
 
 ```sh
 docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
-  -e INSOMNIUM_ALLOWED_HOSTS=staging.example.com \
   -e INSOMNIUM_VAR_apiKey="$API_KEY" \
   ghcr.io/yokomohoyo/insomnium-server security --collection api.yaml --env staging \
   --i-may-test-this-api --sarif security.sarif
 ```
 
 ```text
-[security] Shop: 3 requests, sending to staging.example.com
+[security] Shop: 3 requests, sending to any host
   ✗ Orders / List orders  GET https://staging.example.com/orders?status=…
       HIGH   It accepts an unsigned token (the request's Authorization header)  [token-unsigned]
       LOW    No sign of a rate limit (100 requests in a row)  [rate-limit]

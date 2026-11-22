@@ -48,12 +48,12 @@ describe('parseSecurityConfig()', () => {
     expect(() => parseSecurityConfig(['--collection', 'a.yaml', '--allow'], HOSTS)).toThrow('Unknown option --allow');
   });
 
-  it("doesn't start without the hosts it may send to, by name", () => {
-    const named = 'Name the hosts the security checks may send to in INSOMNIUM_ALLOWED_HOSTS';
-    expect(() => parseSecurityConfig(ARGS, {})).toThrow(named);
-    expect(() => parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: ' ' })).toThrow(named);
-    expect(() => parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: '*' })).toThrow(named);
-    expect(() => parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com,*.example.com' })).toThrow(named);
+  it('sends to any host unless the pipeline narrows it, as run does', () => {
+    expect(parseSecurityConfig(ARGS, {}).allowedHosts).toEqual(['*']);
+    expect(parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: ' ' }).allowedHosts).toEqual(['*']);
+    expect(parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com,*.example.com' }).allowedHosts).toEqual(['api.example.com', '*.example.com']);
+    // (the flag is still asked for, hosts or no hosts)
+    expect(() => parseSecurityConfig(['--collection', 'a.yaml'], {})).toThrow(ALLOW_FLAG);
   });
 
   it('refuses a rule it has no name for, an unknown option, and no collection', () => {
@@ -69,7 +69,7 @@ describe('parseSecurityConfig()', () => {
 
   it('says in its usage what the go-ahead is', () => {
     expect(SECURITY_USAGE).toContain(ALLOW_FLAG);
-    expect(SECURITY_USAGE).toContain('INSOMNIUM_ALLOWED_HOSTS  the hosts it may send to, by name (not *)');
+    expect(SECURITY_USAGE).toContain('it is required on the command line, every time');
   });
 });
 

@@ -12,9 +12,10 @@ import { emptySources, GIT_USAGE, requireSources, type Sources, SOURCES_USAGE, t
 // it finds something as severe as --fail-on.
 //
 // The app asks before it sends anything. Here there is nobody to ask, so the
-// go-ahead is on the command line, every time: --i-may-test-this-api, and the
-// hosts it may send to, by name. Neither has a default, and neither can come
-// from a collection.
+// go-ahead is on the command line, every time: --i-may-test-this-api. It has
+// no default, and can't come from the environment or a collection. Where it
+// may send is the pipeline's own business: INSOMNIUM_ALLOWED_HOSTS narrows it,
+// as it does for `run`, and any host is allowed without it.
 
 export const ALLOW_FLAG = '--i-may-test-this-api';
 
@@ -57,10 +58,8 @@ at. Any other request is never sent. Nothing sent is kept.
 Exits 1 when a finding is as severe as --fail-on, or a request that should have
 been tested couldn't be; 2 when the run can't start.
 
-Run it only against an API you're allowed to test. Two things say that you are,
-and both are required:
-  ${ALLOW_FLAG}   on the command line, every time
-  INSOMNIUM_ALLOWED_HOSTS  the hosts it may send to, by name (not *)
+Run it only against an API you're allowed to test. ${ALLOW_FLAG} says
+that you are: it is required on the command line, every time.
 
 ${SOURCES_USAGE}
   --folder      only the requests in this folder: its name, or a path like "Users/Admin"
@@ -83,7 +82,8 @@ ${SOURCES_USAGE}
   --sarif       write a SARIF 2.1.0 report to this file
 
 Environment:
-  INSOMNIUM_ALLOWED_HOSTS  comma-separated hosts the checks may send to: required
+  INSOMNIUM_ALLOWED_HOSTS  comma-separated hosts the checks may send to; any by default,
+                           except cloud metadata hosts, which must be listed
   INSOMNIUM_VAR_<name>     sets <name> in the environment, for secrets
   INSOMNIUM_VALIDATE_SSL   false to skip certificate validation
   INSOMNIUM_ALLOWED_ENV    environment variables templates may read with {% env 'NAME' %}:
@@ -169,12 +169,9 @@ export const parseSecurityConfig = (argv: string[], env: Record<string, string |
   }
 
   requireSources(config);
-  // the go-ahead, and what it covers: asked for by name, since there's nobody to ask
+  // the go-ahead: asked for by name, since there's nobody to ask
   if (!config.allowed) {
     throw new Error(`The security checks send requests made to find what an API lets through. Pass ${ALLOW_FLAG} to say you're allowed to test it.`);
-  }
-  if (!env.INSOMNIUM_ALLOWED_HOSTS?.trim() || config.allowedHosts.some(host => host.includes('*'))) {
-    throw new Error('Name the hosts the security checks may send to in INSOMNIUM_ALLOWED_HOSTS (comma-separated, without *).');
   }
   return config;
 };

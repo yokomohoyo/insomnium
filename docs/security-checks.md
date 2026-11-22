@@ -118,7 +118,7 @@ A report names where a credential was, never the credential, and shows URLs with
 
 ## In CI
 
-[`insomnium-server security`](../packages/insomnium-server/README.md#security-checks-in-ci) is the same run without the app, for a pipeline: it exits 1 when it finds something as severe as `--fail-on`, and writes the same reports. With nobody to ask, the go-ahead is on its command line: `--i-may-test-this-api`, and the hosts it may send to, by name.
+[`insomnium-server security`](../packages/insomnium-server/README.md#security-checks-in-ci) is the same run without the app, for a pipeline: it exits 1 when it finds something as severe as `--fail-on`, and writes the same reports. With nobody to ask, the go-ahead is on its command line: `--i-may-test-this-api`.
 
 ## Ignoring a rule
 
