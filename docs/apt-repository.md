@@ -96,13 +96,14 @@ The workflow triggers on `workflow_run` once **Release On Publish** completes
 successfully, so the `.deb` assets are already uploaded by the time it starts.
 It:
 
-1. Downloads `.deb` assets from the most recent releases (default 5 — see below)
+1. Downloads `.deb` assets from the most recent releases (default 4 — see below)
 2. Builds `dists/stable/main/binary-amd64/Packages` with `apt-ftparchive`
 3. Generates and GPG-signs `Release`, producing `InRelease` and `Release.gpg`
 4. Verifies both signatures, that every file `Release` lists matches its
    recorded hash, and that the index actually lists `insomnium`
-5. Checks the payload against the published-site limit
-6. Uploads `_site` as a Pages artifact and deploys it
+5. Adds the pacman repository for Arch Linux (see below), signed with the same key
+6. Checks the payload against the published-site limit
+7. Uploads `_site` as a Pages artifact and deploys it
 
 It can also be run manually via **workflow_dispatch**, which takes a `keep`
 input if you need a different number of retained releases.
@@ -116,7 +117,7 @@ input if you need a different number of retained releases.
 
 ### Two size limits, and why the deployment method matters
 
-Each `.deb` is ~120 MB, which runs into two separate GitHub limits:
+Each `.deb` is ~130 MB, which runs into two separate GitHub limits:
 
 | Limit | Value | Applies to |
 | --- | --- | --- |
@@ -128,8 +129,9 @@ branch-based deploy (`gh-pages`) has to push each `.deb` through git, and every
 one of them is over 100 MB — unfixable by pruning, since a single package
 already exceeds it.
 
-The site limit still applies to the artifact, so the workflow keeps the **5 most
-recent** releases with a `.deb` (≈600 MB) and rebuilds the whole tree each run.
+The site limit still applies to the artifact, so the workflow keeps the **4 most
+recent** releases with a `.deb` (≈520 MB), plus the one pacman package
+(≈155 MB), and rebuilds the whole tree each run.
 A guard step fails the build above 900 MB and warns above 700 MB, so raising
 `keep` surfaces the problem before deploy time rather than after. If you need
 deeper history, a hosted apt service (Cloudsmith, packagecloud) is the better
@@ -137,6 +139,20 @@ answer; both have OSS tiers.
 
 Because the tree is rebuilt wholesale each run, dropping out of the pool is how
 old versions are pruned — there is no separate cleanup step.
+
+### The pacman repository
+
+Pages is one deployment, so the Arch Linux repository is built by the same
+workflow and served from `/arch/x86_64`. The `arch` job repackages the latest
+release's `.deb` in an `archlinux:base-devel` container, from the PKGBUILD in
+`packages/insomnia/packaging/aur/insomnium-bin`, checks the `.deb` against the
+release asset's digest, installs the package, and builds the database with
+`repo-add`. The `publish` job, which has the key, signs the package and the
+database (`<file>.sig`), and serves the public key at
+`/arch/insomnium-archive-keyring.gpg`.
+
+It holds the latest release only, as pacman repositories do. The README has
+the lines a user adds.
 
 ---
 

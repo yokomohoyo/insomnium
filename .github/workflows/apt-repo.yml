@@ -3,6 +3,11 @@ name: APT Repository
 # Publishes a signed APT repository to GitHub Pages so installed .deb packages
 # can be upgraded with `apt upgrade` instead of a manual re-download.
 #
+# The same site carries a signed pacman repository for Arch Linux, under
+# /arch/x86_64: Pages is one deployment, so both are built here. It holds the
+# latest release only, as pacman repositories do, built from the same PKGBUILD
+# as the AUR package and signed with the same key as the APT index.
+#
 # The .deb files themselves are NOT committed to git — they are pulled from
 # GitHub Release assets each run and deployed as a Pages artifact.
 #
@@ -26,7 +31,7 @@ on:
       keep:
         description: Number of most recent releases to keep in the pool
         required: false
-        default: "5"
+        default: "4"
 
 concurrency:
   group: apt-repo
@@ -45,7 +50,72 @@ permissions:
   actions: read
 
 jobs:
+  # The latest release's .deb repackaged for pacman, with the repository's
+  # database. Nothing is signed here: the key is in the github-pages
+  # environment, which the publish job has.
+  arch:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'release') }}
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    env:
+      REPO: ${{ github.repository }}
+      PKGDIR: packages/insomnia/packaging/aur/insomnium-bin
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm --needed git github-cli jq pacman-contrib
+
+      - uses: actions/checkout@v7
+
+      - name: Build the package and the database
+        run: |
+          TAG=$(gh release view --repo "$REPO" --json tagName --jq .tagName)
+          if ! [[ "$TAG" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::The latest release, '$TAG', is not X.Y.Z"; exit 1
+          fi
+          sed -i -E "s/^_pkgver=.*/_pkgver=$TAG/; s/^pkgrel=.*/pkgrel=1/" "$PKGDIR/PKGBUILD"
+
+          useradd -m builder
+          cp -r "$PKGDIR" /home/builder/pkg
+          chown -R builder /home/builder/pkg
+          cd /home/builder/pkg
+          su builder -c 'updpkgsums && makepkg --cleanbuild --nodeps --noconfirm && makepkg --printsrcinfo > .SRCINFO'
+
+          # The .deb must be the exact release asset, not just whatever the url served.
+          DEB="Insomnium.Core-$TAG.deb"
+          DIGEST=$(gh release view "$TAG" --repo "$REPO" --json assets |
+            jq -r --arg n "$DEB" '[.assets[] | select(.name == $n) | .digest] | if length == 1 then .[0] else "" end')
+          GOT=$(sed -n 's/^\tsha256sums = //p' .SRCINFO | head -1)
+          if [ "sha256:$GOT" != "$DIGEST" ]; then
+            echo "::error::$DEB hashes to $GOT, but the release asset digest is '${DIGEST:-missing}'"; exit 1
+          fi
+
+          pacman -U --noconfirm *.pkg.tar.zst
+          if ldd /opt/Insomnium/insomnium | grep 'not found'; then
+            echo "::error::insomnium has unresolved shared libraries; add the missing depends"; exit 1
+          fi
+
+          # repo-add leaves insomnium.db and insomnium.files as links; an
+          # artifact and Pages want files
+          mkdir repo && cp *.pkg.tar.zst repo/ && cd repo
+          repo-add insomnium.db.tar.gz *.pkg.tar.zst
+          mkdir -p "$GITHUB_WORKSPACE/arch"
+          cp -L insomnium.db insomnium.db.tar.gz insomnium.files insomnium.files.tar.gz *.pkg.tar.zst "$GITHUB_WORKSPACE/arch/"
+          ls -l "$GITHUB_WORKSPACE/arch"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: arch-repo
+          path: arch/
+          retention-days: 1
+
   publish:
+    needs: arch
     # Skip when the triggering build failed, or wasn't started by publishing a
     # release (a manual re-run or dry run); a manual dispatch always runs.
     if: >-
@@ -76,7 +146,7 @@ jobs:
       - name: Download .deb assets from recent releases
         env:
           GH_TOKEN: ${{ github.token }}
-          KEEP: ${{ github.event.inputs.keep || '5' }}
+          KEEP: ${{ github.event.inputs.keep || '4' }}
         run: |
           mkdir -p _site/apt/pool/main/i/insomnium
           # Newest-first; limit generously then trim, since not every release
@@ -161,6 +231,29 @@ jobs:
           echo "versions published:"
           awk '/^Package: insomnium$/{p=1} p&&/^Version:/{print "  " $2; p=0}' \
             dists/stable/main/binary-amd64/Packages
+
+      - name: Download the pacman repository
+        uses: actions/download-artifact@v8
+        with:
+          name: arch-repo
+          path: _site/arch/x86_64
+
+      # pacman looks for <file>.sig next to the package and the database
+      - name: Sign the pacman repository
+        env:
+          APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
+        run: |
+          cd _site/arch/x86_64
+          for file in *.pkg.tar.zst insomnium.db insomnium.db.tar.gz insomnium.files insomnium.files.tar.gz; do
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "$APT_GPG_PASSPHRASE" \
+              --local-user "$APT_GPG_KEY_ID" \
+              --detach-sign --output "$file.sig" "$file"
+            gpg --verify "$file.sig" "$file"
+          done
+          gpg --export "$APT_GPG_KEY_ID" > ../insomnium-archive-keyring.gpg
+          echo "published for pacman:"
+          ls -l
 
       - name: Check the payload fits the published-site limit
         run: |

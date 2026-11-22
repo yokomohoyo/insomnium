@@ -25,7 +25,7 @@ Insomnium has no user login, tracking or analytics: it is a 100% local app. (And
 
 ## Download
 
-Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). macOS builds are signed and notarized with the maintainer's Apple Developer ID; Windows builds aren't signed. On Arch Linux, use the AppImage or `.tar.gz` from the releases page for now: the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
+Insomnium is available for Mac, Windows, Ubuntu, Debian, CentOS, Fedora and [can be downloaded here](https://github.com/yokomohoyo/insomnium/releases). macOS builds are signed and notarized with the maintainer's Apple Developer ID; Windows builds aren't signed. On Arch Linux, use [this project's pacman repository](#arch-linux-pacman): the `insomnium-bin` AUR package is not maintained by this project and is still on 0.2.3 ([#121](https://github.com/yokomohoyo/insomnium/issues/121)).
 
 ### macOS (Homebrew)
 
@@ -53,6 +53,24 @@ Updates then arrive through `apt upgrade` like any other package. Installing the
 `.deb` directly also registers this repository, so a downloaded `.deb` stays up
 to date too — see [docs/apt-repository.md](docs/apt-repository.md) for details
 and how to opt out.
+
+### Arch Linux (pacman)
+
+```sh
+curl -fsSLO https://yokomohoyo.github.io/insomnium/arch/insomnium-archive-keyring.gpg
+sudo pacman-key --add insomnium-archive-keyring.gpg
+sudo pacman-key --lsign-key 5026C27EB9112C196690F95A5DC192AB886D02B1
+
+printf '\n[insomnium]\nServer = https://yokomohoyo.github.io/insomnium/arch/$arch\n' \
+  | sudo tee -a /etc/pacman.conf
+
+sudo pacman -Sy insomnium-bin
+```
+
+Updates then arrive with `pacman -Syu`. The package and the repository's
+database are signed with the key the APT repository uses, and the package is
+the release's `.deb` repackaged: see
+[its PKGBUILD](packages/insomnia/packaging/aur/insomnium-bin/PKGBUILD).
 
 ### Windows installer
 
