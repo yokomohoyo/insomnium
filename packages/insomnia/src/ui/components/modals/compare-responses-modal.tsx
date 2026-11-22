@@ -126,7 +126,7 @@ export const CompareResponsesModal: FC<ModalProps & Props> = ({ responses, activ
 
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
-      <Modal ref={modalRef} onHide={onHide} wide tall>
+      <Modal ref={modalRef} onHide={onHide} wide>
         <ModalHeader>{t('Compare Responses')}</ModalHeader>
         <ModalBody className="pad">
           {/* clear of the scroll bar */}

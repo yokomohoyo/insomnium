@@ -188,7 +188,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
 
   return (
     <OverlayContainer onClick={e => e.stopPropagation()}>
-      <Modal ref={modalRef} onHide={hide} wide tall>
+      <Modal ref={modalRef} onHide={hide} wide tall={started}>
         <ModalHeader>{t('Security Checks: {name}', { name })}</ModalHeader>
         <ModalBody className="pad">
           {/* clear of the scroll bar */}
@@ -202,44 +202,45 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
             </p>
           )}
           {requests && !started && requests.some(({ restricted }) => restricted) && (
-            <p className="txt-sm" data-testid="security-run-marked">
+            <p className="txt-sm mt-3 mb-0" data-testid="security-run-marked">
               <i className="fa fa-lock warning" aria-hidden />
               {' '}
               {t('{count, plural, one {# request is} other {# requests are}} marked as restricted to some users. With less privilege is tried on those alone.', { count: requests.filter(({ restricted }) => restricted).length })}
             </p>
           )}
           {requests && !started && (
-            <p data-testid="security-run-plan" className="no-margin-top">
+            <p data-testid="security-run-plan" className="txt-sm font-bold mt-3 mb-0">
               {t('{count, plural, one {# request} other {# requests}}', { count: requests.length })}
               {': '}
               {t('up to {max} requests will be sent.', { max: maxRequests })}
             </p>
           )}
-          {others.length && !started ? (
-            <label className="flex items-center gap-2 txt-sm">
-              {t('As another user:')}
-              <select className="input-box" disabled={running} value={otherEnvironmentId} onChange={event => setOtherEnvironmentId(event.currentTarget.value)}>
-                <option value="">{t('Not tested')}</option>
-                {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
-              </select>
-            </label>
-          ) : null}
-          {others.length && !started ? (
-            <label className="flex items-center gap-2 txt-sm margin-top-sm" title={t('For requests only some users may make, such as a folder of admin requests: an environment whose user may not')}>
-              {t('With less privilege:')}
-              <select className="input-box" disabled={running} value={lowerEnvironmentId} onChange={event => setLowerEnvironmentId(event.currentTarget.value)}>
-                <option value="">{t('Not tested')}</option>
-                {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
-              </select>
-            </label>
-          ) : null}
           {!started ? (
-            <div className="margin-top-sm">
-              <label className="flex items-center gap-2 txt-sm" title={t('How many times in a row the request is sent, looking for a rate limit. A limit above this number would not show; 0 leaves the test out.')}>
-                {t('Rate limit burst:')}
+            // the labels in one column and what they set in the next
+            <div className="grid grid-cols-[max-content_12rem] items-center gap-x-3 gap-y-3 txt-sm mt-4">
+              {others.length ? (
+                <label className="contents">
+                  <span>{t('As another user:')}</span>
+                  <select className="input-box m-0 w-full" disabled={running} value={otherEnvironmentId} onChange={event => setOtherEnvironmentId(event.currentTarget.value)}>
+                    <option value="">{t('Not tested')}</option>
+                    {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              {others.length ? (
+                <label className="contents" title={t('For requests only some users may make, such as a folder of admin requests: an environment whose user may not')}>
+                  <span>{t('With less privilege:')}</span>
+                  <select className="input-box m-0 w-full" disabled={running} value={lowerEnvironmentId} onChange={event => setLowerEnvironmentId(event.currentTarget.value)}>
+                    <option value="">{t('Not tested')}</option>
+                    {others.map(({ _id, name: environment }) => <option key={_id} value={_id}>{environment}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              <label className="contents" title={t('How many times in a row the request is sent, looking for a rate limit. A limit above this number would not show; 0 leaves the test out.')}>
+                <span>{t('Rate limit burst:')}</span>
                 <input
                   type="number"
-                  className="input-box w-24 m-0 px-2 py-1"
+                  className="input-box m-0 w-full"
                   min={0}
                   max={RATE_LIMIT_MOST}
                   disabled={running}
