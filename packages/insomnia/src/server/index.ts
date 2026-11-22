@@ -19,6 +19,7 @@ import { requestRunStats } from '../network/run-stats';
 import { runRequests } from '../network/runner';
 import { baselineMatcher, readBaseline } from '../network/security-baseline';
 import { securityJsonReport, securityMarkdownReport, securitySarifReport } from '../network/security-report';
+import { securityHtmlReport } from '../network/security-report-html';
 import { runSecurityChecks } from '../network/security-run';
 import { parseConfig, type ServerConfig, USAGE } from './config';
 import { formatLoadSummary, LOAD_USAGE, type LoadConfig, parseLoadConfig } from './load-test';
@@ -175,6 +176,9 @@ async function security(argv: string[]) {
   print(`\n${formatSecuritySummary(summary, config.failOn, baseline)}`);
   if (config.markdown) {
     await fs.promises.writeFile(config.markdown, securityMarkdownReport(summary, name, new Date(), baseline));
+  }
+  if (config.html) {
+    await fs.promises.writeFile(config.html, securityHtmlReport(summary, name, new Date(), baseline));
   }
   if (config.json) {
     await fs.promises.writeFile(config.json, securityJsonReport(summary, name, new Date(), baseline));

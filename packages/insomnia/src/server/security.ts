@@ -41,6 +41,7 @@ export interface SecurityConfig extends Sources {
   // an earlier run's JSON report: only findings it doesn't have fail the run
   baseline?: string;
   markdown?: string;
+  html?: string;
   json?: string;
   sarif?: string;
   allowedHosts: string[];
@@ -85,6 +86,7 @@ ${SOURCES_USAGE}
                 are known: they are still listed, and don't fail the run. What it
                 has that this run no longer finds is listed too
   --markdown    write a Markdown report to this file
+  --html        write an HTML report to this file: one page that stands alone
   --json        write a JSON report to this file
   --sarif       write a SARIF 2.1.0 report to this file
 
@@ -166,6 +168,9 @@ export const parseSecurityConfig = (argv: string[], env: Record<string, string |
         break;
       case '--markdown':
         config.markdown = value();
+        break;
+      case '--html':
+        config.html = value();
         break;
       case '--json':
         config.json = value();

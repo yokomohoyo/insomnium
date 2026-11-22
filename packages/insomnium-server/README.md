@@ -179,7 +179,7 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
 | `--ignore` | rules to leave out, by id, comma-separated, on top of those the collection itself ignores (named at the start of the output). The ids are the bracketed names in the output |
 | `--baseline` | an earlier run's JSON report. Findings it has are known: still listed, and they don't fail the run |
-| `--markdown`, `--json`, `--sarif` | write a report to this file |
+| `--markdown`, `--html`, `--json`, `--sarif` | write a report to this file |
 
 ### Failing on new findings only
 

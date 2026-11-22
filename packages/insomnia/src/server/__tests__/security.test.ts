@@ -11,7 +11,7 @@ const ARGS = ['--collection', 'a.yaml', ALLOW_FLAG];
 describe('parseSecurityConfig()', () => {
   it('reads the options', () => {
     expect(parseSecurityConfig(
-      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--rate-limit-requests', '300', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--baseline', 'known.json', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
+      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--rate-limit-requests', '300', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--baseline', 'known.json', '--markdown', 'report.md', '--html', 'report.html', '--json', 'report.json', '--sarif', 'report.sarif'],
       { ...HOSTS, INSOMNIUM_VAR_token: 't', INSOMNIUM_VALIDATE_SSL: 'false' },
     )).toEqual({
       collections: ['a.yaml'],
@@ -26,6 +26,7 @@ describe('parseSecurityConfig()', () => {
       ignore: ['nosniff-missing', 'rate-limit', 'hsts-missing'],
       baseline: 'known.json',
       markdown: 'report.md',
+      html: 'report.html',
       json: 'report.json',
       sarif: 'report.sarif',
       allowedHosts: ['api.example.com', 'staging.example.com'],

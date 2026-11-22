@@ -193,6 +193,19 @@ describe('<SecurityRunModal />', () => {
     expect(writeFile.mock.calls[0][1]).toContain('# Security checks: Shop');
   });
 
+  it('saves a page to open in a browser', async () => {
+    showSaveDialog.mockResolvedValue({ canceled: false, filePath: '/tmp/Shop-security.html' });
+    const { findByRole, findByTestId } = open();
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 222 requests)' }));
+    await waitFor(async () => expect((await findByTestId('security-run-summary')).textContent).toContain('requests sent'));
+
+    fireEvent.click(await findByRole('button', { name: 'Save HTML' }));
+
+    await waitFor(() => expect(writeFile).toHaveBeenCalledTimes(1));
+    expect(showSaveDialog).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: 'Shop-security.html' }));
+    expect(writeFile.mock.calls[0][1]).toContain('<title>Security checks: Shop</title>');
+  });
+
   it('opens a request from its name', async () => {
     const { findByRole, findByTestId, getByRole } = open();
     fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 222 requests)' }));
