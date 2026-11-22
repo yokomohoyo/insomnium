@@ -5,7 +5,7 @@ import {
   faCode, faCodeBranch, faCodeFork, faCog, faCookieBite, faCopy, faEdit, faExchange, faFile, faFileText, faFilter,
   faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop,   faLock, faMagicWandSparkles, faNavicon,
 faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
-  faUnsorted, faWrench,
+  faUnsorted, faUserShield, faWrench,
 } from '@fortawesome/free-solid-svg-icons';
 import {
   FontAwesomeIcon,
@@ -21,7 +21,7 @@ library.add(
   faCode, faCodeBranch, faCodeFork, faCog, faCookieBite, faCopy, faEdit, faExchange, faFile, faFileText, faFilter,
   faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop, faMagicWandSparkles, faNavicon,
   faLock, faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
-  faUnsorted, faWrench,
+  faUnsorted, faUserShield, faWrench,
   faGithub,
 );
 

@@ -1014,9 +1014,9 @@ export const Debug: FC = () => {
                         {restricted.has(item.doc._id) && (
                           <Icon
                             className="text-[length:var(--font-size-xs)] flex-shrink-0 text-[--color-warning]"
-                            icon="lock"
-                            aria-label={t('Restricted to some users')}
-                            title={t('Restricted to some users: the security checks try it with less privilege')}
+                            icon="user-shield"
+                            aria-label={t('Only some API users may call it')}
+                            title={t('Only some API users may call it: the security checks try it with less privilege')}
                           />
                         )}
                         <span className="flex-1" />
@@ -1116,9 +1116,9 @@ export const Debug: FC = () => {
                         {restricted.has(item.doc._id) && (
                           <Icon
                             className="text-[length:var(--font-size-xs)] flex-shrink-0 text-[--color-warning]"
-                            icon="lock"
-                            aria-label={t('Restricted to some users')}
-                            title={t('Restricted to some users: the security checks try it with less privilege')}
+                            icon="user-shield"
+                            aria-label={t('Only some API users may call it')}
+                            title={t('Only some API users may call it: the security checks try it with less privilege')}
                           />
                         )}
                         <span className="flex-1" />

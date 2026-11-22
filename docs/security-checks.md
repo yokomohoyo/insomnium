@@ -63,9 +63,11 @@ To test as another user, choose an environment in **As another user** that holds
 
 **With less privilege** is for a request that only some users may make: an admin's report, say. Choose an environment whose user may *not* make it. Choosing one is what says the request is restricted, so anything but a refusal is a finding: high when the answer is the same as with full privilege, medium when it's another answer. Leave it at **Not tested** for a request every user may make.
 
-### Marking what's restricted
+### Marking what only some users may call
 
-A request or a folder can be marked **Restricted to Some Users**, from its menu in the sidebar. A folder's mark covers everything in it. Marked requests and folders show a lock, and the mark is the collection's, so a team shares it.
+A request or a folder can be marked **Only Some API Users May Call It**, from its menu in the sidebar; **Every API User May Call It** takes the mark off. A folder's mark covers everything in it. Marked requests and folders show a person with a shield, and the mark is the collection's, so a team shares it.
+
+The mark is about the API, not about Insomnium: it says the API is meant to refuse some of its users here, so the security checks try it as one of them. It doesn't limit who can open, edit or send the request, and anyone who can edit the collection can set it or take it off.
 
 - The Security tab of a marked request says so, and asks for the environment to try it with.
 - **Security Checks** over a collection tries less privilege on the marked requests alone, and leaves the rest as they are. It says how many are marked before it starts, and afterwards if any went untried because no environment was chosen.

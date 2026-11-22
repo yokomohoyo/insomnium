@@ -75,7 +75,7 @@ ${SOURCES_USAGE}
   --as-lower    for requests only some users may make: a sub environment whose user
                 may not, by name. Each is also sent once as them, and anything but a
                 refusal is a finding. It is tried on the requests the collection marks
-                as restricted; when it marks none, on every request (use --folder)
+                as only for some API users; when it marks none, on every request (use --folder)
   --rate-limit-requests  how many times in a row a request is sent, looking for a
                 rate limit (default ${RATE_LIMIT_REQUESTS}; 0 leaves that test out). A limit
                 above this number wouldn't show
@@ -223,7 +223,7 @@ export const failsRun = (summary: SecurityRunSummary, failOn: FailOn, baseline?:
 export const formatItem = (item: SecurityRunItem) => {
   const name = [...item.folders, item.name].join(' / ');
   const mark = item.failed ? '!' : item.outcome === 'skipped' ? '-' : item.findings.length ? '✗' : '✓';
-  const lines = [`  ${mark} ${name}${item.restricted ? ' (restricted)' : ''}  ${item.method} ${item.url}`];
+  const lines = [`  ${mark} ${name}${item.restricted ? ' (some users only)' : ''}  ${item.method} ${item.url}`];
   if (item.note) {
     lines.push(`      ${item.note}`);
   }
@@ -256,7 +256,7 @@ export const formatSecuritySummary = (summary: SecurityRunSummary, failOn: FailO
   return [
     `${summary.items.length} ${summary.items.length === 1 ? 'request' : 'requests'}, ${tested} tested${missed ? `, ${missed} could not be tested` : ''} · ${found} · ${summary.requests} sent`,
     ...(missed ? [`Failed: ${missed} ${missed === 1 ? 'request' : 'requests'} could not be tested`] : []),
-    ...(summary.restrictedUntried ? [`${summary.restrictedUntried} ${summary.restrictedUntried === 1 ? 'request marked as restricted was' : 'requests marked as restricted were'} not tried with less privilege: pass --as-lower`] : []),
+    ...(summary.restrictedUntried ? [`${summary.restrictedUntried} ${summary.restrictedUntried === 1 ? 'request marked as only for some API users was' : 'requests marked as only for some API users were'} not tried with less privilege: pass --as-lower`] : []),
     ...(baseline ? [formatBaseline(baseline)] : []),
     fails ? `Failed: a ${what} is ${failOn} or worse (--fail-on ${failOn})` : failOn === 'none' ? 'Not failing on findings (--fail-on none)' : `Nothing ${baseline ? 'new is ' : ''}${failOn} or worse`,
     'A request with nothing found had none of these problems this once; that does not show the API is secure.',

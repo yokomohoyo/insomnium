@@ -38,7 +38,7 @@ describe('securityHtmlReport()', () => {
     expect(html.indexOf('Title of no-credentials')).toBeLessThan(html.indexOf('Title of secret-in-url'));
     expect(html).toContain('<code>token</code>');
     expect(html).toContain('<li><strong>Title of secret-in-url.</strong> Detail of secret-in-url.</li>');
-    expect(html).toContain('<strong>Orders / list</strong> <span class="badge info">Restricted</span> <span class="badge high">2 findings</span>');
+    expect(html).toContain('<strong>Orders / list</strong> <span class="badge info">Some users only</span> <span class="badge high">2 findings</span>');
     expect(html).toContain('<td>100 times in a row</td><td class="ok">Passed</td><td>It answered 429 to request 61.</td>');
     expect(html).toContain('<span class="badge info">Not checked</span>');
     expect(html).toContain('A POST isn&#39;t sent again');

@@ -278,10 +278,11 @@ export const RequestGroupActionsDropdown = ({
           handlePluginClick(plugin),
       })),
       {
-        // for the security checks: the requests in it are tried with less privilege
+        // for the security checks, about the API and not this app: requests only
+        // some of the API's users may make are tried with less privilege
         id: 'Restricted',
-        name: requestGroup.securityRestricted ? t('Not Restricted') : t('Restricted to Some Users'),
-        icon: 'lock',
+        name: requestGroup.securityRestricted ? t('Every API User May Call It') : t('Only Some API Users May Call It'),
+        icon: 'user-shield',
         action: () => patchGroup(requestGroup._id, { securityRestricted: !requestGroup.securityRestricted }),
       },
       {
