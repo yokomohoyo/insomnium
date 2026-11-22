@@ -58,7 +58,7 @@ interface Props {
 
 const askFirst = (requests: number) => new Promise<boolean>(resolve => showModal(AskModal, {
   title: t('Run Security Tests'),
-  message: t("This sends the request again up to {count} times, changed a little each time: without its credentials, with a quote in a parameter, several times in a row. Run it only against an API you're allowed to test.", { count: requests }),
+  message: t("This sends the request again up to {count} times, changed a little each time: without its credentials, with a quote in a parameter, many times in a row. Run it only against an API you're allowed to test.", { count: requests }),
   yesText: t('Run the Tests'),
   noText: t('Cancel'),
   onDone: async (yes: boolean) => resolve(yes),
@@ -113,7 +113,7 @@ export const SecurityTestsPanel: FC<Props> = ({ request, restricted, environment
       <h3 className="txt-md margin-top-sm">{t('Tests')}</h3>
       <p className="txt-sm faint">
         {safe
-          ? t("Sends this request again, changed a little each time, to see what the API does: without its credentials, with a token it shouldn't accept, as another user, with less privilege, from another site, over plain http, with a quote in a parameter, and several times in a row. Nothing they send is kept.")
+          ? t("Sends this request again, changed a little each time, to see what the API does: without its credentials, with a token it shouldn't accept, as another user, with less privilege, from another site, over plain http, with a quote in a parameter, and many times in a row. Nothing they send is kept.")
           : t('Only a GET or HEAD request is tested: a {method} would change things once more for every test.', { method: request.method })}
       </p>
       {safe && restricted ? (
