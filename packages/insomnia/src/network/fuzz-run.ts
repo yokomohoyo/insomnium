@@ -7,7 +7,7 @@
 // history, no cookie in the jar.
 import fs from 'node:fs';
 
-import { fuzzAttempts, type FuzzExchange, type FuzzFlag, type FuzzPayload, type FuzzPoint, fuzzPoints, judgeAttempt, withPayload } from '../common/fuzz';
+import { type FuzzExchange, type FuzzFlag, type FuzzMode, type FuzzPayload, fuzzPlan, type FuzzPoint, fuzzPoints, judgeAttempt, withPayloads } from '../common/fuzz';
 import { RENDER_PURPOSE_SEND } from '../common/render';
 import { isRequest } from '../models/request';
 import { getBoundedBodyBuffer } from '../models/response';
@@ -53,6 +53,8 @@ export interface FuzzOptions {
   // the positions to put payloads in, by their ids
   pointIds: string[];
   payloads: FuzzPayload[];
+  // how the payloads are spread over the positions: one at a time when left out
+  mode?: FuzzMode;
   // milliseconds between attempts
   delay?: number;
   onAttempt?: (attempt: FuzzAttemptResult) => void;
@@ -79,16 +81,16 @@ export async function listFuzzPoints(requestId: string, environmentId?: string |
   return { points: fuzzPoints(rendered), method: rendered.method, url: rendered.url };
 }
 
-export async function runFuzz(requestId: string, { environmentId, pointIds, payloads, delay = 0, onAttempt, signal, checkUrl }: FuzzOptions): Promise<FuzzRunSummary> {
+export async function runFuzz(requestId: string, { environmentId, pointIds, payloads, mode = 'one', delay = 0, onAttempt, signal, checkUrl }: FuzzOptions): Promise<FuzzRunSummary> {
   const { request, settings, clientCertificates, caCert, envId } = await load(requestId, environmentId);
 
-  // one exchange: the request as it is, or with a payload in a position.
-  // Null when the position isn't in the request this time round.
-  const exchange = async (variables: Record<string, unknown>, change?: { pointId: string; payload: FuzzPayload }): Promise<FuzzExchange | null> => {
+  // one exchange: the request as it is, or with payloads in their positions.
+  // Null when a position isn't in the request this time round.
+  const exchange = async (variables: Record<string, unknown>, change?: { pointId: string; payload: FuzzPayload }[]): Promise<FuzzExchange | null> => {
     const scripted = await runPreRequestScript(request, { environmentId: envId || null, iterationData: variables });
     const renderResult = await tryToInterpolateRequest(scripted.request, envId, RENDER_PURPOSE_SEND, undefined, { ...variables, ...scripted.variables });
     if (change) {
-      const changed = withPayload(renderResult.request, change.pointId, change.payload);
+      const changed = withPayloads(renderResult.request, change);
       if (!changed) {
         return null;
       }
@@ -135,26 +137,33 @@ export async function runFuzz(requestId: string, { environmentId, pointIds, payl
     // the positions as the request has them now, the ones asked for
     const { request: rendered } = await tryToInterpolateRequest(request, envId, RENDER_PURPOSE_SEND);
     const points = fuzzPoints(rendered).filter(({ id }) => pointIds.includes(id));
-    const planned = fuzzAttempts(points, payloads).slice(0, FUZZ_MAX_ATTEMPTS);
+    const planned = fuzzPlan(points, payloads, mode, FUZZ_MAX_ATTEMPTS);
 
     const attempts: FuzzAttemptResult[] = [];
     let requests = 1;
-    for (const [index, { point, payload }] of planned.entries()) {
+    for (const [index, change] of planned.entries()) {
       if (signal?.aborted) {
         break;
       }
       if (delay > 0 && index > 0) {
         await sleep(delay);
       }
-      const result: FuzzAttemptResult = { index: index + 1, pointId: point.id, position: point.label, payload: payload.value, statusCode: 0, bytes: 0, elapsed: 0, flags: [], notable: false, snippet: '' };
+      // with several payloads in one attempt: the positions joined, and the
+      // payloads too unless they're all the one
+      const values = change.map(({ payload }) => payload.value);
+      const position = change.map(({ point }) => point.label).join(' + ');
+      const payload = values.every(value => value === values[0]) ? values[0] : values.join(' + ');
+      const result: FuzzAttemptResult = { index: index + 1, pointId: change[0].point.id, position, payload, statusCode: 0, bytes: 0, elapsed: 0, flags: [], notable: false, snippet: '' };
       try {
-        const answer = await exchange({ fuzzAttempt: index + 1, fuzzPayload: payload.value, fuzzPosition: point.label }, { pointId: point.id, payload });
+        const answer = await exchange({ fuzzAttempt: index + 1, fuzzPayload: payload, fuzzPosition: position }, change.map(({ point, payload: put }) => ({ pointId: point.id, payload: put })));
         if (!answer) {
           result.error = "The position wasn't in the request this time: a script changed it";
         } else {
           requests++;
           Object.assign(result, { statusCode: answer.statusCode, bytes: answer.bytes, elapsed: answer.elapsed, snippet: answer.body.slice(0, SNIPPET_CHARS), ...(answer.error ? { error: answer.error } : {}) });
-          result.flags = judgeAttempt(baseline, answer, payload);
+          // what each payload shows of the answer, each kind once
+          const flags = change.flatMap(({ payload: put }) => judgeAttempt(baseline, answer, put));
+          result.flags = flags.filter((flag, at) => flags.findIndex(({ id }) => id === flag.id) === at);
           result.notable = result.flags.some(({ notable }) => notable);
         }
       } catch (err) {

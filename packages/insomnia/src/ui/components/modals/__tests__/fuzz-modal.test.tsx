@@ -3,8 +3,9 @@ import { fireEvent, render, waitFor } from '@testing-library/react';
 import React from 'react';
 
 import type { FuzzPoint } from '../../../../common/fuzz';
+import { fuzzCsv } from '../../../../network/fuzz-report';
 import type { FuzzAttemptResult, FuzzRunSummary, listFuzzPoints, runFuzz } from '../../../../network/fuzz-run';
-import { fuzzCsv, FuzzModal } from '../fuzz-modal';
+import { FuzzModal } from '../fuzz-modal';
 
 jest.mock('react-aria', () => ({
   ...(jest.requireActual('react-aria') as object),
@@ -69,6 +70,25 @@ describe('<FuzzModal />', () => {
     fireEvent.change(getByLabelText('Your own, one a line (name=value adds a field to a JSON body)'), { target: { value: 'admin\nrole=owner' } });
     // (the field has nowhere to go with the new field unticked)
     expect(getByTestId('fuzz-plan').textContent).toContain('11 attempts');
+  });
+
+  it('spreads the payloads over the positions the way chosen, and counts that', async () => {
+    const { findByLabelText, findByRole, getByLabelText, getByTestId, run } = open();
+    await findByLabelText('Query: status');
+    fireEvent.click(getByLabelText('Path: 1st part (orders)'));
+    // one at a time: 24 in the query, 24 in the path, 15 as a new field
+    expect(getByTestId('fuzz-plan').textContent).toContain('63 attempts');
+
+    fireEvent.change(getByLabelText('Positions:'), { target: { value: 'together' } });
+    // each payload once, in every position it fits
+    expect(getByTestId('fuzz-plan').textContent).toContain('39 attempts');
+
+    fireEvent.change(getByLabelText('Positions:'), { target: { value: 'combinations' } });
+    // 24 x 24 x 15, of which a run makes the first 2000
+    expect(getByTestId('fuzz-plan').textContent).toBe('2,000 attempts, and the request once as it is. A run sends 2000 at most.');
+
+    fireEvent.click(await findByRole('button', { name: 'Send 2001 Requests' }));
+    await waitFor(() => expect(run).toHaveBeenCalledWith('req_1', expect.objectContaining({ mode: 'combinations', pointIds: ['query:p0', 'json-new', 'path:1'] })));
   });
 
   it('sends what was chosen, and shows what stood out first', async () => {

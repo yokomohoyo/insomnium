@@ -212,6 +212,49 @@ export function fuzzPoints(target: FuzzTarget): FuzzPoint[] {
   return points;
 }
 
+// What a run tries, from what was asked for by name (an MCP client, a
+// pipeline): positions by id or label, or "all", the suggested ones when none
+// are named; payload lists by id; and one's own payloads, one a line. Throws,
+// naming what there is, for a position or list that isn't there
+export const chooseFuzz = (all: FuzzPoint[], { positions = [], lists = [], payloads = '' }: { positions?: string[]; lists?: string[]; payloads?: string }) => {
+  let points: FuzzPoint[];
+  if (!positions.length) {
+    points = all.filter(({ suggested }) => suggested);
+  } else if (positions.some(position => position.trim().toLowerCase() === 'all')) {
+    points = all;
+  } else {
+    points = positions.map(wanted => {
+      const name = wanted.trim().toLowerCase();
+      const found = all.find(({ id }) => id === wanted.trim()) || all.find(({ label }) => label.toLowerCase() === name)
+        // "Path: 2nd part" for "Path: 2nd part (7)": the value in brackets changes
+        || all.find(({ label }) => label.toLowerCase().replace(/ \(.*\)$/, '') === name);
+      if (!found) {
+        throw new Error(`no position '${wanted}' in the request. It has: ${all.map(({ label }) => label).join(', ') || 'none'}`);
+      }
+      return found;
+    });
+    points = points.filter((point, index) => points.indexOf(point) === index);
+  }
+  if (!points.length) {
+    throw new Error(`the request has no ${positions.length ? '' : 'likely '}positions to put payloads in${all.length && !positions.length ? `. It has: ${all.map(({ label }) => label).join(', ')}` : ''}`);
+  }
+  const unknown = lists.filter(id => !FUZZ_LISTS.some(list => list.id === id));
+  if (unknown.length) {
+    throw new Error(`no payload list named ${unknown.join(', ')}. The lists are: ${FUZZ_LISTS.map(({ id }) => id).join(', ')}`);
+  }
+  const own = customPayloads(payloads);
+  if (!lists.length && !own.length) {
+    throw new Error(`nothing to try: name payload lists (${FUZZ_LISTS.map(({ id }) => id).join(', ')}) or give your own payloads`);
+  }
+  const chosen = FUZZ_LISTS.filter(({ id }) => lists.includes(id));
+  return {
+    points,
+    payloads: [...chosen.flatMap(list => list.payloads), ...own],
+    // as the dialog names them
+    lists: [...chosen.map(({ name }) => name), ...(own.length ? [`${own.length} of your own`] : [])],
+  };
+};
+
 // whether a payload goes in a position: a field to slip in goes in the body's
 // new field and nowhere else, and nothing else goes there
 export const payloadFits = (point: Pick<FuzzPoint, 'kind'>, payload: FuzzPayload) => (point.kind === 'json-new') === Boolean(payload.field);
@@ -219,6 +262,72 @@ export const payloadFits = (point: Pick<FuzzPoint, 'kind'>, payload: FuzzPayload
 // the attempts a run makes: each position with each payload that fits it, one at a time
 export const fuzzAttempts = (points: FuzzPoint[], payloads: FuzzPayload[]) =>
   points.flatMap(point => payloads.filter(payload => payloadFits(point, payload)).map(payload => ({ point, payload })));
+
+// How the payloads are spread over the positions:
+//   one           each position with each payload, one at a time, the rest of
+//                 the request as it is: which input is at fault
+//   together      each payload in every position at once: quick, and for what
+//                 must match (a field and its confirmation)
+//   combinations  every combination of payloads over the positions: what only
+//                 breaks when two inputs are odd at once. It grows fast
+export type FuzzMode = 'one' | 'together' | 'combinations';
+export const FUZZ_MODES: FuzzMode[] = ['one', 'together', 'combinations'];
+
+// one attempt: what goes where, in one request
+export type FuzzChange = { point: FuzzPoint; payload: FuzzPayload }[];
+
+const fitting = (points: FuzzPoint[], payloads: FuzzPayload[]) =>
+  points.map(point => ({ point, payloads: payloads.filter(payload => payloadFits(point, payload)) })).filter(({ payloads: fits }) => fits.length);
+
+// how many attempts a run would make, without making them: the combinations
+// of a few positions and lists run to millions
+export const fuzzPlanSize = (points: FuzzPoint[], payloads: FuzzPayload[], mode: FuzzMode = 'one') => {
+  if (mode === 'together') {
+    return payloads.filter(payload => points.some(point => payloadFits(point, payload))).length;
+  }
+  const fits = fitting(points, payloads);
+  return mode === 'combinations'
+    ? (fits.length ? fits.reduce((product, { payloads: own }) => product * own.length, 1) : 0)
+    : fits.reduce((sum, { payloads: own }) => sum + own.length, 0);
+};
+
+// the attempts themselves, the first `most` of them
+export const fuzzPlan = (points: FuzzPoint[], payloads: FuzzPayload[], mode: FuzzMode = 'one', most = Infinity): FuzzChange[] => {
+  if (mode === 'together') {
+    return payloads
+      .map(payload => points.filter(point => payloadFits(point, payload)).map(point => ({ point, payload })))
+      .filter(change => change.length)
+      .slice(0, most);
+  }
+  const fits = fitting(points, payloads);
+  if (mode !== 'combinations') {
+    return fits.flatMap(({ point, payloads: own }) => own.map(payload => [{ point, payload }])).slice(0, most);
+  }
+  // counted like an odometer, the last position turning fastest
+  const plan: FuzzChange[] = [];
+  const total = Math.min(most, fuzzPlanSize(points, payloads, mode));
+  for (let number = 0; number < total; number++) {
+    let rest = number;
+    const change: FuzzChange = [];
+    for (let index = fits.length - 1; index >= 0; index--) {
+      const { point, payloads: own } = fits[index];
+      change.unshift({ point, payload: own[rest % own.length] });
+      rest = Math.floor(rest / own.length);
+    }
+    plan.push(change);
+  }
+  return plan;
+};
+
+// an attempt with several payloads in it: each put in its position in turn.
+// Null when one of the positions isn't in the request
+export function withPayloads<T extends FuzzTarget>(target: T, change: { pointId: string; payload: FuzzPayload }[]): T | null {
+  let changed: T | null = target;
+  for (const { pointId, payload } of change) {
+    changed = changed && withPayload(changed, pointId, payload);
+  }
+  return changed;
+}
 
 // The target with the payload in one position; everything else as it was.
 // Null when the position isn't there any more (a script changed the request).

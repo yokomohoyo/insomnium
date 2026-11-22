@@ -20,12 +20,14 @@ import { mcpCall, mcpConnect, mcpDisconnect, mcpIsConnected } from '../network/m
 import { webSockets } from '../network/websocket';
 import { restrictRenders } from '../restricted-renders';
 import { confirmMcpCommand } from './confirm-command';
+import { confirmFuzz } from './confirm-fuzz';
 import { confirmGitAction } from './confirm-git';
 import { confirmSecurityTests } from './confirm-security-tests';
 import { confirmTestRun } from './confirm-test-run';
 import { removeDiscoveryFile, writeDiscoveryFile } from './discovery';
 import { registerInstructions, SERVER_INSTRUCTIONS } from './instructions';
 import { filterTools, MINIMAL_TOOLS, registerTools } from './tools';
+import { registerFuzzTools } from './tools/fuzz';
 import { registerGitTools } from './tools/git';
 import { registerMcpRequestTools } from './tools/mcp-requests';
 import { registerMockTools } from './tools/mocks';
@@ -203,6 +205,7 @@ function buildMcpServer(minimal = false): McpServer {
   // the app's only too: it asks the user before each run
   registerTestRunTools(server, confirmTestRun);
   registerSecurityTestTools(server, confirmSecurityTests);
+  registerFuzzTools(server, confirmFuzz);
   // and the collections' mock servers, which run in the app
   registerMockTools(server, {
     start: (workspaceId, port) => startCollectionMock(workspaceId, port),

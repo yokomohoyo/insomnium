@@ -207,6 +207,50 @@ A baseline that can't be read stops the run (exit 2).
 
 `--as` and `--as-lower` take their credentials from the collection: a sub environment whose values can come from `{% env 'NAME' %}` (allowed with `INSOMNIUM_ALLOWED_ENV`). `INSOMNIUM_VAR_<name>` sets a variable in the environment chosen with `--env` only.
 
+## Fuzz a request in CI
+
+`fuzz` is the app's [Fuzz](../../docs/fuzzing.md) for a pipeline. It sends one request once as it is, then once for each attempt with one value swapped for a payload, and compares every answer with the first. Nothing sent is kept.
+
+A pipeline has nobody to ask, so the go-aheads are on the command line, every time:
+
+- `--i-may-test-this-api`, as for `security`.
+- `--i-may-change-data` as well, for a request that isn't a GET or HEAD: it changes data once for every attempt the server accepts.
+
+```sh
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" -w /work \
+  -e INSOMNIUM_VAR_apiKey="$API_KEY" \
+  ghcr.io/yokomohoyo/insomnium-server fuzz --collection api.yaml --env staging \
+  --request "Orders/List orders" --lists sql,types --i-may-test-this-api --csv fuzz.csv
+```
+
+```text
+[fuzz] Orders / List orders: GET https://staging.example.com/orders?status=open
+[fuzz] 24 attempts, sending to any host
+[fuzz] positions: Query: status
+[fuzz] payloads: SQL, Odd values
+  ✗    1  Query: status  ←  '
+        500, 71 B, 3 ms: The server failed; The answer shows a database error
+
+24 attempts · 1 worth a look · 25 sent
+Failed: 1 attempt stood out
+```
+
+Only the attempts that stood out, or couldn't be sent, are printed; `--csv` and `--json` have them all. It exits 1 when an attempt stood out or couldn't be sent, 2 when it can't start, 0 otherwise.
+
+| Option | |
+| --- | --- |
+| `--request` | the request to fuzz: its name, or a path like `Users/Create user` |
+| `--env` | the sub environment to send with, by name |
+| `--positions` | where the payloads go, comma-separated: labels as the output names them (`Query: status`), or `all`. The likely ones when left out: the query, the body, and the parts of the path that look like ids |
+| `--lists` | payload lists, comma-separated: `sql`, `nosql`, `traversal`, `script`, `commands`, `ids`, `types`, `fields` |
+| `--payloads` | a file of your own payloads, one a line |
+| `--mode` | how the payloads are spread over the positions: `one` (the default) at a time, `together` in every position at once, or `combinations` of payloads over the positions |
+| `--delay` | milliseconds to wait between attempts |
+| `--no-fail` | exit 0 even when attempts stood out |
+| `--csv`, `--json` | write the attempts to this file |
+
+The request's scripts and assertions run for every attempt, and one that fails marks the attempt: that's how a pipeline says what counts for its own API. See [With the request's scripts](../../docs/fuzzing.md#with-the-requests-scripts).
+
 ## Load test a collection
 
 `load` load tests a collection's HTTP requests: each virtual user sends them in order, again and again, until the time is up, as the app's runner does in **Load test** mode. It prints the latency percentiles, throughput and failures, and exits 1 when a threshold is broken (2 when the test can't start). A request fails when it can't be sent, answers 400 or above (unless it has its own status assertion, as a test of a 404 does), or fails an assertion. Responses aren't kept.

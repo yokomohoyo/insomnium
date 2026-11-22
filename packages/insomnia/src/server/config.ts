@@ -20,6 +20,7 @@ export interface ServerConfig extends Sources {
 export const USAGE = `Usage: insomnium-server (--collection <file> | --repo <url or directory>) ... [--env <name>] [--host <address>] [--port <port>]
        insomnium-server run --collection <file> ...   (the collection runner; run --help)
        insomnium-server security --collection <file> ...   (its security checks; security --help)
+       insomnium-server fuzz --collection <file> ...   (fuzz one request; fuzz --help)
 
 ${SOURCES_USAGE}
   --pull-interval  seconds between updates of the repositories (INSOMNIUM_PULL_INTERVAL,
