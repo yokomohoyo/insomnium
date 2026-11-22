@@ -27,6 +27,7 @@ import type { DropdownProps } from '../base/dropdown';
 import { Icon } from '../icon';
 import { showError, showModal, showPrompt } from '../modals';
 import { AlertModal } from '../modals/alert-modal';
+import { FuzzModal } from '../modals/fuzz-modal';
 import { GenerateCodeModal } from '../modals/generate-code-modal';
 import { RequestSettingsModal } from '../modals/request-settings-modal';
 
@@ -63,6 +64,7 @@ export const RequestActionsDropdown = ({
   }, [duplicatedId, navigate, organizationId, projectId, workspaceId]);
 
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isFuzzOpen, setIsFuzzOpen] = useState(false);
 
   const onOpen = useCallback(async () => {
     const actionPlugins = await getRequestActions();
@@ -224,6 +226,13 @@ export const RequestActionsDropdown = ({
         action: () => patchRequest(request._id, { securityRestricted: !request.securityRestricted }),
         icon: 'lock' as IconName,
       }] : []),
+      // an HTTP request's values swapped for payloads, many times over
+      ...(isRequest(request) ? [{
+        id: 'Fuzz',
+        name: t('Fuzz'),
+        action: () => setIsFuzzOpen(true),
+        icon: 'bug' as IconName,
+      }] : []),
       ...codeGenerationActions,
       ...actionPlugins.map((plugin: RequestAction) => ({
         id: plugin.label,
@@ -276,6 +285,9 @@ export const RequestActionsDropdown = ({
         </Menu>
       </Popover>
     </MenuTrigger>
+    {isFuzzOpen && isRequest(request) && (
+      <FuzzModal request={request} onHide={() => setIsFuzzOpen(false)} />
+    )}
     {isSettingsModalOpen && (
       <RequestSettingsModal
         request={request as Request | GrpcRequest | WebSocketRequest}

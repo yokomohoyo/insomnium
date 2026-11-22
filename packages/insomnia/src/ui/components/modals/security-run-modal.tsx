@@ -187,6 +187,8 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
       <Modal ref={modalRef} onHide={hide} wide tall>
         <ModalHeader>{t('Security Checks: {name}', { name })}</ModalHeader>
         <ModalBody className="pad">
+          {/* clear of the scroll bar */}
+          <div className="pr-6">
           {/* what it will do, until it's doing it: the results want the room */}
           {!started && (
             <p className="faint txt-sm no-margin-top" data-testid="security-run-intro">
@@ -266,6 +268,7 @@ export const SecurityRunModal: FC<ModalProps & Props> = ({ parentId, name, folde
               ) : null}
             </section>
           )}
+        </div>
         </ModalBody>
         <ModalFooter>
           <div className="margin-left flex gap-2">
