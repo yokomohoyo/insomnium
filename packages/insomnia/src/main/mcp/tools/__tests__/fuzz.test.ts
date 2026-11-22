@@ -97,7 +97,7 @@ describe('the fuzz tools', () => {
 
       expect(await call('fuzz_request', { requestId, lists: ['commands'] })).toEqual({ body: { error: 'the user declined to fuzz the request' }, isError: true });
       // the suggested position, each of the list's 6 payloads, and the request as it is
-      expect(confirm).toHaveBeenCalledWith({ request: 'Orders', method: 'GET', url: 'http://localhost/orders?status=open', workspace: 'Shop', requests: 7, positions: ['Query: status'], lists: ['Commands'], changesData: false }, signal);
+      expect(confirm).toHaveBeenCalledWith({ request: 'Orders', method: 'GET', url: 'http://localhost/orders?status=open', workspace: 'Shop', requests: 7, positions: ['Query: status'], lists: ['Commands'], mode: 'one', changesData: false }, signal);
       expect(run).not.toHaveBeenCalled();
     });
 
@@ -155,6 +155,7 @@ describe('the fuzz tools', () => {
       // 6 payloads, each in all three positions at once, and the request as it is
       expect(confirm.mock.calls[0][0].requests).toBe(7);
       expect(run.mock.calls[0][1].mode).toBe('together');
+      expect(confirm.mock.calls[0][0].mode).toBe('together');
 
       await call('fuzz_request', { requestId, positions: ['all'], lists: ['commands'], mode: 'combinations' });
       expect(confirm.mock.calls[1][0].requests).toBe(6 ** 3 + 1);

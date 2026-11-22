@@ -21,6 +21,8 @@ export interface FuzzRequest {
   // the positions and lists chosen, as the dialog would name them
   positions: string[];
   lists: string[];
+  // how the payloads are spread over the positions
+  mode: FuzzMode;
   // not a GET or HEAD: every attempt the server accepts changes something
   changesData: boolean;
 }
@@ -118,6 +120,7 @@ export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { lis
         requests: attempts + 1,
         positions: chosen.points.map(({ label }) => label),
         lists: chosen.lists,
+        mode: (mode as FuzzMode | undefined) || 'one',
         changesData: !isSafeToRepeat(request.method),
       }, signal);
       console.log(`[mcp] fuzz_request ${requestId}: the user ${allowed === true ? 'allowed' : 'declined'} the run`);
