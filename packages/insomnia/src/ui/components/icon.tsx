@@ -3,8 +3,8 @@ import { faGithub } from '@fortawesome/free-brands-svg-icons';
 import {
   faAdd, faArrowRightToFile, faBug, faCancel, faCaretDown, faCheck, faChildren, faCircle, faClipboard, faClockFour,
   faCode, faCodeBranch, faCodeFork, faCog, faCookieBite, faCopy, faEdit, faExchange, faFile, faFileText, faFilter,
-  faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop, faMagicWandSparkles, faNavicon,
-  faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
+  faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop,   faLock, faMagicWandSparkles, faNavicon,
+faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
   faUnsorted, faWrench,
 } from '@fortawesome/free-solid-svg-icons';
 import {
@@ -20,7 +20,7 @@ library.add(
   faAdd, faArrowRightToFile, faBug, faCancel, faCaretDown, faCheck, faChildren, faCircle, faClipboard, faClockFour,
   faCode, faCodeBranch, faCodeFork, faCog, faCookieBite, faCopy, faEdit, faExchange, faFile, faFileText, faFilter,
   faFlask, faFolderBlank, faFolderOpen, faGlobe, faHeart, faHistory, faLaptop, faMagicWandSparkles, faNavicon,
-  faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
+  faLock, faPlay, faPlug, faPlusCircle, faProjectDiagram, faSearch, faShieldHalved, faSync, faTerminal, faThumbTack, faTimes, faTrash,
   faUnsorted, faWrench,
   faGithub,
 );

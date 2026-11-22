@@ -219,6 +219,13 @@ export const RequestActionsDropdown = ({
         action: togglePin,
         icon: 'thumbtack',
       },
+      // for the security checks: an HTTP request is tried with less privilege
+      ...(isRequest(request) ? [{
+        id: 'Restricted',
+        name: request.securityRestricted ? t('Not Restricted') : t('Restricted to Some Users'),
+        action: () => patchRequest(request._id, { securityRestricted: !request.securityRestricted }),
+        icon: 'lock' as IconName,
+      }] : []),
       // an HTTP request's values swapped for payloads, many times over
       ...(isRequest(request) ? [{
         id: 'Fuzz',

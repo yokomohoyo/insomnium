@@ -61,7 +61,13 @@ To test as another user, choose an environment in **As another user** that holds
 
 **With less privilege** is for a request that only some users may make: an admin's report, say. Choose an environment whose user may *not* make it. Choosing one is what says the request is restricted, so anything but a refusal is a finding: high when the answer is the same as with full privilege, medium when it's another answer. Leave it at **Not tested** for a request every user may make.
 
-For a whole collection, run **Security Checks** on the folder that holds the restricted requests, and choose the environment there.
+### Marking what's restricted
+
+A request or a folder can be marked **Restricted to Some Users**, from its menu in the sidebar. A folder's mark covers everything in it. Marked requests and folders show a lock, and the mark is the collection's, so a team shares it.
+
+- The Security tab of a marked request says so, and asks for the environment to try it with.
+- **Security Checks** over a collection tries less privilege on the marked requests alone, and leaves the rest as they are. It says how many are marked before it starts, and afterwards if any went untried because no environment was chosen.
+- With nothing marked, choosing the environment says the run's requests are restricted: run it on the folder that holds them.
 
 Things to know before running them:
 
@@ -104,7 +110,7 @@ A report names where a credential was, never the credential, and shows URLs with
 
 ## In CI
 
-[`insomnium-server security`](../packages/insomnium-server/README.md#security-checks-in-ci) is the same run without the app, for a pipeline: it exits 1 when it finds something as severe as `--fail-on`, and writes the same reports. With nobody to ask, the go-ahead is on its command line: `--i-may-test-this-api`, and the hosts it may send to, by name.
+[`insomnium-server security`](../packages/insomnium-server/README.md#security-checks-in-ci) is the same run without the app, for a pipeline: it exits 1 when it finds something as severe as `--fail-on`, and writes the same reports. With nobody to ask, the go-ahead is on its command line: `--i-may-test-this-api`.
 
 ## Ignoring a rule
 

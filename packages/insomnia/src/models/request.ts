@@ -33,7 +33,7 @@ export const canDuplicate = true;
 
 export const canSync = true;
 // kept by initModel when set, without a default (see BaseRequest)
-export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion', 'assertions', 'preRequestScript', 'afterResponseScript', 'specRequestId'];
+export const optionalKeys = ['settingTimeout', 'settingValidateSSL', 'settingHttpVersion', 'assertions', 'preRequestScript', 'afterResponseScript', 'specRequestId', 'securityRestricted'];
 
 // A single auth strategy (e.g. one Bearer, one GCP ID Token). Optional
 // `headerName` overrides where the resulting credential is written.
@@ -182,6 +182,9 @@ export interface RequestBody {
 }
 
 export interface BaseRequest {
+  // only some users may make it: the security checks try it with less
+  // privilege. A folder's marker covers the requests in it
+  securityRestricted?: boolean;
   url: string;
   name: string;
   description: string;

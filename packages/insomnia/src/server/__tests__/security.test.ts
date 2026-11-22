@@ -47,12 +47,12 @@ describe('parseSecurityConfig()', () => {
     expect(() => parseSecurityConfig(['--collection', 'a.yaml', '--allow'], HOSTS)).toThrow('Unknown option --allow');
   });
 
-  it("doesn't start without the hosts it may send to, by name", () => {
-    const named = 'Name the hosts the security checks may send to in INSOMNIUM_ALLOWED_HOSTS';
-    expect(() => parseSecurityConfig(ARGS, {})).toThrow(named);
-    expect(() => parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: ' ' })).toThrow(named);
-    expect(() => parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: '*' })).toThrow(named);
-    expect(() => parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com,*.example.com' })).toThrow(named);
+  it('sends to any host unless the pipeline narrows it, as run does', () => {
+    expect(parseSecurityConfig(ARGS, {}).allowedHosts).toEqual(['*']);
+    expect(parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: ' ' }).allowedHosts).toEqual(['*']);
+    expect(parseSecurityConfig(ARGS, { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com,*.example.com' }).allowedHosts).toEqual(['api.example.com', '*.example.com']);
+    // (the flag is still asked for, hosts or no hosts)
+    expect(() => parseSecurityConfig(['--collection', 'a.yaml'], {})).toThrow(ALLOW_FLAG);
   });
 
   it('refuses a rule it has no name for, an unknown option, and no collection', () => {
@@ -64,14 +64,14 @@ describe('parseSecurityConfig()', () => {
 
   it('says in its usage what the go-ahead is', () => {
     expect(SECURITY_USAGE).toContain(ALLOW_FLAG);
-    expect(SECURITY_USAGE).toContain('INSOMNIUM_ALLOWED_HOSTS  the hosts it may send to, by name (not *)');
+    expect(SECURITY_USAGE).toContain('it is required on the command line, every time');
   });
 });
 
 const item = (patch: Partial<SecurityRunItem> = {}): SecurityRunItem =>
   ({ requestId: 'req_1', name: 'List', folders: ['Orders'], method: 'GET', url: 'https://api.example.com/orders', outcome: 'tested', findings: [], checks: [], requests: 9, ...patch });
 const summary = (findings: Partial<SecurityRunSummary['findings']>, items = [item()]): SecurityRunSummary =>
-  ({ items, requests: 9, stopped: false, findings: { high: 0, medium: 0, low: 0, info: 0, ...findings } });
+  ({ items, requests: 9, stopped: false, restrictedUntried: 0, findings: { high: 0, medium: 0, low: 0, info: 0, ...findings } });
 
 describe('failsRun()', () => {
   it('fails on a finding as severe as asked, or worse', () => {
@@ -126,6 +126,13 @@ describe('the console output', () => {
     ].join('\n'));
     expect(formatInventory({ operations: 5, uncovered: ['GET /health'] }).split('\n')[0]).toBe("Against the spec: 1 of 5 operations has no request, so it wasn't checked");
     expect(formatInventory({ operations: 3, uncovered: [] })).toBe('Against the spec: each of its 3 operations has a request');
+  });
+
+  it('marks a restricted request, and says when they went untried with less privilege', () => {
+    expect(formatItem(item({ restricted: true }))).toBe('  ✓ Orders / List (restricted)  GET https://api.example.com/orders');
+    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 2 }, 'high')).toContain('2 requests marked as restricted were not tried with less privilege: pass --as-lower');
+    expect(formatSecuritySummary({ ...summary({}), restrictedUntried: 1 }, 'high')).toContain('1 request marked as restricted was not tried');
+    expect(formatSecuritySummary(summary({}), 'high')).not.toContain('restricted');
   });
 
   it('sums up, and says whether the run failed', () => {

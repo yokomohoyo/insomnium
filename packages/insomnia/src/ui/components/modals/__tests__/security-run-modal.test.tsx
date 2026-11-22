@@ -33,6 +33,7 @@ const item = (patch: Partial<SecurityRunItem>): SecurityRunItem => ({ requestId:
 const SUMMARY: SecurityRunSummary = {
   requests: 18,
   stopped: false,
+  restrictedUntried: 0,
   findings: { high: 1, medium: 0, low: 1, info: 0 },
   items: [
     item({
@@ -135,6 +136,22 @@ describe('<SecurityRunModal />', () => {
 
     expect((await findByTestId('security-run-inventory')).textContent).toContain("1 of the spec's 4 operations has no request, so the checks didn't reach it");
     expect(getByLabelText('Operations with no request').textContent).toBe('GET /orders/{id}');
+  });
+
+  it('says which requests are marked as restricted before it starts, and when they went untried', async () => {
+    const run = jest.fn<typeof runSecurityChecks>(async (_requests, options) => {
+      SUMMARY.items.forEach(done => options?.onItem?.({ ...done, restricted: done.requestId === 'List' }));
+      return { ...SUMMARY, restrictedUntried: 1 };
+    });
+    const list = jest.fn(async () => [{ ...REQUESTS[0], restricted: true }, REQUESTS[1], REQUESTS[2]]);
+    const { findByRole, findByTestId, getByTestId } = render(<SecurityRunModal parentId="wrk_1" name="Shop" run={run} list={list as any} />);
+
+    expect((await findByTestId('security-run-marked')).textContent).toContain('1 request is marked as restricted to some users');
+    fireEvent.click(await findByRole('button', { name: 'Run the Checks (up to 52 requests)' }));
+
+    expect((await findByTestId('security-run-restricted')).textContent).toContain('1 request marked as restricted was not tried with less privilege');
+    expect(getByTestId('security-run-item-List').querySelector('[aria-label="Restricted to some users"]')).toBeTruthy();
+    expect(getByTestId('security-run-item-Create').querySelector('[aria-label="Restricted to some users"]')).toBeNull();
   });
 
   it('stops the run from its Stop button, and when it is closed', async () => {

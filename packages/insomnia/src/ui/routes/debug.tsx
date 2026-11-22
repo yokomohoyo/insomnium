@@ -93,6 +93,7 @@ import {
   useRequestMetaPatcher,
 } from '../hooks/use-request';
 import { requestDisplayName } from '../utils/request-name';
+import { restrictedIds } from '../utils/restricted';
 import { debugPath, requestPath, workspacePath } from './paths';
 import type {
   GrpcRequestLoaderData,
@@ -697,6 +698,8 @@ export const Debug: FC = () => {
   }));
 
   const visibleCollection = collection.filter(item => !item.hidden);
+  // marked as for some users only, themselves or by a folder they're in: shown with a lock
+  const restricted = restrictedIds(collection);
 
   const parentRef = useRef<HTMLDivElement>(null);
   const virtualizer = useVirtualizer<HTMLDivElement | null, Child>({
@@ -1008,6 +1011,14 @@ export const Debug: FC = () => {
                           </span>
                         )}
                         <span className="truncate">{getRequestNameOrFallback(item.doc)}</span>
+                        {restricted.has(item.doc._id) && (
+                          <Icon
+                            className="text-[length:var(--font-size-xs)] flex-shrink-0 text-[--color-warning]"
+                            icon="lock"
+                            aria-label={t('Restricted to some users')}
+                            title={t('Restricted to some users: the security checks try it with less privilege')}
+                          />
+                        )}
                         <span className="flex-1" />
                         {item.pinned && (
                           <Icon className='text-[length:var(--font-size-sm)]' icon="thumb-tack" />
@@ -1102,6 +1113,14 @@ export const Debug: FC = () => {
                           />
                         )}
                         <span className="truncate">{getRequestNameOrFallback(item.doc)}</span>
+                        {restricted.has(item.doc._id) && (
+                          <Icon
+                            className="text-[length:var(--font-size-xs)] flex-shrink-0 text-[--color-warning]"
+                            icon="lock"
+                            aria-label={t('Restricted to some users')}
+                            title={t('Restricted to some users: the security checks try it with less privilege')}
+                          />
+                        )}
                         <span className="flex-1" />
                         {isWebSocketRequest(item.doc) && <WebSocketSpinner requestId={item.doc._id} />}
                         {isEventStreamRequest(item.doc) && <EventStreamSpinner requestId={item.doc._id} />}

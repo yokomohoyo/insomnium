@@ -180,6 +180,58 @@ paths:
     });
   });
 
+  describe('with requests marked as for some users only', () => {
+    // Admin (marked) > Reports > Revenue; Admin > Audit; and Public, not marked
+    const marked = async () => {
+      const admin = await models.requestGroup.create({ parentId: workspaceId, name: 'Admin', metaSortKey: 1, securityRestricted: true });
+      const reports = await models.requestGroup.create({ parentId: admin._id, name: 'Reports', metaSortKey: 1 });
+      const revenue = await models.request.create({ parentId: reports._id, name: 'Revenue', url: 'https://shop.example.com/admin/revenue', metaSortKey: 1 });
+      const audit = await models.request.create({ parentId: admin._id, name: 'Audit', url: 'https://shop.example.com/admin/audit', metaSortKey: 2 });
+      const open = await models.request.create({ parentId: workspaceId, name: 'Public', url: 'https://shop.example.com/products', metaSortKey: 2 });
+      const own = await models.request.create({ parentId: workspaceId, name: 'Settings', url: 'https://shop.example.com/settings', metaSortKey: 3, securityRestricted: true });
+      return { admin, reports, revenue, audit, open, own };
+    };
+
+    it("lists a request as restricted when it is marked, or a folder it's in is, however deep", async () => {
+      const { reports } = await marked();
+
+      expect((await listRunnableRequests(workspaceId)).map(({ request, restricted }) => [request.name, Boolean(restricted)]))
+        .toEqual([['Revenue', true], ['Audit', true], ['Public', false], ['Settings', true]]);
+      // and from a folder inside the marked one, where the marker is above what's listed
+      expect((await listRunnableRequests(reports._id)).map(({ request, restricted }) => [request.name, restricted])).toEqual([['Revenue', true]]);
+    });
+
+    it('tries less privilege on the marked requests alone', async () => {
+      await marked();
+      test.mockResolvedValue(tested({ findings: [], responseFindings: [] }));
+
+      const summary = await runSecurityChecks(await listRunnableRequests(workspaceId), { test, lowerEnvironmentId: 'env_viewer' });
+
+      expect(test.mock.calls.map(([, options]) => options.lowerEnvironmentId)).toEqual(['env_viewer', 'env_viewer', null, 'env_viewer']);
+      expect(summary.items.map(({ name, restricted }) => [name, Boolean(restricted)])).toEqual([['Revenue', true], ['Audit', true], ['Public', false], ['Settings', true]]);
+      expect(summary.restrictedUntried).toBe(0);
+    });
+
+    it('says how many marked requests went untried when no environment was chosen for it', async () => {
+      await marked();
+      test.mockResolvedValue(tested({ findings: [], responseFindings: [] }));
+
+      const summary = await runSecurityChecks(await listRunnableRequests(workspaceId), { test });
+
+      expect(summary.restrictedUntried).toBe(3);
+    });
+
+    it('tries it on every request when none is marked, as choosing the environment then says they are', async () => {
+      const { requests } = await collection();
+      test.mockResolvedValue(tested({ findings: [], responseFindings: [] }));
+
+      const summary = await runSecurityChecks(requests, { test, lowerEnvironmentId: 'env_viewer' });
+
+      expect(test).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ lowerEnvironmentId: 'env_viewer' }));
+      expect(summary.restrictedUntried).toBe(0);
+    });
+  });
+
   it('says beforehand the most it may send: the tests of each GET and HEAD', async () => {
     const { requests } = await collection();
 
@@ -193,6 +245,7 @@ describe('the reports', () => {
   const summary: SecurityRunSummary = {
     requests: 9,
     stopped: false,
+    restrictedUntried: 0,
     findings: { high: 1, medium: 1, low: 0, info: 0 },
     items: [
       {

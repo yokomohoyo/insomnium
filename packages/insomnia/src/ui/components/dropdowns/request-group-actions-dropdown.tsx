@@ -278,6 +278,13 @@ export const RequestGroupActionsDropdown = ({
           handlePluginClick(plugin),
       })),
       {
+        // for the security checks: the requests in it are tried with less privilege
+        id: 'Restricted',
+        name: requestGroup.securityRestricted ? t('Not Restricted') : t('Restricted to Some Users'),
+        icon: 'lock',
+        action: () => patchGroup(requestGroup._id, { securityRestricted: !requestGroup.securityRestricted }),
+      },
+      {
         id: 'Settings',
         name: t('Settings'),
         icon: 'wrench',
