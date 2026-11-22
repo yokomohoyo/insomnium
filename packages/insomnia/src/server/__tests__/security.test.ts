@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from '@jest/globals';
 import { globalBeforeEach } from '../../__jest__/before-each';
 import * as models from '../../models';
 import type { SecurityRunItem, SecurityRunSummary } from '../../network/security-run';
-import { ALLOW_FLAG, failsRun, findOtherEnvironment, formatInventory, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, untested } from '../security';
+import { ALLOW_FLAG, failsRun, findOtherEnvironment, formatBaseline, formatInventory, formatItem, formatSecuritySummary, parseSecurityConfig, SECURITY_USAGE, untested } from '../security';
 
 const HOSTS = { INSOMNIUM_ALLOWED_HOSTS: 'api.example.com, staging.example.com' };
 const ARGS = ['--collection', 'a.yaml', ALLOW_FLAG];
@@ -11,7 +11,7 @@ const ARGS = ['--collection', 'a.yaml', ALLOW_FLAG];
 describe('parseSecurityConfig()', () => {
   it('reads the options', () => {
     expect(parseSecurityConfig(
-      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--rate-limit-requests', '300', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
+      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--rate-limit-requests', '300', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--baseline', 'known.json', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
       { ...HOSTS, INSOMNIUM_VAR_token: 't', INSOMNIUM_VALIDATE_SSL: 'false' },
     )).toEqual({
       collections: ['a.yaml'],
@@ -24,6 +24,7 @@ describe('parseSecurityConfig()', () => {
       rateLimitRequests: 300,
       failOn: 'medium',
       ignore: ['nosniff-missing', 'rate-limit', 'hsts-missing'],
+      baseline: 'known.json',
       markdown: 'report.md',
       json: 'report.json',
       sarif: 'report.sarif',
@@ -103,6 +104,42 @@ describe('failsRun()', () => {
     expect(formatSecuritySummary(missed, 'none')).toContain('2 requests, 1 tested, 1 could not be tested');
     expect(formatSecuritySummary(missed, 'none')).toContain('Failed: 1 request could not be tested');
     expect(formatItem(missed.items[1])).toContain('  ! Orders / List');
+  });
+});
+
+describe('against a baseline', () => {
+  const none = { high: 0, medium: 0, low: 0, info: 0 };
+
+  it('fails on a new finding alone', () => {
+    const known = { known: 3, fresh: none, fixed: [] };
+
+    expect(failsRun(summary({ high: 3 }), 'high', known)).toBe(false);
+    expect(failsRun(summary({ high: 3 }), 'high', { ...known, fresh: { ...none, high: 1 } })).toBe(true);
+    expect(failsRun(summary({ high: 3 }), 'high', { ...known, fresh: { ...none, medium: 1 } })).toBe(false);
+    expect(failsRun(summary({ high: 3 }), 'medium', { ...known, fresh: { ...none, medium: 1 } })).toBe(true);
+    // a request that couldn't be tested still fails it
+    expect(failsRun(summary({}, [item({ outcome: 'skipped', failed: true })]), 'high', known)).toBe(true);
+  });
+
+  it('marks the known findings, and says how the run compares', () => {
+    expect(formatItem(item({
+      findings: [
+        { id: 'no-credentials', severity: 'high', owasp: '', title: 'It answers the same without credentials', detail: '', known: true },
+        { id: 'token-unsigned', severity: 'high', owasp: '', title: 'It accepts an unsigned token', detail: '' },
+      ],
+    })).split('\n').slice(1)).toEqual([
+      '      HIGH   It answers the same without credentials  [no-credentials]  known',
+      '      HIGH   It accepts an unsigned token  [token-unsigned]',
+    ]);
+
+    const fixed = [{ key: 'GET Orders / List', id: 'hsts-missing', title: 'No HSTS', evidence: 'Strict-Transport-Security', request: 'Orders / List' }];
+    expect(formatBaseline({ known: 2, fresh: { ...none, high: 1, low: 2 }, fixed })).toBe('Against the baseline: 3 new, 2 known, 1 no longer found\n  - Orders / List: No HSTS (Strict-Transport-Security)  [hsts-missing]');
+    expect(formatBaseline({ known: 2, fresh: none, fixed: [] })).toBe('Against the baseline: 0 new, 2 known');
+
+    const lines = formatSecuritySummary(summary({ high: 2 }), 'high', { known: 2, fresh: none, fixed: [] }).split('\n');
+    expect(lines).toContain('Against the baseline: 0 new, 2 known');
+    expect(lines).toContain('Nothing new is high or worse');
+    expect(formatSecuritySummary(summary({ high: 2 }), 'high', { known: 1, fresh: { ...none, high: 1 }, fixed: [] })).toContain('Failed: a new finding is high or worse (--fail-on high)');
   });
 });
 

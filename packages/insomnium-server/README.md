@@ -178,7 +178,32 @@ It exits 1 when a finding is as severe as `--fail-on`, or when a request that sh
 | `--rate-limit-requests` | how many times in a row a request is sent, looking for a rate limit: 100 by default, 1000 at most. A limit above this number doesn't show, so set it past the limit you expect; `0` leaves that test out |
 | `--fail-on` | the least severe finding that fails the run: `high` (the default), `medium`, `low`, `info`, or `none` |
 | `--ignore` | rules to leave out, by id, comma-separated, on top of those the collection itself ignores (named at the start of the output). The ids are the bracketed names in the output |
+| `--baseline` | an earlier run's JSON report. Findings it has are known: still listed, and they don't fail the run |
 | `--markdown`, `--json`, `--sarif` | write a report to this file |
+
+### Failing on new findings only
+
+An API that already has findings would fail every run. A baseline lets the pipeline accept what's there and fail on what's new:
+
+1. Run once with `--json security-baseline.json`, and keep that file with the collection.
+2. From then on, pass `--baseline security-baseline.json`.
+
+A finding the baseline has is marked `known` and doesn't count towards `--fail-on`. One it doesn't have is new, and does. What the baseline has that the run looked for and no longer finds is listed too, so you can see what was fixed.
+
+```text
+  ✗ Orders / List orders  GET https://staging.example.com/orders?status=…
+      HIGH   It accepts an unsigned token (the request's Authorization header)  [token-unsigned]  known
+      HIGH   CORS trusts whichever site asks, with credentials  [cors-any-origin]
+
+3 requests, 2 tested · 2 high · 216 sent
+Against the baseline: 1 new, 1 known, 1 no longer found
+  - Orders / Get order: No sign of a rate limit (100 requests in a row)  [rate-limit]
+Failed: a new finding is high or worse (--fail-on high)
+```
+
+A finding is the baseline's when it's the same rule on the same request. A request is the same one when its method, its name and the folders it's in are, so the findings of a request that is renamed or moved count as new. To accept the run's findings as the new baseline, write the report again with `--json` and commit it: a run with `--baseline` and `--json` writes a report that is itself a baseline. The Markdown report marks each finding new or known, and SARIF results carry `baselineState`.
+
+A baseline that can't be read stops the run (exit 2).
 
 `--as` and `--as-lower` take their credentials from the collection: a sub environment whose values can come from `{% env 'NAME' %}` (allowed with `INSOMNIUM_ALLOWED_ENV`). `INSOMNIUM_VAR_<name>` sets a variable in the environment chosen with `--env` only.
 

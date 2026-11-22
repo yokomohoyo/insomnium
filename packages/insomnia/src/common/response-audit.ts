@@ -18,6 +18,8 @@ export interface AuditFinding {
   detail: string;
   // the header, cookie or field it was found in: names, never a secret's value
   evidence?: string;
+  // an earlier run had it too (network/security-baseline.ts)
+  known?: boolean;
 }
 
 export interface AuditInput {

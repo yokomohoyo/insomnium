@@ -3,6 +3,7 @@ import { SECURITY_RULES } from '../common/security-rules';
 import { RATE_LIMIT_MOST, RATE_LIMIT_REQUESTS, securityTestMaxRequests } from '../common/security-tests';
 import * as models from '../models';
 import type { Workspace } from '../models/workspace';
+import type { BaselineComparison } from '../network/security-baseline';
 import type { SecurityRunItem, SecurityRunSummary } from '../network/security-run';
 import { sendingEnvironment } from './run';
 import { emptySources, GIT_USAGE, requireSources, type Sources, SOURCES_USAGE, takeSourceOption } from './sources';
@@ -37,6 +38,8 @@ export interface SecurityConfig extends Sources {
   failOn: FailOn;
   // rules to leave out, by id
   ignore: string[];
+  // an earlier run's JSON report: only findings it doesn't have fail the run
+  baseline?: string;
   markdown?: string;
   json?: string;
   sarif?: string;
@@ -56,7 +59,8 @@ site, with a quote in a parameter, ${RATE_LIMIT_REQUESTS} times in a row), and i
 at. Any other request is never sent. Nothing sent is kept.
 
 Exits 1 when a finding is as severe as --fail-on, or a request that should have
-been tested couldn't be; 2 when the run can't start.
+been tested couldn't be; 2 when the run can't start. With --baseline, only a
+finding the baseline doesn't have fails the run.
 
 Run it only against an API you're allowed to test. ${ALLOW_FLAG} says
 that you are: it is required on the command line, every time.
@@ -77,6 +81,9 @@ ${SOURCES_USAGE}
   --fail-on     the least severe finding that fails the run: high (the default),
                 medium, low, info, or none to never fail
   --ignore      rules to leave out, by id, comma-separated (the ids are in a JSON report)
+  --baseline    an earlier run's JSON report (written with --json). Findings it has
+                are known: they are still listed, and don't fail the run. What it
+                has that this run no longer finds is listed too
   --markdown    write a Markdown report to this file
   --json        write a JSON report to this file
   --sarif       write a SARIF 2.1.0 report to this file
@@ -154,6 +161,9 @@ export const parseSecurityConfig = (argv: string[], env: Record<string, string |
         config.ignore.push(...ids);
         break;
       }
+      case '--baseline':
+        config.baseline = value();
+        break;
       case '--markdown':
         config.markdown = value();
         break;
@@ -197,9 +207,12 @@ export async function findOtherEnvironment(workspaces: Workspace[], name: string
 export const untested = (summary: SecurityRunSummary) => summary.items.filter(({ failed }) => failed).length;
 
 // whether a run fails: a finding as severe as --fail-on, or a request it couldn't test
-export const failsRun = (summary: SecurityRunSummary, failOn: FailOn) =>
-  untested(summary) > 0
-  || (failOn !== 'none' && SEVERITIES.slice(0, SEVERITIES.indexOf(failOn) + 1).some(severity => summary.findings[severity] > 0));
+// (against a baseline, a finding that is new)
+const severe = (summary: SecurityRunSummary, failOn: FailOn, baseline?: BaselineComparison) =>
+  failOn !== 'none' && SEVERITIES.slice(0, SEVERITIES.indexOf(failOn) + 1).some(severity => (baseline ? baseline.fresh : summary.findings)[severity] > 0);
+
+export const failsRun = (summary: SecurityRunSummary, failOn: FailOn, baseline?: BaselineComparison) =>
+  untested(summary) > 0 || severe(summary, failOn, baseline);
 
 // The run's console output: a request as it finishes, with what was found, and a summary
 export const formatItem = (item: SecurityRunItem) => {
@@ -210,7 +223,7 @@ export const formatItem = (item: SecurityRunItem) => {
     lines.push(`      ${item.note}`);
   }
   for (const finding of item.findings) {
-    lines.push(`      ${finding.severity.toUpperCase().padEnd(6)} ${finding.title}${finding.evidence ? ` (${finding.evidence})` : ''}  [${finding.id}]`);
+    lines.push(`      ${finding.severity.toUpperCase().padEnd(6)} ${finding.title}${finding.evidence ? ` (${finding.evidence})` : ''}  [${finding.id}]${finding.known ? '  known' : ''}`);
   }
   return lines.join('\n');
 };
@@ -220,16 +233,27 @@ export const formatInventory = ({ operations, uncovered }: NonNullable<SecurityR
   ? [`Against the spec: ${uncovered.length} of ${operations} ${operations === 1 ? 'operation' : 'operations'} ${uncovered.length === 1 ? "has no request, so it wasn't" : "have no request, so they weren't"} checked`, ...uncovered.map(operation => `  - ${operation}`)].join('\n')
   : `Against the spec: each of its ${operations} ${operations === 1 ? 'operation has' : 'operations has'} a request`;
 
-export const formatSecuritySummary = (summary: SecurityRunSummary, failOn: FailOn) => {
+// the run against the baseline: how many findings are new, and what's gone
+export const formatBaseline = ({ known, fresh, fixed }: BaselineComparison) => {
+  const added = SEVERITIES.reduce((sum, severity) => sum + fresh[severity], 0);
+  return [
+    `Against the baseline: ${added} new, ${known} known${fixed.length ? `, ${fixed.length} no longer found` : ''}`,
+    ...fixed.map(({ title, evidence, request, id }) => `  - ${request}: ${title}${evidence ? ` (${evidence})` : ''}  [${id}]`),
+  ].join('\n');
+};
+
+export const formatSecuritySummary = (summary: SecurityRunSummary, failOn: FailOn, baseline?: BaselineComparison) => {
   const found = SEVERITIES.filter(severity => summary.findings[severity]).map(severity => `${summary.findings[severity]} ${severity}`).join(', ') || 'nothing found';
   const tested = summary.items.filter(({ outcome }) => outcome === 'tested').length;
   const missed = untested(summary);
-  const severe = failOn !== 'none' && SEVERITIES.slice(0, SEVERITIES.indexOf(failOn) + 1).some(severity => summary.findings[severity] > 0);
+  const fails = severe(summary, failOn, baseline);
+  const what = baseline ? 'new finding' : 'finding';
   return [
     `${summary.items.length} ${summary.items.length === 1 ? 'request' : 'requests'}, ${tested} tested${missed ? `, ${missed} could not be tested` : ''} · ${found} · ${summary.requests} sent`,
     ...(missed ? [`Failed: ${missed} ${missed === 1 ? 'request' : 'requests'} could not be tested`] : []),
     ...(summary.restrictedUntried ? [`${summary.restrictedUntried} ${summary.restrictedUntried === 1 ? 'request marked as restricted was' : 'requests marked as restricted were'} not tried with less privilege: pass --as-lower`] : []),
-    severe ? `Failed: a finding is ${failOn} or worse (--fail-on ${failOn})` : failOn === 'none' ? 'Not failing on findings (--fail-on none)' : `Nothing ${failOn} or worse`,
+    ...(baseline ? [formatBaseline(baseline)] : []),
+    fails ? `Failed: a ${what} is ${failOn} or worse (--fail-on ${failOn})` : failOn === 'none' ? 'Not failing on findings (--fail-on none)' : `Nothing ${baseline ? 'new is ' : ''}${failOn} or worse`,
     'A request with nothing found had none of these problems this once; that does not show the API is secure.',
   ].join('\n');
 };
