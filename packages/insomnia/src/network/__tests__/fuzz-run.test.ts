@@ -66,6 +66,28 @@ describe('fuzzing a request', () => {
     expect(summary.stopped).toBe(false);
   });
 
+  it('puts each payload in every position at once when asked to', async () => {
+    const { _id } = await request();
+
+    const summary = await runFuzz(_id, { pointIds: ['query:p0', 'path:2'], payloads: SQL, mode: 'together' });
+
+    expect(summary.requests).toBe(3);
+    expect(summary.attempts.map(({ position, payload }) => [position, payload])).toEqual([
+      ['Query: status + Path: 2nd part (7)', "'"],
+      ['Query: status + Path: 2nd part (7)', '"'],
+    ]);
+    expect(wire(summary.attempts[0].snippet).URL).toBe("http://localhost/orders/%27?status='");
+  });
+
+  it('tries every combination of payloads over the positions when asked to', async () => {
+    const { _id } = await request();
+
+    const summary = await runFuzz(_id, { pointIds: ['query:p0', 'path:2'], payloads: SQL, mode: 'combinations' });
+
+    expect(summary.attempts.map(({ payload }) => payload)).toEqual(["'", "' + \"", "\" + '", '"']);
+    expect(wire(summary.attempts[1].snippet).URL).toBe("http://localhost/orders/%22?status='");
+  });
+
   it('puts a payload in a header, and a field into a JSON body', async () => {
     const { _id } = await request({ method: 'POST', body: { mimeType: 'application/json', text: '{"name":"Ana"}' } });
 

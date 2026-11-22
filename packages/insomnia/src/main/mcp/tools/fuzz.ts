@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
-import { chooseFuzz, FUZZ_LISTS, fuzzAttempts } from '../../../common/fuzz';
+import { chooseFuzz, FUZZ_LISTS, FUZZ_MODES, type FuzzMode, fuzzPlanSize } from '../../../common/fuzz';
 import { isSafeToRepeat } from '../../../common/security-tests';
 import * as models from '../../../models';
 import { isRequest } from '../../../models/request';
@@ -69,16 +69,17 @@ export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { lis
 
   server.tool(
     'fuzz_request',
-    `Fuzz an HTTP request, as the app's Fuzz dialog does: send it once as it is, then once for each attempt with one value swapped for a payload, and compare every answer with the first. Choose positions (from list_fuzz_points; the suggested ones when left out) and payload lists by id (${FUZZ_LISTS.map(({ id }) => id).join(', ')}) and/or your own payloads. Each position gets each payload, one at a time, up to ${FUZZ_MAX_ATTEMPTS} attempts. The request's pre-request and after-response scripts and assertions run for every attempt, with fuzzPayload, fuzzPosition and fuzzAttempt as iteration data; a failed test or assertion marks the attempt. Nothing sent is stored. It works on any method: a request that changes data changes it once per attempt the server accepts. The app asks the user to allow each run, saying how many requests it sends; a declined run returns an error and sends nothing. Returns the attempts that stood out (a server error, a stack trace or database error, a template worked out, a slipped-in field that came back, a much slower answer, a failed check) with the start of each answer, and the rest in brief. An attempt that stood out is a place to look, not a proven fault.`,
+    `Fuzz an HTTP request, as the app's Fuzz dialog does: send it once as it is, then once for each attempt with one value swapped for a payload, and compare every answer with the first. Choose positions (from list_fuzz_points; the suggested ones when left out) and payload lists by id (${FUZZ_LISTS.map(({ id }) => id).join(', ')}) and/or your own payloads. Each position gets each payload, one at a time (or all at once, or in every combination: mode), up to ${FUZZ_MAX_ATTEMPTS} attempts. The request's pre-request and after-response scripts and assertions run for every attempt, with fuzzPayload, fuzzPosition and fuzzAttempt as iteration data; a failed test or assertion marks the attempt. Nothing sent is stored. It works on any method: a request that changes data changes it once per attempt the server accepts. The app asks the user to allow each run, saying how many requests it sends; a declined run returns an error and sends nothing. Returns the attempts that stood out (a server error, a stack trace or database error, a template worked out, a slipped-in field that came back, a much slower answer, a failed check) with the start of each answer, and the rest in brief. An attempt that stood out is a place to look, not a proven fault.`,
     {
       requestId: z.string(),
       environmentId: z.string().nullable().optional().describe('Override the active environment for this call. Null = no environment overrides; omit = use workspace active environment.'),
       positions: z.array(z.string()).optional().describe('Position ids or labels from list_fuzz_points, or ["all"]. The suggested positions when left out.'),
       lists: z.array(z.string()).optional().describe(`Payload lists by id: ${FUZZ_LISTS.map(({ id, about }) => `${id} (${about.toLowerCase()})`).join('; ')}.`),
       payloads: z.array(z.string()).optional().describe('Your own payloads. One that is JSON (null, {"$gt":""}) goes into a JSON body as that value; one like role=owner is a field to slip into a JSON body.'),
+      mode: z.enum(FUZZ_MODES as [string, ...string[]]).optional().describe('How the payloads are spread over the positions. one (the default): each position with each payload, one at a time, which shows which input is at fault. together: each payload in every position at once. combinations: every combination of payloads over the positions, for what only breaks when two inputs are odd at once; it grows fast.'),
       delayMs: z.number().int().min(0).max(60000).optional().describe('A pause between attempts, in milliseconds.'),
     },
-    async ({ requestId, environmentId, positions, lists, payloads, delayMs }, { signal }) => {
+    async ({ requestId, environmentId, positions, lists, payloads, mode, delayMs }, { signal }) => {
       const request = await models.request.getById(requestId);
       if (!request || !isRequest(request)) {
         return notFound('HTTP request');
@@ -97,7 +98,7 @@ export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { lis
       } catch (err) {
         return fail((err as Error).message);
       }
-      const attempts = Math.min(FUZZ_MAX_ATTEMPTS, fuzzAttempts(chosen.points, chosen.payloads).length);
+      const attempts = Math.min(FUZZ_MAX_ATTEMPTS, fuzzPlanSize(chosen.points, chosen.payloads, mode as FuzzMode | undefined));
       if (!attempts) {
         return fail('nothing to try: none of the payloads chosen fit the positions chosen (fields to slip in go only in "Body: a new field", and nothing else goes there)');
       }
@@ -121,6 +122,7 @@ export function registerFuzzTools(server: McpServer, confirm: ConfirmFuzz, { lis
           ...(environmentId === undefined ? {} : { environmentId }),
           pointIds: chosen.points.map(({ id }) => id),
           payloads: chosen.payloads,
+          mode: mode as FuzzMode | undefined,
           delay: delayMs,
           signal,
           checkUrl: assertSafeRequestUrl,

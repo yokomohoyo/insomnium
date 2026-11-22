@@ -2,7 +2,7 @@ import fs from 'fs';
 import React, { type FC, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { OverlayContainer } from 'react-aria';
 
-import { customPayloads, FUZZ_LISTS, fuzzAttempts, type FuzzPoint } from '../../../common/fuzz';
+import { customPayloads, FUZZ_LISTS, type FuzzMode, fuzzPlanSize, type FuzzPoint } from '../../../common/fuzz';
 import { t } from '../../../common/i18n';
 import { isSafeToRepeat } from '../../../common/security-tests';
 import { fuzzCsv, fuzzJson } from '../../../network/fuzz-report';
@@ -65,6 +65,7 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
   const [chosenLists, setChosenLists] = useState<Set<string>>(new Set(['sql', 'types', 'fields']));
   const [custom, setCustom] = useState('');
   const [delay, setDelay] = useState(0);
+  const [mode, setMode] = useState<FuzzMode>('one');
   const [allowed, setAllowed] = useState(false);
   const [attempts, setAttempts] = useState<FuzzAttemptResult[]>([]);
   const [summary, setSummary] = useState<FuzzRunSummary>();
@@ -88,8 +89,8 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
     [chosenLists, custom],
   );
   const planned = useMemo(
-    () => Math.min(FUZZ_MAX_ATTEMPTS, fuzzAttempts((points || []).filter(({ id }) => chosenPoints.has(id)), payloads).length),
-    [points, chosenPoints, payloads],
+    () => Math.min(FUZZ_MAX_ATTEMPTS, fuzzPlanSize((points || []).filter(({ id }) => chosenPoints.has(id)), payloads, mode)),
+    [points, chosenPoints, payloads, mode],
   );
   // a request that changes things changes them once for every attempt
   const writes = !isSafeToRepeat(request.method);
@@ -113,6 +114,7 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
       const done = await run(request._id, {
         pointIds: [...chosenPoints],
         payloads,
+        mode,
         delay,
         signal: controller.current.signal,
         onAttempt: attempt => setAttempts(sent => [...sent, attempt]),
@@ -194,6 +196,14 @@ export const FuzzModal: FC<ModalProps & Props> = ({ request, onHide, list = list
                   <label className="txt-sm flex flex-col gap-2 mt-5">
                     {t('Your own, one a line (name=value adds a field to a JSON body)')}
                     <textarea className="input-box w-full font-mono txt-sm p-2 m-0" rows={3} value={custom} onChange={event => setCustom(event.currentTarget.value)} />
+                  </label>
+                  <label className="flex items-center gap-3 txt-sm mt-4" title={t('One at a time shows which input is at fault. All at once puts each payload in every position together. Every combination tries each mix of payloads over the positions, and grows fast.')}>
+                    {t('Positions:')}
+                    <select className="input-box m-0" value={mode} onChange={event => setMode(event.currentTarget.value as FuzzMode)}>
+                      <option value="one">{t('One at a time')}</option>
+                      <option value="together">{t('All at once')}</option>
+                      <option value="combinations">{t('Every combination')}</option>
+                    </select>
                   </label>
                   <label className="flex items-center gap-3 txt-sm mt-4">
                     {t('Milliseconds between attempts')}

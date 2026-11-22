@@ -31,7 +31,17 @@ The likely ones are ticked: the query, the body, and the parts of the path that 
 
 **Your own** payloads go in the box, one a line. A line that is JSON (`null`, `{"$gt":""}`) goes into a JSON body as that value and not as text. A line like `role=owner` is a field to slip in.
 
-Each position gets each payload, one at a time. Fields to slip in go only in the body's new field, and nothing else goes there. The dialog says how many requests that comes to before anything is sent, and a run sends 2000 at most.
+Fields to slip in go only in the body's new field, and nothing else goes there.
+
+**Positions** says how the payloads are spread over the places you ticked:
+
+| | |
+| --- | --- |
+| One at a time | each position gets each payload while the rest of the request stays as it is. It shows which input is at fault, and is where to start |
+| All at once | each payload goes in every position together: far fewer requests, and for values that must match, such as a field and its confirmation |
+| Every combination | each mix of payloads over the positions, for what only breaks when two inputs are odd at once. Two positions with 24 payloads each is 576 attempts, and a third makes it 13,824, so tick few positions and short lists |
+
+The dialog says how many requests that comes to before anything is sent, and a run sends 2000 at most.
 
 ## What it shows
 
@@ -56,8 +66,8 @@ The request's [scripts](scripts.md) run for every attempt, as they do when you s
 
 | Variable | |
 | --- | --- |
-| `fuzzPayload` | the payload, as text |
-| `fuzzPosition` | where it went, as the dialog names it |
+| `fuzzPayload` | the payload, as text. With several in one attempt, joined with ` + ` unless they're all the same |
+| `fuzzPosition` | where it went, as the dialog names it. With several, joined with ` + ` |
 | `fuzzAttempt` | the attempt's number; 0 for the request as it is |
 
 ```js

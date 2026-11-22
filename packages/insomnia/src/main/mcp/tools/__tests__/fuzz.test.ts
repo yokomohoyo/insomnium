@@ -123,6 +123,19 @@ describe('the fuzz tools', () => {
       expect(body.othersLeftOut).toBe(30);
     });
 
+    it('counts and runs the attempts the way asked for', async () => {
+      confirm.mockResolvedValue(true);
+      run.mockResolvedValue(summary([attempt(1)]));
+
+      await call('fuzz_request', { requestId, positions: ['all'], lists: ['commands'], mode: 'together' });
+      // 6 payloads, each in all three positions at once, and the request as it is
+      expect(confirm.mock.calls[0][0].requests).toBe(7);
+      expect(run.mock.calls[0][1].mode).toBe('together');
+
+      await call('fuzz_request', { requestId, positions: ['all'], lists: ['commands'], mode: 'combinations' });
+      expect(confirm.mock.calls[1][0].requests).toBe(6 ** 3 + 1);
+    });
+
     it('refuses before asking when there is nothing to try', async () => {
       expect((await call('fuzz_request', { requestId })).body.error).toContain('nothing to try: name payload lists (sql, nosql,');
       expect((await call('fuzz_request', { requestId, lists: ['made-up'] })).body.error).toContain('no payload list named made-up');

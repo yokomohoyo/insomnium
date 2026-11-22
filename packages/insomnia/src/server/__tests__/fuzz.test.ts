@@ -13,7 +13,7 @@ const ARGS = ['--collection', 'a.yaml', '--request', 'Orders/List', ALLOW_FLAG, 
 describe('parseFuzzConfig()', () => {
   it('reads the options', () => {
     expect(parseFuzzConfig(
-      ['--collection', 'a.yaml', '--request', 'Users/Create user', ALLOW_FLAG, CHANGE_FLAG, '--env', 'ci', '--positions', 'Query: status, Body: name', '--positions', 'all', '--lists', 'sql,types', '--payloads', 'mine.txt', '--delay', '50', '--no-fail', '--csv', 'fuzz.csv', '--json', 'fuzz.json'],
+      ['--collection', 'a.yaml', '--request', 'Users/Create user', ALLOW_FLAG, CHANGE_FLAG, '--env', 'ci', '--positions', 'Query: status, Body: name', '--positions', 'all', '--lists', 'sql,types', '--payloads', 'mine.txt', '--mode', 'Together', '--delay', '50', '--no-fail', '--csv', 'fuzz.csv', '--json', 'fuzz.json'],
       { INSOMNIUM_ALLOWED_HOSTS: 'staging.example.com', INSOMNIUM_VAR_token: 't' },
     )).toEqual({
       collections: ['a.yaml'],
@@ -25,6 +25,7 @@ describe('parseFuzzConfig()', () => {
       positions: ['Query: status', 'Body: name', 'all'],
       lists: ['sql', 'types'],
       payloadFile: 'mine.txt',
+      mode: 'together',
       delay: 50,
       noFail: true,
       csv: 'fuzz.csv',
@@ -42,7 +43,7 @@ describe('parseFuzzConfig()', () => {
 
     expect(() => parseFuzzConfig(without, {})).toThrow(`Pass ${ALLOW_FLAG} to say you're allowed to test this API.`);
     expect(() => parseFuzzConfig(without, { INSOMNIUM_I_MAY_TEST_THIS_API: 'true' })).toThrow(ALLOW_FLAG);
-    expect(parseFuzzConfig(ARGS, {})).toMatchObject({ allowed: true, mayChangeData: false, noFail: false, delay: 0, positions: [] });
+    expect(parseFuzzConfig(ARGS, {})).toMatchObject({ allowed: true, mayChangeData: false, noFail: false, delay: 0, mode: 'one', positions: [] });
   });
 
   it('needs a request and something to try', () => {
@@ -53,6 +54,7 @@ describe('parseFuzzConfig()', () => {
 
   it('refuses a list it has no name for, a delay that is no number, and an unknown option', () => {
     expect(() => parseFuzzConfig([...ARGS, '--lists', 'sql,made-up'], {})).toThrow('--lists: no list named made-up. The lists are: sql, nosql,');
+    expect(() => parseFuzzConfig([...ARGS, '--mode', 'sniper'], {})).toThrow('--mode must be one of one, together, combinations');
     expect(() => parseFuzzConfig([...ARGS, '--delay', 'soon'], {})).toThrow('--delay must be a whole number of milliseconds');
     expect(() => parseFuzzConfig([...ARGS, '--bail'], {})).toThrow('Unknown option --bail');
     expect(() => parseFuzzConfig([...ARGS, '--request'], {})).toThrow('--request needs a value');

@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 
 import { version } from '../../package.json';
-import { chooseFuzz, fuzzAttempts } from '../common/fuzz';
+import { chooseFuzz, fuzzPlanSize } from '../common/fuzz';
 import { ignoredRules } from '../common/security-rules';
 import { loadMockRoutes, mockPathOf } from '../mock/mock-routes';
 import { startMockServer } from '../mock/mock-server';
@@ -217,21 +217,22 @@ async function fuzz(argv: string[]) {
     assertMayFuzz(found.request.method, config.mayChangeData);
     const { points, url } = await listFuzzPoints(found.request._id);
     const chosen = chooseFuzz(points, { positions: config.positions, lists: config.lists, payloads: own });
-    const attempts = Math.min(FUZZ_MAX_ATTEMPTS, fuzzAttempts(chosen.points, chosen.payloads).length);
+    const total = fuzzPlanSize(chosen.points, chosen.payloads, config.mode);
+    const attempts = Math.min(FUZZ_MAX_ATTEMPTS, total);
     if (!attempts) {
       throw new Error('Nothing to try: none of the payloads fit the positions (fields to slip in go only in "Body: a new field", and nothing else goes there)');
     }
-    prepared = { found, url, chosen, attempts };
+    prepared = { found, url, chosen, attempts, total };
   } catch (err) {
     const message = (err as Error).message;
     console.error(`[fuzz] ${message.charAt(0).toUpperCase()}${message.slice(1)}`);
     return 2;
   }
 
-  const { found, url, chosen, attempts } = prepared;
+  const { found, url, chosen, attempts, total } = prepared;
   const name = [...found.folders, found.request.name].join(' / ');
   print(`[fuzz] ${name}: ${found.request.method} ${url}`);
-  print(`[fuzz] ${attempts} ${attempts === 1 ? 'attempt' : 'attempts'}, sending to ${config.allowedHosts.includes('*') ? 'any host' : config.allowedHosts.join(', ')}`);
+  print(`[fuzz] ${attempts} ${attempts === 1 ? 'attempt' : 'attempts'}${total > attempts ? ` (the first of ${total}: a run makes ${FUZZ_MAX_ATTEMPTS} at most)` : ''}${config.mode === 'one' ? '' : config.mode === 'together' ? ', each payload in every position at once' : ', every combination of payloads over the positions'}, sending to ${config.allowedHosts.includes('*') ? 'any host' : config.allowedHosts.join(', ')}`);
   print(`[fuzz] positions: ${chosen.points.map(({ label }) => label).join(', ')}`);
   print(`[fuzz] payloads: ${chosen.lists.join(', ')}`);
   let summary;
@@ -239,6 +240,7 @@ async function fuzz(argv: string[]) {
     summary = await runFuzz(found.request._id, {
       pointIds: chosen.points.map(({ id }) => id),
       payloads: chosen.payloads,
+      mode: config.mode,
       delay: config.delay,
       // only what stood out or couldn't be sent: a run is hundreds of lines otherwise
       onAttempt: attempt => {

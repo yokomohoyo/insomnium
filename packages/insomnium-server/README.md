@@ -244,6 +244,7 @@ Only the attempts that stood out, or couldn't be sent, are printed; `--csv` and 
 | `--positions` | where the payloads go, comma-separated: labels as the output names them (`Query: status`), or `all`. The likely ones when left out: the query, the body, and the parts of the path that look like ids |
 | `--lists` | payload lists, comma-separated: `sql`, `nosql`, `traversal`, `script`, `commands`, `ids`, `types`, `fields` |
 | `--payloads` | a file of your own payloads, one a line |
+| `--mode` | how the payloads are spread over the positions: `one` (the default) at a time, `together` in every position at once, or `combinations` of payloads over the positions |
 | `--delay` | milliseconds to wait between attempts |
 | `--no-fail` | exit 0 even when attempts stood out |
 | `--csv`, `--json` | write the attempts to this file |

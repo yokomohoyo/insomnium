@@ -1,4 +1,4 @@
-import { FUZZ_LISTS } from '../common/fuzz';
+import { FUZZ_LISTS, FUZZ_MODES, type FuzzMode } from '../common/fuzz';
 import { isSafeToRepeat } from '../common/security-tests';
 import { FUZZ_MAX_ATTEMPTS, type FuzzAttemptResult, type FuzzRunSummary } from '../network/fuzz-run';
 import type { RunnableRequest } from '../network/runner';
@@ -29,6 +29,8 @@ export interface FuzzConfig extends Sources {
   lists: string[];
   // a file of payloads, one a line
   payloadFile?: string;
+  // how the payloads are spread over the positions
+  mode: FuzzMode;
   delay: number;
   // exit 0 even when attempts stood out
   noFail: boolean;
@@ -67,6 +69,10 @@ ${SOURCES_USAGE}
   --lists       payload lists, comma-separated: ${FUZZ_LISTS.map(({ id }) => id).join(', ')}
   --payloads    a file of your own payloads, one a line. A line that is JSON goes
                 into a JSON body as that value; role=owner is a field to slip in
+  --mode        how the payloads are spread over the positions: one (the default)
+                puts each payload in each position, one at a time; together puts
+                each payload in every position at once; combinations tries every
+                combination of payloads over the positions, and grows fast
   --delay       milliseconds to wait between attempts
   --no-fail     exit 0 even when attempts stood out
   --csv         write the attempts to this file as CSV
@@ -92,6 +98,7 @@ export const parseFuzzConfig = (argv: string[], env: Record<string, string | und
     mayChangeData: false,
     positions: [],
     lists: [],
+    mode: 'one',
     delay: 0,
     noFail: false,
     ...sendingEnvironment(env),
@@ -137,6 +144,14 @@ export const parseFuzzConfig = (argv: string[], env: Record<string, string | und
       case '--payloads':
         config.payloadFile = value();
         break;
+      case '--mode': {
+        const mode = value().toLowerCase() as FuzzMode;
+        if (!FUZZ_MODES.includes(mode)) {
+          throw new Error(`${option} must be one of ${FUZZ_MODES.join(', ')}`);
+        }
+        config.mode = mode;
+        break;
+      }
       case '--delay': {
         const delay = Number(value());
         if (!Number.isInteger(delay) || delay < 0) {

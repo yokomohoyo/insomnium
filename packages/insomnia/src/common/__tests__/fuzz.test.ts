@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from '@jest/globals';
 
-import { chooseFuzz, customPayloads, FUZZ_LISTS, fuzzAttempts, type FuzzExchange, fuzzPoints, type FuzzTarget, judgeAttempt, payloadFits, withPayload } from '../fuzz';
+import { chooseFuzz, customPayloads, FUZZ_LISTS, fuzzAttempts, type FuzzExchange, fuzzPlan, fuzzPlanSize, fuzzPoints, type FuzzTarget, judgeAttempt, payloadFits, withPayload, withPayloads } from '../fuzz';
 
 const target = (patch: Partial<FuzzTarget> = {}): FuzzTarget => ({
   url: 'https://shop.example.com/users/42/orders?status=open&page=2',
@@ -149,6 +149,62 @@ describe('the payloads', () => {
       { value: 'limit=10', field: 'limit', json: 10 },
       { value: " it's " },
     ]);
+  });
+});
+
+describe('fuzzPlan()', () => {
+  const points = fuzzPoints(target({ url: 'https://shop.example.com/orders?status=open', parameters: [{ name: 'sort', value: 'date' }], headers: [], body: { mimeType: 'application/json', text: '{"name":"Ana"}' } }));
+  // sort, status, the path's one part, the body's name, and a new field
+  const [sort, status, , name, added] = points;
+  const payloads = customPayloads("'\n<x>\nrole=owner");
+  const shape = (plan: ReturnType<typeof fuzzPlan>) => plan.map(change => change.map(({ point, payload }) => `${point.label}=${payload.value}`));
+
+  it('one at a time: each position with each payload that fits it', () => {
+    expect(shape(fuzzPlan([sort, added], payloads))).toEqual([["Query: sort='"], ['Query: sort=<x>'], ['Body: a new field=role=owner']]);
+    expect(fuzzPlanSize([sort, added], payloads)).toBe(3);
+    expect(fuzzPlan([sort, status], payloads, 'one', 3)).toHaveLength(3);
+  });
+
+  it('together: each payload in every position it fits, in one attempt', () => {
+    expect(shape(fuzzPlan([sort, status, added], payloads, 'together'))).toEqual([
+      ["Query: sort='", "Query: status='"],
+      ['Query: sort=<x>', 'Query: status=<x>'],
+      ['Body: a new field=role=owner'],
+    ]);
+    expect(fuzzPlanSize([sort, status, added], payloads, 'together')).toBe(3);
+    // a payload that fits nowhere makes no attempt
+    expect(fuzzPlanSize([sort], payloads, 'together')).toBe(2);
+  });
+
+  it('combinations: every mix of payloads over the positions, the last turning fastest', () => {
+    expect(shape(fuzzPlan([sort, name], payloads, 'combinations'))).toEqual([
+      ["Query: sort='", "Body: name='"],
+      ["Query: sort='", 'Body: name=<x>'],
+      ['Query: sort=<x>', "Body: name='"],
+      ['Query: sort=<x>', 'Body: name=<x>'],
+    ]);
+    expect(fuzzPlanSize([sort, status, name, added], payloads, 'combinations')).toBe(2 * 2 * 2 * 1);
+  });
+
+  it('counts the combinations without making them, and makes only as many as asked for', () => {
+    const many = FUZZ_LISTS.flatMap(list => list.payloads).filter(payload => !payload.field);
+
+    expect(fuzzPlanSize([sort, status, name], many, 'combinations')).toBe(many.length ** 3);
+    expect(fuzzPlan([sort, status, name], many, 'combinations', 2000)).toHaveLength(2000);
+    expect(fuzzPlanSize([], many, 'combinations')).toBe(0);
+    expect(fuzzPlan([added], customPayloads("'"), 'combinations')).toEqual([]);
+  });
+
+  it('puts several payloads into one request', () => {
+    const changed = withPayloads(target({ url: 'https://shop.example.com/orders?status=open', parameters: [{ name: 'sort', value: 'date' }], body: { mimeType: 'application/json', text: '{"name":"Ana"}' } }), [
+      { pointId: sort.id, payload: { value: "'" } },
+      { pointId: name.id, payload: { value: '<x>' } },
+      { pointId: added.id, payload: payloads[2] },
+    ])!;
+
+    expect(changed.parameters[0].value).toBe("'");
+    expect(JSON.parse(changed.body.text!)).toEqual({ name: '<x>', role: 'owner' });
+    expect(withPayloads(target(), [{ pointId: sort.id, payload: { value: "'" } }, { pointId: 'query:p9', payload: { value: "'" } }])).toBeNull();
   });
 });
 
