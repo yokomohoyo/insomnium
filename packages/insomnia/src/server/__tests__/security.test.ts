@@ -11,7 +11,7 @@ const ARGS = ['--collection', 'a.yaml', ALLOW_FLAG];
 describe('parseSecurityConfig()', () => {
   it('reads the options', () => {
     expect(parseSecurityConfig(
-      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
+      [...ARGS, '--folder', 'Users/Admin', '--env', 'ci', '--as', 'other user', '--as-lower', 'viewer', '--rate-limit-requests', '300', '--fail-on', 'Medium', '--ignore', 'nosniff-missing, rate-limit', '--ignore', 'hsts-missing', '--markdown', 'report.md', '--json', 'report.json', '--sarif', 'report.sarif'],
       { ...HOSTS, INSOMNIUM_VAR_token: 't', INSOMNIUM_VALIDATE_SSL: 'false' },
     )).toEqual({
       collections: ['a.yaml'],
@@ -21,6 +21,7 @@ describe('parseSecurityConfig()', () => {
       environment: 'ci',
       otherEnvironment: 'other user',
       lowerEnvironment: 'viewer',
+      rateLimitRequests: 300,
       failOn: 'medium',
       ignore: ['nosniff-missing', 'rate-limit', 'hsts-missing'],
       markdown: 'report.md',
@@ -59,6 +60,10 @@ describe('parseSecurityConfig()', () => {
     expect(() => parseSecurityConfig([...ARGS, '--ignore', 'nosniff-missing,made-up'], HOSTS)).toThrow('--ignore: no rule named made-up.');
     expect(() => parseSecurityConfig([...ARGS, '--bail'], HOSTS)).toThrow('Unknown option --bail');
     expect(() => parseSecurityConfig([...ARGS, '--as'], HOSTS)).toThrow('--as needs a value');
+    expect(() => parseSecurityConfig([...ARGS, '--rate-limit-requests', '5000'], HOSTS)).toThrow('--rate-limit-requests must be a whole number from 0 to 1000');
+    expect(() => parseSecurityConfig([...ARGS, '--rate-limit-requests', 'lots'], HOSTS)).toThrow('--rate-limit-requests must be a whole number');
+    expect(parseSecurityConfig([...ARGS, '--rate-limit-requests', '0'], HOSTS).rateLimitRequests).toBe(0);
+    expect(parseSecurityConfig(ARGS, HOSTS).rateLimitRequests).toBeUndefined();
     expect(() => parseSecurityConfig([ALLOW_FLAG], HOSTS)).toThrow();
   });
 

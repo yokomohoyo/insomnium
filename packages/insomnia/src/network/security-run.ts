@@ -5,7 +5,7 @@
 // Nothing sent here is kept.
 import { type AuditFinding, type AuditSeverity, auditStoredResponse, mostSevereFirst } from '../common/response-audit';
 import { withoutIgnored } from '../common/security-rules';
-import { isSafeToRepeat, SECURITY_TEST_MAX_REQUESTS, type SecurityCheck } from '../common/security-tests';
+import { isSafeToRepeat, type SecurityCheck, securityTestMaxRequests } from '../common/security-tests';
 import { compareWithSpec, notInSpecFinding } from '../common/spec-inventory';
 import * as models from '../models';
 import { isEventStreamRequest } from '../models/request';
@@ -53,7 +53,7 @@ export interface SecurityRunSummary {
   inventory?: { operations: number; uncovered: string[] };
 }
 
-export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environmentId' | 'otherEnvironmentId' | 'lowerEnvironmentId' | 'signal' | 'checkUrl'> {
+export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environmentId' | 'otherEnvironmentId' | 'lowerEnvironmentId' | 'rateLimitRequests' | 'signal' | 'checkUrl'> {
   // the rules the collection ignores (common/security-rules.ts)
   ignored?: string[];
   // the design document's spec, to compare the requests with (common/spec-inventory.ts)
@@ -67,8 +67,8 @@ export interface SecurityRunOptions extends Pick<SecurityTestOptions, 'environme
 }
 
 // the most a run over these requests may send: said before it starts
-export const securityRunMaxRequests = (requests: RunnableRequest[]) =>
-  requests.filter(({ request }) => isSafeToRepeat(request.method) && !isEventStreamRequest(request)).length * SECURITY_TEST_MAX_REQUESTS;
+export const securityRunMaxRequests = (requests: RunnableRequest[], rateLimitRequests?: number | null) =>
+  requests.filter(({ request }) => isSafeToRepeat(request.method) && !isEventStreamRequest(request)).length * securityTestMaxRequests(rateLimitRequests);
 
 // a URL without its user name and password, and without its query's values
 const shown = (url: string) => {

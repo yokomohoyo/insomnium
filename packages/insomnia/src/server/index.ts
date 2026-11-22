@@ -147,6 +147,7 @@ async function security(argv: string[]) {
   const summary = await runSecurityChecks(requests, {
     otherEnvironmentId,
     lowerEnvironmentId,
+    rateLimitRequests: config.rateLimitRequests,
     ignored: ignoredRules([...ignoredByCollection, ...config.ignore]),
     spec,
     covering,

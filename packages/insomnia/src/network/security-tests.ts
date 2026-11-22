@@ -26,6 +26,9 @@ export interface SecurityTestOptions {
   // an environment with less privilege than the request needs: choosing it
   // says the request is for some users only
   lowerEnvironmentId?: string | null;
+  // how many times in a row to send it, looking for a rate limit: 100 when
+  // left out, 0 for none
+  rateLimitRequests?: number | null;
   signal?: AbortSignal;
   // throws for a URL that mustn't be sent to (the MCP server's guard)
   checkUrl?: (url: string) => void;
@@ -42,7 +45,7 @@ export interface SecurityTestRun extends SecurityTestResult {
 
 const remove = (path?: string) => path ? fs.promises.rm(path, { force: true }).catch(() => undefined) : undefined;
 
-export async function runRequestSecurityTests(requestId: string, { environmentId, otherEnvironmentId, lowerEnvironmentId, signal, checkUrl }: SecurityTestOptions = {}): Promise<SecurityTestRun> {
+export async function runRequestSecurityTests(requestId: string, { environmentId, otherEnvironmentId, lowerEnvironmentId, rateLimitRequests, signal, checkUrl }: SecurityTestOptions = {}): Promise<SecurityTestRun> {
   const { request, environment, settings, clientCertificates, caCert } = await fetchRequestData(requestId);
   if (!isRequest(request)) {
     throw new Error('Only an HTTP request has security tests');
@@ -138,6 +141,7 @@ export async function runRequestSecurityTests(requestId: string, { environmentId
       credentialInQuery: getAuthQueryParamsList(base.authentication).length > 0,
       hasOther: Boolean(other),
       hasLower: Boolean(lower),
+      rateLimitRequests,
       send,
       signal,
     });

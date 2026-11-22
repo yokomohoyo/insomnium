@@ -63,6 +63,8 @@ export interface SecurityTestInput {
   hasOther?: boolean;
   // an environment with less privilege than the request needs was chosen
   hasLower?: boolean;
+  // how many times in a row it's sent, looking for a rate limit; 0 for none
+  rateLimitRequests?: number | null;
   send: SendProbe;
   signal?: AbortSignal;
 }
@@ -76,13 +78,21 @@ const MISCONFIGURATION = 'API8:2023 Security Misconfiguration';
 // an origin nobody's API has a reason to trust
 export const PROBE_ORIGIN = 'https://insomnium-security-test.example';
 // how many times in a row the request is sent, looking for a rate limit
-export const RATE_LIMIT_REQUESTS = 15;
+// by default. Most limits are in the tens to the low hundreds a minute, so a
+// burst smaller than that passes a limited API off as one with no limit: 15,
+// as it was at first, said "no sign of a rate limit" of nearly everything.
+export const RATE_LIMIT_REQUESTS = 100;
+// the most that can be asked for; 0 leaves the test out
+export const RATE_LIMIT_MOST = 1000;
+// what was asked for, as a whole number the test can use
+export const rateLimitBurst = (asked?: number | null) =>
+  asked === undefined || asked === null || !Number.isFinite(asked) ? RATE_LIMIT_REQUESTS : Math.min(RATE_LIMIT_MOST, Math.max(0, Math.floor(asked)));
 // how many parameters get a quote
 const QUOTED_PARAMS = 3;
 // the most a run sends: the request itself, without credentials, two tokens,
 // as another user, with less privilege, from another origin, over http, the
 // quotes, the burst
-export const SECURITY_TEST_MAX_REQUESTS = 8 + QUOTED_PARAMS + RATE_LIMIT_REQUESTS;
+export const securityTestMaxRequests = (rateLimitRequests?: number | null) => 8 + QUOTED_PARAMS + rateLimitBurst(rateLimitRequests);
 
 export const isSafeToRepeat = (method: string) => ['GET', 'HEAD'].includes(method.toUpperCase());
 
@@ -132,7 +142,8 @@ const withoutUrlCredentials = (url: URL) => {
 
 const answered = ({ statusCode, error }: ProbeExchange) => statusCode ? `It answered ${statusCode}.` : `Nothing came back${error ? ` (${error})` : ''}.`;
 
-export async function runSecurityTests({ method, url, credentialInQuery, hasOther, hasLower, send, signal }: SecurityTestInput): Promise<SecurityTestResult> {
+export async function runSecurityTests({ method, url, credentialInQuery, hasOther, hasLower, rateLimitRequests, send, signal }: SecurityTestInput): Promise<SecurityTestResult> {
+  const burst = rateLimitBurst(rateLimitRequests);
   const checks: SecurityCheck[] = [];
   const findings: AuditFinding[] = [];
   let requests = 0;
@@ -395,12 +406,16 @@ export async function runSecurityTests({ method, url, credentialInQuery, hasOthe
     return { outcome: 'passed', note: `With a quote added, it answered ${notes.join(', ')}.` };
   });
 
-  await test('rate-limit', `${RATE_LIMIT_REQUESTS} times in a row`, async () => {
+  await test('rate-limit', burst ? `${burst} times in a row` : 'Many times in a row', async () => {
     const limited = ({ headers }: ProbeExchange) => headers.some(({ name }) => /^(retry-after|(x-)?rate-?limit)/i.test(name));
     if (limited(baseline)) {
       return { outcome: 'passed', note: 'Its answers have rate limit headers.' };
     }
-    for (let sent = 1; sent <= RATE_LIMIT_REQUESTS; sent++) {
+    if (!burst) {
+      return skipped('Set to send none.');
+    }
+    const began = Date.now();
+    for (let sent = 1; sent <= burst; sent++) {
       if (signal?.aborted) {
         return skipped(`Stopped after ${sent - 1}.`);
       }
@@ -409,15 +424,19 @@ export async function runSecurityTests({ method, url, credentialInQuery, hasOthe
         return { outcome: 'passed', note: answer.statusCode === 429 ? `It answered 429 to request ${sent}.` : 'Its answers have rate limit headers.' };
       }
     }
+    // how fast they went says which limits this would have reached
+    const seconds = Math.max(0.001, (Date.now() - began) / 1000);
+    const perMinute = Math.round(burst / seconds * 60);
+    const pace = `${burst} requests in ${seconds < 10 ? Math.max(0.1, seconds).toFixed(1) : Math.round(seconds)} s`;
     return {
       outcome: 'found',
-      note: `It answered all ${RATE_LIMIT_REQUESTS}, with no rate limit headers.`,
+      note: `It answered all ${burst}, with no 429 and no rate limit headers (${pace}).`,
       finding: {
         severity: 'low',
         owasp: CONSUMPTION,
         title: 'No sign of a rate limit',
-        detail: `${RATE_LIMIT_REQUESTS} requests in a row is too few to reach most limits, but nothing in the answers says there is one. Without a limit, one caller can take the API's whole capacity, or guess at credentials for as long as they like.`,
-        evidence: `${RATE_LIMIT_REQUESTS} requests in a row`,
+        detail: `${burst} requests in a row, at about ${perMinute} a minute, were all answered, and nothing in the answers says there is a limit. A limit above ${burst} requests, or one counted over a longer time, wouldn't show here: send more to look for one. Without a limit, one caller can take the API's whole capacity, or guess at credentials for as long as they like.`,
+        evidence: `${burst} requests in a row`,
       },
     };
   });

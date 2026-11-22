@@ -236,8 +236,11 @@ paths:
     const { requests } = await collection();
 
     // (the event stream is a GET too, and isn't sent)
-    expect(securityRunMaxRequests(requests)).toBe(26);
+    expect(securityRunMaxRequests(requests)).toBe(111);
     expect(securityRunMaxRequests([])).toBe(0);
+    // fewer or more with another burst, none of it with 0
+    expect(securityRunMaxRequests(requests, 15)).toBe(26);
+    expect(securityRunMaxRequests(requests, 0)).toBe(11);
   });
 });
 

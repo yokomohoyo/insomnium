@@ -35,7 +35,7 @@ describe('<SecurityTestsPanel />', () => {
 
     fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
 
-    await waitFor(() => expect(confirm).toHaveBeenCalledWith(26));
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith(111));
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -45,7 +45,7 @@ describe('<SecurityTestsPanel />', () => {
     fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
 
     expect((await findByLabelText('Security tests run')).children).toHaveLength(3);
-    expect(run).toHaveBeenCalledWith(request._id, { otherEnvironmentId: null, lowerEnvironmentId: null, signal: expect.any(AbortSignal) });
+    expect(run).toHaveBeenCalledWith(request._id, { otherEnvironmentId: null, lowerEnvironmentId: null, rateLimitRequests: 100, signal: expect.any(AbortSignal) });
     expect(getByLabelText('Security test findings').textContent).toContain('It answers the same without credentials');
     expect(getByTestId('security-check-no-credentials').textContent).toContain('Found');
     expect(getByTestId('security-check-other-user').textContent).toContain('Not run');
@@ -80,6 +80,23 @@ describe('<SecurityTestsPanel />', () => {
     expect(queryByLabelText('Security test findings')).toBeNull();
     // (the test itself is still listed)
     expect((await findByLabelText('Security tests run')).children).toHaveLength(3);
+  });
+
+  it('sends the burst asked for, says how many requests that makes, and leaves the test out at 0', async () => {
+    const { getByRole, getByLabelText, findByLabelText, run, confirm, request } = panel();
+
+    fireEvent.change(getByLabelText('Rate limit burst:'), { target: { value: '500' } });
+    fireEvent.click(getByRole('button', { name: 'Run Security Tests' }));
+    await findByLabelText('Security tests run');
+
+    expect(confirm).toHaveBeenCalledWith(511);
+    expect(run).toHaveBeenCalledWith(request._id, expect.objectContaining({ rateLimitRequests: 500 }));
+
+    // more than the most is the most, and nothing is 0
+    fireEvent.change(getByLabelText('Rate limit burst:'), { target: { value: '99999' } });
+    expect((getByLabelText('Rate limit burst:') as HTMLInputElement).value).toBe('1000');
+    fireEvent.change(getByLabelText('Rate limit burst:'), { target: { value: '' } });
+    expect((getByLabelText('Rate limit burst:') as HTMLInputElement).value).toBe('0');
   });
 
   it('sends it as another user when an environment is chosen', async () => {
